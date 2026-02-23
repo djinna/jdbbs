@@ -188,21 +188,30 @@ function renderProject() {
   const actualTotal = t.reduce((s, x) => s + (x.ActualBudget || 0), 0);
   const done = t.filter(x => x.Status === 'done').length;
 
+  const txUrl = state.project.ClientSlug && state.project.ProjectSlug
+    ? '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/transmittal/' : null;
+  const clientUrl = state.project.ClientSlug ? '/' + state.project.ClientSlug + '/' : '/';
+
   return h('div', null,
-    h('div', { className: 'header' },
-      h('div', null,
-        h('button', { className: 'btn btn-sm', onClick: () => { window.location.href = '/'; }, style: 'margin-bottom:8px' }, '← Projects'),
-        h('h1', null, state.project.Name),
+    h('div', { className: 'page-header' },
+      h('div', { className: 'page-header-top' },
+        h('div', { className: 'page-header-left' },
+          h('h1', { className: 'page-header-title' }, state.project.Name),
+          h('nav', { className: 'page-header-nav' },
+            h('span', { className: 'active' }, '📅 Calendar'),
+            txUrl ? h('a', { href: txUrl }, '📋 Transmittal') : null,
+          ),
+        ),
+        h('div', { className: 'page-header-actions' },
+          h('button', { className: 'btn btn-sm', onClick: showAddTask }, '+ Task'),
+          h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, '⧉ Make New'),
+          h('button', { className: 'btn btn-sm', onClick: () => { state.showSnapshotEmail = true; state.snapshotResult = null; render(); } }, '📧 Email'),
+          h('button', { className: 'btn btn-sm', onClick: showSettings }, '⚙'),
+          themeBtn(),
+        ),
       ),
-      h('div', { className: 'header-actions' },
-        h('button', { className: 'btn btn-sm', onClick: showAddTask }, '+ Task'),
-        h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, '⧉ Make New'),
-        state.project.ClientSlug && state.project.ProjectSlug
-          ? h('a', { className: 'btn btn-sm', href: '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/transmittal/' }, '📋 Transmittal')
-          : null,
-        h('button', { className: 'btn btn-sm', onClick: () => { state.showSnapshotEmail = true; state.snapshotResult = null; render(); } }, '📧 Email Snapshot'),
-        h('button', { className: 'btn btn-sm', onClick: showSettings }, '⚙ Settings'),
-        themeBtn(),
+      h('div', { className: 'page-header-sub' },
+        h('button', { className: 'page-header-back', onClick: () => { window.location.href = clientUrl; } }, '← ' + (state.project.ClientSlug || 'Projects').toUpperCase()),
       ),
     ),
     h('div', { className: 'budget-summary' },

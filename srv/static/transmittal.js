@@ -342,7 +342,7 @@ function fmtDate(iso) {
 function renderProjectSwitcher() {
   if (!state.allProjects.length) return null;
   return h('select', {
-    className: 'tx-project-switcher',
+    className: 'project-switcher',
     onChange: (e) => {
       const proj = state.allProjects.find(p => p.ID === parseInt(e.target.value));
       if (proj) switchProject(proj);
@@ -438,43 +438,49 @@ function renderForm() {
       h('button', { className: 'btn btn-sm', onClick: exitPreview }, 'Exit preview'),
     ) : null,
     // Header
-    h('div', { className: 'tx-header' },
-      h('div', null,
-        h('h1', null, '📋 Manuscript Transmittal'),
-        h('div', { className: 'tx-subtitle' },
-          renderProjectSwitcher() || state.project.Name,
-          ' · ',
-          h('span', { className: 'tx-status tx-status-' + state.transmittal.status },
-            state.transmittal.status
+    h('div', { className: 'page-header' },
+      h('div', { className: 'page-header-top' },
+        h('div', { className: 'page-header-left' },
+          h('h1', { className: 'page-header-title' }, 'Manuscript Transmittal'),
+          h('nav', { className: 'page-header-nav' },
+            h('a', { href: calendarUrl }, '📅 Calendar'),
+            h('span', { className: 'active' }, '📋 Transmittal'),
           ),
         ),
-      ),
-      h('div', { className: 'tx-header-actions' },
-        h('a', { className: 'btn btn-sm', href: calendarUrl }, '📅 Calendar'),
-        h('button', { className: 'btn btn-sm', onClick: () => {
-          state.showVersions = !state.showVersions;
-          if (state.showVersions) { state.versions = null; loadVersions(); }
-          else render();
-        }}, '🕒 History'),
-        h('button', { className: 'btn btn-sm', onClick: () => {
-          state.showDuplicate = true; render();
-        }}, '⧉ Duplicate'),
-        h('button', { className: 'btn btn-sm', onClick: () => window.print() }, '🖨 Print'),
-        h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, '✉️ Email'),
-        h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? ' btn-primary' : ''),
-          onClick: () => {
-            const wasDraft = state.transmittal.status !== 'final';
-            state.transmittal.status = wasDraft ? 'final' : 'draft';
-            scheduleSave();
-            // When marking final, prompt to send email notification
-            if (wasDraft) {
-              state.showEmail = true;
-              state.emailResult = null;
+        h('div', { className: 'page-header-actions' },
+          h('button', { className: 'btn btn-sm', onClick: () => {
+            state.showVersions = !state.showVersions;
+            if (state.showVersions) { state.versions = null; loadVersions(); }
+            else render();
+          }}, '🕒 History'),
+          h('button', { className: 'btn btn-sm', onClick: () => {
+            state.showDuplicate = true; render();
+          }}, '⧉ Duplicate'),
+          h('button', { className: 'btn btn-sm', onClick: () => window.print() }, '🖨 Print'),
+          h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, '✉️ Email'),
+          h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? ' btn-primary' : ''),
+            onClick: () => {
+              const wasDraft = state.transmittal.status !== 'final';
+              state.transmittal.status = wasDraft ? 'final' : 'draft';
+              scheduleSave();
+              if (wasDraft) {
+                state.showEmail = true;
+                state.emailResult = null;
+              }
+              render();
             }
-            render();
-          }
-        }, state.transmittal.status === 'final' ? '↩ Back to Draft' : '✓ Mark Final'),
-        themeBtn(),
+          }, state.transmittal.status === 'final' ? '↩ Draft' : '✓ Mark Final'),
+          themeBtn(),
+        ),
+      ),
+      h('div', { className: 'page-header-sub' },
+        h('button', { className: 'page-header-back', onClick: () => {
+          window.location.href = '/' + state.pathClient + '/';
+        }}, '← ' + (state.pathClient || 'Home').toUpperCase()),
+        renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text2)' }, state.project.Name),
+        h('span', { className: 'page-status page-status-' + state.transmittal.status },
+          state.transmittal.status
+        ),
         h('span', { id: 'tx-save-status', className: 'tx-save-status' }),
       ),
     ),
