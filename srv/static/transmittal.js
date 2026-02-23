@@ -441,11 +441,11 @@ function renderForm() {
     h('div', { className: 'page-header' },
       h('div', { className: 'page-header-top' },
         h('div', { className: 'page-header-left' },
-          h('h1', { className: 'page-header-title' }, 'Manuscript Transmittal'),
           h('nav', { className: 'page-header-nav' },
             h('a', { href: calendarUrl }, '📅 Calendar'),
             h('span', { className: 'active' }, '📋 Transmittal'),
           ),
+          h('h1', { className: 'page-header-title' }, state.project ? state.project.Name : 'Transmittal'),
         ),
         h('div', { className: 'page-header-actions' },
           h('button', { className: 'btn btn-sm', onClick: () => {
