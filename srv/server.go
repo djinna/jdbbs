@@ -49,34 +49,68 @@ func (s *Server) setUpDatabase(dbPath string) error {
 func (s *Server) Serve(addr string) error {
 	mux := http.NewServeMux()
 
-	// API routes
-	const base = "/aog"
+	// API routes (global, no path prefix)
+	mux.HandleFunc("GET /api/projects", s.handleListProjects)
+	mux.HandleFunc("POST /api/projects", s.handleCreateProject)
+	mux.HandleFunc("GET /api/projects/{id}", s.handleGetProject)
+	mux.HandleFunc("PUT /api/projects/{id}", s.handleUpdateProject)
+	mux.HandleFunc("DELETE /api/projects/{id}", s.handleDeleteProject)
+	mux.HandleFunc("GET /api/projects/{id}/tasks", s.handleListTasks)
+	mux.HandleFunc("POST /api/projects/{id}/tasks", s.handleCreateTask)
+	mux.HandleFunc("PUT /api/tasks/{id}", s.handleUpdateTask)
+	mux.HandleFunc("DELETE /api/tasks/{id}", s.handleDeleteTask)
+	mux.HandleFunc("POST /api/projects/{id}/auth", s.handleSetAuth)
+	mux.HandleFunc("POST /api/projects/{id}/verify", s.handleVerifyAuth)
+	mux.HandleFunc("POST /api/projects/{id}/seed", s.handleSeedProject)
+	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
+	mux.HandleFunc("GET /api/projects/by-path/{client}/{project}", s.handleGetProjectByPath)
 
-	mux.HandleFunc("GET "+base+"/api/projects", s.handleListProjects)
-	mux.HandleFunc("POST "+base+"/api/projects", s.handleCreateProject)
-	mux.HandleFunc("GET "+base+"/api/projects/{id}", s.handleGetProject)
-	mux.HandleFunc("PUT "+base+"/api/projects/{id}", s.handleUpdateProject)
-	mux.HandleFunc("DELETE "+base+"/api/projects/{id}", s.handleDeleteProject)
-	mux.HandleFunc("GET "+base+"/api/projects/{id}/tasks", s.handleListTasks)
-	mux.HandleFunc("POST "+base+"/api/projects/{id}/tasks", s.handleCreateTask)
-	mux.HandleFunc("PUT "+base+"/api/tasks/{id}", s.handleUpdateTask)
-	mux.HandleFunc("DELETE "+base+"/api/tasks/{id}", s.handleDeleteTask)
-	mux.HandleFunc("POST "+base+"/api/projects/{id}/auth", s.handleSetAuth)
-	mux.HandleFunc("POST "+base+"/api/projects/{id}/verify", s.handleVerifyAuth)
-	mux.HandleFunc("POST "+base+"/api/projects/{id}/seed", s.handleSeedProject)
-	mux.HandleFunc("POST "+base+"/api/projects/{id}/duplicate", s.handleDuplicateProject)
-
-	// Static files under /aog/
+	// Static files (CSS, JS) at known paths
 	static, _ := fs.Sub(staticFS, "static")
-	mux.Handle(base+"/", http.StripPrefix(base, http.FileServer(http.FS(static))))
+	staticServer := http.FileServer(http.FS(static))
+	mux.Handle("GET /static/", http.StripPrefix("/static", staticServer))
 
-	// Redirect bare /aog to /aog/
-	mux.HandleFunc("GET "+base, func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, base+"/", http.StatusMovedPermanently)
+	// Root shows admin/project list
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		s.serveIndex(w)
+	})
+
+	// /{client}/{project}/ serves the SPA for that project
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		parts := strings.Split(strings.Trim(path, "/"), "/")
+		if len(parts) < 2 || parts[0] == "" {
+			http.NotFound(w, r)
+			return
+		}
+		// /vgr/aog -> redirect to /vgr/aog/
+		if len(parts) == 2 && !strings.HasSuffix(path, "/") {
+			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
+			return
+		}
+		// /vgr/aog/style.css -> serve static asset
+		if len(parts) > 2 {
+			assetPath := strings.Join(parts[2:], "/")
+			r.URL.Path = "/" + assetPath
+			staticServer.ServeHTTP(w, r)
+			return
+		}
+		// /vgr/aog/ -> serve the SPA
+		s.serveIndex(w)
 	})
 
 	slog.Info("starting server", "addr", addr)
 	return http.ListenAndServe(addr, mux)
+}
+
+func (s *Server) serveIndex(w http.ResponseWriter) {
+	data, err := staticFS.ReadFile("static/index.html")
+	if err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
 }
 
 func hashToken(token string) string {
@@ -152,17 +186,25 @@ func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name      string `json:"name"`
-		StartDate string `json:"start_date"`
+		Name        string `json:"name"`
+		StartDate   string `json:"start_date"`
+		ClientSlug  string `json:"client_slug"`
+		ProjectSlug string `json:"project_slug"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonErr(w, "bad request", 400)
 		return
 	}
+	if body.ClientSlug == "" || body.ProjectSlug == "" {
+		jsonErr(w, "client_slug and project_slug required", 400)
+		return
+	}
 	q := dbgen.New(s.DB)
 	p, err := q.CreateProject(r.Context(), dbgen.CreateProjectParams{
-		Name:      body.Name,
-		StartDate: body.StartDate,
+		Name:        body.Name,
+		StartDate:   body.StartDate,
+		ClientSlug:  body.ClientSlug,
+		ProjectSlug: body.ProjectSlug,
 	})
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
@@ -170,6 +212,28 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(201)
 	jsonOK(w, p)
+}
+
+func (s *Server) handleGetProjectByPath(w http.ResponseWriter, r *http.Request) {
+	client := r.PathValue("client")
+	project := r.PathValue("project")
+	q := dbgen.New(s.DB)
+	p, err := q.GetProjectByPath(r.Context(), dbgen.GetProjectByPathParams{
+		ClientSlug:  client,
+		ProjectSlug: project,
+	})
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+	tokens, _ := q.ListAuthTokens(r.Context(), p.ID)
+	hasAuth := len(tokens) > 0
+	authed := s.checkAuth(r, p.ID)
+	jsonOK(w, map[string]any{
+		"project":       p,
+		"has_auth":      hasAuth,
+		"authenticated": authed,
+	})
 }
 
 func (s *Server) handleGetProject(w http.ResponseWriter, r *http.Request) {
@@ -207,16 +271,30 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Name      string `json:"name"`
-		StartDate string `json:"start_date"`
+		Name        string `json:"name"`
+		StartDate   string `json:"start_date"`
+		ClientSlug  string `json:"client_slug"`
+		ProjectSlug string `json:"project_slug"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonErr(w, "bad request", 400)
 		return
 	}
 	q := dbgen.New(s.DB)
+	// Preserve existing slugs if not provided
+	if body.ClientSlug == "" || body.ProjectSlug == "" {
+		existing, _ := q.GetProject(r.Context(), pid)
+		if body.ClientSlug == "" {
+			body.ClientSlug = existing.ClientSlug
+		}
+		if body.ProjectSlug == "" {
+			body.ProjectSlug = existing.ProjectSlug
+		}
+	}
 	if err := q.UpdateProject(r.Context(), dbgen.UpdateProjectParams{
-		Name: body.Name, StartDate: body.StartDate, ID: pid,
+		Name: body.Name, StartDate: body.StartDate,
+		ClientSlug: body.ClientSlug, ProjectSlug: body.ProjectSlug,
+		ID: pid,
 	}); err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
@@ -537,7 +615,9 @@ func (s *Server) handleSeedProject(w http.ResponseWriter, r *http.Request) {
 	if body.StartDate != "" {
 		p, _ := q.GetProject(r.Context(), pid)
 		_ = q.UpdateProject(r.Context(), dbgen.UpdateProjectParams{
-			Name: p.Name, StartDate: body.StartDate, ID: pid,
+			Name: p.Name, StartDate: body.StartDate,
+			ClientSlug: p.ClientSlug, ProjectSlug: p.ProjectSlug,
+			ID: pid,
 		})
 	}
 	jsonOK(w, map[string]any{"ok": true, "count": len(body.Tasks)})
@@ -567,8 +647,10 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var body struct {
-		Name      string `json:"name"`
-		StartDate string `json:"start_date"`
+		Name        string `json:"name"`
+		StartDate   string `json:"start_date"`
+		ClientSlug  string `json:"client_slug"`
+		ProjectSlug string `json:"project_slug"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonErr(w, "bad request", 400)
@@ -576,6 +658,10 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 	}
 	if body.Name == "" {
 		jsonErr(w, "name required", 400)
+		return
+	}
+	if body.ClientSlug == "" || body.ProjectSlug == "" {
+		jsonErr(w, "client_slug and project_slug required", 400)
 		return
 	}
 
@@ -602,8 +688,10 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 		startDate = srcProject.StartDate
 	}
 	newProject, err := q.CreateProject(r.Context(), dbgen.CreateProjectParams{
-		Name:      body.Name,
-		StartDate: startDate,
+		Name:        body.Name,
+		StartDate:   startDate,
+		ClientSlug:  body.ClientSlug,
+		ProjectSlug: body.ProjectSlug,
 	})
 	if err != nil {
 		jsonErr(w, "create project: "+err.Error(), 500)

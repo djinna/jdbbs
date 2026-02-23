@@ -1,16 +1,19 @@
 -- name: GetProject :one
 SELECT * FROM projects WHERE id = ?;
 
+-- name: GetProjectByPath :one
+SELECT * FROM projects WHERE client_slug = ? AND project_slug = ?;
+
 -- name: ListProjects :many
 SELECT * FROM projects ORDER BY updated_at DESC;
 
 -- name: CreateProject :one
-INSERT INTO projects (name, start_date, created_at, updated_at)
-VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+INSERT INTO projects (name, start_date, client_slug, project_slug, created_at, updated_at)
+VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 RETURNING *;
 
 -- name: UpdateProject :exec
-UPDATE projects SET name = ?, start_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+UPDATE projects SET name = ?, start_date = ?, client_slug = ?, project_slug = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
 -- name: DeleteProject :exec
 DELETE FROM projects WHERE id = ?;

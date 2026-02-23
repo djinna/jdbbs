@@ -16,10 +16,8 @@ const h = (tag, attrs, ...kids) => {
   return el;
 };
 
-const BASE = '/aog';
-
 const api = async (url, opts = {}) => {
-  const r = await fetch(BASE + url, {
+  const r = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
     ...opts,
   });
@@ -34,7 +32,7 @@ const fmt = {
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
 };
 
-let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null };
+let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null };
 
 function render() {
   const app = $('#app');
@@ -60,13 +58,18 @@ function renderProjectList() {
     ),
     state.projects && state.projects.length
       ? h('div', { className: 'project-grid' },
-          ...state.projects.map(p =>
-            h('div', { className: 'project-card', onClick: () => openProject(p.ID) },
+          ...state.projects.map(p => {
+            const path = p.ClientSlug && p.ProjectSlug ? '/' + p.ClientSlug + '/' + p.ProjectSlug + '/' : null;
+            return h('div', { className: 'project-card', onClick: () => {
+              if (path) window.location.href = path;
+              else openProject(p.ID);
+            } },
               h('h3', null, p.Name),
+              path ? h('div', { className: 'meta', style: 'color:var(--accent2);font-family:monospace' }, path) : null,
               h('div', { className: 'meta' }, 'Start: ' + (p.StartDate || 'Not set')),
               h('div', { className: 'meta' }, 'Updated: ' + new Date(p.UpdatedAt).toLocaleDateString()),
-            )
-          )
+            );
+          })
         )
       : h('div', { className: 'empty-state' },
           h('h3', null, 'No projects yet'),
@@ -75,12 +78,57 @@ function renderProjectList() {
   );
 }
 
-async function showNewProject() {
-  const name = prompt('Project name:');
-  if (!name) return;
-  const start = prompt('Start date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
-  const p = await api('/api/projects', { method: 'POST', body: JSON.stringify({ name, start_date: start || '' }) });
-  openProject(p.ID);
+function showNewProject() {
+  let nameInput, clientInput, projInput, dateInput;
+  const el = h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === el) el.remove(); } },
+    h('div', { className: 'modal' },
+      h('h2', null, '+ New Project'),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Project Title'),
+          nameInput = h('input', { type: 'text', placeholder: 'e.g. Art of Gig' }),
+        ),
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Client Slug (URL)'),
+          clientInput = h('input', { type: 'text', placeholder: 'e.g. vgr' }),
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'Project Slug (URL)'),
+          projInput = h('input', { type: 'text', placeholder: 'e.g. aog' }),
+        ),
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Start Date'),
+          dateInput = h('input', { type: 'date', value: new Date().toISOString().slice(0, 10) }),
+        ),
+      ),
+      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:8px 0;font-size:13px;color:var(--text2)' },
+        'URL will be: ', h('strong', { style: 'color:var(--accent2);font-family:monospace' }, '/‹client›/‹project›/'),
+      ),
+      h('div', { className: 'modal-actions' },
+        h('button', { className: 'btn', onClick: () => el.remove() }, 'Cancel'),
+        h('button', { className: 'btn btn-primary', onClick: async () => {
+          const name = nameInput.value.trim();
+          const cs = clientInput.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          const ps = projInput.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          if (!name || !cs || !ps) { alert('All fields required'); return; }
+          try {
+            const p = await api('/api/projects', {
+              method: 'POST',
+              body: JSON.stringify({ name, start_date: dateInput.value, client_slug: cs, project_slug: ps }),
+            });
+            el.remove();
+            openProject(p.ID);
+          } catch (e) { alert('Error: ' + e.message); }
+        }}, 'Create'),
+      ),
+    )
+  );
+  document.body.appendChild(el);
+  nameInput.focus();
 }
 
 async function openProject(id) {
@@ -133,7 +181,7 @@ function renderProject() {
   return h('div', null,
     h('div', { className: 'header' },
       h('div', null,
-        h('button', { className: 'btn btn-sm', onClick: () => { state.view = 'projects'; loadProjects(); }, style: 'margin-bottom:8px' }, '← Projects'),
+        h('button', { className: 'btn btn-sm', onClick: () => { window.location.href = '/'; }, style: 'margin-bottom:8px' }, '← Projects'),
         h('h1', null, state.project.Name),
       ),
       h('div', { className: 'header-actions' },
@@ -441,7 +489,7 @@ function showAddTask() {
 
 // ─── Duplicate / Make New ───
 function showDuplicate() {
-  let nameInput, dateInput;
+  let nameInput, clientInput, projInput, dateInput;
   const el = h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === el) el.remove(); } },
     h('div', { className: 'modal' },
       h('h2', null, '⧉ Make New From Template'),
@@ -450,8 +498,18 @@ function showDuplicate() {
       ),
       h('div', { className: 'form-row' },
         h('div', { className: 'form-group' },
-          h('label', null, 'New Project Name'),
-          nameInput = h('input', { type: 'text', placeholder: 'e.g. New Book Title', value: '' }),
+          h('label', null, 'Project Title'),
+          nameInput = h('input', { type: 'text', placeholder: 'e.g. New Book Title' }),
+        ),
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Client Slug'),
+          clientInput = h('input', { type: 'text', placeholder: 'e.g. vgr', value: state.project.ClientSlug || '' }),
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'Project Slug'),
+          projInput = h('input', { type: 'text', placeholder: 'e.g. newbook' }),
         ),
       ),
       h('div', { className: 'form-row' },
@@ -470,20 +528,25 @@ function showDuplicate() {
         h('br'),
         h('strong', { style: 'color:var(--text)' }, 'What gets reset: '),
         'All dates shifted to new start. Budgets zeroed. Status → Pending. Actuals cleared.',
+        h('br'),
+        h('strong', { style: 'color:var(--text)' }, 'URL: '),
+        h('span', { style: 'color:var(--accent2);font-family:monospace' }, '/‹client›/‹project›/'),
       ),
       h('div', { className: 'modal-actions' },
         h('button', { className: 'btn', onClick: () => el.remove() }, 'Cancel'),
         h('button', { className: 'btn btn-primary', onClick: async () => {
           const name = nameInput.value.trim();
-          if (!name) { alert('Enter a project name'); return; }
+          const cs = clientInput.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          const ps = projInput.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          if (!name || !cs || !ps) { alert('All fields required'); return; }
           try {
             const result = await api('/api/projects/' + state.projectId + '/duplicate', {
               method: 'POST',
-              body: JSON.stringify({ name, start_date: dateInput.value }),
+              body: JSON.stringify({ name, start_date: dateInput.value, client_slug: cs, project_slug: ps }),
             });
             el.remove();
-            // Open the new project
-            openProject(result.project.ID);
+            // Navigate to the new project's URL
+            window.location.href = '/' + cs + '/' + ps + '/';
           } catch (e) { alert('Error: ' + e.message); }
         }}, '⧉ Create New Project'),
       ),
@@ -508,13 +571,33 @@ function showSettings() {
           h('input', { type: 'date', value: state.project.StartDate, id: 'setting-start' }),
         ),
       ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Client Slug'),
+          h('input', { type: 'text', value: state.project.ClientSlug || '', id: 'setting-client' }),
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'Project Slug'),
+          h('input', { type: 'text', value: state.project.ProjectSlug || '', id: 'setting-proj' }),
+        ),
+      ),
+      state.project.ClientSlug && state.project.ProjectSlug
+        ? h('div', { style: 'font-size:13px;color:var(--text2);margin-bottom:12px' },
+            'URL: ', h('a', { href: '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/', style: 'color:var(--accent2);font-family:monospace' },
+              '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/'),
+          )
+        : null,
       h('button', { className: 'btn btn-primary btn-sm', onClick: async () => {
+        const cs = $('#setting-client').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+        const ps = $('#setting-proj').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
         await api('/api/projects/' + state.projectId, {
           method: 'PUT',
-          body: JSON.stringify({ name: $('#setting-name').value, start_date: $('#setting-start').value }),
+          body: JSON.stringify({ name: $('#setting-name').value, start_date: $('#setting-start').value, client_slug: cs, project_slug: ps }),
         });
         state.project.Name = $('#setting-name').value;
         state.project.StartDate = $('#setting-start').value;
+        state.project.ClientSlug = cs;
+        state.project.ProjectSlug = ps;
         el.remove(); render();
       }}, 'Save Project'),
       h('hr', { style: 'margin:16px 0;border-color:var(--border)' }),
@@ -561,4 +644,29 @@ function showSettings() {
 }
 
 // ─── Boot ───
-loadProjects();
+(async function boot() {
+  // Check if URL is /{client}/{project}/ — if so, go directly to that project
+  const parts = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+  if (parts.length >= 2 && parts[0] !== 'api' && parts[0] !== 'static') {
+    state.pathClient = parts[0];
+    state.pathProject = parts[1];
+    try {
+      const info = await api('/api/projects/by-path/' + parts[0] + '/' + parts[1]);
+      state.project = info.project;
+      state.projectId = info.project.ID;
+      if (info.has_auth && !info.authenticated) {
+        state.view = 'auth';
+        render();
+        return;
+      }
+      state.tasks = await api('/api/projects/' + info.project.ID + '/tasks');
+      state.view = 'project';
+      render();
+    } catch (e) {
+      if (e.message === 'unauthorized') { state.view = 'auth'; render(); }
+      else { state.view = 'projects'; loadProjects(); }
+    }
+  } else {
+    loadProjects();
+  }
+})();

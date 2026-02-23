@@ -26,18 +26,25 @@ func (q *Queries) CreateAuthToken(ctx context.Context, arg CreateAuthTokenParams
 }
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO projects (name, start_date, created_at, updated_at)
-VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, name, start_date, created_at, updated_at
+INSERT INTO projects (name, start_date, client_slug, project_slug, created_at, updated_at)
+VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, name, start_date, created_at, updated_at, client_slug, project_slug
 `
 
 type CreateProjectParams struct {
-	Name      string
-	StartDate string
+	Name        string
+	StartDate   string
+	ClientSlug  string
+	ProjectSlug string
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error) {
-	row := q.db.QueryRowContext(ctx, createProject, arg.Name, arg.StartDate)
+	row := q.db.QueryRowContext(ctx, createProject,
+		arg.Name,
+		arg.StartDate,
+		arg.ClientSlug,
+		arg.ProjectSlug,
+	)
 	var i Project
 	err := row.Scan(
 		&i.ID,
@@ -45,6 +52,8 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.StartDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ClientSlug,
+		&i.ProjectSlug,
 	)
 	return i, err
 }
@@ -178,7 +187,7 @@ func (q *Queries) GetAuthToken(ctx context.Context, arg GetAuthTokenParams) (Aut
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, name, start_date, created_at, updated_at FROM projects WHERE id = ?
+SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug FROM projects WHERE id = ?
 `
 
 func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
@@ -190,6 +199,32 @@ func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
 		&i.StartDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ClientSlug,
+		&i.ProjectSlug,
+	)
+	return i, err
+}
+
+const getProjectByPath = `-- name: GetProjectByPath :one
+SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug FROM projects WHERE client_slug = ? AND project_slug = ?
+`
+
+type GetProjectByPathParams struct {
+	ClientSlug  string
+	ProjectSlug string
+}
+
+func (q *Queries) GetProjectByPath(ctx context.Context, arg GetProjectByPathParams) (Project, error) {
+	row := q.db.QueryRowContext(ctx, getProjectByPath, arg.ClientSlug, arg.ProjectSlug)
+	var i Project
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.StartDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ClientSlug,
+		&i.ProjectSlug,
 	)
 	return i, err
 }
@@ -262,7 +297,7 @@ func (q *Queries) ListAuthTokens(ctx context.Context, projectID int64) ([]AuthTo
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, name, start_date, created_at, updated_at FROM projects ORDER BY updated_at DESC
+SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug FROM projects ORDER BY updated_at DESC
 `
 
 func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
@@ -280,6 +315,8 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 			&i.StartDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ClientSlug,
+			&i.ProjectSlug,
 		); err != nil {
 			return nil, err
 		}
@@ -345,17 +382,25 @@ func (q *Queries) ListTasks(ctx context.Context, projectID int64) ([]Task, error
 }
 
 const updateProject = `-- name: UpdateProject :exec
-UPDATE projects SET name = ?, start_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+UPDATE projects SET name = ?, start_date = ?, client_slug = ?, project_slug = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
 `
 
 type UpdateProjectParams struct {
-	Name      string
-	StartDate string
-	ID        int64
+	Name        string
+	StartDate   string
+	ClientSlug  string
+	ProjectSlug string
+	ID          int64
 }
 
 func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) error {
-	_, err := q.db.ExecContext(ctx, updateProject, arg.Name, arg.StartDate, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateProject,
+		arg.Name,
+		arg.StartDate,
+		arg.ClientSlug,
+		arg.ProjectSlug,
+		arg.ID,
+	)
 	return err
 }
 
