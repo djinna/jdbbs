@@ -89,6 +89,7 @@ func (s *Server) Serve(addr string) error {
 
 	// Email API
 	mux.HandleFunc("POST /api/projects/{id}/transmittal/email", s.handleSendTransmittalEmail)
+	mux.HandleFunc("POST /api/projects/{id}/snapshot/email", s.handleSendProjectSnapshot)
 	mux.HandleFunc("GET /api/email/status", s.handleEmailStatus)
 
 	// Static files (CSS, JS) at known paths
@@ -96,9 +97,14 @@ func (s *Server) Serve(addr string) error {
 	staticServer := http.FileServer(http.FS(static))
 	mux.Handle("GET /static/", http.StripPrefix("/static", staticServer))
 
-	// Root shows admin/project list
+	// Root: redirect admin users to /admin/, show landing page for everyone else
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		s.serveIndex(w)
+		userID := r.Header.Get("X-ExeDev-UserID")
+		if userID != "" {
+			http.Redirect(w, r, "/admin/", http.StatusFound)
+			return
+		}
+		s.serveLanding(w)
 	})
 
 	// /{client}/{project}/ serves the SPA for that project
@@ -147,6 +153,16 @@ func (s *Server) Serve(addr string) error {
 
 func (s *Server) serveTransmittal(w http.ResponseWriter) {
 	data, err := staticFS.ReadFile("static/transmittal.html")
+	if err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
+}
+
+func (s *Server) serveLanding(w http.ResponseWriter) {
+	data, err := staticFS.ReadFile("static/landing.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
 		return

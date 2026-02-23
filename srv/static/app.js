@@ -7,7 +7,8 @@ const h = (tag, attrs, ...kids) => {
     if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === 'className') el.className = v;
     else if (k === 'htmlFor') el.htmlFor = v;
-    else el.setAttribute(k, v);
+    else if (k === 'checked' || k === 'disabled' || k === 'selected') { if (v) el[k] = true; }
+    else if (v !== undefined && v !== null && v !== false) el.setAttribute(k, v);
   });
   kids.flat(Infinity).forEach(c => {
     if (c == null || c === false) return;
@@ -32,7 +33,7 @@ const fmt = {
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
 };
 
-let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null };
+let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null };
 
 // ─── Theme ───
 function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
@@ -199,6 +200,7 @@ function renderProject() {
         state.project.ClientSlug && state.project.ProjectSlug
           ? h('a', { className: 'btn btn-sm', href: '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/transmittal/' }, '📋 Transmittal')
           : null,
+        h('button', { className: 'btn btn-sm', onClick: () => { state.showSnapshotEmail = true; state.snapshotResult = null; render(); } }, '📧 Email Snapshot'),
         h('button', { className: 'btn btn-sm', onClick: showSettings }, '⚙ Settings'),
         themeBtn(),
       ),
@@ -228,6 +230,7 @@ function renderProject() {
     ),
     state.tab === 'gantt' ? renderGantt() : state.tab === 'table' ? renderTable() : renderBudget(),
     state.editingTask ? renderEditModal() : null,
+    state.showSnapshotEmail ? renderSnapshotEmailModal() : null,
   );
 }
 
@@ -317,7 +320,7 @@ function renderGantt() {
     return h('tr', { className: isMilestone ? 'milestone' : '', onClick: () => editTask(t) },
       h('td', null, h('span', { className: 'badge badge-' + t.Assignee }, t.Assignee)),
       h('td', null, t.Title),
-      h('td', null, h('span', { className: statusCls }, statusLabel)),
+      h('td', null, h('span', { className: statusCls + ' clickable', onClick: (e) => { e.stopPropagation(); cycleStatus(t); }, title: 'Click to cycle status' }, statusLabel)),
       h('td', { className: 'date' }, fmt.date(t.CurrDue)),
       h('td', { className: 'gantt-bar-cell' },
         h('div', { className: 'gantt-bar-bg', style: `width:${chartWidth}px` }, ...weekLines, ...bars)
@@ -359,7 +362,7 @@ function renderTable() {
         h('tr', { className: t.IsMilestone === 1 ? 'milestone' : '' },
           h('td', null, h('span', { className: 'badge badge-' + t.Assignee }, t.Assignee)),
           h('td', null, t.Title),
-          h('td', null, h('span', { className: 'status status-' + (t.Status || 'pending') },
+          h('td', null, h('span', { className: 'status status-' + (t.Status || 'pending') + ' clickable', onClick: (e) => { e.stopPropagation(); cycleStatus(t); }, title: 'Click to cycle status' },
             t.Status === 'done' ? '✓' : t.Status === 'in_progress' ? '●' : '○'
           )),
           h('td', { className: 'date' }, String(t.OrigWeeks || '—')),
@@ -670,6 +673,148 @@ function showSettings() {
     )
   );
   document.body.appendChild(el);
+}
+
+// ─── Status Toggle ───
+async function cycleStatus(t) {
+  const cycle = { pending: 'in_progress', in_progress: 'done', done: 'pending' };
+  const newStatus = cycle[t.Status] || 'pending';
+  const body = {
+    sort_order: t.SortOrder || 0, assignee: t.Assignee || '', title: t.Title || '',
+    is_milestone: t.IsMilestone || 0, orig_weeks: t.OrigWeeks || 0, curr_weeks: t.CurrWeeks || 0,
+    orig_due: t.OrigDue || '', curr_due: t.CurrDue || '', actual_done: newStatus === 'done' ? new Date().toISOString().slice(0,10) : (t.ActualDone || ''),
+    status: newStatus, words: t.Words || 0, words_per_hour: t.WordsPerHour || 0,
+    hours: t.Hours || 0, rate: t.Rate || 0, budget_notes: t.BudgetNotes || '',
+    orig_budget: t.OrigBudget || 0, curr_budget: t.CurrBudget || 0, actual_budget: t.ActualBudget || 0,
+  };
+  try {
+    await api('/api/tasks/' + t.ID, { method: 'PUT', body: JSON.stringify(body) });
+    state.tasks = await api('/api/projects/' + state.projectId + '/tasks');
+    render();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+// ─── Snapshot Email Modal ───
+const SNAPSHOT_RECIPIENTS = [
+  { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+  { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
+];
+
+let snapshotRecipients = null;
+
+function initSnapshotRecipients() {
+  if (snapshotRecipients) return;
+  snapshotRecipients = SNAPSHOT_RECIPIENTS.map(r => ({ ...r }));
+  snapshotRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+}
+
+async function checkEmailConfigCal() {
+  if (state.emailConfigured !== null) return;
+  try {
+    const r = await api('/api/email/status');
+    state.emailConfigured = r.configured;
+  } catch {
+    state.emailConfigured = false;
+  }
+}
+
+async function sendSnapshotEmail() {
+  const recipients = snapshotRecipients
+    .filter(r => r.checked && r.email.trim())
+    .map(r => r.email.trim());
+  if (recipients.length === 0) {
+    state.snapshotResult = { error: 'Select at least one recipient' };
+    render();
+    return;
+  }
+  state.snapshotSending = true;
+  state.snapshotResult = null;
+  render();
+  try {
+    const res = await api('/api/projects/' + state.projectId + '/snapshot/email', {
+      method: 'POST',
+      body: JSON.stringify({ recipients }),
+    });
+    state.snapshotSending = false;
+    state.snapshotResult = { ok: true, sent_to: res.sent_to };
+    render();
+  } catch (e) {
+    state.snapshotSending = false;
+    state.snapshotResult = { error: e.message };
+    render();
+  }
+}
+
+function renderSnapshotEmailModal() {
+  initSnapshotRecipients();
+  checkEmailConfigCal();
+
+  const closeModal = () => {
+    state.showSnapshotEmail = false;
+    state.snapshotResult = null;
+    render();
+  };
+
+  return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeModal(); } },
+    h('div', { className: 'modal' },
+      h('h2', null, '📧 Email Project Snapshot'),
+      h('p', { style: 'color:var(--text2);font-size:14px;margin:0 0 16px' },
+        'Sends a comprehensive email with schedule overview, task list, budget summary, and transmittal status.'
+      ),
+
+      state.emailConfigured === false
+        ? h('div', { style: 'background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e' },
+            '⚠️ Email is not configured on the server.'
+          )
+        : null,
+
+      h('div', { style: 'margin-bottom:16px' },
+        h('label', { style: 'font-weight:600;display:block;margin-bottom:8px' }, 'Send to:'),
+        ...snapshotRecipients.map((r, i) =>
+          h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:6px' },
+            h('input', {
+              type: 'checkbox',
+              checked: r.checked,
+              onChange: () => { snapshotRecipients[i].checked = !snapshotRecipients[i].checked; render(); },
+            }),
+            r.editable
+              ? h('input', {
+                  type: 'email',
+                  placeholder: 'email@example.com',
+                  value: r.email,
+                  style: 'flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px',
+                  onInput: (e) => {
+                    snapshotRecipients[i].email = e.target.value;
+                    snapshotRecipients[i].checked = e.target.value.trim().length > 0;
+                  },
+                })
+              : h('span', { style: 'font-size:14px' }, r.email),
+            h('span', { style: 'font-size:12px;color:var(--text2)' }, r.label),
+          )
+        ),
+      ),
+
+      state.snapshotResult?.ok
+        ? h('div', { style: 'background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46' },
+            '✅ Sent to: ' + state.snapshotResult.sent_to.join(', ')
+          )
+        : null,
+      state.snapshotResult?.error
+        ? h('div', { style: 'background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626' },
+            '❌ ' + state.snapshotResult.error
+          )
+        : null,
+
+      h('div', { className: 'modal-actions' },
+        h('button', { className: 'btn', onClick: closeModal }, 'Cancel'),
+        h('button', {
+          className: 'btn btn-primary',
+          disabled: state.snapshotSending || state.emailConfigured === false ? 'disabled' : undefined,
+          onClick: sendSnapshotEmail,
+        }, state.snapshotSending ? 'Sending…' : '📨 Send Snapshot'),
+      ),
+    ),
+  );
 }
 
 // ─── Boot ───
