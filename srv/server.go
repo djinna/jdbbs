@@ -49,6 +49,13 @@ func (s *Server) setUpDatabase(dbPath string) error {
 func (s *Server) Serve(addr string) error {
 	mux := http.NewServeMux()
 
+	// Health check
+	mux.HandleFunc("GET /healthz", s.handleHealthz)
+
+	// Admin dashboard
+	mux.HandleFunc("GET /admin/", s.handleAdminDashboard)
+	mux.HandleFunc("GET /api/admin/projects", s.handleAdminProjectList)
+
 	// API routes (global, no path prefix)
 	mux.HandleFunc("GET /api/projects", s.handleListProjects)
 	mux.HandleFunc("POST /api/projects", s.handleCreateProject)
@@ -145,6 +152,18 @@ func (s *Server) serveIndex(w http.ResponseWriter) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(data)
+}
+
+func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
+	var n int
+	err := s.DB.QueryRowContext(r.Context(), "SELECT 1").Scan(&n)
+	if err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]string{"status": "error", "detail": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 func hashToken(token string) string {

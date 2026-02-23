@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — ProdCal</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242836;
+  --border: #2e3348;
+  --text: #e4e6f0;
+  --text-dim: #8b8fa8;
+  --accent: #6c8cff;
+  --green: #4ade80;
+  --yellow: #facc15;
+  --red: #f87171;
+  --orange: #fb923c;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2rem;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.header-right {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+.badge-yellow { background: rgba(250,204,21,0.15); color: var(--yellow); }
+.badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+.badge-dim { background: var(--surface2); color: var(--text-dim); }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.stat-card .label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.stat-card .value {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.projects-grid {
+  display: grid;
+  gap: 1rem;
+}
+.project-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+.project-card:hover {
+  border-color: var(--accent);
+}
+.project-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+.project-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.project-path {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+.project-meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.project-meta span {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.75rem;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.progress-fill.green { background: var(--green); }
+.progress-fill.yellow { background: var(--yellow); }
+.progress-fill.accent { background: var(--accent); }
+.links {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.links a {
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+.links a:hover {
+  text-decoration: underline;
+}
+.health-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.health-ok { background: var(--green); }
+.health-err { background: var(--red); }
+#loading {
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-dim);
+}
+.empty {
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-dim);
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 Admin Dashboard</h1>
+  <div class="header-right">
+    <span class="badge badge-dim" id="health">
+      <span class="health-indicator" id="health-dot"></span>
+      checking…
+    </span>
+  </div>
+</div>
+
+<div class="stats-row" id="stats"></div>
+<div id="loading">Loading…</div>
+<div class="projects-grid" id="projects"></div>
+
+<script>
+const $stats = document.getElementById('stats');
+const $projects = document.getElementById('projects');
+const $loading = document.getElementById('loading');
+const $health = document.getElementById('health');
+const $healthDot = document.getElementById('health-dot');
+
+async function checkHealth() {
+  try {
+    const r = await fetch('/healthz');
+    const d = await r.json();
+    if (d.status === 'ok') {
+      $healthDot.className = 'health-indicator health-ok';
+      $health.innerHTML = '<span class="health-indicator health-ok"></span> System healthy';
+      $health.className = 'badge badge-green';
+    } else {
+      throw new Error(d.detail);
+    }
+  } catch(e) {
+    $healthDot.className = 'health-indicator health-err';
+    $health.innerHTML = '<span class="health-indicator health-err"></span> Unhealthy';
+    $health.className = 'badge badge-red';
+  }
+}
+
+async function loadProjects() {
+  try {
+    const r = await fetch('/api/admin/projects');
+    if (r.status === 403) {
+      $loading.innerHTML = '🔒 Forbidden — exe.dev login required. <a href="/" style="color:var(--accent)">Go to home</a>';
+      return;
+    }
+    const projects = await r.json();
+    $loading.style.display = 'none';
+    renderStats(projects);
+    renderProjects(projects);
+  } catch(e) {
+    $loading.textContent = 'Error loading projects: ' + e.message;
+  }
+}
+
+function renderStats(projects) {
+  const totalTasks = projects.reduce((s, p) => s + p.task_count, 0);
+  const totalDone = projects.reduce((s, p) => s + p.done_count, 0);
+  const totalActive = projects.reduce((s, p) => s + p.active_count, 0);
+  const withTransmittal = projects.filter(p => p.has_transmittal).length;
+
+  $stats.innerHTML = `
+    <div class="stat-card">
+      <div class="label">Projects</div>
+      <div class="value">${projects.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Tasks</div>
+      <div class="value">${totalTasks}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Completed</div>
+      <div class="value">${totalDone}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">In Progress</div>
+      <div class="value">${totalActive}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Transmittals</div>
+      <div class="value">${withTransmittal}</div>
+    </div>
+  `;
+}
+
+function renderProjects(projects) {
+  if (!projects.length) {
+    $projects.innerHTML = '<div class="empty">No projects yet.</div>';
+    return;
+  }
+
+  $projects.innerHTML = projects.map(p => {
+    const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
+    const barClass = pct === 100 ? 'green' : pct > 50 ? 'accent' : 'yellow';
+    const authBadge = p.has_auth
+      ? '<span class="badge badge-green">🔒 Protected</span>'
+      : '<span class="badge badge-red">⚠️ No auth</span>';
+    const transmittalBadge = p.has_transmittal
+      ? `<span class="badge badge-dim">📝 ${p.transmittal_status || 'draft'}</span>`
+      : '';
+
+    const created = new Date(p.created_at).toLocaleDateString();
+    const updated = new Date(p.updated_at).toLocaleDateString();
+
+    return `
+      <div class="project-card">
+        <div class="project-top">
+          <div>
+            <div class="project-name">${esc(p.name)}</div>
+            <div class="project-path">${esc(p.path)}</div>
+          </div>
+          <div style="display:flex;gap:0.5rem">
+            ${authBadge}
+            ${transmittalBadge}
+          </div>
+        </div>
+        <div class="project-meta">
+          <span>📅 Start: ${esc(p.start_date || 'N/A')}</span>
+          <span>📆 Created: ${created}</span>
+          <span>✂️ Updated: ${updated}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.85rem">
+            <strong>${p.done_count}</strong>/${p.task_count} tasks done
+            ${p.active_count > 0 ? `· <span style="color:var(--yellow)">${p.active_count} active</span>` : ''}
+          </span>
+          <span style="font-size:0.85rem;font-weight:600;color:${pct===100?'var(--green)':'var(--text)'}">${pct}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ${barClass}" style="width:${pct}%"></div>
+        </div>
+        <div class="links">
+          <a href="${esc(p.path)}" target="_blank">📅 Calendar</a>
+          <a href="${esc(p.path)}transmittal/" target="_blank">📝 Transmittal</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+checkHealth();
+loadProjects();
+// Refresh every 30s
+setInterval(() => { checkHealth(); loadProjects(); }, 30000);
+</script>
+</body>
+</html>
