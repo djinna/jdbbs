@@ -16,8 +16,10 @@ const h = (tag, attrs, ...kids) => {
   return el;
 };
 
+const BASE = '/aog';
+
 const api = async (url, opts = {}) => {
-  const r = await fetch(url, {
+  const r = await fetch(BASE + url, {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
     ...opts,
   });

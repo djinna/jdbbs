@@ -50,23 +50,30 @@ func (s *Server) Serve(addr string) error {
 	mux := http.NewServeMux()
 
 	// API routes
-	mux.HandleFunc("GET /api/projects", s.handleListProjects)
-	mux.HandleFunc("POST /api/projects", s.handleCreateProject)
-	mux.HandleFunc("GET /api/projects/{id}", s.handleGetProject)
-	mux.HandleFunc("PUT /api/projects/{id}", s.handleUpdateProject)
-	mux.HandleFunc("DELETE /api/projects/{id}", s.handleDeleteProject)
-	mux.HandleFunc("GET /api/projects/{id}/tasks", s.handleListTasks)
-	mux.HandleFunc("POST /api/projects/{id}/tasks", s.handleCreateTask)
-	mux.HandleFunc("PUT /api/tasks/{id}", s.handleUpdateTask)
-	mux.HandleFunc("DELETE /api/tasks/{id}", s.handleDeleteTask)
-	mux.HandleFunc("POST /api/projects/{id}/auth", s.handleSetAuth)
-	mux.HandleFunc("POST /api/projects/{id}/verify", s.handleVerifyAuth)
-	mux.HandleFunc("POST /api/projects/{id}/seed", s.handleSeedProject)
-	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
+	const base = "/aog"
 
-	// Static files
+	mux.HandleFunc("GET "+base+"/api/projects", s.handleListProjects)
+	mux.HandleFunc("POST "+base+"/api/projects", s.handleCreateProject)
+	mux.HandleFunc("GET "+base+"/api/projects/{id}", s.handleGetProject)
+	mux.HandleFunc("PUT "+base+"/api/projects/{id}", s.handleUpdateProject)
+	mux.HandleFunc("DELETE "+base+"/api/projects/{id}", s.handleDeleteProject)
+	mux.HandleFunc("GET "+base+"/api/projects/{id}/tasks", s.handleListTasks)
+	mux.HandleFunc("POST "+base+"/api/projects/{id}/tasks", s.handleCreateTask)
+	mux.HandleFunc("PUT "+base+"/api/tasks/{id}", s.handleUpdateTask)
+	mux.HandleFunc("DELETE "+base+"/api/tasks/{id}", s.handleDeleteTask)
+	mux.HandleFunc("POST "+base+"/api/projects/{id}/auth", s.handleSetAuth)
+	mux.HandleFunc("POST "+base+"/api/projects/{id}/verify", s.handleVerifyAuth)
+	mux.HandleFunc("POST "+base+"/api/projects/{id}/seed", s.handleSeedProject)
+	mux.HandleFunc("POST "+base+"/api/projects/{id}/duplicate", s.handleDuplicateProject)
+
+	// Static files under /aog/
 	static, _ := fs.Sub(staticFS, "static")
-	mux.Handle("/", http.FileServer(http.FS(static)))
+	mux.Handle(base+"/", http.StripPrefix(base, http.FileServer(http.FS(static))))
+
+	// Redirect bare /aog to /aog/
+	mux.HandleFunc("GET "+base, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, base+"/", http.StatusMovedPermanently)
+	})
 
 	slog.Info("starting server", "addr", addr)
 	return http.ListenAndServe(addr, mux)
