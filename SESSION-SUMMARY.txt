@@ -35,6 +35,20 @@ FEATURES WORKING
 • Admin project list at root /
 • Public access configured
 
+SESSION 7 CHANGES
+-----------------
+• NEW: /healthz endpoint — DB readability check
+• NEW: Admin dashboard at /admin/ (exe.dev login required)
+  - Shows all projects with task counts, completion %, auth & transmittal status
+  - Dark theme, auto-refreshes every 30s
+  - Health indicator in header
+• NEW: Automated daily SQLite backup
+  - scripts/backup-db.sh: sqlite3 .backup + gzip, 7-day retention
+  - Cron job at 3 AM daily → ~/backups/
+• NEW: Dockerfile (multi-stage, golang:1.26 → debian:bookworm-slim)
+• NEW: DEPLOY.md — full deployment/operations guide
+• Go version pinned at 1.26.0 (already was)
+
 SESSION 6 CHANGES
 -----------------
 • NEW: Manuscript Transmittal form app
