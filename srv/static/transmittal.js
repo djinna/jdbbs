@@ -44,6 +44,10 @@ let state = {
   pathClient: null,
   pathProject: null,
   saveStatus: '', // '', 'saving', 'saved', 'error'
+  allProjects: [],  // for project switcher
+  versions: null,   // null=not loaded, []=loaded
+  showVersions: false,
+  showDuplicate: false,
 };
 
 // ─── Auto-save with debounce ───
@@ -77,6 +81,79 @@ function updateSaveIndicator() {
   if (!el) return;
   el.className = 'tx-save-status ' + state.saveStatus;
   el.textContent = state.saveStatus === 'saving' ? 'Saving...' : state.saveStatus === 'saved' ? 'Saved ✓' : state.saveStatus === 'error' ? 'Error!' : '';
+}
+
+// ─── Project switcher ───
+async function loadAllProjects() {
+  try {
+    state.allProjects = await api('/api/projects');
+  } catch (e) {
+    console.error('Failed to load projects:', e);
+    state.allProjects = [];
+  }
+}
+
+function switchProject(proj) {
+  const url = '/' + proj.ClientSlug + '/' + proj.ProjectSlug + '/transmittal/';
+  window.location.href = url;
+}
+
+// ─── Version history ───
+async function loadVersions() {
+  try {
+    state.versions = await api('/api/transmittals/' + state.projectId + '/versions');
+  } catch (e) {
+    console.error('Failed to load versions:', e);
+    state.versions = [];
+  }
+  render();
+}
+
+async function restoreVersion(vid) {
+  if (!confirm('Restore this version? Current state will be saved as a version first.')) return;
+  try {
+    await api('/api/transmittals/' + state.projectId + '/versions/' + vid + '/restore', { method: 'POST' });
+    await loadTransmittal();
+    await loadVersions();
+  } catch (e) {
+    alert('Restore failed: ' + e.message);
+  }
+}
+
+async function previewVersion(vid) {
+  try {
+    const v = await api('/api/transmittals/' + state.projectId + '/versions/' + vid);
+    // Temporarily show the version data
+    state.transmittal = { ...state.transmittal, data: v.data, status: v.status, _preview: vid, _previewDate: v.saved_at };
+    render();
+  } catch (e) {
+    alert('Failed to load version: ' + e.message);
+  }
+}
+
+function exitPreview() {
+  // Reload current live data
+  loadTransmittal().then(() => loadVersions());
+}
+
+// ─── Duplicate transmittal ───
+async function duplicateToProject(targetId) {
+  try {
+    await api('/api/transmittals/' + state.projectId + '/duplicate', {
+      method: 'POST',
+      body: JSON.stringify({ target_project_id: targetId }),
+    });
+    const target = state.allProjects.find(p => p.ID === targetId);
+    if (target) {
+      if (confirm('Transmittal duplicated! Go to ' + target.Name + ' transmittal?')) {
+        window.location.href = '/' + target.ClientSlug + '/' + target.ProjectSlug + '/transmittal/';
+      }
+    } else {
+      alert('Duplicated successfully!');
+    }
+  } catch (e) {
+    alert('Duplicate failed: ' + e.message);
+  }
 }
 
 // Helper: update a nested field in transmittal data
@@ -143,7 +220,7 @@ async function loadTransmittal() {
     state.pathClient = parts[0];
     state.pathProject = parts[1];
     try {
-      const info = await api('/api/projects/by-path/' + parts[0] + '/' + parts[1]);
+      const info = await api('/api/project-by-path/' + parts[0] + '/' + parts[1]);
       state.project = info.project;
       state.projectId = info.project.ID;
       if (info.has_auth && !info.authenticated) {
@@ -152,6 +229,8 @@ async function loadTransmittal() {
         return;
       }
       await loadTransmittal();
+      // Load project list in background for switcher/duplicate
+      loadAllProjects();
     } catch (e) {
       if (e.message === 'unauthorized') { state.view = 'auth'; render(); }
       else { document.body.textContent = 'Error: ' + e.message; }
@@ -233,19 +312,120 @@ function calcCompletion() {
   return total > 0 ? Math.round((filled / total) * 100) : 0;
 }
 
+// ─── Format date for display ───
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+// ─── Project Switcher dropdown ───
+function renderProjectSwitcher() {
+  if (!state.allProjects.length) return null;
+  return h('select', {
+    className: 'tx-project-switcher',
+    onChange: (e) => {
+      const proj = state.allProjects.find(p => p.ID === parseInt(e.target.value));
+      if (proj) switchProject(proj);
+    }
+  },
+    ...state.allProjects.map(p =>
+      h('option', { value: String(p.ID), selected: p.ID === state.projectId }, p.Name)
+    )
+  );
+}
+
+// ─── Version History Panel ───
+function renderVersionPanel() {
+  if (!state.showVersions) return null;
+  const versions = state.versions;
+  return h('div', { className: 'tx-panel tx-version-panel' },
+    h('div', { className: 'tx-panel-header' },
+      h('strong', null, 'Version History'),
+      h('button', { className: 'tx-panel-close', onClick: () => {
+        state.showVersions = false;
+        if (state.transmittal._preview) exitPreview();
+        else render();
+      }}, '×'),
+    ),
+    versions === null
+      ? h('p', { style: 'padding:12px;color:var(--text2)' }, 'Loading...')
+      : versions.length === 0
+        ? h('p', { style: 'padding:12px;color:var(--text2)' }, 'No versions yet. Versions are saved automatically as you edit (up to one every 5 minutes).')
+        : h('div', { className: 'tx-version-list' },
+            ...versions.map(v =>
+              h('div', { className: 'tx-version-item' + (state.transmittal._preview === v.id ? ' active' : '') },
+                h('div', { className: 'tx-version-info' },
+                  h('span', { className: 'tx-version-date' }, fmtDate(v.saved_at)),
+                  h('span', { className: 'tx-version-title' }, v.title || '(untitled)'),
+                  h('span', { className: 'tx-version-status' }, v.status),
+                ),
+                h('div', { className: 'tx-version-actions' },
+                  h('button', { className: 'btn btn-xs', onClick: () => previewVersion(v.id) }, 'Preview'),
+                  h('button', { className: 'btn btn-xs', onClick: () => restoreVersion(v.id) }, 'Restore'),
+                ),
+              )
+            ),
+          ),
+  );
+}
+
+// ─── Duplicate Modal ───
+function renderDuplicateModal() {
+  if (!state.showDuplicate) return null;
+  // Filter to projects that aren't the current one
+  const others = state.allProjects.filter(p => p.ID !== state.projectId);
+  return h('div', { className: 'tx-modal-overlay', onClick: (e) => {
+    if (e.target.classList.contains('tx-modal-overlay')) { state.showDuplicate = false; render(); }
+  }},
+    h('div', { className: 'tx-modal' },
+      h('h3', null, 'Duplicate Transmittal'),
+      h('p', { style: 'color:var(--text2);font-size:13px;margin-bottom:12px' },
+        'Copy this transmittal to another project. Author, publisher, design, and other house settings are kept. Book-specific fields (title, dates, checklist) are cleared.'
+      ),
+      others.length === 0
+        ? h('p', { style: 'color:var(--text2)' }, 'No other projects available. Create a new project from the calendar first.')
+        : h('div', { className: 'tx-duplicate-list' },
+            ...others.map(p =>
+              h('button', { className: 'btn btn-sm tx-duplicate-item', onClick: () => {
+                state.showDuplicate = false;
+                render();
+                duplicateToProject(p.ID);
+              }},
+                h('span', null, p.Name),
+                h('span', { style: 'color:var(--text2);font-size:11px' }, p.ClientSlug + '/' + p.ProjectSlug),
+              )
+            ),
+          ),
+      h('div', { style: 'text-align:right;margin-top:16px' },
+        h('button', { className: 'btn btn-sm', onClick: () => { state.showDuplicate = false; render(); } }, 'Cancel'),
+      ),
+    ),
+  );
+}
+
 // ─── Main form renderer ───
 function renderForm() {
   const d = state.transmittal.data;
   const pct = calcCompletion();
   const calendarUrl = '/' + state.pathClient + '/' + state.pathProject + '/';
+  const isPreview = !!state.transmittal._preview;
 
   return h('div', { className: 'tx-container' },
+    // Preview banner
+    isPreview ? h('div', { className: 'tx-preview-banner' },
+      h('span', null, '👁 Previewing version from ' + fmtDate(state.transmittal._previewDate)),
+      h('button', { className: 'btn btn-sm', onClick: () => restoreVersion(state.transmittal._preview) }, 'Restore this version'),
+      h('button', { className: 'btn btn-sm', onClick: exitPreview }, 'Exit preview'),
+    ) : null,
     // Header
     h('div', { className: 'tx-header' },
       h('div', null,
         h('h1', null, '📋 Manuscript Transmittal'),
         h('div', { className: 'tx-subtitle' },
-          state.project.Name,
+          renderProjectSwitcher() || state.project.Name,
           ' · ',
           h('span', { className: 'tx-status tx-status-' + state.transmittal.status },
             state.transmittal.status
@@ -254,6 +434,14 @@ function renderForm() {
       ),
       h('div', { className: 'tx-header-actions' },
         h('a', { className: 'btn btn-sm', href: calendarUrl }, '📅 Calendar'),
+        h('button', { className: 'btn btn-sm', onClick: () => {
+          state.showVersions = !state.showVersions;
+          if (state.showVersions && state.versions === null) loadVersions();
+          else render();
+        }}, '🕒 History'),
+        h('button', { className: 'btn btn-sm', onClick: () => {
+          state.showDuplicate = true; render();
+        }}, '⧉ Duplicate'),
         h('button', { className: 'btn btn-sm', onClick: () => window.print() }, '🖨 Print'),
         h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? ' btn-primary' : ''),
           onClick: () => {
@@ -265,12 +453,16 @@ function renderForm() {
         h('span', { id: 'tx-save-status', className: 'tx-save-status' }),
       ),
     ),
+    // Version history panel (slides in from right)
+    renderVersionPanel(),
+    // Duplicate modal
+    renderDuplicateModal(),
     // Progress
     h('div', { className: 'tx-progress' },
       h('div', { className: 'tx-progress-bar', style: 'width:' + pct + '%' }),
     ),
     // Two-column layout
-    h('div', { className: 'tx-columns' },
+    h('div', { className: 'tx-columns' + (isPreview ? ' tx-preview-mode' : '') },
       // LEFT COLUMN
       h('div', { className: 'tx-column' },
         renderBookSection(),

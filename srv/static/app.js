@@ -680,7 +680,7 @@ function showSettings() {
     state.pathClient = parts[0];
     state.pathProject = parts[1];
     try {
-      const info = await api('/api/projects/by-path/' + parts[0] + '/' + parts[1]);
+      const info = await api('/api/project-by-path/' + parts[0] + '/' + parts[1]);
       state.project = info.project;
       state.projectId = info.project.ID;
       if (info.has_auth && !info.authenticated) {

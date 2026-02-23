@@ -63,11 +63,15 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("POST /api/projects/{id}/verify", s.handleVerifyAuth)
 	mux.HandleFunc("POST /api/projects/{id}/seed", s.handleSeedProject)
 	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
-	mux.HandleFunc("GET /api/projects/by-path/{client}/{project}", s.handleGetProjectByPath)
+	mux.HandleFunc("GET /api/project-by-path/{client}/{project}", s.handleGetProjectByPath)
 
 	// Transmittal API
 	mux.HandleFunc("GET /api/projects/{id}/transmittal", s.handleGetTransmittal)
 	mux.HandleFunc("PUT /api/projects/{id}/transmittal", s.handleUpdateTransmittal)
+	mux.HandleFunc("GET /api/transmittals/{id}/versions", s.handleListTransmittalVersions)
+	mux.HandleFunc("GET /api/transmittals/{id}/versions/{vid}", s.handleGetTransmittalVersion)
+	mux.HandleFunc("POST /api/transmittals/{id}/versions/{vid}/restore", s.handleRestoreTransmittalVersion)
+	mux.HandleFunc("POST /api/transmittals/{id}/duplicate", s.handleDuplicateTransmittal)
 
 	// Static files (CSS, JS) at known paths
 	static, _ := fs.Sub(staticFS, "static")
