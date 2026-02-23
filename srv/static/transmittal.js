@@ -452,12 +452,12 @@ function renderForm() {
             state.showVersions = !state.showVersions;
             if (state.showVersions) { state.versions = null; loadVersions(); }
             else render();
-          }}, '🕒 History'),
+          }}, 'History'),
           h('button', { className: 'btn btn-sm', onClick: () => {
             state.showDuplicate = true; render();
-          }}, '⧉ Duplicate'),
-          h('button', { className: 'btn btn-sm', onClick: () => window.print() }, '🖨 Print'),
-          h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, '✉️ Email'),
+          }}, 'Duplicate'),
+          h('button', { className: 'btn btn-sm', onClick: () => window.print() }, 'Print'),
+          h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, 'Email'),
           h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? ' btn-primary' : ''),
             onClick: () => {
               const wasDraft = state.transmittal.status !== 'final';
@@ -469,7 +469,7 @@ function renderForm() {
               }
               render();
             }
-          }, state.transmittal.status === 'final' ? '↩ Draft' : '✓ Mark Final'),
+          }, state.transmittal.status === 'final' ? 'Draft' : 'Mark Final'),
           themeBtn(),
         ),
       ),
