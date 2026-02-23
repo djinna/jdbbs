@@ -183,6 +183,11 @@ function setField(path, value) {
   }
   obj[parts[parts.length - 1]] = value;
   scheduleSave();
+  // Live-update header title when book title changes
+  if (path === 'book.title') {
+    const el = document.querySelector('.page-header-title');
+    if (el) el.textContent = value || state.project?.Name || 'Transmittal';
+  }
 }
 
 function getField(path) {
@@ -445,7 +450,7 @@ function renderForm() {
             h('a', { href: calendarUrl }, '📅 Calendar'),
             h('span', { className: 'active' }, '📋 Transmittal'),
           ),
-          h('h1', { className: 'page-header-title' }, state.project ? state.project.Name : 'Transmittal'),
+          h('h1', { className: 'page-header-title' }, state.transmittal?.data?.book?.title || state.project?.Name || 'Transmittal'),
         ),
         h('div', { className: 'page-header-actions' },
           h('button', { className: 'btn btn-sm', onClick: () => {
