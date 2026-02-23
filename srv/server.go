@@ -92,6 +92,11 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("POST /api/projects/{id}/snapshot/email", s.handleSendProjectSnapshot)
 	mux.HandleFunc("GET /api/email/status", s.handleEmailStatus)
 
+	// Client API
+	mux.HandleFunc("GET /api/clients/{client}", s.handleClientInfo)
+	mux.HandleFunc("POST /api/clients/{client}/verify", s.handleClientVerify)
+	mux.HandleFunc("GET /api/clients/{client}/projects", s.handleClientProjects)
+
 	// Static files (CSS, JS) at known paths
 	static, _ := fs.Sub(staticFS, "static")
 	staticServer := http.FileServer(http.FS(static))
@@ -107,12 +112,21 @@ func (s *Server) Serve(addr string) error {
 		s.serveLanding(w)
 	})
 
-	// /{client}/{project}/ serves the SPA for that project
+	// /{client}/{project}/ serves the SPA, /{client}/ serves client portal
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		parts := strings.Split(strings.Trim(path, "/"), "/")
-		if len(parts) < 2 || parts[0] == "" {
+		if len(parts) == 0 || parts[0] == "" {
 			http.NotFound(w, r)
+			return
+		}
+		// /{client}/ -> client portal
+		if len(parts) == 1 {
+			if !strings.HasSuffix(path, "/") {
+				http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
+				return
+			}
+			s.serveClientPortal(w)
 			return
 		}
 		// /vgr/aog -> redirect to /vgr/aog/
@@ -153,6 +167,16 @@ func (s *Server) Serve(addr string) error {
 
 func (s *Server) serveTransmittal(w http.ResponseWriter) {
 	data, err := staticFS.ReadFile("static/transmittal.html")
+	if err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
+}
+
+func (s *Server) serveClientPortal(w http.ResponseWriter) {
+	data, err := staticFS.ReadFile("static/client.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
 		return
@@ -213,7 +237,7 @@ func (s *Server) projectIDFromPath(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("id"), 10, 64)
 }
 
-// Auth middleware: checks cookie or Authorization header
+// Auth middleware: checks project-level cookie, client-level cookie, or Authorization header
 func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 	q := dbgen.New(s.DB)
 	// Check if project has any auth tokens at all
@@ -223,6 +247,7 @@ func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 		return true
 	}
 
+	// Check project-level cookie
 	var raw string
 	if c, err := r.Cookie(fmt.Sprintf("prodcal_auth_%d", projectID)); err == nil {
 		raw = c.Value
@@ -230,15 +255,28 @@ func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 	if raw == "" {
 		raw = r.Header.Get("X-Auth-Token")
 	}
-	if raw == "" {
-		return false
+	if raw != "" {
+		_, err = q.GetAuthToken(r.Context(), dbgen.GetAuthTokenParams{
+			ProjectID: projectID,
+			TokenHash: hashToken(raw),
+		})
+		if err == nil {
+			return true
+		}
 	}
 
-	_, err = q.GetAuthToken(r.Context(), dbgen.GetAuthTokenParams{
-		ProjectID: projectID,
-		TokenHash: hashToken(raw),
-	})
-	return err == nil
+	// Check client-level cookie
+	clientSlug := s.getClientSlugForProject(r, projectID)
+	if clientSlug != "" && s.checkClientAuth(r, clientSlug) {
+		return true
+	}
+
+	// Check exe.dev admin
+	if r.Header.Get("X-ExeDev-UserID") != "" {
+		return true
+	}
+
+	return false
 }
 
 func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request, projectID int64) bool {

@@ -25,7 +25,21 @@ type projectSummary struct {
 func (s *Server) requireExeDevAdmin(w http.ResponseWriter, r *http.Request) bool {
 	userID := r.Header.Get("X-ExeDev-UserID")
 	if userID == "" {
-		http.Error(w, "Forbidden — exe.dev login required", http.StatusForbidden)
+		// Redirect to exe.dev login flow, which will bounce back after auth
+		redirect := r.URL.Path
+		if r.URL.RawQuery != "" {
+			redirect += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, "/__exe.dev/login?redirect="+redirect, http.StatusFound)
+		return false
+	}
+	return true
+}
+
+func (s *Server) requireExeDevAdminAPI(w http.ResponseWriter, r *http.Request) bool {
+	userID := r.Header.Get("X-ExeDev-UserID")
+	if userID == "" {
+		jsonErr(w, "exe.dev login required", http.StatusUnauthorized)
 		return false
 	}
 	return true
@@ -45,7 +59,7 @@ func (s *Server) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAdminProjectList(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdmin(w, r) {
+	if !s.requireExeDevAdminAPI(w, r) {
 		return
 	}
 

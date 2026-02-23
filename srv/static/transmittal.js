@@ -90,7 +90,18 @@ function updateSaveIndicator() {
 // ─── Project switcher ───
 async function loadAllProjects() {
   try {
-    state.allProjects = await api('/api/projects');
+    // Scope to current client so dropdown only shows this client's projects
+    if (state.pathClient) {
+      const raw = await api('/api/clients/' + state.pathClient + '/projects');
+      // Normalize snake_case keys to PascalCase used by project switcher
+      state.allProjects = raw.map(p => ({
+        ID: p.id, Name: p.name,
+        ClientSlug: p.client_slug, ProjectSlug: p.project_slug,
+        StartDate: p.start_date, UpdatedAt: p.updated_at,
+      }));
+    } else {
+      state.allProjects = await api('/api/projects');
+    }
     // Re-render to show project switcher once loaded
     if (state.view === 'form') render();
   } catch (e) {
@@ -1004,12 +1015,16 @@ function renderEmailModal() {
 
         // Actions
         h('div', { className: 'email-actions' },
-          h('button', {
-            className: 'btn btn-primary',
-            disabled: state.emailSending || state.emailConfigured === false ? 'disabled' : undefined,
-            onClick: sendTransmittalEmail,
-          }, state.emailSending ? 'Sending…' : '📨 Send Email'),
-          h('button', { className: 'btn btn-sm', onClick: closeModal }, 'Cancel'),
+          state.emailResult?.ok
+            ? h('button', { className: 'btn btn-primary', onClick: closeModal }, '✓ Done')
+            : [
+                h('button', {
+                  className: 'btn btn-primary',
+                  disabled: state.emailSending || state.emailConfigured === false ? 'disabled' : undefined,
+                  onClick: sendTransmittalEmail,
+                }, state.emailSending ? 'Sending…' : '📨 Send Email'),
+                h('button', { className: 'btn btn-sm', onClick: closeModal }, 'Cancel'),
+              ],
         ),
       ),
     ),

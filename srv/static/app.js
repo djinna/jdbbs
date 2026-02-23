@@ -806,12 +806,16 @@ function renderSnapshotEmailModal() {
         : null,
 
       h('div', { className: 'modal-actions' },
-        h('button', { className: 'btn', onClick: closeModal }, 'Cancel'),
-        h('button', {
-          className: 'btn btn-primary',
-          disabled: state.snapshotSending || state.emailConfigured === false ? 'disabled' : undefined,
-          onClick: sendSnapshotEmail,
-        }, state.snapshotSending ? 'Sending…' : '📨 Send Snapshot'),
+        state.snapshotResult?.ok
+          ? h('button', { className: 'btn btn-primary', onClick: closeModal }, '✓ Done')
+          : [
+              h('button', { className: 'btn', onClick: closeModal }, 'Cancel'),
+              h('button', {
+                className: 'btn btn-primary',
+                disabled: state.snapshotSending || state.emailConfigured === false ? 'disabled' : undefined,
+                onClick: sendSnapshotEmail,
+              }, state.snapshotSending ? 'Sending…' : '📨 Send Snapshot'),
+            ],
       ),
     ),
   );

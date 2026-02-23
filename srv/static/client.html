@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client Portal</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  .portal { max-width: 640px; margin: 0 auto; padding: 32px 20px; }
+  .portal h1 { margin-bottom: 4px; }
+  .portal .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 32px; }
+  .project-list { display: flex; flex-direction: column; gap: 12px; }
+  .proj-card {
+    display: block; padding: 20px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    text-decoration: none; color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .proj-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(108,99,255,0.15); }
+  .proj-card h3 { margin: 0 0 6px; font-size: 18px; }
+  .proj-card .meta { font-size: 13px; color: var(--text2); }
+  .proj-card .progress { margin-top: 8px; font-size: 12px; color: var(--accent2); }
+  .auth-box {
+    max-width: 360px; margin: 80px auto; text-align: center;
+    padding: 32px; background: var(--surface); border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .auth-box input { margin: 12px 0; padding: 10px 14px; width: 100%; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; }
+  .auth-box .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const api = async (url, opts = {}) => {
+  const r = await fetch(url, { headers: {'Content-Type':'application/json', ...opts.headers}, ...opts });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+};
+
+function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
+if (getTheme() === 'light') document.documentElement.setAttribute('data-theme', 'light');
+
+const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
+let state = { view: 'loading', client: null, projects: [], error: '' };
+
+function render() {
+  const app = $('#app');
+  if (state.view === 'loading') {
+    app.innerHTML = '<div class="portal" style="text-align:center;padding-top:80px;">Loading…</div>';
+  } else if (state.view === 'auth') {
+    app.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'auth-box';
+    box.innerHTML = `
+      <h2>🔒 ${state.client?.name || clientSlug}</h2>
+      <p style="color:var(--text2);font-size:14px">Enter your password to view projects</p>
+      <input type="password" id="pw" placeholder="Password" autofocus>
+      <div><button class="btn btn-primary" id="loginBtn" style="width:100%">Unlock</button></div>
+      ${state.error ? '<div class="error">' + state.error + '</div>' : ''}
+      <div style="margin-top:16px"><a href="/" style="color:var(--text2);font-size:13px">← Home</a></div>
+    `;
+    app.appendChild(box);
+    const pw = box.querySelector('#pw');
+    const btn = box.querySelector('#loginBtn');
+    const doLogin = async () => {
+      try {
+        await api('/api/clients/' + clientSlug + '/verify', {
+          method: 'POST', body: JSON.stringify({ password: pw.value })
+        });
+        boot();
+      } catch(e) { state.error = 'Invalid password'; render(); }
+    };
+    btn.addEventListener('click', doLogin);
+    pw.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  } else if (state.view === 'portal') {
+    app.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'portal';
+    const name = state.client?.name || clientSlug;
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h1>${name}</h1>
+          <div class="subtitle">Your book projects</div>
+        </div>
+        <a href="/" class="btn btn-sm" style="text-decoration:none">← Home</a>
+      </div>
+      <div class="project-list" id="projList"></div>
+    `;
+    app.appendChild(div);
+    const list = div.querySelector('#projList');
+    if (state.projects.length === 0) {
+      list.innerHTML = '<p style="color:var(--text2)">No projects yet.</p>';
+    }
+    state.projects.forEach(p => {
+      const a = document.createElement('a');
+      a.className = 'proj-card';
+      a.href = p.path;
+      const pct = p.task_count > 0 ? Math.round(p.done_count * 100 / p.task_count) : 0;
+      a.innerHTML = `
+        <h3>${p.name}</h3>
+        <div class="meta">${p.path} · Start: ${p.start_date || 'TBD'}</div>
+        <div class="progress">${p.done_count}/${p.task_count} tasks · ${pct}% complete</div>
+      `;
+      list.appendChild(a);
+    });
+  }
+}
+
+async function boot() {
+  state = { view: 'loading', client: null, projects: [], error: '' };
+  render();
+  try {
+    const info = await api('/api/clients/' + clientSlug);
+    state.client = info;
+    if (info.has_auth && !info.authenticated) {
+      state.view = 'auth';
+      render();
+      return;
+    }
+    const projects = await api('/api/clients/' + clientSlug + '/projects');
+    state.projects = projects;
+    state.view = 'portal';
+    document.title = (info.name || clientSlug) + ' — Projects';
+    render();
+  } catch(e) {
+    if (e.message === 'unauthorized') {
+      state.view = 'auth';
+      state.client = state.client || {};
+    } else {
+      state.view = 'portal';
+      state.error = e.message;
+    }
+    render();
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
