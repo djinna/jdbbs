@@ -1,5 +1,5 @@
 Production Calendar + Manuscript Transmittal — Session Summary
-2026-02-23 (session 8)
+2026-02-23 (session 9)
 ========================================
 
 STATUS: ✅ LIVE AND PUBLIC
@@ -34,6 +34,36 @@ FEATURES WORKING
 • Runs as systemd service (survives reboots)
 • Admin project list at root /
 • Public access configured
+
+SESSION 9 CHANGES (19:50–20:00 UTC)
+-----------------------------------
+Three features added:
+
+1. Project Snapshot Email (📧 Email Snapshot button)
+   • POST /api/projects/{id}/snapshot/email
+   • Sends comprehensive HTML email: schedule overview (stat cards),
+     full task table with status badges and overdue highlights,
+     budget summary with variance, transmittal status with checklist count
+   • Plain text fallback included
+   • Recipient picker modal (same as transmittal email)
+   • Tested end-to-end: delivered to jdbb@agentmail.to ✓
+
+2. Landing Page (root URL security)
+   • / now shows branded landing page instead of project list
+   • Logged-in exe.dev users auto-redirect to /admin/
+   • Non-authenticated visitors see links to admin + Art of Gig project
+   • No more unauthenticated project list exposure
+
+3. Status Toggle Shortcut
+   • Click status badges in Timeline or Table view to cycle:
+     pending → active → done → pending
+   • Marking done auto-sets actual_done date to today
+   • Hover effect: scale + accent ring
+   • Works without opening edit modal
+
+Also fixed:
+   • h() function in app.js: proper handling of boolean attributes
+     (checked, disabled, selected)
 
 SESSION 8 CHANGES (19:22–19:45 UTC)
 -----------------------------------
