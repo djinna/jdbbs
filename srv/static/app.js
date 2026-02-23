@@ -34,6 +34,14 @@ const fmt = {
 
 let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null };
 
+// ─── Theme ───
+function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
+function setTheme(t) { localStorage.setItem('prodcal-theme', t); document.documentElement.setAttribute('data-theme', t); }
+function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); render(); }
+function themeBtn() { return h('button', { className: 'theme-toggle', onClick: toggleTheme, title: 'Toggle light/dark mode' }, getTheme() === 'dark' ? '☀️' : '🌙'); }
+// Apply saved theme immediately
+if (getTheme() === 'light') document.documentElement.setAttribute('data-theme', 'light');
+
 function render() {
   const app = $('#app');
   app.innerHTML = '';
@@ -54,6 +62,7 @@ function renderProjectList() {
       h('h1', null, '📅 Production Calendar'),
       h('div', { className: 'header-actions' },
         h('button', { className: 'btn btn-primary', onClick: showNewProject }, '+ New Project'),
+        themeBtn(),
       )
     ),
     state.projects && state.projects.length
@@ -188,6 +197,7 @@ function renderProject() {
         h('button', { className: 'btn btn-sm', onClick: showAddTask }, '+ Task'),
         h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, '⧉ Make New'),
         h('button', { className: 'btn btn-sm', onClick: showSettings }, '⚙ Settings'),
+        themeBtn(),
       ),
     ),
     h('div', { className: 'budget-summary' },
