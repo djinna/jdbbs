@@ -381,16 +381,34 @@ label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px
 }
 
 .gantt-header-weeks {
-  display: flex;
-  font-size: 9px;
+  position: relative;
+  height: 18px;
+  font-size: 11px;
   color: var(--text2);
-  padding: 2px 0;
 }
 
-.gantt-header-week {
-  text-align: center;
-  border-right: 1px solid var(--border);
-  flex-shrink: 0;
+.gantt-month-label {
+  position: absolute;
+  top: 0;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.gantt-header-tick {
+  position: absolute;
+  top: 12px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  opacity: 0.4;
+}
+
+.gantt-header-tick.month-tick {
+  top: 0;
+  opacity: 0.7;
 }
 
 /* Table view */

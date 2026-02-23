@@ -241,7 +241,7 @@ function renderGantt() {
   minDate.setDate(minDate.getDate() - 7);
   maxDate.setDate(maxDate.getDate() + 14);
   const totalDays = (maxDate - minDate) / 86400000;
-  const pxPerDay = 3;
+  const pxPerDay = 5;
   const chartWidth = totalDays * pxPerDay;
 
   const toX = (dateStr) => {
@@ -259,13 +259,29 @@ function renderGantt() {
     ws.setDate(ws.getDate() + 7);
   }
 
-  const weekHeaders = h('div', { className: 'gantt-header-weeks', style: `width:${chartWidth}px` },
-    ...weeks.map(w => {
-      const left = ((w - minDate) / 86400000) * pxPerDay;
-      const width = 7 * pxPerDay;
-      return h('div', { className: 'gantt-header-week', style: `width:${width}px` },
-        w.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  // Build month labels positioned at month boundaries
+  const months = [];
+  const mStart = new Date(minDate);
+  mStart.setDate(1);
+  if (mStart < minDate) mStart.setMonth(mStart.getMonth() + 1);
+  while (mStart < maxDate) {
+    months.push(new Date(mStart));
+    mStart.setMonth(mStart.getMonth() + 1);
+  }
+
+  const weekHeaders = h('div', { className: 'gantt-header-weeks', style: `width:${chartWidth}px;position:relative;height:18px` },
+    // Month labels
+    ...months.map(m => {
+      const x = ((m - minDate) / 86400000) * pxPerDay;
+      return h('div', { className: 'gantt-month-label', style: `left:${x + 2}px` },
+        m.toLocaleDateString('en-US', { month: 'short' })
       );
+    }),
+    // Thin week ticks
+    ...weeks.map(w => {
+      const x = ((w - minDate) / 86400000) * pxPerDay;
+      const isMonthStart = w.getDate() <= 7;
+      return h('div', { className: 'gantt-header-tick' + (isMonthStart ? ' month-tick' : ''), style: `left:${x}px` });
     })
   );
 
