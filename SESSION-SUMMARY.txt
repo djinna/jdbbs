@@ -1,5 +1,5 @@
-Production Calendar — Session Summary
-2026-02-23 (session 5)
+Production Calendar + Manuscript Transmittal — Session Summary
+2026-02-23 (session 6)
 ========================================
 
 STATUS: ✅ LIVE AND PUBLIC
@@ -35,6 +35,29 @@ FEATURES WORKING
 • Admin project list at root /
 • Public access configured
 
+SESSION 6 CHANGES
+-----------------
+• NEW: Manuscript Transmittal form app
+  - Lives at /{client}/{project}/transmittal/
+  - Digitizes the classic InDesign manuscript transmittal form
+  - Single JSON blob storage in SQLite (transmittals table)
+  - Auto-creates blank form on first visit
+  - Auto-saves every field change (debounced 600ms)
+  - Two-column layout matching original form structure:
+    Left: Book Info, Production, Manuscript Checklist (15 front-matter
+    components + 6 back-matter items), Illustrations table
+    Right: Permissions & Consents, Page IV (Copyright), Subrights
+    (with n/a strikethrough toggle), Editing, Book Design (trim
+    radio buttons), Cover (JDBB/Publisher front/spine/back),
+    Files & Delivery, Page Proofs (dynamic reviewer list),
+    Other Instructions
+  - Progress bar showing form completion %
+  - Draft/Final status toggle
+  - Print button (CSS @media print styles)
+  - Calendar ↔ Transmittal cross-link buttons
+  - Same password protection as production calendar
+  - Seeded with More Than a Woodlot data from original InDesign form
+
 SESSION 5 CHANGES
 -----------------
 • Added light/dark mode toggle with localStorage persistence
@@ -51,35 +74,48 @@ INFRASTRUCTURE
 
 STARTER PROMPT FOR NEXT SESSION
 -------------------------------
-This is a continuation of the production calendar project.
-Repo at /home/exedev/prodcal, live at https://jdbb-prod.exe.xyz/vgr/aog/
-(password: artofgig2026). Go backend + vanilla JS SPA, SQLite DB,
-systemd service. Has Timeline/Table/Budget views, 31 tasks from
-original .xls, task editing, password protection, Make New (duplicate
-with date shift), /{client}/{project}/ URL routing, and light/dark
-mode toggle. Session notes at /home/exedev/prodcal/SESSION-SUMMARY.txt
+This is a continuation of the production calendar + manuscript
+transmittal project. Repo at /home/exedev/prodcal, live at
+https://jdbb-prod.exe.xyz/vgr/aog/ (password: artofgig2026).
+Go backend + vanilla JS SPA, SQLite DB, systemd service.
+
+Production Calendar: Timeline/Table/Budget views, 31 tasks,
+task editing, Make New (duplicate w/ date shift), /{client}/{project}/
+URL routing, light/dark mode.
+
+Manuscript Transmittal: /{client}/{project}/transmittal/ — interactive
+form digitizing the InDesign transmittal. JSON blob storage,
+auto-save, two-column layout, all sections from original form.
+Seeded with More Than a Woodlot data.
+
+Session notes at /home/exedev/prodcal/SESSION-SUMMARY.txt
 
 [then state what you want to work on next]
 
 FIX / BUILD LIST
 ----------------
-Polish & UX:
-  • Cramped week headers on Timeline — ✅ DONE (month labels now)
-  • Light/dark mode — ✅ DONE
+Calendar polish:
   • Mobile-responsive improvements (modals, gantt on small screens)
   • Polish timeline Gantt (today marker sometimes off, bar tooltips)
   • Status toggle shortcut (click status badge to cycle pending→active→done)
-
-Features:
   • Task reordering / drag-and-drop
-  • Export/print view (PDF or clean printable page)
-  • Notifications / email alerts for upcoming due dates
-  • Connect to manuscript transmittal tool (separate chat)
+  • Export/print view
+
+Transmittal polish:
+  • Seed as template: when "Make New" duplicates a project, option to
+    also create a blank transmittal with the default checklist
+  • YAML export/import (per the Claude session notes about
+    book-transmittal.yaml as single source of truth)
+  • Form validation / required-field highlighting
+  • Coauthors field (original has multiple authors)
+  • Section collapse/expand
+  • Custom checklist items (add/remove/reorder components)
+  • Better mobile layout (single column works but could be tighter)
 
 Data & workflow:
   • Test with colleague — get real feedback
-  • Bulk edit (select multiple tasks, change assignee/status)
   • Activity log / change history
+  • Notifications / email alerts for upcoming due dates
 
 CONVERSATION CHAIN
 ------------------
@@ -87,18 +123,23 @@ shared-protected-calendar (cFUDS6C) — main build session
   → shared-protected-calendar-1 (cD4RV7B) — continuation
   → shared-protected-calendar-2 (cVT6NYU) — continuation
   → shared-protected-calendar-3 — verified everything, public access
-  → session 5 (current) — light/dark mode, timeline fix
+  → session 5 — light/dark mode, timeline fix
+  → session 6 (current) — manuscript transmittal form
 
 KEY FILES
 ---------
-cmd/srv/main.go          — entrypoint
-srv/server.go            — all HTTP handlers + routing
-srv/static/app.js        — SPA frontend (~750 lines)
-srv/static/style.css     — dark/light theme styles
-srv/static/index.html    — shell HTML
-srv/static/notes.html    — copy-friendly session notes page
+cmd/srv/main.go              — entrypoint
+srv/server.go                — HTTP handlers + routing (calendar + transmittal routes)
+srv/transmittal.go           — transmittal API handlers (GET/PUT)
+srv/static/app.js            — calendar SPA frontend (~700 lines)
+srv/static/transmittal.js    — transmittal SPA frontend (~450 lines)
+srv/static/transmittal.css   — transmittal form styles
+srv/static/transmittal.html  — transmittal shell HTML
+srv/static/style.css         — dark/light theme styles (shared)
+srv/static/index.html        — calendar shell HTML
 db/migrations/001-base.sql   — schema
 db/migrations/002-slugs.sql  — client/project slug columns
+db/migrations/003-transmittal.sql — transmittal table
 db/queries/visitors.sql      — sqlc queries
-Makefile                 — make build → ./prodcal
-srv.service              — systemd unit file
+Makefile                     — make build → ./prodcal
+srv.service                  — systemd unit file
