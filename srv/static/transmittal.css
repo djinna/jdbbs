@@ -2,10 +2,10 @@
 /* Inherits theme variables from style.css */
 
 /* ─── Layout ─── */
+/* tx-container sits inside #app which already has max-width + padding */
 .tx-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
+  max-width: none;
+  padding: 0;
 }
 
 .tx-header {
@@ -52,7 +52,7 @@
   height: 4px;
   background: var(--surface2);
   border-radius: 2px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   overflow: hidden;
 }
 

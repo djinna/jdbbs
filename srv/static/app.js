@@ -33,7 +33,7 @@ const fmt = {
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
 };
 
-let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null };
+let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [] };
 
 // ─── Theme ───
 function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
@@ -212,6 +212,10 @@ function renderProject() {
       ),
       h('div', { className: 'page-header-sub' },
         h('button', { className: 'page-header-back', onClick: () => { window.location.href = clientUrl; } }, '← ' + (state.project.ClientSlug || 'Projects').toUpperCase()),
+        renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text2)' }, state.project.Name),
+        h('span', { className: 'page-status' + (done === t.length && t.length > 0 ? ' page-status-final' : ' page-status-draft') },
+          done + '/' + t.length + ' done'
+        ),
       ),
     ),
     h('div', { className: 'budget-summary' },
@@ -830,6 +834,36 @@ function renderSnapshotEmailModal() {
   );
 }
 
+// ─── Project Switcher ───
+async function loadSiblingProjects() {
+  if (!state.pathClient) return;
+  try {
+    const raw = await api('/api/clients/' + state.pathClient + '/projects');
+    state.siblingProjects = raw.map(p => ({
+      ID: p.id, Name: p.name,
+      ClientSlug: p.client_slug, ProjectSlug: p.project_slug,
+    }));
+    if (state.view === 'project') render();
+  } catch (e) {
+    state.siblingProjects = [];
+  }
+}
+
+function renderProjectSwitcher() {
+  if (state.siblingProjects.length < 2) return null;
+  return h('select', {
+    className: 'project-switcher',
+    onChange: (e) => {
+      const p = state.siblingProjects.find(p => p.ID === parseInt(e.target.value));
+      if (p) window.location.href = '/' + p.ClientSlug + '/' + p.ProjectSlug + '/';
+    }
+  },
+    ...state.siblingProjects.map(p =>
+      h('option', { value: String(p.ID), selected: p.ID === state.projectId }, p.Name)
+    )
+  );
+}
+
 // ─── Boot ───
 (async function boot() {
   // Check if URL is /{client}/{project}/ — if so, go directly to that project
@@ -849,6 +883,7 @@ function renderSnapshotEmailModal() {
       state.tasks = await api('/api/projects/' + info.project.ID + '/tasks');
       state.view = 'project';
       render();
+      loadSiblingProjects();
     } catch (e) {
       if (e.message === 'unauthorized') { state.view = 'auth'; render(); }
       else { state.view = 'projects'; loadProjects(); }

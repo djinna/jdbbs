@@ -122,6 +122,7 @@ body {
   align-items: center;
   gap: 10px;
   margin-top: 8px;
+  min-height: 28px;
   flex-wrap: wrap;
 }
 
