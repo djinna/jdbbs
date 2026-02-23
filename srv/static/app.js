@@ -196,6 +196,9 @@ function renderProject() {
       h('div', { className: 'header-actions' },
         h('button', { className: 'btn btn-sm', onClick: showAddTask }, '+ Task'),
         h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, '⧉ Make New'),
+        state.project.ClientSlug && state.project.ProjectSlug
+          ? h('a', { className: 'btn btn-sm', href: '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/transmittal/' }, '📋 Transmittal')
+          : null,
         h('button', { className: 'btn btn-sm', onClick: showSettings }, '⚙ Settings'),
         themeBtn(),
       ),

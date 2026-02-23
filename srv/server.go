@@ -65,6 +65,10 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
 	mux.HandleFunc("GET /api/projects/by-path/{client}/{project}", s.handleGetProjectByPath)
 
+	// Transmittal API
+	mux.HandleFunc("GET /api/projects/{id}/transmittal", s.handleGetTransmittal)
+	mux.HandleFunc("PUT /api/projects/{id}/transmittal", s.handleUpdateTransmittal)
+
 	// Static files (CSS, JS) at known paths
 	static, _ := fs.Sub(staticFS, "static")
 	staticServer := http.FileServer(http.FS(static))
@@ -88,6 +92,22 @@ func (s *Server) Serve(addr string) error {
 			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
 			return
 		}
+		// /vgr/aog/transmittal/ -> serve transmittal SPA
+		if len(parts) == 3 && parts[2] == "transmittal" && !strings.HasSuffix(path, "/") {
+			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
+			return
+		}
+		if len(parts) >= 3 && parts[2] == "transmittal" {
+			if len(parts) > 3 {
+				// /vgr/aog/transmittal/style.css -> serve static
+				assetPath := strings.Join(parts[3:], "/")
+				r.URL.Path = "/" + assetPath
+				staticServer.ServeHTTP(w, r)
+				return
+			}
+			s.serveTransmittal(w)
+			return
+		}
 		// /vgr/aog/style.css -> serve static asset
 		if len(parts) > 2 {
 			assetPath := strings.Join(parts[2:], "/")
@@ -95,12 +115,22 @@ func (s *Server) Serve(addr string) error {
 			staticServer.ServeHTTP(w, r)
 			return
 		}
-		// /vgr/aog/ -> serve the SPA
+		// /vgr/aog/ -> serve the calendar SPA
 		s.serveIndex(w)
 	})
 
 	slog.Info("starting server", "addr", addr)
 	return http.ListenAndServe(addr, mux)
+}
+
+func (s *Server) serveTransmittal(w http.ResponseWriter) {
+	data, err := staticFS.ReadFile("static/transmittal.html")
+	if err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
 }
 
 func (s *Server) serveIndex(w http.ResponseWriter) {

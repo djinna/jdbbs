@@ -1,0 +1,448 @@
+/* Manuscript Transmittal — form-specific styles */
+/* Inherits theme variables from style.css */
+
+/* ─── Layout ─── */
+.tx-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.tx-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tx-header h1 {
+  font-size: 20px;
+  margin: 0;
+  color: var(--text);
+}
+
+.tx-header .tx-subtitle {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+
+.tx-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tx-save-status {
+  font-size: 12px;
+  color: var(--text2);
+  min-width: 60px;
+  text-align: right;
+}
+
+.tx-save-status.saving { color: var(--accent); }
+.tx-save-status.saved { color: var(--green, #4ade80); }
+.tx-save-status.error { color: var(--red, #f87171); }
+
+/* ─── Progress bar ─── */
+.tx-progress {
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 2px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.tx-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ─── Two-column form ─── */
+.tx-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .tx-columns { grid-template-columns: 1fr; }
+}
+
+.tx-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── Sections ─── */
+.tx-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  padding: 16px;
+}
+
+.tx-section-header {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ─── Form fields ─── */
+.tx-field {
+  margin-bottom: 10px;
+}
+
+.tx-field:last-child {
+  margin-bottom: 0;
+}
+
+.tx-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
+}
+
+.tx-field input[type="text"],
+.tx-field input[type="date"],
+.tx-field input[type="number"],
+.tx-field textarea,
+.tx-field select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.tx-field input:focus,
+.tx-field textarea:focus,
+.tx-field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+}
+
+.tx-field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.tx-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tx-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+/* ─── Inline field (label + input on same line) ─── */
+.tx-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tx-inline label {
+  margin-bottom: 0;
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.tx-inline input {
+  flex: 1;
+}
+
+/* ─── Checkbox / radio groups ─── */
+.tx-check-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.tx-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.tx-check input[type="checkbox"],
+.tx-check input[type="radio"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.tx-check.na {
+  text-decoration: line-through;
+  color: var(--text2);
+  opacity: 0.6;
+}
+
+/* ─── Checklist table ─── */
+.tx-checklist {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tx-checklist th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tx-checklist td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.tx-checklist tr:last-child td {
+  border-bottom: none;
+}
+
+.tx-checklist .component-name {
+  color: var(--text);
+}
+
+.tx-checklist .component-indent {
+  padding-left: 20px;
+  color: var(--text2);
+}
+
+.tx-checklist input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.tx-checklist input[type="text"],
+.tx-checklist input[type="date"] {
+  width: 100%;
+  padding: 2px 4px;
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text);
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.tx-checklist input[type="text"]:focus,
+.tx-checklist input[type="date"]:focus {
+  border-color: var(--accent);
+}
+
+.tx-checklist .stats-row td {
+  font-size: 12px;
+  color: var(--text2);
+  padding-top: 6px;
+}
+
+/* ─── Illustrations mini-table ─── */
+.tx-illus-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.tx-illus-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tx-illus-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tx-illus-table input[type="number"] {
+  width: 60px;
+  padding: 2px 4px;
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.tx-illus-table input[type="number"]:focus {
+  border-color: var(--accent);
+}
+
+/* ─── Reviewers list ─── */
+.tx-reviewer {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 6px;
+  align-items: center;
+}
+
+.tx-reviewer input {
+  padding: 4px 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.tx-reviewer input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.tx-reviewer-remove {
+  background: none;
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.tx-reviewer-remove:hover {
+  color: var(--red, #f87171);
+}
+
+.tx-add-btn {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 12px;
+  width: 100%;
+  text-align: center;
+}
+
+.tx-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─── Status badge ─── */
+.tx-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tx-status-draft {
+  background: rgba(250, 204, 21, 0.15);
+  color: #facc15;
+}
+
+.tx-status-final {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+/* ─── Print styles ─── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 10pt;
+  }
+
+  .tx-header-actions,
+  .tx-progress,
+  .tx-add-btn,
+  .tx-reviewer-remove,
+  .btn,
+  .theme-toggle {
+    display: none !important;
+  }
+
+  .tx-container {
+    max-width: none;
+    padding: 0;
+  }
+
+  .tx-columns {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .tx-section {
+    border: 1px solid #ccc;
+    padding: 8px;
+    break-inside: avoid;
+  }
+
+  .tx-section-header {
+    color: black;
+    border-bottom-color: #ccc;
+  }
+
+  .tx-field input,
+  .tx-field textarea,
+  .tx-field select,
+  .tx-checklist input,
+  .tx-illus-table input {
+    border: none !important;
+    background: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .tx-check.na {
+    text-decoration: line-through;
+    color: #999;
+  }
+
+  .tx-header h1 {
+    color: black;
+  }
+
+  .tx-field label {
+    color: #333;
+  }
+}
