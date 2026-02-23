@@ -62,6 +62,7 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("POST /api/projects/{id}/auth", s.handleSetAuth)
 	mux.HandleFunc("POST /api/projects/{id}/verify", s.handleVerifyAuth)
 	mux.HandleFunc("POST /api/projects/{id}/seed", s.handleSeedProject)
+	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
 
 	// Static files
 	static, _ := fs.Sub(staticFS, "static")
@@ -532,6 +533,112 @@ func (s *Server) handleSeedProject(w http.ResponseWriter, r *http.Request) {
 			Name: p.Name, StartDate: body.StartDate, ID: pid,
 		})
 	}
-	_ = time.Now() // avoid unused import
 	jsonOK(w, map[string]any{"ok": true, "count": len(body.Tasks)})
+}
+
+func shiftDate(dateStr string, delta time.Duration) string {
+	if dateStr == "" {
+		return ""
+	}
+	// Try parsing with time component first (some dates have 12:00:00)
+	for _, layout := range []string{"2006-01-02", "2006-01-02T15:04:05"} {
+		if d, err := time.Parse(layout, dateStr); err == nil {
+			return d.Add(delta).Format("2006-01-02")
+		}
+	}
+	return dateStr
+}
+
+func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) {
+	srcID, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	if !s.requireAuth(w, r, srcID) {
+		return
+	}
+
+	var body struct {
+		Name      string `json:"name"`
+		StartDate string `json:"start_date"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonErr(w, "bad request", 400)
+		return
+	}
+	if body.Name == "" {
+		jsonErr(w, "name required", 400)
+		return
+	}
+
+	q := dbgen.New(s.DB)
+	srcProject, err := q.GetProject(r.Context(), srcID)
+	if err != nil {
+		jsonErr(w, "source project not found", 404)
+		return
+	}
+
+	// Calculate date delta
+	var delta time.Duration
+	if body.StartDate != "" && srcProject.StartDate != "" {
+		oldStart, e1 := time.Parse("2006-01-02", srcProject.StartDate)
+		newStart, e2 := time.Parse("2006-01-02", body.StartDate)
+		if e1 == nil && e2 == nil {
+			delta = newStart.Sub(oldStart)
+		}
+	}
+
+	// Create new project
+	startDate := body.StartDate
+	if startDate == "" {
+		startDate = srcProject.StartDate
+	}
+	newProject, err := q.CreateProject(r.Context(), dbgen.CreateProjectParams{
+		Name:      body.Name,
+		StartDate: startDate,
+	})
+	if err != nil {
+		jsonErr(w, "create project: "+err.Error(), 500)
+		return
+	}
+
+	// Copy tasks with shifted dates and zeroed amounts
+	tasks, err := q.ListTasks(r.Context(), srcID)
+	if err != nil {
+		jsonErr(w, "list tasks: "+err.Error(), 500)
+		return
+	}
+
+	for _, t := range tasks {
+		_, err := q.CreateTask(r.Context(), dbgen.CreateTaskParams{
+			ProjectID:    newProject.ID,
+			SortOrder:    t.SortOrder,
+			Assignee:     t.Assignee,
+			Title:        t.Title,
+			IsMilestone:  t.IsMilestone,
+			OrigWeeks:    t.OrigWeeks,
+			CurrWeeks:    t.OrigWeeks, // Reset curr to orig
+			OrigDue:      shiftDate(t.OrigDue, delta),
+			CurrDue:      shiftDate(t.OrigDue, delta), // Reset curr to shifted orig
+			ActualDone:   "",       // Clear
+			Status:       "pending", // Reset
+			Words:        t.Words,
+			WordsPerHour: t.WordsPerHour,
+			Hours:        t.Hours,
+			Rate:         t.Rate,
+			BudgetNotes:  t.BudgetNotes,
+			OrigBudget:   0, // Zero
+			CurrBudget:   0, // Zero
+			ActualBudget: 0, // Zero
+		})
+		if err != nil {
+			slog.Warn("duplicate task", "error", err, "task", t.Title)
+		}
+	}
+
+	jsonOK(w, map[string]any{
+		"project": newProject,
+		"tasks_copied": len(tasks),
+	})
 }

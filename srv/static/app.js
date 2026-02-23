@@ -136,6 +136,7 @@ function renderProject() {
       ),
       h('div', { className: 'header-actions' },
         h('button', { className: 'btn btn-sm', onClick: showAddTask }, '+ Task'),
+        h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, '⧉ Make New'),
         h('button', { className: 'btn btn-sm', onClick: showSettings }, '⚙ Settings'),
       ),
     ),
@@ -434,6 +435,60 @@ function showAddTask() {
     SortOrder: maxOrder + 1, Words: 0, WordsPerHour: 0,
   };
   render();
+}
+
+// ─── Duplicate / Make New ───
+function showDuplicate() {
+  let nameInput, dateInput;
+  const el = h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === el) el.remove(); } },
+    h('div', { className: 'modal' },
+      h('h2', null, '⧉ Make New From Template'),
+      h('p', { style: 'color:var(--text2);font-size:14px;margin-bottom:16px' },
+        'Duplicates all tasks with shifted dates. Resets status to pending, zeroes out budgets, and clears actual dates.'
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'New Project Name'),
+          nameInput = h('input', { type: 'text', placeholder: 'e.g. New Book Title', value: '' }),
+        ),
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'New Start Date (manuscript transmittal)'),
+          dateInput = h('input', { type: 'date', value: new Date().toISOString().slice(0, 10) }),
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'Original Start'),
+          h('input', { type: 'text', value: state.project.StartDate || 'not set', disabled: true, style: 'opacity:0.6' }),
+        ),
+      ),
+      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:12px 0;font-size:13px;color:var(--text2)' },
+        h('strong', { style: 'color:var(--text)' }, 'What gets copied: '),
+        'Task names, assignees, durations (weeks), hours, rates, notes. ',
+        h('br'),
+        h('strong', { style: 'color:var(--text)' }, 'What gets reset: '),
+        'All dates shifted to new start. Budgets zeroed. Status → Pending. Actuals cleared.',
+      ),
+      h('div', { className: 'modal-actions' },
+        h('button', { className: 'btn', onClick: () => el.remove() }, 'Cancel'),
+        h('button', { className: 'btn btn-primary', onClick: async () => {
+          const name = nameInput.value.trim();
+          if (!name) { alert('Enter a project name'); return; }
+          try {
+            const result = await api('/api/projects/' + state.projectId + '/duplicate', {
+              method: 'POST',
+              body: JSON.stringify({ name, start_date: dateInput.value }),
+            });
+            el.remove();
+            // Open the new project
+            openProject(result.project.ID);
+          } catch (e) { alert('Error: ' + e.message); }
+        }}, '⧉ Create New Project'),
+      ),
+    )
+  );
+  document.body.appendChild(el);
+  nameInput.focus();
 }
 
 // ─── Settings ───
