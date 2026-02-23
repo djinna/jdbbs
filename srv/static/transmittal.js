@@ -87,6 +87,8 @@ function updateSaveIndicator() {
 async function loadAllProjects() {
   try {
     state.allProjects = await api('/api/projects');
+    // Re-render to show project switcher once loaded
+    if (state.view === 'form') render();
   } catch (e) {
     console.error('Failed to load projects:', e);
     state.allProjects = [];
@@ -436,7 +438,7 @@ function renderForm() {
         h('a', { className: 'btn btn-sm', href: calendarUrl }, '📅 Calendar'),
         h('button', { className: 'btn btn-sm', onClick: () => {
           state.showVersions = !state.showVersions;
-          if (state.showVersions && state.versions === null) loadVersions();
+          if (state.showVersions) { state.versions = null; loadVersions(); }
           else render();
         }}, '🕒 History'),
         h('button', { className: 'btn btn-sm', onClick: () => {

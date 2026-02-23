@@ -383,6 +383,161 @@
   color: #4ade80;
 }
 
+/* ─── Project Switcher ─── */
+.tx-project-switcher {
+  font-size: 13px;
+  padding: 2px 6px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  max-width: 250px;
+}
+.tx-project-switcher:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ─── Version History Panel ─── */
+.tx-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.tx-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  font-size: 13px;
+}
+.tx-panel-close {
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.tx-panel-close:hover { color: var(--text); }
+
+.tx-version-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.tx-version-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  gap: 8px;
+}
+.tx-version-item:last-child { border-bottom: none; }
+.tx-version-item.active { background: rgba(96, 165, 250, 0.08); }
+.tx-version-item:hover { background: var(--surface2); }
+
+.tx-version-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tx-version-date {
+  color: var(--text);
+  font-weight: 500;
+}
+.tx-version-title {
+  color: var(--text2);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tx-version-status {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+.tx-version-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-xs {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+/* ─── Preview banner ─── */
+.tx-preview-banner {
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: var(--radius, 8px);
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #facc15;
+  flex-wrap: wrap;
+}
+.tx-preview-mode {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ─── Duplicate Modal ─── */
+.tx-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.tx-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.tx-modal h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text);
+}
+.tx-duplicate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tx-duplicate-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  padding: 10px 12px;
+  width: 100%;
+}
+.tx-duplicate-item:hover {
+  border-color: var(--accent);
+}
+
 /* ─── Print styles ─── */
 @media print {
   body {
@@ -396,7 +551,11 @@
   .tx-add-btn,
   .tx-reviewer-remove,
   .btn,
-  .theme-toggle {
+  .theme-toggle,
+  .tx-panel,
+  .tx-modal-overlay,
+  .tx-preview-banner,
+  .tx-project-switcher {
     display: none !important;
   }
 
