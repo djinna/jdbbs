@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Notes</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+  h1 { color: #a78bfa; font-size: 20px; }
+  h2 { color: #f472b6; font-size: 16px; margin-top: 32px; }
+  .card { background: #16213e; border-radius: 12px; padding: 16px; margin: 12px 0; position: relative; }
+  pre { white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.5; margin: 0; font-family: Menlo, monospace; }
+  .copy-btn { display: block; width: 100%; padding: 14px; margin-top: 12px; background: #6c63ff; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .copy-btn:active { background: #5a52d5; }
+  .copy-btn.copied { background: #10b981; }
+</style>
+</head>
+<body>
+<h1>📋 Session Notes</h1>
+
+<h2>📧 Team Email</h2>
+<div class="card">
+  <pre id="email"></pre>
+</div>
+<button class="copy-btn" onclick="copyText('email', this)">Copy Email to Clipboard</button>
+
+<h2>🗒️ Technical Summary</h2>
+<div class="card">
+  <pre id="summary"></pre>
+</div>
+<button class="copy-btn" onclick="copyText('summary', this)">Copy Summary to Clipboard</button>
+
+<script>
+const emailText = `Hi team,
+
+The online production calendar is up and ready for a test run.
+It's built from the original .xls production schedule template.
+
+URL:  https://jdbb-prod.exe.xyz/vgr/aog/
+Password:  artofgig2026
+
+What you'll see:
+
+\u2022 Timeline view \u2014 Gantt-style bars showing original vs. current schedule
+\u2022 Table view \u2014 full spreadsheet-style with assignees, dates, status
+\u2022 Budget view \u2014 hours, rates, orig/curr/actual with totals
+
+The Art of Gig project is loaded as a reference with all 31 tasks
+from the original schedule. Click any task row to edit it.
+
+Other things to try:
+
+\u2022 \u201cMake New\u201d button \u2014 creates a fresh project from the template
+  with a new start date (all dates shift automatically, budgets zero out)
+\u2022 \u201c+Task\u201d \u2014 add tasks manually
+\u2022 \u201cSettings\u201d \u2014 rename, change password, import seed data
+
+Projects are organized by client/title in the URL path
+(e.g. /vgr/aog/ = Venkatesh Rao / Art of Gig). New clients
+and books get their own paths.
+
+Let me know if you can get in and poke around. Looking for
+feedback on what\u2019s missing or confusing before we start
+using it on a real project.
+
+\u2014Jenna`;
+
+const summaryText = `Production Calendar \u2014 Session Summary
+2026-02-23
+========================================
+
+PROJECT: Online shared/protected production calendar
+REPO: /home/exedev/prodcal (Go web app)
+LIVE: https://jdbb-prod.exe.xyz:8000/vgr/aog/
+PASSWORD: artofgig2026
+
+FEATURES WORKING
+\u2022 3 views: Timeline (Gantt), Table, Budget
+\u2022 31 tasks imported from original .xls spreadsheet
+\u2022 Task editing (click any row \u2192 modal with all fields)
+\u2022 Password protection per project
+\u2022 \u201cMake New\u201d \u2014 duplicates with date shift + zeroed budgets
+\u2022 Client/project URL routing: /{client}/{project}/
+\u2022 Runs as systemd service (survives reboots)
+
+STILL TODO
+\u2022 Run: ssh exe.dev share port jdbb-prod 8000
+\u2022 Run: ssh exe.dev share set-public jdbb-prod
+\u2022 Test with colleague
+\u2022 Connect to manuscript transmittal tool (separate chat)
+
+KEY FILES
+srv/server.go, srv/static/app.js, srv/static/style.css
+db/migrations/001-base.sql, 002-slugs.sql
+Makefile: make build \u2192 ./prodcal`;
+
+document.getElementById('email').textContent = emailText;
+document.getElementById('summary').textContent = summaryText;
+
+async function copyText(id, btn) {
+  const text = document.getElementById(id).textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '\u2705 Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = btn.textContent.includes('Email') ? 'Copy Email' : 'Copy Summary'; btn.classList.remove('copied'); }, 2000);
+  } catch {
+    // Fallback: select the text
+    const range = document.createRange();
+    range.selectNodeContents(document.getElementById(id));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    btn.textContent = 'Text selected \u2014 tap Copy';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 3000);
+  }
+}
+</script>
+</body>
+</html>
