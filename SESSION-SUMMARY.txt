@@ -37,17 +37,36 @@ FEATURES WORKING
 
 SESSION 7 CHANGES
 -----------------
-• NEW: /healthz endpoint — DB readability check
-• NEW: Admin dashboard at /admin/ (exe.dev login required)
-  - Shows all projects with task counts, completion %, auth & transmittal status
-  - Dark theme, auto-refreshes every 30s
-  - Health indicator in header
+Infra prep (section 5 checklist):
+• NEW: /healthz endpoint — DB readability check, returns {status: ok/error}
 • NEW: Automated daily SQLite backup
   - scripts/backup-db.sh: sqlite3 .backup + gzip, 7-day retention
   - Cron job at 3 AM daily → ~/backups/
+• Go version pinned at 1.26.0 in go.mod (already was)
 • NEW: Dockerfile (multi-stage, golang:1.26 → debian:bookworm-slim)
 • NEW: DEPLOY.md — full deployment/operations guide
-• Go version pinned at 1.26.0 (already was)
+  (build, migrations, seeding, backup/restore, Docker, monitoring)
+
+Admin dashboard:
+• NEW: Admin dashboard at /admin/ (exe.dev login required)
+  - Shows all projects with task counts, completion %, auth & transmittal status
+  - Light/dark mode toggle (shared localStorage with calendar/transmittal)
+  - Health indicator in header
+  - Auto-refreshes every 30s
+  - API: GET /api/admin/projects (requires X-ExeDev-UserID header)
+
+Housekeeping:
+• Set password on tweetbook project (artofgig2026)
+• Both projects now show 🔒 Protected in dashboard
+
+EMAIL INTEGRATION (PLANNED — NEXT SESSION)
+------------------------------------------
+AgentMail inbox: jdbb@agentmail.to
+Planned features:
+• Email confirmation when transmittal form is marked Final
+• On-demand PDF generation/email of app pages for a book project
+  (calendar views, transmittal form, budget summary)
+• Possibly: scheduled status digest emails
 
 SESSION 6 CHANGES
 -----------------
@@ -88,23 +107,36 @@ INFRASTRUCTURE
 
 STARTER PROMPT FOR NEXT SESSION
 -------------------------------
+```
 This is a continuation of the production calendar + manuscript
-transmittal project. Repo at /home/exedev/prodcal, live at
-https://jdbb-prod.exe.xyz/vgr/aog/ (password: artofgig2026).
+transmittal project.
+
+Repo: /home/exedev/prodcal
+Live: https://jdbb-prod.exe.xyz/vgr/aog/ (password: artofgig2026)
+Transmittal: https://jdbb-prod.exe.xyz/vgr/aog/transmittal/
+Admin: https://jdbb-prod.exe.xyz/admin/ (exe.dev login)
+Notes: https://jdbb-prod.exe.xyz/static/notes.html
+
 Go backend + vanilla JS SPA, SQLite DB, systemd service.
-
-Production Calendar: Timeline/Table/Budget views, 31 tasks,
-task editing, Make New (duplicate w/ date shift), /{client}/{project}/
-URL routing, light/dark mode.
-
-Manuscript Transmittal: /{client}/{project}/transmittal/ — interactive
-form digitizing the InDesign transmittal. JSON blob storage,
-auto-save, two-column layout, all sections from original form.
-Seeded with More Than a Woodlot data.
-
 Session notes at /home/exedev/prodcal/SESSION-SUMMARY.txt
 
-[then state what you want to work on next]
+Task: Add email notifications via AgentMail (inbox: jdbb@agentmail.to).
+
+1. When a transmittal form is marked "Final", send a confirmation
+   email to jdbb@agentmail.to with a summary of the form contents.
+
+2. Add an "Email PDF" button that generates and emails a snapshot
+   of the current state of a book project — calendar views,
+   transmittal form, budget summary — as a PDF attachment (or
+   well-formatted HTML email body).
+
+3. Consider: periodic status digest email (weekly?) summarizing
+   task progress across all projects.
+
+AgentMail docs: https://docs.agentmail.to
+The Go backend already has all the data — this is about adding
+outbound email as a delivery channel.
+```
 
 FIX / BUILD LIST
 ----------------
