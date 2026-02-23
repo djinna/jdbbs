@@ -5,20 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JDBB Production</title>
 <style>
+  :root {
+    --bg: #0f0e17;
+    --surface: #1a1d27;
+    --text: #fffffe;
+    --text-dim: #a7a9be;
+    --accent: #6c63ff;
+    --accent-hover: #5a52e0;
+    --border: #333;
+    --border-hover: #6c63ff;
+    --gradient-start: #6c63ff;
+    --gradient-end: #a78bfa;
+    --footer-color: #555;
+    --toggle-bg: #1a1d27;
+    --toggle-border: #333;
+  }
+  [data-theme="light"] {
+    --bg: #eeeef2;
+    --surface: #ffffff;
+    --text: #18181b;
+    --text-dim: #71717a;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --border: #d4d4d8;
+    --border-hover: #4f46e5;
+    --gradient-start: #4f46e5;
+    --gradient-end: #7c3aed;
+    --footer-color: #a1a1aa;
+    --toggle-bg: #ffffff;
+    --toggle-border: #d4d4d8;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #0f0e17;
-    color: #fffffe;
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s, color 0.2s;
   }
   .container {
     text-align: center;
     max-width: 480px;
     padding: 40px 24px;
+    position: relative;
   }
   .logo {
     font-size: 48px;
@@ -28,14 +60,14 @@
     font-size: 28px;
     font-weight: 700;
     margin-bottom: 8px;
-    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   .subtitle {
     font-size: 15px;
-    color: #a7a9be;
+    color: var(--text-dim);
     margin-bottom: 32px;
     line-height: 1.5;
   }
@@ -48,7 +80,7 @@
   .links a {
     display: inline-block;
     padding: 12px 32px;
-    background: #6c63ff;
+    background: var(--accent);
     color: #fff;
     text-decoration: none;
     border-radius: 8px;
@@ -57,22 +89,50 @@
     transition: background 0.2s;
     width: 240px;
   }
-  .links a:hover { background: #5a52e0; }
+  .links a:hover { background: var(--accent-hover); }
   .links a.secondary {
     background: transparent;
-    border: 1px solid #333;
-    color: #a7a9be;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
   }
-  .links a.secondary:hover { border-color: #6c63ff; color: #fff; }
+  .links a.secondary:hover { border-color: var(--border-hover); color: var(--text); }
   .footer {
     margin-top: 48px;
     font-size: 12px;
-    color: #555;
+    color: var(--footer-color);
   }
+  .theme-toggle {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--toggle-border);
+    background: var(--toggle-bg);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.15s;
+    padding: 0;
+    line-height: 1;
+  }
+  .theme-toggle:hover { background: var(--border); color: var(--text); }
 </style>
+<script>
+  // Apply saved theme before paint to prevent flash
+  (function() {
+    var t = localStorage.getItem('prodcal-theme') || 'dark';
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
 </head>
 <body>
 <div class="container">
+  <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"></button>
   <div class="logo">📚</div>
   <h1>JDBB Production</h1>
   <p class="subtitle">
@@ -85,5 +145,19 @@
   </div>
   <div class="footer">&copy; 2025 JDBB</div>
 </div>
+<script>
+  var btn = document.getElementById('theme-toggle');
+  function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    btn.textContent = t === 'dark' ? '☀️' : '🌙';
+  }
+  applyTheme(getTheme());
+  btn.addEventListener('click', function() {
+    var next = getTheme() === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('prodcal-theme', next);
+    applyTheme(next);
+  });
+</script>
 </body>
 </html>
