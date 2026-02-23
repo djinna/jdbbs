@@ -1,5 +1,5 @@
 Production Calendar — Session Summary
-2026-02-23 (updated)
+2026-02-23 (session 5)
 ========================================
 
 STATUS: ✅ LIVE AND PUBLIC
@@ -29,9 +29,18 @@ FEATURES WORKING
 • Client/project URL routing: /{client}/{project}/
   - Art of Gig lives at /vgr/aog/
   - Pattern ready for additional clients/books
+• Light/dark mode toggle (☀️/🌙 button, persists in localStorage)
+• Readable timeline with month labels + week tick marks
 • Runs as systemd service (survives reboots)
 • Admin project list at root /
-• Public access configured (share port 8000, set-public)
+• Public access configured
+
+SESSION 5 CHANGES
+-----------------
+• Added light/dark mode toggle with localStorage persistence
+• Fixed unreadable Gantt date headers: month labels instead of
+  cramped weekly dates, pxPerDay 3→5 for wider bars
+• Cleaned stale TODO items from notes.html
 
 INFRASTRUCTURE
 --------------
@@ -40,43 +49,52 @@ INFRASTRUCTURE
 • systemd service: srv.service
 • Binary: make build → ./prodcal
 
-WHAT TO START NEXT SESSION WITH
+STARTER PROMPT FOR NEXT SESSION
 -------------------------------
-"This is a continuation of the production calendar project.
+This is a continuation of the production calendar project.
 Repo at /home/exedev/prodcal, live at https://jdbb-prod.exe.xyz/vgr/aog/
 (password: artofgig2026). Go backend + vanilla JS SPA, SQLite DB,
 systemd service. Has Timeline/Table/Budget views, 31 tasks from
 original .xls, task editing, password protection, Make New (duplicate
-with date shift), and /{client}/{project}/ URL routing.
+with date shift), /{client}/{project}/ URL routing, and light/dark
+mode toggle. Session notes at /home/exedev/prodcal/SESSION-SUMMARY.txt
 
-Session notes at /home/exedev/prodcal/SESSION-SUMMARY.txt
+[then state what you want to work on next]
 
-[then state what you want to work on next]"
+FIX / BUILD LIST
+----------------
+Polish & UX:
+  • Cramped week headers on Timeline — ✅ DONE (month labels now)
+  • Light/dark mode — ✅ DONE
+  • Mobile-responsive improvements (modals, gantt on small screens)
+  • Polish timeline Gantt (today marker sometimes off, bar tooltips)
+  • Status toggle shortcut (click status badge to cycle pending→active→done)
 
-POSSIBLE NEXT STEPS
--------------------
-• Test with colleague — get feedback
-• Connect to manuscript transmittal tool (separate chat)
-• Polish timeline Gantt (cramped week headers)
-• Add task reordering / drag-and-drop
-• Add status toggle (click to mark done)
-• Export/print view
-• Mobile-responsive improvements
+Features:
+  • Task reordering / drag-and-drop
+  • Export/print view (PDF or clean printable page)
+  • Notifications / email alerts for upcoming due dates
+  • Connect to manuscript transmittal tool (separate chat)
+
+Data & workflow:
+  • Test with colleague — get real feedback
+  • Bulk edit (select multiple tasks, change assignee/status)
+  • Activity log / change history
 
 CONVERSATION CHAIN
 ------------------
 shared-protected-calendar (cFUDS6C) — main build session
   → shared-protected-calendar-1 (cD4RV7B) — continuation
   → shared-protected-calendar-2 (cVT6NYU) — continuation
-  → shared-protected-calendar-3 (current) — verified everything,
-    fixed binary name, set up public access, Blink SSH setup
+  → shared-protected-calendar-3 — verified everything, public access
+  → session 5 (current) — light/dark mode, timeline fix
 
 KEY FILES
 ---------
 cmd/srv/main.go          — entrypoint
 srv/server.go            — all HTTP handlers + routing
-srv/static/app.js        — SPA frontend (~670 lines)
-srv/static/style.css     — dark theme styles
+srv/static/app.js        — SPA frontend (~750 lines)
+srv/static/style.css     — dark/light theme styles
 srv/static/index.html    — shell HTML
 srv/static/notes.html    — copy-friendly session notes page
 db/migrations/001-base.sql   — schema
