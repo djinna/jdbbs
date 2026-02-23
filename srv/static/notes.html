@@ -54,7 +54,7 @@
 
 <div class="info-card">
   <strong>How versioning works:</strong><br>
-  Each session produces a dated notes file: <code>notes-YYYY-MM-DD-sN.html</code><br>
+  Each session produces a timestamped notes file: <code>notes-YYYY-MM-DD-HHMM-sN.html</code><br>
   The latest version is always linked first. Older versions stay accessible forever.<br>
   Full session log: <code>SESSION-SUMMARY.txt</code> in the repo.
 </div>
@@ -64,8 +64,8 @@
 // Add new entries at the top when creating a new session's notes.
 const versions = [
   {
-    file: 'notes-2026-02-23-s7.html',
-    date: '2026-02-23',
+    file: 'notes-2026-02-23-1905-s7.html',
+    date: '2026-02-23 19:05',
     label: 'Session 7',
     desc: 'Admin dashboard, /healthz, daily backups, Dockerfile, DEPLOY.md',
     current: true

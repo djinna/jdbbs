@@ -24,12 +24,19 @@ var staticFS embed.FS
 type Server struct {
 	DB       *sql.DB
 	Hostname string
+	Email    *EmailConfig
 }
 
 func New(dbPath, hostname string) (*Server, error) {
 	srv := &Server{Hostname: hostname}
 	if err := srv.setUpDatabase(dbPath); err != nil {
 		return nil, err
+	}
+	srv.Email = LoadEmailConfig()
+	if srv.Email != nil {
+		slog.Info("email configured", "inbox_id", srv.Email.InboxID)
+	} else {
+		slog.Warn("email not configured (set AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID)")
 	}
 	return srv, nil
 }
@@ -79,6 +86,10 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("GET /api/transmittals/{id}/versions/{vid}", s.handleGetTransmittalVersion)
 	mux.HandleFunc("POST /api/transmittals/{id}/versions/{vid}/restore", s.handleRestoreTransmittalVersion)
 	mux.HandleFunc("POST /api/transmittals/{id}/duplicate", s.handleDuplicateTransmittal)
+
+	// Email API
+	mux.HandleFunc("POST /api/projects/{id}/transmittal/email", s.handleSendTransmittalEmail)
+	mux.HandleFunc("GET /api/email/status", s.handleEmailStatus)
 
 	// Static files (CSS, JS) at known paths
 	static, _ := fs.Sub(staticFS, "static")

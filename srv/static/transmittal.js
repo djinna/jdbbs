@@ -48,6 +48,10 @@ let state = {
   versions: null,   // null=not loaded, []=loaded
   showVersions: false,
   showDuplicate: false,
+  showEmail: false,
+  emailSending: false,
+  emailResult: null, // {ok, error}
+  emailConfigured: null, // null=unknown, true, false
 };
 
 // ─── Auto-save with debounce ───
@@ -445,16 +449,26 @@ function renderForm() {
           state.showDuplicate = true; render();
         }}, '⧉ Duplicate'),
         h('button', { className: 'btn btn-sm', onClick: () => window.print() }, '🖨 Print'),
+        h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, '✉️ Email'),
         h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? ' btn-primary' : ''),
           onClick: () => {
-            state.transmittal.status = state.transmittal.status === 'final' ? 'draft' : 'final';
-            scheduleSave(); render();
+            const wasDraft = state.transmittal.status !== 'final';
+            state.transmittal.status = wasDraft ? 'final' : 'draft';
+            scheduleSave();
+            // When marking final, prompt to send email notification
+            if (wasDraft) {
+              state.showEmail = true;
+              state.emailResult = null;
+            }
+            render();
           }
         }, state.transmittal.status === 'final' ? '↩ Back to Draft' : '✓ Mark Final'),
         themeBtn(),
         h('span', { id: 'tx-save-status', className: 'tx-save-status' }),
       ),
     ),
+    // Email modal
+    renderEmailModal(),
     // Version history panel (slides in from right)
     renderVersionPanel(),
     // Duplicate modal
@@ -849,3 +863,155 @@ function renderOtherSection() {
   );
 }
 
+
+// ─── Email Modal ───
+
+const DEFAULT_RECIPIENTS = [
+  { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+  { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
+];
+
+let emailRecipients = null; // initialized on first open
+
+function initEmailRecipients() {
+  if (emailRecipients) return;
+  emailRecipients = DEFAULT_RECIPIENTS.map(r => ({ ...r }));
+  // Add a blank "custom" row
+  emailRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+}
+
+async function checkEmailConfig() {
+  if (state.emailConfigured !== null) return;
+  try {
+    const r = await api('/api/email/status');
+    state.emailConfigured = r.configured;
+  } catch {
+    state.emailConfigured = false;
+  }
+}
+
+async function sendTransmittalEmail() {
+  const recipients = emailRecipients
+    .filter(r => r.checked && r.email.trim())
+    .map(r => r.email.trim());
+
+  if (recipients.length === 0) {
+    state.emailResult = { error: 'Select at least one recipient' };
+    render();
+    return;
+  }
+
+  state.emailSending = true;
+  state.emailResult = null;
+  render();
+
+  try {
+    const res = await api('/api/projects/' + state.projectId + '/transmittal/email', {
+      method: 'POST',
+      body: JSON.stringify({ recipients }),
+    });
+    state.emailSending = false;
+    state.emailResult = { ok: true, sent_to: res.sent_to };
+    render();
+  } catch (e) {
+    state.emailSending = false;
+    state.emailResult = { error: e.message };
+    render();
+  }
+}
+
+function renderEmailModal() {
+  if (!state.showEmail) return h('div');
+  initEmailRecipients();
+  checkEmailConfig();
+
+  const title = state.transmittal?.data?.book?.title || 'Untitled';
+  const status = state.transmittal?.status || 'draft';
+
+  const closeModal = () => {
+    state.showEmail = false;
+    state.emailResult = null;
+    render();
+  };
+
+  return h('div', { className: 'tx-modal-overlay', onClick: (e) => { if (e.target.classList.contains('tx-modal-overlay')) closeModal(); } },
+    h('div', { className: 'tx-modal email-modal' },
+      h('div', { className: 'tx-modal-header' },
+        h('h2', null, '✉️ Email Transmittal'),
+        h('button', { className: 'tx-modal-close', onClick: closeModal }, '×'),
+      ),
+      h('div', { className: 'tx-modal-body' },
+        // Status line
+        h('div', { className: 'email-summary' },
+          h('strong', null, title),
+          ' · ',
+          h('span', { className: 'tx-status tx-status-' + status }, status),
+        ),
+
+        state.emailConfigured === false
+          ? h('div', { className: 'email-warning' },
+              '⚠️ Email is not configured on the server. ',
+              'Set AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID environment variables.'
+            )
+          : null,
+
+        // Recipients
+        h('div', { className: 'email-recipients' },
+          h('label', { className: 'email-label' }, 'Send to:'),
+          ...emailRecipients.map((r, i) =>
+            h('div', { className: 'email-recipient-row' },
+              h('input', {
+                type: 'checkbox',
+                checked: r.checked ? 'checked' : undefined,
+                onChange: () => { emailRecipients[i].checked = !emailRecipients[i].checked; render(); },
+              }),
+              r.editable
+                ? h('input', {
+                    type: 'email',
+                    className: 'email-input',
+                    placeholder: 'email@example.com',
+                    value: r.email,
+                    onInput: (e) => {
+                      emailRecipients[i].email = e.target.value;
+                      emailRecipients[i].checked = e.target.value.trim().length > 0;
+                    },
+                    onFocus: () => {
+                      // Auto-add another row if this is the last editable one
+                      const editables = emailRecipients.filter(x => x.editable);
+                      if (editables.indexOf(r) === editables.length - 1 && r.email.trim()) {
+                        emailRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+                        render();
+                      }
+                    },
+                  })
+                : h('span', { className: 'email-addr' }, r.email),
+              h('span', { className: 'email-recipient-label' }, r.label),
+            )
+          ),
+        ),
+
+        // Result
+        state.emailResult?.ok
+          ? h('div', { className: 'email-success' },
+              '✅ Sent to: ' + state.emailResult.sent_to.join(', ')
+            )
+          : null,
+        state.emailResult?.error
+          ? h('div', { className: 'email-error' },
+              '❌ ' + state.emailResult.error
+            )
+          : null,
+
+        // Actions
+        h('div', { className: 'email-actions' },
+          h('button', {
+            className: 'btn btn-primary',
+            disabled: state.emailSending || state.emailConfigured === false ? 'disabled' : undefined,
+            onClick: sendTransmittalEmail,
+          }, state.emailSending ? 'Sending…' : '📨 Send Email'),
+          h('button', { className: 'btn btn-sm', onClick: closeModal }, 'Cancel'),
+        ),
+      ),
+    ),
+  );
+}
