@@ -35,9 +35,9 @@ FEATURES WORKING
 • Admin project list at root /
 • Public access configured
 
-SESSION 9 CHANGES (19:50–20:00 UTC)
+SESSION 9 CHANGES (19:50–20:55 UTC)
 -----------------------------------
-Three features added:
+Six features / fixes:
 
 1. Project Snapshot Email (📧 Email Snapshot button)
    • POST /api/projects/{id}/snapshot/email
@@ -48,13 +48,31 @@ Three features added:
    • Recipient picker modal (same as transmittal email)
    • Tested end-to-end: delivered to jdbb@agentmail.to ✓
 
-2. Landing Page (root URL security)
+2. Client Login Portals
+   • New clients table (migration 005-clients.sql)
+   • Client portal at /{client}/ with password-protected login
+   • VGR client (artofgig2026): Art of Gig + tweetbook
+   • SW client (willwrite2026): The Digital Garden (faux book, 11 tasks)
+   • Client cookie grants access to ALL client projects without re-auth
+   • Auth cascade: project token → client cookie → exe.dev admin
+   • API: GET/POST /api/clients/{client}, /api/clients/{client}/verify,
+     /api/clients/{client}/projects
+
+3. Admin Auth Fix
+   • /admin/ now redirects to /__exe.dev/login instead of returning 403
+   • Uses exe.dev login flow (sets X-ExeDev-UserID header on return)
+   • Landing page admin link also goes through login flow
+
+4. Email Modal Post-Send UX
+   • After successful send, Cancel + Send buttons replaced with single "✓ Done"
+   • Applied to both snapshot and transmittal email modals
+
+5. Landing Page (root URL security)
    • / now shows branded landing page instead of project list
    • Logged-in exe.dev users auto-redirect to /admin/
-   • Non-authenticated visitors see links to admin + Art of Gig project
-   • No more unauthenticated project list exposure
+   • Client portal links (VGR, SW) instead of direct project links
 
-3. Status Toggle Shortcut
+6. Status Toggle Shortcut
    • Click status badges in Timeline or Table view to cycle:
      pending → active → done → pending
    • Marking done auto-sets actual_done date to today
@@ -64,6 +82,17 @@ Three features added:
 Also fixed:
    • h() function in app.js: proper handling of boolean attributes
      (checked, disabled, selected)
+
+CLIENT CREDENTIALS
+------------------
+VGR (Venkatesh Rao): artofgig2026  → /vgr/
+  • Art of Gig (/vgr/aog/) — 31 tasks
+  • tweetbook (/vgr/tweets/) — 31 tasks
+SW (Sarah Williams): willwrite2026  → /sw/
+  • The Digital Garden (/sw/digarden/) — 11 tasks
+
+NOTE: Live DB is at /home/exedev/db.sqlite3 (not prodcal/db.sqlite3)
+  WorkingDirectory in srv.service = /home/exedev/
 
 SESSION 8 CHANGES (19:22–19:45 UTC)
 -----------------------------------
