@@ -1,5 +1,5 @@
 Production Calendar + Manuscript Transmittal — Session Summary
-2026-02-23 (session 6)
+2026-02-23 (session 8)
 ========================================
 
 STATUS: ✅ LIVE AND PUBLIC
@@ -35,8 +35,27 @@ FEATURES WORKING
 • Admin project list at root /
 • Public access configured
 
-SESSION 7 CHANGES
------------------
+SESSION 8 CHANGES (19:22–19:45 UTC)
+-----------------------------------
+Email notifications via AgentMail:
+• NEW: srv/email.go — AgentMail API client + HTML/text email builder
+• NEW: POST /api/projects/{id}/transmittal/email — send transmittal summary
+• NEW: GET /api/email/status — reports if email is configured
+• NEW: ✉️ Email button in transmittal toolbar → modal with recipient picker
+  - Default recipients: jdbb@agentmail.to + j@djinna.com
+  - Custom "Other" field for additional recipients
+  - "Mark Final" auto-opens email modal
+• Config: AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID in .env
+• systemd EnvironmentFile directive for .env loading
+• Tested end-to-end: email delivered to jdbb@agentmail.to ✓
+
+Notes versioning:
+• Notes files now timestamped: notes-YYYY-MM-DD-HHMM-sN.html
+• /static/notes.html is now a version index page
+• Each session snapshot preserved permanently
+
+SESSION 7 CHANGES (19:03–19:22 UTC)
+-----------------------------------
 Infra prep (section 5 checklist):
 • NEW: /healthz endpoint — DB readability check, returns {status: ok/error}
 • NEW: Automated daily SQLite backup
@@ -59,12 +78,15 @@ Housekeeping:
 • Set password on tweetbook project (artofgig2026)
 • Both projects now show 🔒 Protected in dashboard
 
-EMAIL INTEGRATION (PLANNED — NEXT SESSION)
-------------------------------------------
+EMAIL INTEGRATION — LIVE ✓
+--------------------------
 AgentMail inbox: jdbb@agentmail.to
-Planned features:
-• Email confirmation when transmittal form is marked Final
-• On-demand PDF generation/email of app pages for a book project
+API key in /home/exedev/prodcal/.env (chmod 600, gitignored)
+Implemented:
+• ✓ Email summary when transmittal is marked Final (with recipient picker)
+• ✓ On-demand email via ✉️ button in transmittal toolbar
+Planned:
+• On-demand PDF generation/email of full project snapshot
   (calendar views, transmittal form, budget summary)
 • Possibly: scheduled status digest emails
 
@@ -118,24 +140,32 @@ Admin: https://jdbb-prod.exe.xyz/admin/ (exe.dev login)
 Notes: https://jdbb-prod.exe.xyz/static/notes.html
 
 Go backend + vanilla JS SPA, SQLite DB, systemd service.
+Email: AgentMail configured (jdbb@agentmail.to), env in .env.
 Session notes at /home/exedev/prodcal/SESSION-SUMMARY.txt
 
-Task: Add email notifications via AgentMail (inbox: jdbb@agentmail.to).
+Tasks:
 
-1. When a transmittal form is marked "Final", send a confirmation
-   email to jdbb@agentmail.to with a summary of the form contents.
+1. "Email PDF" button: generate and email a snapshot of the
+   current state of a book project — calendar views, transmittal
+   form, budget summary — as a well-formatted HTML email body
+   (or PDF attachment). The Go backend has all the data; the
+   AgentMail send endpoint is already wired in srv/email.go.
 
-2. Add an "Email PDF" button that generates and emails a snapshot
-   of the current state of a book project — calendar views,
-   transmittal form, budget summary — as a PDF attachment (or
-   well-formatted HTML email body).
+2. Root URL (https://jdbb-prod.exe.xyz/) currently serves the
+   calendar SPA to anyone — it shows a project list without
+   auth. Consider: should / redirect to a landing page, show
+   only public-facing info, or require auth?
 
-3. Consider: periodic status digest email (weekly?) summarizing
-   task progress across all projects.
+3. /admin/ is blocked for non-exe.dev users (returns 403).
+   This is by design (X-ExeDev-UserID header). It works when
+   accessed through the exe.dev proxy with a logged-in session.
+   If it's blocked for YOU, check that you're logged into
+   exe.dev and accessing via https://jdbb-prod.exe.xyz/admin/.
 
-AgentMail docs: https://docs.agentmail.to
-The Go backend already has all the data — this is about adding
-outbound email as a delivery channel.
+Nice-to-haves:
+  • Periodic status digest email (weekly?) for all projects
+  • Mobile-responsive improvements
+  • Status toggle shortcut on calendar tasks
 ```
 
 FIX / BUILD LIST
@@ -170,22 +200,31 @@ shared-protected-calendar (cFUDS6C) — main build session
   → shared-protected-calendar-2 (cVT6NYU) — continuation
   → shared-protected-calendar-3 — verified everything, public access
   → session 5 — light/dark mode, timeline fix
-  → session 6 (current) — manuscript transmittal form
+  → session 6 — manuscript transmittal form
+  → session 7 — infra prep, admin dashboard
+  → session 8 (current) — AgentMail email, notes versioning
 
 KEY FILES
 ---------
 cmd/srv/main.go              — entrypoint
-srv/server.go                — HTTP handlers + routing (calendar + transmittal routes)
-srv/transmittal.go           — transmittal API handlers (GET/PUT)
+srv/server.go                — HTTP handlers + routing (calendar + transmittal + email routes)
+srv/transmittal.go           — transmittal API handlers (GET/PUT/versions/duplicate)
+srv/email.go                 — AgentMail client + email builders (HTML + text)
+srv/admin.go                 — admin dashboard handlers
 srv/static/app.js            — calendar SPA frontend (~700 lines)
-srv/static/transmittal.js    — transmittal SPA frontend (~450 lines)
-srv/static/transmittal.css   — transmittal form styles
+srv/static/transmittal.js    — transmittal SPA frontend (~960 lines)
+srv/static/transmittal.css   — transmittal form + email modal styles
 srv/static/transmittal.html  — transmittal shell HTML
+srv/static/admin.html        — admin dashboard SPA
 srv/static/style.css         — dark/light theme styles (shared)
 srv/static/index.html        — calendar shell HTML
+srv/static/notes.html        — notes version index
+srv/static/notes-*.html      — dated session snapshots
 db/migrations/001-base.sql   — schema
 db/migrations/002-slugs.sql  — client/project slug columns
 db/migrations/003-transmittal.sql — transmittal table
+db/migrations/004-transmittal-versions.sql — version history
 db/queries/visitors.sql      — sqlc queries
 Makefile                     — make build → ./prodcal
 srv.service                  — systemd unit file
+.env                         — AgentMail API key + inbox ID (gitignored)
