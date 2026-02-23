@@ -6,28 +6,88 @@
 <title>Client Portal</title>
 <link rel="stylesheet" href="/static/style.css">
 <style>
-  .portal { max-width: 640px; margin: 0 auto; padding: 32px 20px; }
-  .portal h1 { margin-bottom: 4px; }
-  .portal .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 32px; }
-  .project-list { display: flex; flex-direction: column; gap: 12px; }
-  .proj-card {
-    display: block; padding: 20px; border-radius: 12px;
-    background: var(--surface); border: 1px solid var(--border);
-    text-decoration: none; color: var(--text);
-    transition: border-color 0.2s, box-shadow 0.2s;
+  .dashboard { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+
+  .dash-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
   }
-  .proj-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(108,99,255,0.15); }
-  .proj-card h3 { margin: 0 0 6px; font-size: 18px; }
-  .proj-card .meta { font-size: 13px; color: var(--text2); }
-  .proj-card .progress { margin-top: 8px; font-size: 12px; color: var(--accent2); }
+  .dash-header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
+  .dash-header .subtitle { color: var(--text2); font-size: 14px; margin-top: 2px; }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem;
+  }
+  .stat-card .label {
+    font-size: 0.75rem; color: var(--text2); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 0.5rem;
+  }
+  .stat-card .value { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+
+  .projects-grid { display: grid; gap: 1rem; }
+  .project-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s;
+  }
+  .project-card:hover { border-color: var(--accent); }
+  .project-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+  .project-name { font-size: 1.15rem; font-weight: 600; }
+  .project-meta {
+    display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem;
+  }
+  .project-meta span { font-size: 0.8rem; color: var(--text2); }
+  .progress-bar {
+    width: 100%; height: 6px; background: var(--surface2);
+    border-radius: 3px; overflow: hidden; margin-top: 0.75rem;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 3px; transition: width 0.3s ease;
+  }
+  .progress-fill.green { background: var(--green, #4ade80); }
+  .progress-fill.yellow { background: var(--yellow, #facc15); }
+  .progress-fill.accent { background: var(--accent); }
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.25rem 0.6rem; border-radius: 9999px;
+    font-size: 0.75rem; font-weight: 500;
+  }
+  .badge-dim { background: var(--surface2); color: var(--text2); }
+  .links { display: flex; gap: 0.75rem; margin-top: 1rem; }
+  .links a { font-size: 0.8rem; color: var(--accent); text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+
   .auth-box {
-    max-width: 360px; margin: 80px auto; text-align: center;
-    padding: 32px; background: var(--surface); border-radius: 12px;
+    max-width: 400px; margin: 80px auto; text-align: center;
+    padding: 40px 32px; background: var(--surface); border-radius: 16px;
     border: 1px solid var(--border);
   }
-  .auth-box input { margin: 12px 0; padding: 10px 14px; width: 100%; border-radius: 8px;
-    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; }
+  .auth-box h2 { font-size: 1.4rem; margin-bottom: 4px; }
+  .auth-box .auth-sub { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
+  .auth-box input {
+    margin: 0 0 12px; padding: 10px 14px; width: 100%; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px;
+  }
   .auth-box .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
+  .auth-box .back-link { margin-top: 16px; }
+  .auth-box .back-link a { color: var(--text2); font-size: 13px; text-decoration: none; }
+
+  .theme-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text2); cursor: pointer;
+    font-size: 16px; transition: all 0.15s; padding: 0; line-height: 1;
+  }
+  .theme-toggle:hover { background: var(--border); color: var(--text); }
+
+  .empty { text-align: center; padding: 4rem; color: var(--text2); }
 </style>
 </head>
 <body>
@@ -40,9 +100,20 @@ const api = async (url, opts = {}) => {
   if (!r.ok) throw new Error(data.error || r.statusText);
   return data;
 };
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
-if (getTheme() === 'light') document.documentElement.setAttribute('data-theme', 'light');
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  const next = getTheme() === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('prodcal-theme', next);
+  applyTheme(next);
+}
+applyTheme(getTheme());
 
 const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
 let state = { view: 'loading', client: null, projects: [], error: '' };
@@ -50,18 +121,18 @@ let state = { view: 'loading', client: null, projects: [], error: '' };
 function render() {
   const app = $('#app');
   if (state.view === 'loading') {
-    app.innerHTML = '<div class="portal" style="text-align:center;padding-top:80px;">Loading…</div>';
+    app.innerHTML = '<div class="dashboard" style="text-align:center;padding-top:80px;color:var(--text2)">Loading…</div>';
   } else if (state.view === 'auth') {
     app.innerHTML = '';
     const box = document.createElement('div');
     box.className = 'auth-box';
     box.innerHTML = `
-      <h2>🔒 ${state.client?.name || clientSlug}</h2>
-      <p style="color:var(--text2);font-size:14px">Enter your password to view projects</p>
-      <input type="password" id="pw" placeholder="Password" autofocus>
+      <h2>🔒 Password Required</h2>
+      <p class="auth-sub">${esc(state.client?.name || clientSlug)}</p>
+      <input type="password" id="pw" placeholder="Enter password" autofocus>
       <div><button class="btn btn-primary" id="loginBtn" style="width:100%">Unlock</button></div>
-      ${state.error ? '<div class="error">' + state.error + '</div>' : ''}
-      <div style="margin-top:16px"><a href="/" style="color:var(--text2);font-size:13px">← Home</a></div>
+      ${state.error ? '<div class="error">' + esc(state.error) + '</div>' : ''}
+      <div class="back-link"><a href="/">← Back</a></div>
     `;
     app.appendChild(box);
     const pw = box.querySelector('#pw');
@@ -79,35 +150,92 @@ function render() {
   } else if (state.view === 'portal') {
     app.innerHTML = '';
     const div = document.createElement('div');
-    div.className = 'portal';
+    div.className = 'dashboard';
     const name = state.client?.name || clientSlug;
+
+    // Stats
+    const totalTasks = state.projects.reduce((s, p) => s + p.task_count, 0);
+    const totalDone = state.projects.reduce((s, p) => s + p.done_count, 0);
+    const totalActive = state.projects.reduce((s, p) => s + p.active_count, 0);
+    const withTx = state.projects.filter(p => p.has_transmittal).length;
+
     div.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="dash-header">
         <div>
-          <h1>${name}</h1>
-          <div class="subtitle">Your book projects</div>
+          <h1>${esc(name)}</h1>
+          <div class="subtitle">${state.projects.length} project${state.projects.length !== 1 ? 's' : ''}</div>
         </div>
-        <a href="/" class="btn btn-sm" style="text-decoration:none">← Home</a>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"></button>
       </div>
-      <div class="project-list" id="projList"></div>
+      <div class="stats-row" id="stats"></div>
+      <div class="projects-grid" id="projList"></div>
     `;
     app.appendChild(div);
+
+    // Apply theme button
+    applyTheme(getTheme());
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+    // Stats cards
+    const statsEl = div.querySelector('#stats');
+    statsEl.innerHTML = `
+      <div class="stat-card">
+        <div class="label">Projects</div>
+        <div class="value">${state.projects.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Tasks</div>
+        <div class="value">${totalTasks}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Completed</div>
+        <div class="value">${totalDone}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">In Progress</div>
+        <div class="value">${totalActive}</div>
+      </div>
+    `;
+
+    // Project cards
     const list = div.querySelector('#projList');
     if (state.projects.length === 0) {
-      list.innerHTML = '<p style="color:var(--text2)">No projects yet.</p>';
+      list.innerHTML = '<div class="empty">No projects yet.</div>';
+    } else {
+      list.innerHTML = state.projects.map(p => {
+        const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
+        const barClass = pct === 100 ? 'green' : pct > 50 ? 'accent' : 'yellow';
+        const txBadge = p.has_transmittal
+          ? `<span class="badge badge-dim">📝 ${esc(p.transmittal_status || 'draft')}</span>` : '';
+        return `
+          <div class="project-card">
+            <div class="project-top">
+              <div>
+                <div class="project-name">${esc(p.name)}</div>
+              </div>
+              <div style="display:flex;gap:0.5rem">${txBadge}</div>
+            </div>
+            <div class="project-meta">
+              <span>📅 Start: ${esc(p.start_date || 'TBD')}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:0.85rem">
+                <strong>${p.done_count}</strong>/${p.task_count} tasks done
+                ${p.active_count > 0 ? '· <span style="color:var(--yellow, #facc15)">' + p.active_count + ' active</span>' : ''}
+              </span>
+              <span style="font-size:0.85rem;font-weight:600;color:${pct===100?'var(--green, #4ade80)':'var(--text)'}">${pct}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill ${barClass}" style="width:${pct}%"></div>
+            </div>
+            <div class="links">
+              <a href="${esc(p.path)}">📅 Calendar</a>
+              <a href="${esc(p.path)}transmittal/">📝 Transmittal</a>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
-    state.projects.forEach(p => {
-      const a = document.createElement('a');
-      a.className = 'proj-card';
-      a.href = p.path;
-      const pct = p.task_count > 0 ? Math.round(p.done_count * 100 / p.task_count) : 0;
-      a.innerHTML = `
-        <h3>${p.name}</h3>
-        <div class="meta">${p.path} · Start: ${p.start_date || 'TBD'}</div>
-        <div class="progress">${p.done_count}/${p.task_count} tasks · ${pct}% complete</div>
-      `;
-      list.appendChild(a);
-    });
   }
 }
 

@@ -168,9 +168,13 @@ func (s *Server) handleClientProjects(w http.ResponseWriter, r *http.Request) {
 			p.id, p.name, p.client_slug, p.project_slug,
 			p.start_date, p.updated_at,
 			COUNT(t.id) as task_count,
-			SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done_count
+			SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done_count,
+			SUM(CASE WHEN t.status = 'active' OR t.status = 'in_progress' THEN 1 ELSE 0 END) as active_count,
+			COALESCE(tr.id, 0) as has_transmittal,
+			COALESCE(tr.status, '') as transmittal_status
 		FROM projects p
 		LEFT JOIN tasks t ON t.project_id = p.id
+		LEFT JOIN transmittals tr ON tr.project_id = p.id
 		WHERE p.client_slug = ?
 		GROUP BY p.id
 		ORDER BY p.name
@@ -182,23 +186,29 @@ func (s *Server) handleClientProjects(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type clientProject struct {
-		ID          int64  `json:"id"`
-		Name        string `json:"name"`
-		ClientSlug  string `json:"client_slug"`
-		ProjectSlug string `json:"project_slug"`
-		StartDate   string `json:"start_date"`
-		UpdatedAt   string `json:"updated_at"`
-		TaskCount   int    `json:"task_count"`
-		DoneCount   int    `json:"done_count"`
-		Path        string `json:"path"`
+		ID                int64  `json:"id"`
+		Name              string `json:"name"`
+		ClientSlug        string `json:"client_slug"`
+		ProjectSlug       string `json:"project_slug"`
+		StartDate         string `json:"start_date"`
+		UpdatedAt         string `json:"updated_at"`
+		TaskCount         int    `json:"task_count"`
+		DoneCount         int    `json:"done_count"`
+		ActiveCount       int    `json:"active_count"`
+		HasTransmittal    bool   `json:"has_transmittal"`
+		TransmittalStatus string `json:"transmittal_status"`
+		Path              string `json:"path"`
 	}
 	var projects []clientProject
 	for rows.Next() {
 		var p clientProject
+		var hasTransmittalID int64
 		if err := rows.Scan(&p.ID, &p.Name, &p.ClientSlug, &p.ProjectSlug,
-			&p.StartDate, &p.UpdatedAt, &p.TaskCount, &p.DoneCount); err != nil {
+			&p.StartDate, &p.UpdatedAt, &p.TaskCount, &p.DoneCount,
+			&p.ActiveCount, &hasTransmittalID, &p.TransmittalStatus); err != nil {
 			continue
 		}
+		p.HasTransmittal = hasTransmittalID != 0
 		p.Path = "/" + p.ClientSlug + "/" + p.ProjectSlug + "/"
 		projects = append(projects, p)
 	}
