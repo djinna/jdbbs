@@ -229,6 +229,20 @@ Nice-to-haves:
 
 FIX / BUILD LIST
 ----------------
+Admin / dashboard:
+  • Add link to reports page on /admin/ dashboard
+
+File submission / file sharing:
+  • Currently using Dropbox — works fine but no visibility in app
+  • At minimum: document/log file transfers in the app
+    (who sent what, when, which project)
+  • Stretch: build file transfer into the app
+    - Inbound: .docx, .tiff, .jpg, .png, .eps
+    - Outbound: .pdf, .epub
+    - Could be trivial (S3/R2 upload + metadata) or nontrivial
+      (preview, versioning, approval workflows)
+  • Decision needed: log-only vs. actual file hosting
+
 Calendar polish:
   • Mobile-responsive improvements (modals, gantt on small screens)
   • Polish timeline Gantt (today marker sometimes off, bar tooltips)
