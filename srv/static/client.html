@@ -154,7 +154,7 @@ function toggleTheme() {
 applyTheme(getTheme());
 
 const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
-let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [] };
+let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: null };
 
 function render() {
   const app = $('#app');
@@ -203,7 +203,10 @@ function render() {
           <h1>${esc(name)}</h1>
           <div class="subtitle">${state.projects.length} project${state.projects.length !== 1 ? 's' : ''}</div>
         </div>
-        <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"></button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" id="digest-btn" style="font-size:12px" title="Email weekly digest">📧 Weekly Digest</button>
+          <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"></button>
+        </div>
       </div>
       <div class="stats-row" id="stats"></div>
       <div class="projects-grid" id="projList"></div>
@@ -213,6 +216,7 @@ function render() {
     // Apply theme button
     applyTheme(getTheme());
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    document.getElementById('digest-btn').addEventListener('click', () => { state.showDigestEmail = true; state.digestResult = null; render(); });
 
     // Stats cards
     const statsEl = div.querySelector('#stats');
@@ -294,6 +298,11 @@ function render() {
       });
     });
     renderActivityContent(actDiv.querySelector('#activity-content'));
+
+    // Digest email modal
+    if (state.showDigestEmail) {
+      renderDigestModal(div);
+    }
   }
 }
 
@@ -347,8 +356,143 @@ function renderActivityContent(container) {
   }
 }
 
+// ─── Digest Email Modal ───
+const DIGEST_RECIPIENTS = [
+  { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+  { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
+];
+let digestRecipients = null;
+
+function initDigestRecipients() {
+  if (digestRecipients) return;
+  digestRecipients = DIGEST_RECIPIENTS.map(r => ({ ...r }));
+  digestRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+}
+
+async function checkEmailConfig() {
+  if (state.emailConfigured !== null) return;
+  try {
+    const r = await api('/api/email/status');
+    state.emailConfigured = r.configured;
+  } catch {
+    state.emailConfigured = false;
+  }
+}
+
+async function sendDigestEmail() {
+  const recipients = digestRecipients
+    .filter(r => r.checked && r.email.trim())
+    .map(r => r.email.trim());
+  if (recipients.length === 0) {
+    state.digestResult = { error: 'Select at least one recipient' };
+    render();
+    return;
+  }
+  state.digestSending = true;
+  state.digestResult = null;
+  render();
+  try {
+    const res = await api('/api/clients/' + clientSlug + '/digest/email', {
+      method: 'POST',
+      body: JSON.stringify({ recipients }),
+    });
+    state.digestSending = false;
+    state.digestResult = { ok: true, sent_to: res.sent_to };
+    render();
+  } catch (e) {
+    state.digestSending = false;
+    state.digestResult = { error: e.message };
+    render();
+  }
+}
+
+function renderDigestModal(parent) {
+  initDigestRecipients();
+  checkEmailConfig();
+
+  // Remove existing modal if any
+  const existing = parent.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) { state.showDigestEmail = false; state.digestResult = null; render(); }
+  });
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;';
+
+  let html = '<h2 style="margin:0 0 8px;font-size:18px;">📧 Email Weekly Digest</h2>';
+  html += '<p style="color:var(--text2);font-size:14px;margin:0 0 16px">Sends a digest of file transfers and journal entries from the last 7 days across all projects.</p>';
+
+  if (state.emailConfigured === false) {
+    html += '<div style="background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e">⚠️ Email is not configured on the server.</div>';
+  }
+
+  html += '<div style="margin-bottom:16px"><label style="font-weight:600;display:block;margin-bottom:8px">Send to:</label>';
+  digestRecipients.forEach((r, i) => {
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+    html += `<input type="checkbox" data-idx="${i}" ${r.checked ? 'checked' : ''}>`;
+    if (r.editable) {
+      html += `<input type="email" placeholder="email@example.com" value="${esc(r.email)}" data-edit-idx="${i}" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px">`;
+    } else {
+      html += `<span style="font-size:14px">${esc(r.email)}</span>`;
+    }
+    html += `<span style="font-size:12px;color:var(--text2)">${esc(r.label)}</span>`;
+    html += '</div>';
+  });
+  html += '</div>';
+
+  if (state.digestResult?.ok) {
+    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✅ Sent to: ' + state.digestResult.sent_to.join(', ') + '</div>';
+  }
+  if (state.digestResult?.error) {
+    html += '<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626">❌ ' + esc(state.digestResult.error) + '</div>';
+  }
+
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">';
+  if (state.digestResult?.ok) {
+    html += '<button class="btn btn-primary" id="digest-done">✓ Done</button>';
+  } else {
+    html += '<button class="btn" id="digest-cancel">Cancel</button>';
+    const disabled = state.digestSending || state.emailConfigured === false ? ' disabled' : '';
+    html += `<button class="btn btn-primary" id="digest-send"${disabled}>${state.digestSending ? 'Sending…' : '📨 Send Digest'}</button>`;
+  }
+  html += '</div>';
+
+  modal.innerHTML = html;
+  backdrop.appendChild(modal);
+  parent.appendChild(backdrop);
+
+  // Wire up events
+  modal.querySelectorAll('input[data-idx]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const idx = parseInt(cb.dataset.idx);
+      digestRecipients[idx].checked = cb.checked;
+    });
+  });
+  modal.querySelectorAll('input[data-edit-idx]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.editIdx);
+      digestRecipients[idx].email = inp.value;
+      digestRecipients[idx].checked = inp.value.trim().length > 0;
+      const cb = modal.querySelector(`input[data-idx="${idx}"]`);
+      if (cb) cb.checked = digestRecipients[idx].checked;
+    });
+  });
+  const closeModal = () => { state.showDigestEmail = false; state.digestResult = null; render(); };
+  const doneBtn = modal.querySelector('#digest-done');
+  if (doneBtn) doneBtn.addEventListener('click', closeModal);
+  const cancelBtn = modal.querySelector('#digest-cancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  const sendBtn = modal.querySelector('#digest-send');
+  if (sendBtn) sendBtn.addEventListener('click', sendDigestEmail);
+}
+
 async function boot() {
-  state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [] };
+  state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: state.emailConfigured };
   render();
   try {
     const info = await api('/api/clients/' + clientSlug);

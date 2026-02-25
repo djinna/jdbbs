@@ -109,6 +109,7 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("GET /api/clients/{client}/projects", s.handleClientProjects)
 	mux.HandleFunc("GET /api/clients/{client}/file-log", s.handleClientFileLog)
 	mux.HandleFunc("GET /api/clients/{client}/journal", s.handleClientJournal)
+	mux.HandleFunc("POST /api/clients/{client}/digest/email", s.handleSendClientDigest)
 
 	// Static files (CSS, JS) at known paths
 	static, _ := fs.Sub(staticFS, "static")
