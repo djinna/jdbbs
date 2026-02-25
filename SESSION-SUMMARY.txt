@@ -4,6 +4,43 @@ Production Calendar + Manuscript Transmittal — Session Summary
 
 STATUS: ✅ LIVE AND PUBLIC
 
+SESSION 10 CHANGES (17:15–17:35 UTC)
+------------------------------------
+Two new features: File Log + Project Journal
+
+1. File Log — structured record of file transfers
+   • New file_log table (migration 006-file-log-journal.sql)
+   • Fields: direction (inbound/outbound), filename, file_type,
+     sent_by, received_by, notes, transfer_date
+   • API: GET/POST /api/projects/{id}/file-log,
+     DELETE /api/projects/{id}/file-log/{entry}
+   • Client-level: GET /api/clients/{client}/file-log
+   • UI: "Files" tab in calendar with table view (date, direction
+     with ↓ In / ↑ Out badges, filename, type, from→to, notes)
+   • "+ Log Transfer" button → modal form with direction dropdown,
+     date picker, filename, file type selector, from/to, notes
+
+2. Project Journal — lightweight timestamped notes
+   • New journal table (migration 006-file-log-journal.sql)
+   • Fields: entry_type (call/decision/approval/note), content
+   • API: GET/POST /api/projects/{id}/journal,
+     DELETE /api/projects/{id}/journal/{entry}
+   • Client-level: GET /api/clients/{client}/journal
+   • UI: "Journal" tab in calendar with reverse-chronological feed
+     of color-coded entries (📞 Call, ⚖️ Decision, ✅ Approval, 📝 Note)
+   • "+ Add Entry" button → modal with type selector + text area
+
+3. Client Portal Activity Section
+   • New "Recent Activity" section at bottom of /{client}/ dashboard
+   • Sub-tabs: 📁 Files | 📓 Journal
+   • Shows recent entries across ALL client projects
+   • Each entry shows project name label for cross-project visibility
+
+New files:
+   • db/migrations/006-file-log-journal.sql
+   • srv/filelog.go — file log handlers
+   • srv/journal.go — journal handlers + shared auth helper
+
 PROJECT: Online shared/protected production calendar
 REPO: /home/exedev/prodcal (Go web app)
 PUBLIC URL: https://jdbb-prod.exe.xyz/vgr/aog/
