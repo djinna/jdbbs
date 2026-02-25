@@ -33,7 +33,7 @@ const fmt = {
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
 };
 
-let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [] };
+let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [], fileLog: [], journal: [], showFileLogModal: false, showJournalModal: false };
 
 // ─── Theme ───
 function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
@@ -240,10 +240,14 @@ function renderProject() {
       h('button', { className: 'tab' + (state.tab === 'gantt' ? ' active' : ''), onClick: () => { state.tab = 'gantt'; render(); } }, 'Timeline'),
       h('button', { className: 'tab' + (state.tab === 'table' ? ' active' : ''), onClick: () => { state.tab = 'table'; render(); } }, 'Table'),
       h('button', { className: 'tab' + (state.tab === 'budget' ? ' active' : ''), onClick: () => { state.tab = 'budget'; render(); } }, 'Budget'),
+      h('button', { className: 'tab' + (state.tab === 'files' ? ' active' : ''), onClick: () => { state.tab = 'files'; loadFileLog(); } }, 'Files'),
+      h('button', { className: 'tab' + (state.tab === 'journal' ? ' active' : ''), onClick: () => { state.tab = 'journal'; loadJournal(); } }, 'Journal'),
     ),
-    state.tab === 'gantt' ? renderGantt() : state.tab === 'table' ? renderTable() : renderBudget(),
+    state.tab === 'gantt' ? renderGantt() : state.tab === 'table' ? renderTable() : state.tab === 'budget' ? renderBudget() : state.tab === 'files' ? renderFileLog() : state.tab === 'journal' ? renderJournal() : null,
     state.editingTask ? renderEditModal() : null,
     state.showSnapshotEmail ? renderSnapshotEmailModal() : null,
+    state.showFileLogModal ? renderFileLogModal() : null,
+    state.showJournalModal ? renderJournalModal() : null,
   );
 }
 
@@ -861,6 +865,230 @@ function renderProjectSwitcher() {
     ...state.siblingProjects.map(p =>
       h('option', { value: String(p.ID), selected: p.ID === state.projectId }, p.Name)
     )
+  );
+}
+
+// ─── File Log ───
+async function loadFileLog() {
+  try {
+    state.fileLog = await api('/api/projects/' + state.projectId + '/file-log');
+  } catch (e) { state.fileLog = []; }
+  render();
+}
+
+function renderFileLog() {
+  const entries = state.fileLog;
+  const dirIcon = d => d === 'outbound' ? '↑ Out' : '↓ In';
+  const dirClass = d => d === 'outbound' ? 'dir-out' : 'dir-in';
+  return h('div', { className: 'filelog-section' },
+    h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px' },
+      h('span', { style: 'font-size:13px;color:var(--text2)' }, entries.length + ' file' + (entries.length !== 1 ? 's' : '') + ' logged'),
+      h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showFileLogModal = true; render(); } }, '+ Log Transfer'),
+    ),
+    entries.length === 0
+      ? h('div', { className: 'empty-state', style: 'padding:3rem' }, h('p', null, 'No file transfers logged yet'))
+      : h('div', { className: 'table-container' },
+          h('table', { className: 'data-table' },
+            h('thead', null, h('tr', null,
+              h('th', null, 'Date'),
+              h('th', { style: 'width:70px' }, 'Dir'),
+              h('th', null, 'Filename'),
+              h('th', null, 'Type'),
+              h('th', null, 'From → To'),
+              h('th', null, 'Notes'),
+              h('th', { style: 'width:40px' }, ''),
+            )),
+            h('tbody', null, ...entries.map(e =>
+              h('tr', null,
+                h('td', { className: 'date' }, fmt.date(e.transfer_date)),
+                h('td', null, h('span', { className: 'file-dir ' + dirClass(e.direction) }, dirIcon(e.direction))),
+                h('td', { style: 'font-weight:500' }, e.filename || '—'),
+                h('td', null, h('span', { className: 'badge badge-dim' }, e.file_type || '—')),
+                h('td', { style: 'font-size:13px' }, (e.sent_by || '?') + ' → ' + (e.received_by || '?')),
+                h('td', { style: 'color:var(--text2);font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, e.notes || ''),
+                h('td', null, h('button', { className: 'btn btn-sm btn-danger', style: 'padding:2px 6px;font-size:11px', onClick: () => deleteFileLogEntry(e.id) }, '✕')),
+              )
+            )),
+          ),
+        ),
+  );
+}
+
+async function deleteFileLogEntry(entryId) {
+  if (!confirm('Delete this file log entry?')) return;
+  try {
+    await api('/api/projects/' + state.projectId + '/file-log/' + entryId, { method: 'DELETE' });
+    loadFileLog();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+function renderFileLogModal() {
+  let dirSel, fnameInput, typeInput, sentInput, recvInput, notesInput, dateInput;
+  const fileTypes = ['.docx', '.pdf', '.epub', '.tiff', '.jpg', '.png', '.eps', '.indd', '.ai', '.psd'];
+  const close = () => { state.showFileLogModal = false; render(); };
+  return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) close(); } },
+    h('div', { className: 'modal' },
+      h('h2', null, '+ Log File Transfer'),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Direction'),
+          dirSel = h('select', null,
+            h('option', { value: 'inbound' }, '↓ Inbound (received)'),
+            h('option', { value: 'outbound' }, '↑ Outbound (sent)'),
+          ),
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'Transfer Date'),
+          dateInput = h('input', { type: 'date', value: new Date().toISOString().slice(0, 10) }),
+        ),
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Filename'),
+          fnameInput = h('input', { type: 'text', placeholder: 'e.g. manuscript_v2.docx' }),
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'File Type'),
+          typeInput = h('select', null,
+            h('option', { value: '' }, '— select —'),
+            ...fileTypes.map(t => h('option', { value: t }, t)),
+            h('option', { value: 'other' }, 'other'),
+          ),
+        ),
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Sent By'),
+          sentInput = h('input', { type: 'text', placeholder: 'Name' }),
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'Received By'),
+          recvInput = h('input', { type: 'text', placeholder: 'Name' }),
+        ),
+      ),
+      h('div', { className: 'form-group' },
+        h('label', null, 'Notes'),
+        notesInput = h('textarea', { rows: '2', style: 'width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical' }),
+      ),
+      h('div', { className: 'modal-actions' },
+        h('button', { className: 'btn', onClick: close }, 'Cancel'),
+        h('button', { className: 'btn btn-primary', onClick: async () => {
+          const fname = fnameInput.value.trim();
+          if (!fname) { alert('Filename required'); return; }
+          // Auto-detect file type from filename if not selected
+          let ft = typeInput.value;
+          if (!ft && fname.includes('.')) {
+            ft = '.' + fname.split('.').pop().toLowerCase();
+          }
+          try {
+            await api('/api/projects/' + state.projectId + '/file-log', {
+              method: 'POST',
+              body: JSON.stringify({
+                direction: dirSel.value,
+                filename: fname,
+                file_type: ft,
+                sent_by: sentInput.value.trim(),
+                received_by: recvInput.value.trim(),
+                notes: notesInput.value.trim(),
+                transfer_date: dateInput.value,
+              }),
+            });
+            state.showFileLogModal = false;
+            loadFileLog();
+          } catch (e) { alert('Error: ' + e.message); }
+        }}, 'Save'),
+      ),
+    ),
+  );
+}
+
+// ─── Journal ───
+async function loadJournal() {
+  try {
+    state.journal = await api('/api/projects/' + state.projectId + '/journal');
+  } catch (e) { state.journal = []; }
+  render();
+}
+
+const journalTypeEmoji = { call: '📞', decision: '⚖️', approval: '✅', note: '📝' };
+const journalTypeLabel = { call: 'Call', decision: 'Decision', approval: 'Approval', note: 'Note' };
+
+function renderJournal() {
+  const entries = state.journal;
+  return h('div', { className: 'journal-section' },
+    h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px' },
+      h('span', { style: 'font-size:13px;color:var(--text2)' }, entries.length + ' entr' + (entries.length !== 1 ? 'ies' : 'y')),
+      h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showJournalModal = true; render(); } }, '+ Add Entry'),
+    ),
+    entries.length === 0
+      ? h('div', { className: 'empty-state', style: 'padding:3rem' }, h('p', null, 'No journal entries yet'))
+      : h('div', { className: 'journal-feed' },
+          ...entries.map(e => {
+            const emoji = journalTypeEmoji[e.entry_type] || '📝';
+            const label = journalTypeLabel[e.entry_type] || e.entry_type;
+            const dt = new Date(e.created_at);
+            const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            return h('div', { className: 'journal-entry' },
+              h('div', { className: 'journal-entry-header' },
+                h('span', { className: 'journal-type journal-type-' + e.entry_type }, emoji + ' ' + label),
+                h('span', { className: 'journal-date' }, dateStr + ' · ' + timeStr),
+                h('button', { className: 'btn btn-sm btn-danger', style: 'padding:2px 6px;font-size:11px;margin-left:auto', onClick: () => deleteJournalEntry(e.id) }, '✕'),
+              ),
+              h('div', { className: 'journal-content' }, e.content),
+            );
+          }),
+        ),
+  );
+}
+
+async function deleteJournalEntry(entryId) {
+  if (!confirm('Delete this journal entry?')) return;
+  try {
+    await api('/api/projects/' + state.projectId + '/journal/' + entryId, { method: 'DELETE' });
+    loadJournal();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+function renderJournalModal() {
+  let typeSel, contentArea;
+  const close = () => { state.showJournalModal = false; render(); };
+  return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) close(); } },
+    h('div', { className: 'modal' },
+      h('h2', null, '+ Journal Entry'),
+      h('div', { className: 'form-group' },
+        h('label', null, 'Type'),
+        typeSel = h('select', null,
+          h('option', { value: 'note' }, '📝 Note'),
+          h('option', { value: 'call' }, '📞 Call'),
+          h('option', { value: 'decision' }, '⚖️ Decision'),
+          h('option', { value: 'approval' }, '✅ Approval'),
+        ),
+      ),
+      h('div', { className: 'form-group' },
+        h('label', null, 'Content'),
+        contentArea = h('textarea', {
+          rows: '5',
+          placeholder: 'What happened?',
+          style: 'width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical;font-family:inherit',
+        }),
+      ),
+      h('div', { className: 'modal-actions' },
+        h('button', { className: 'btn', onClick: close }, 'Cancel'),
+        h('button', { className: 'btn btn-primary', onClick: async () => {
+          const content = contentArea.value.trim();
+          if (!content) { alert('Content required'); return; }
+          try {
+            await api('/api/projects/' + state.projectId + '/journal', {
+              method: 'POST',
+              body: JSON.stringify({ entry_type: typeSel.value, content }),
+            });
+            state.showJournalModal = false;
+            loadJournal();
+          } catch (e) { alert('Error: ' + e.message); }
+        }}, 'Save'),
+      ),
+    ),
   );
 }
 

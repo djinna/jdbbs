@@ -88,6 +88,44 @@
   .theme-toggle:hover { background: var(--border); color: var(--text); }
 
   .empty { text-align: center; padding: 4rem; color: var(--text2); }
+
+  .activity-section {
+    margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+  }
+  .activity-section h2 {
+    font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .activity-tabs {
+    display: flex; gap: 0.5rem; margin-bottom: 1rem;
+  }
+  .activity-tab {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text2); cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: all 0.15s;
+  }
+  .activity-tab:hover { border-color: var(--accent); color: var(--text); }
+  .activity-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .activity-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 6px; font-size: 13px;
+  }
+  .activity-item-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  }
+  .activity-item-header .project-label {
+    font-size: 11px; background: var(--surface2); padding: 1px 8px;
+    border-radius: 9999px; color: var(--text2); font-weight: 500;
+  }
+  .activity-item-date { font-size: 11px; color: var(--text2); margin-left: auto; }
+  .file-dir-sm { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 9999px; }
+  .dir-in-sm { background: rgba(74, 222, 128, 0.15); color: var(--green, #4ade80); }
+  .dir-out-sm { background: rgba(96, 165, 250, 0.15); color: var(--blue, #60a5fa); }
+  .journal-type-sm { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 9999px; }
+  .jt-call { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+  .jt-decision { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+  .jt-approval { background: rgba(74, 222, 128, 0.15); color: var(--green, #4ade80); }
+  .jt-note { background: var(--surface2); color: var(--text2); }
 </style>
 </head>
 <body>
@@ -116,7 +154,7 @@ function toggleTheme() {
 applyTheme(getTheme());
 
 const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
-let state = { view: 'loading', client: null, projects: [], error: '' };
+let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [] };
 
 function render() {
   const app = $('#app');
@@ -236,11 +274,81 @@ function render() {
         `;
       }).join('');
     }
+
+    // Activity section
+    const actDiv = document.createElement('div');
+    actDiv.className = 'activity-section';
+    actDiv.innerHTML = `
+      <h2>Recent Activity</h2>
+      <div class="activity-tabs">
+        <button class="activity-tab ${state.activityTab === 'files' ? 'active' : ''}" data-tab="files">📁 Files</button>
+        <button class="activity-tab ${state.activityTab === 'journal' ? 'active' : ''}" data-tab="journal">📓 Journal</button>
+      </div>
+      <div id="activity-content"></div>
+    `;
+    div.appendChild(actDiv);
+    actDiv.querySelectorAll('.activity-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.activityTab = btn.dataset.tab;
+        render();
+      });
+    });
+    renderActivityContent(actDiv.querySelector('#activity-content'));
+  }
+}
+
+function renderActivityContent(container) {
+  if (state.activityTab === 'files') {
+    if (state.fileLog.length === 0) {
+      container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:1rem 0">No file transfers logged yet.</div>';
+    } else {
+      container.innerHTML = state.fileLog.map(e => {
+        const dirCls = e.direction === 'outbound' ? 'dir-out-sm' : 'dir-in-sm';
+        const dirLabel = e.direction === 'outbound' ? '↑ Out' : '↓ In';
+        return `
+          <div class="activity-item">
+            <div class="activity-item-header">
+              <span class="file-dir-sm ${dirCls}">${dirLabel}</span>
+              <strong>${esc(e.filename || '—')}</strong>
+              <span style="color:var(--text2)">${esc(e.file_type || '')}</span>
+              <span class="project-label">${esc(e.project_name)}</span>
+              <span class="activity-item-date">${esc(e.transfer_date || '')}</span>
+            </div>
+            ${e.notes ? '<div style="color:var(--text2);margin-top:2px">' + esc(e.notes) + '</div>' : ''}
+            <div style="color:var(--text2);font-size:11px;margin-top:2px">${esc(e.sent_by || '?')} → ${esc(e.received_by || '?')}</div>
+          </div>
+        `;
+      }).join('');
+    }
+  } else {
+    if (state.journal.length === 0) {
+      container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:1rem 0">No journal entries yet.</div>';
+    } else {
+      const typeEmoji = { call: '📞', decision: '⚖️', approval: '✅', note: '📝' };
+      const typeCls = { call: 'jt-call', decision: 'jt-decision', approval: 'jt-approval', note: 'jt-note' };
+      container.innerHTML = state.journal.map(e => {
+        const emoji = typeEmoji[e.entry_type] || '📝';
+        const cls = typeCls[e.entry_type] || 'jt-note';
+        const label = e.entry_type.charAt(0).toUpperCase() + e.entry_type.slice(1);
+        const dt = new Date(e.created_at);
+        const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `
+          <div class="activity-item">
+            <div class="activity-item-header">
+              <span class="journal-type-sm ${cls}">${emoji} ${esc(label)}</span>
+              <span class="project-label">${esc(e.project_name)}</span>
+              <span class="activity-item-date">${dateStr}</span>
+            </div>
+            <div style="margin-top:4px;white-space:pre-wrap">${esc(e.content)}</div>
+          </div>
+        `;
+      }).join('');
+    }
   }
 }
 
 async function boot() {
-  state = { view: 'loading', client: null, projects: [], error: '' };
+  state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [] };
   render();
   try {
     const info = await api('/api/clients/' + clientSlug);
@@ -254,6 +362,10 @@ async function boot() {
     state.projects = projects;
     state.view = 'portal';
     document.title = (info.name || clientSlug) + ' — Projects';
+    render();
+    // Load activity data in background
+    try { state.fileLog = await api('/api/clients/' + clientSlug + '/file-log'); } catch(e) { state.fileLog = []; }
+    try { state.journal = await api('/api/clients/' + clientSlug + '/journal'); } catch(e) { state.journal = []; }
     render();
   } catch(e) {
     if (e.message === 'unauthorized') {

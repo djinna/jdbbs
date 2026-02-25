@@ -92,10 +92,22 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("POST /api/projects/{id}/snapshot/email", s.handleSendProjectSnapshot)
 	mux.HandleFunc("GET /api/email/status", s.handleEmailStatus)
 
+	// File Log API
+	mux.HandleFunc("GET /api/projects/{id}/file-log", s.handleListFileLog)
+	mux.HandleFunc("POST /api/projects/{id}/file-log", s.handleCreateFileLog)
+	mux.HandleFunc("DELETE /api/projects/{id}/file-log/{entry}", s.handleDeleteFileLog)
+
+	// Journal API
+	mux.HandleFunc("GET /api/projects/{id}/journal", s.handleListJournal)
+	mux.HandleFunc("POST /api/projects/{id}/journal", s.handleCreateJournal)
+	mux.HandleFunc("DELETE /api/projects/{id}/journal/{entry}", s.handleDeleteJournal)
+
 	// Client API
 	mux.HandleFunc("GET /api/clients/{client}", s.handleClientInfo)
 	mux.HandleFunc("POST /api/clients/{client}/verify", s.handleClientVerify)
 	mux.HandleFunc("GET /api/clients/{client}/projects", s.handleClientProjects)
+	mux.HandleFunc("GET /api/clients/{client}/file-log", s.handleClientFileLog)
+	mux.HandleFunc("GET /api/clients/{client}/journal", s.handleClientJournal)
 
 	// Static files (CSS, JS) at known paths
 	static, _ := fs.Sub(staticFS, "static")
