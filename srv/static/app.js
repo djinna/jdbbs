@@ -33,7 +33,7 @@ const fmt = {
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
 };
 
-let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [], fileLog: [], journal: [], showFileLogModal: false, showJournalModal: false };
+let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [], fileLog: [], journal: [], showFileLogModal: false, showJournalModal: false, showActivityEmail: false, activitySending: false, activityResult: null };
 
 // ─── Theme ───
 function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
@@ -248,6 +248,7 @@ function renderProject() {
     state.showSnapshotEmail ? renderSnapshotEmailModal() : null,
     state.showFileLogModal ? renderFileLogModal() : null,
     state.showJournalModal ? renderJournalModal() : null,
+    state.showActivityEmail ? renderActivityEmailModal() : null,
   );
 }
 
@@ -838,6 +839,118 @@ function renderSnapshotEmailModal() {
   );
 }
 
+// ─── Activity Email Modal ───
+let activityRecipients = null;
+
+function initActivityRecipients() {
+  if (activityRecipients) return;
+  activityRecipients = SNAPSHOT_RECIPIENTS.map(r => ({ ...r }));
+  activityRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+}
+
+async function sendActivityEmail() {
+  const recipients = activityRecipients
+    .filter(r => r.checked && r.email.trim())
+    .map(r => r.email.trim());
+  if (recipients.length === 0) {
+    state.activityResult = { error: 'Select at least one recipient' };
+    render();
+    return;
+  }
+  state.activitySending = true;
+  state.activityResult = null;
+  render();
+  try {
+    const res = await api('/api/projects/' + state.projectId + '/activity/email', {
+      method: 'POST',
+      body: JSON.stringify({ recipients }),
+    });
+    state.activitySending = false;
+    state.activityResult = { ok: true, sent_to: res.sent_to };
+    render();
+  } catch (e) {
+    state.activitySending = false;
+    state.activityResult = { error: e.message };
+    render();
+  }
+}
+
+function renderActivityEmailModal() {
+  initActivityRecipients();
+  checkEmailConfigCal();
+
+  const closeModal = () => {
+    state.showActivityEmail = false;
+    state.activityResult = null;
+    render();
+  };
+
+  return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeModal(); } },
+    h('div', { className: 'modal' },
+      h('h2', null, '📧 Email Activity Update'),
+      h('p', { style: 'color:var(--text2);font-size:14px;margin:0 0 16px' },
+        'Sends recent file transfers and journal entries from the last 7 days.'
+      ),
+
+      state.emailConfigured === false
+        ? h('div', { style: 'background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e' },
+            '⚠️ Email is not configured on the server.'
+          )
+        : null,
+
+      h('div', { style: 'margin-bottom:16px' },
+        h('label', { style: 'font-weight:600;display:block;margin-bottom:8px' }, 'Send to:'),
+        ...activityRecipients.map((r, i) =>
+          h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:6px' },
+            h('input', {
+              type: 'checkbox',
+              checked: r.checked,
+              onChange: () => { activityRecipients[i].checked = !activityRecipients[i].checked; render(); },
+            }),
+            r.editable
+              ? h('input', {
+                  type: 'email',
+                  placeholder: 'email@example.com',
+                  value: r.email,
+                  style: 'flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px',
+                  onInput: (e) => {
+                    activityRecipients[i].email = e.target.value;
+                    activityRecipients[i].checked = e.target.value.trim().length > 0;
+                  },
+                })
+              : h('span', { style: 'font-size:14px' }, r.email),
+            h('span', { style: 'font-size:12px;color:var(--text2)' }, r.label),
+          )
+        ),
+      ),
+
+      state.activityResult?.ok
+        ? h('div', { style: 'background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46' },
+            '✅ Sent to: ' + state.activityResult.sent_to.join(', ')
+          )
+        : null,
+      state.activityResult?.error
+        ? h('div', { style: 'background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626' },
+            '❌ ' + state.activityResult.error
+          )
+        : null,
+
+      h('div', { className: 'modal-actions' },
+        state.activityResult?.ok
+          ? h('button', { className: 'btn btn-primary', onClick: closeModal }, '✓ Done')
+          : [
+              h('button', { className: 'btn', onClick: closeModal }, 'Cancel'),
+              h('button', {
+                className: 'btn btn-primary',
+                disabled: state.activitySending || state.emailConfigured === false ? 'disabled' : undefined,
+                onClick: sendActivityEmail,
+              }, state.activitySending ? 'Sending…' : '📨 Send Activity Update'),
+            ],
+      ),
+    ),
+  );
+}
+
 // ─── Project Switcher ───
 async function loadSiblingProjects() {
   if (!state.pathClient) return;
@@ -883,7 +996,10 @@ function renderFileLog() {
   return h('div', { className: 'filelog-section' },
     h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px' },
       h('span', { style: 'font-size:13px;color:var(--text2)' }, entries.length + ' file' + (entries.length !== 1 ? 's' : '') + ' logged'),
-      h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showFileLogModal = true; render(); } }, '+ Log Transfer'),
+      h('div', { style: 'display:flex;gap:8px' },
+        h('button', { className: 'btn btn-sm', style: 'font-size:12px', onClick: () => { state.showActivityEmail = true; state.activityResult = null; render(); } }, '📧 Email'),
+        h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showFileLogModal = true; render(); } }, '+ Log Transfer'),
+      ),
     ),
     entries.length === 0
       ? h('div', { className: 'empty-state', style: 'padding:3rem' }, h('p', null, 'No file transfers logged yet'))
@@ -1018,7 +1134,10 @@ function renderJournal() {
   return h('div', { className: 'journal-section' },
     h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px' },
       h('span', { style: 'font-size:13px;color:var(--text2)' }, entries.length + ' entr' + (entries.length !== 1 ? 'ies' : 'y')),
-      h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showJournalModal = true; render(); } }, '+ Add Entry'),
+      h('div', { style: 'display:flex;gap:8px' },
+        h('button', { className: 'btn btn-sm', style: 'font-size:12px', onClick: () => { state.showActivityEmail = true; state.activityResult = null; render(); } }, '📧 Email'),
+        h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showJournalModal = true; render(); } }, '+ Add Entry'),
+      ),
     ),
     entries.length === 0
       ? h('div', { className: 'empty-state', style: 'padding:3rem' }, h('p', null, 'No journal entries yet'))

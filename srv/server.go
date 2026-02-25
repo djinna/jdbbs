@@ -90,6 +90,7 @@ func (s *Server) Serve(addr string) error {
 	// Email API
 	mux.HandleFunc("POST /api/projects/{id}/transmittal/email", s.handleSendTransmittalEmail)
 	mux.HandleFunc("POST /api/projects/{id}/snapshot/email", s.handleSendProjectSnapshot)
+	mux.HandleFunc("POST /api/projects/{id}/activity/email", s.handleSendActivityEmail)
 	mux.HandleFunc("GET /api/email/status", s.handleEmailStatus)
 
 	// File Log API
