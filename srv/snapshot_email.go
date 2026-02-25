@@ -97,6 +97,46 @@ func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Reques
 		_ = json.Unmarshal([]byte(txDataStr), &txData)
 	}
 
+	// ── Load recent file log (last 10) ──
+	fileRows, err := s.DB.QueryContext(r.Context(),
+		`SELECT id, project_id, direction, filename, file_type, sent_by, received_by, notes, transfer_date, created_at
+		 FROM file_log WHERE project_id = ? ORDER BY transfer_date DESC, created_at DESC LIMIT 10`, pid,
+	)
+	if err != nil {
+		jsonErr(w, "query file log: "+err.Error(), 500)
+		return
+	}
+	defer fileRows.Close()
+	var fileLogEntries []fileLogEntry
+	for fileRows.Next() {
+		var e fileLogEntry
+		if err := fileRows.Scan(&e.ID, &e.ProjectID, &e.Direction, &e.Filename, &e.FileType, &e.SentBy, &e.ReceivedBy, &e.Notes, &e.TransferDate, &e.CreatedAt); err != nil {
+			jsonErr(w, "scan file log: "+err.Error(), 500)
+			return
+		}
+		fileLogEntries = append(fileLogEntries, e)
+	}
+
+	// ── Load recent journal (last 10) ──
+	journalRows, err := s.DB.QueryContext(r.Context(),
+		`SELECT id, project_id, entry_type, content, created_at
+		 FROM journal WHERE project_id = ? ORDER BY created_at DESC LIMIT 10`, pid,
+	)
+	if err != nil {
+		jsonErr(w, "query journal: "+err.Error(), 500)
+		return
+	}
+	defer journalRows.Close()
+	var journalEntries []journalEntry
+	for journalRows.Next() {
+		var e journalEntry
+		if err := journalRows.Scan(&e.ID, &e.ProjectID, &e.EntryType, &e.Content, &e.CreatedAt); err != nil {
+			jsonErr(w, "scan journal: "+err.Error(), 500)
+			return
+		}
+		journalEntries = append(journalEntries, e)
+	}
+
 	// ── Compute stats ──
 	var doneCount, activeCount, pendingCount int
 	var totalOrig, totalCurr, totalActual float64
@@ -160,6 +200,8 @@ func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Reques
 		TxData:       txData,
 		CheckTotal:   checkTotal,
 		CheckDone:    checkDone,
+		FileLog:      fileLogEntries,
+		Journal:      journalEntries,
 	})
 
 	// ── Build plain text ──
@@ -182,6 +224,8 @@ func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Reques
 		TxData:       txData,
 		CheckTotal:   checkTotal,
 		CheckDone:    checkDone,
+		FileLog:      fileLogEntries,
+		Journal:      journalEntries,
 	})
 
 	subject := fmt.Sprintf("Project Snapshot: %s — %s", projName, now.Format("Jan 2, 2006"))
@@ -237,6 +281,8 @@ type snapshotParams struct {
 	TxData       transmittalEmailData
 	CheckTotal   int
 	CheckDone    int
+	FileLog      []fileLogEntry
+	Journal      []journalEntry
 }
 
 func snapshotStatusLabel(status string) string {
@@ -535,6 +581,96 @@ func buildSnapshotHTML(p snapshotParams) string {
 		b.WriteString(`</td></tr>`)
 	}
 
+	// ── Recent Files ──
+	if len(p.FileLog) > 0 {
+		b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
+		b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Recent Files</h2>`)
+		b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;">`)
+
+		// Table header
+		b.WriteString(`<tr style="background:#6c63ff;">`)
+		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:90px;">Date</td>`)
+		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:50px;">Dir</td>`)
+		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">File</td>`)
+		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:72px;">Type</td>`)
+		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:130px;">From → To</td>`)
+		b.WriteString(`</tr>`)
+
+		for i, e := range p.FileLog {
+			rowBg := "#ffffff"
+			if i%2 == 1 {
+				rowBg = "#faf9ff"
+			}
+			dirArrow := "↓ In"
+			if e.Direction == "outbound" {
+				dirArrow = "↑ Out"
+			}
+			fromTo := html.EscapeString(e.SentBy) + " → " + html.EscapeString(e.ReceivedBy)
+			b.WriteString(fmt.Sprintf(`<tr style="background:%s;">`, rowBg))
+			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, snapshotFormatDate(e.TransferDate)))
+			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, dirArrow))
+			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;font-weight:500;color:#333;">%s</td>`, html.EscapeString(e.Filename)))
+			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, html.EscapeString(e.FileType)))
+			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, fromTo))
+			b.WriteString(`</tr>`)
+		}
+
+		b.WriteString(`</table>`)
+		b.WriteString(fmt.Sprintf(`<p style="margin:8px 0 0;font-size:12px;color:#aaa;">Showing %d most recent file transfers</p>`, len(p.FileLog)))
+		b.WriteString(`</td></tr>`)
+	}
+
+	// ── Recent Journal ──
+	if len(p.Journal) > 0 {
+		b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
+		b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Recent Journal</h2>`)
+
+		for i, e := range p.Journal {
+			rowBg := "#ffffff"
+			if i%2 == 1 {
+				rowBg = "#faf9ff"
+			}
+			emoji := "📝"
+			switch e.EntryType {
+			case "call":
+				emoji = "📞"
+			case "decision":
+				emoji = "⚖️"
+			case "approval":
+				emoji = "✅"
+			}
+			dateStr := snapshotFormatDate(e.CreatedAt)
+			// Try parsing as datetime for a more detailed display
+			if t, err := time.Parse("2006-01-02T15:04:05", e.CreatedAt); err == nil {
+				dateStr = t.Format("Jan 2, 2006 3:04 PM")
+			} else if t, err := time.Parse("2006-01-02 15:04:05", e.CreatedAt); err == nil {
+				dateStr = t.Format("Jan 2, 2006 3:04 PM")
+			}
+			borderRadius := ""
+			if i == 0 {
+				borderRadius = "border-radius:8px 8px 0 0;"
+			}
+			if i == len(p.Journal)-1 {
+				if i == 0 {
+					borderRadius = "border-radius:8px;"
+				} else {
+					borderRadius = "border-radius:0 0 8px 8px;"
+				}
+			}
+			borderBottom := "border-bottom:0;"
+			if i == len(p.Journal)-1 {
+				borderBottom = ""
+			}
+			b.WriteString(fmt.Sprintf(`<div style="background:%s;padding:12px 16px;border:1px solid #e5e5e5;%s%s">`, rowBg, borderRadius, borderBottom))
+			b.WriteString(fmt.Sprintf(`<div style="font-size:12px;color:#888;margin-bottom:4px;">%s %s · %s</div>`,
+				emoji, html.EscapeString(strings.ToUpper(e.EntryType)), dateStr))
+			b.WriteString(fmt.Sprintf(`<div style="font-size:13px;color:#333;">%s</div>`, html.EscapeString(e.Content)))
+			b.WriteString(`</div>`)
+		}
+
+		b.WriteString(`</td></tr>`)
+	}
+
 	// ── Footer ──
 	b.WriteString(`<tr><td style="padding:28px 36px;">`)
 	b.WriteString(`<div style="border-top:2px solid #f0eeff;padding-top:16px;text-align:center;">`)
@@ -631,6 +767,40 @@ func buildSnapshotText(p snapshotParams) string {
 			b.WriteString(fmt.Sprintf("  Bound Book: %s\n", p.TxData.Production.BoundBookDate))
 		}
 		b.WriteString(fmt.Sprintf("  Checklist:  %d / %d items received\n", p.CheckDone, p.CheckTotal))
+		b.WriteString("\n")
+	}
+
+	// Recent files
+	if len(p.FileLog) > 0 {
+		b.WriteString("RECENT FILES\n")
+		b.WriteString(strings.Repeat("─", 35) + "\n")
+		for _, e := range p.FileLog {
+			dir := "↓ In "
+			if e.Direction == "outbound" {
+				dir = "↑ Out"
+			}
+			date := e.TransferDate
+			if date == "" {
+				date = "—"
+			}
+			b.WriteString(fmt.Sprintf("  %s  %s  %-28s  %-10s  %s → %s\n",
+				date, dir, e.Filename, e.FileType, e.SentBy, e.ReceivedBy))
+		}
+		b.WriteString("\n")
+	}
+
+	// Recent journal
+	if len(p.Journal) > 0 {
+		b.WriteString("RECENT JOURNAL\n")
+		b.WriteString(strings.Repeat("─", 35) + "\n")
+		for _, e := range p.Journal {
+			entryType := strings.ToUpper(e.EntryType)
+			dateStr := e.CreatedAt
+			if len(dateStr) > 19 {
+				dateStr = dateStr[:19]
+			}
+			b.WriteString(fmt.Sprintf("  [%s] %s  %s\n", entryType, dateStr, e.Content))
+		}
 		b.WriteString("\n")
 	}
 
