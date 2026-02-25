@@ -777,7 +777,7 @@ function renderSnapshotEmailModal() {
     h('div', { className: 'modal' },
       h('h2', null, '📧 Email Project Snapshot'),
       h('p', { style: 'color:var(--text2);font-size:14px;margin:0 0 16px' },
-        'Sends a comprehensive email with schedule overview, task list, budget summary, and transmittal status.'
+        'Sends a comprehensive email with schedule overview, task list, budget summary, transmittal status, recent files, and journal entries.'
       ),
 
       state.emailConfigured === false
