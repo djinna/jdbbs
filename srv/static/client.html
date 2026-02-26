@@ -60,6 +60,11 @@
     font-size: 0.75rem; font-weight: 500;
   }
   .badge-dim { background: var(--surface2); color: var(--text2); }
+  .email-btn {
+    background: none; border: none; color: var(--accent, #6c63ff); cursor: pointer;
+    font-size: 0.8rem; padding: 0; text-decoration: none; font-family: inherit;
+  }
+  .email-btn:hover { text-decoration: underline; }
   .links { display: flex; gap: 0.75rem; margin-top: 1rem; }
   .links a { font-size: 0.8rem; color: var(--accent); text-decoration: none; }
   .links a:hover { text-decoration: underline; }
@@ -273,11 +278,20 @@ function render() {
             <div class="links">
               <a href="${esc(p.path)}">📅 Calendar</a>
               <a href="${esc(p.path)}transmittal/">📝 Transmittal</a>
+              <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">📧 Snapshot</button>
+              <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="activity">📧 Activity</button>
             </div>
           </div>
         `;
       }).join('');
     }
+
+    // Wire up per-project email buttons
+    div.querySelectorAll('.email-btn[data-email-project]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openProjectEmailModal(parseInt(btn.dataset.emailProject), btn.dataset.emailName, btn.dataset.emailType);
+      });
+    });
 
     // Activity section
     const actDiv = document.createElement('div');
@@ -354,6 +368,146 @@ function renderActivityContent(container) {
       }).join('');
     }
   }
+}
+
+// ─── Per-Project Email Modal ───
+let projEmailState = { show: false, projectId: null, projectName: '', type: 'snapshot', sending: false, result: null };
+let projEmailRecipients = null;
+
+function initProjEmailRecipients() {
+  if (projEmailRecipients) return;
+  projEmailRecipients = [
+    { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+    { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
+    { email: '', label: 'Other', checked: false, editable: true },
+  ];
+}
+
+function openProjectEmailModal(projectId, projectName, type) {
+  projEmailState = { show: true, projectId, projectName, type, sending: false, result: null };
+  projEmailRecipients = null;
+  renderProjectEmailModal();
+}
+
+function closeProjectEmailModal() {
+  projEmailState.show = false;
+  const existing = document.querySelector('.proj-email-backdrop');
+  if (existing) existing.remove();
+}
+
+async function sendProjectEmail() {
+  initProjEmailRecipients();
+  const recipients = projEmailRecipients
+    .filter(r => r.checked && r.email.trim())
+    .map(r => r.email.trim());
+  if (recipients.length === 0) {
+    projEmailState.result = { error: 'Select at least one recipient' };
+    renderProjectEmailModal();
+    return;
+  }
+  projEmailState.sending = true;
+  projEmailState.result = null;
+  renderProjectEmailModal();
+  try {
+    const endpoint = projEmailState.type === 'snapshot' ? 'snapshot/email' : 'activity/email';
+    const res = await api('/api/projects/' + projEmailState.projectId + '/' + endpoint, {
+      method: 'POST',
+      body: JSON.stringify({ recipients }),
+    });
+    projEmailState.sending = false;
+    projEmailState.result = { ok: true, sent_to: res.sent_to };
+    renderProjectEmailModal();
+  } catch (e) {
+    projEmailState.sending = false;
+    projEmailState.result = { error: e.message };
+    renderProjectEmailModal();
+  }
+}
+
+function renderProjectEmailModal() {
+  initProjEmailRecipients();
+  checkEmailConfig();
+
+  let backdrop = document.querySelector('.proj-email-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.className = 'proj-email-backdrop';
+    backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeProjectEmailModal(); });
+    document.body.appendChild(backdrop);
+  }
+
+  const typeLabel = projEmailState.type === 'snapshot' ? 'Project Snapshot' : 'Activity Update';
+  const typeDesc = projEmailState.type === 'snapshot'
+    ? 'Sends schedule, budget, transmittal, recent files, and journal.'
+    : 'Sends file transfers and journal entries from the last 7 days.';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;';
+
+  let html = `<h2 style="margin:0 0 8px;font-size:18px;">📧 ${esc(typeLabel)}: ${esc(projEmailState.projectName)}</h2>`;
+  html += `<p style="color:var(--text2);font-size:14px;margin:0 0 16px">${typeDesc}</p>`;
+
+  if (state.emailConfigured === false) {
+    html += '<div style="background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e">⚠️ Email is not configured on the server.</div>';
+  }
+
+  html += '<div style="margin-bottom:16px"><label style="font-weight:600;display:block;margin-bottom:8px">Send to:</label>';
+  projEmailRecipients.forEach((r, i) => {
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+    html += `<input type="checkbox" data-pidx="${i}" ${r.checked ? 'checked' : ''}>`;
+    if (r.editable) {
+      html += `<input type="email" placeholder="email@example.com" value="${esc(r.email)}" data-pedit="${i}" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px">`;
+    } else {
+      html += `<span style="font-size:14px">${esc(r.email)}</span>`;
+    }
+    html += `<span style="font-size:12px;color:var(--text2)">${esc(r.label)}</span>`;
+    html += '</div>';
+  });
+  html += '</div>';
+
+  if (projEmailState.result?.ok) {
+    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✅ Sent to: ' + projEmailState.result.sent_to.join(', ') + '</div>';
+  }
+  if (projEmailState.result?.error) {
+    html += '<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626">❌ ' + esc(projEmailState.result.error) + '</div>';
+  }
+
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">';
+  if (projEmailState.result?.ok) {
+    html += '<button class="btn btn-primary" id="proj-email-done">✓ Done</button>';
+  } else {
+    html += '<button class="btn" id="proj-email-cancel">Cancel</button>';
+    const disabled = projEmailState.sending || state.emailConfigured === false ? ' disabled' : '';
+    html += `<button class="btn btn-primary" id="proj-email-send"${disabled}>${projEmailState.sending ? 'Sending…' : '📨 Send'}</button>`;
+  }
+  html += '</div>';
+
+  modal.innerHTML = html;
+  backdrop.innerHTML = '';
+  backdrop.appendChild(modal);
+
+  // Wire events
+  modal.querySelectorAll('input[data-pidx]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      projEmailRecipients[parseInt(cb.dataset.pidx)].checked = cb.checked;
+    });
+  });
+  modal.querySelectorAll('input[data-pedit]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.pedit);
+      projEmailRecipients[idx].email = inp.value;
+      projEmailRecipients[idx].checked = inp.value.trim().length > 0;
+      const cb = modal.querySelector(`input[data-pidx="${idx}"]`);
+      if (cb) cb.checked = projEmailRecipients[idx].checked;
+    });
+  });
+  const doneBtn = modal.querySelector('#proj-email-done');
+  if (doneBtn) doneBtn.addEventListener('click', closeProjectEmailModal);
+  const cancelBtn = modal.querySelector('#proj-email-cancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeProjectEmailModal);
+  const sendBtn = modal.querySelector('#proj-email-send');
+  if (sendBtn) sendBtn.addEventListener('click', sendProjectEmail);
 }
 
 // ─── Digest Email Modal ───

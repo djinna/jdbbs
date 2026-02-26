@@ -199,6 +199,111 @@ h1 {
   line-height: 1;
 }
 .theme-toggle:hover { background: var(--border); color: var(--text); }
+
+/* Email buttons */
+.email-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.email-btn:hover {
+  text-decoration: underline;
+}
+
+/* Email modal */
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 460px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.modal-card p.subtitle {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+.modal-card .recipient-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.modal-card .recipient-row input[type="email"] {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+.modal-card .msg-ok {
+  background: #d1fae5;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #065f46;
+}
+.modal-card .msg-err {
+  background: #fef2f2;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #dc2626;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.modal-actions button:hover {
+  background: var(--border);
+}
+.modal-actions button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.modal-actions button.primary:hover {
+  opacity: 0.9;
+}
+.modal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 </style>
 </head>
 <body>
@@ -351,6 +456,8 @@ function renderProjects(projects) {
         <div class="links">
           <a href="${esc(p.path)}" target="_blank">📅 Calendar</a>
           <a href="${esc(p.path)}transmittal/" target="_blank">📝 Transmittal</a>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'") }', 'snapshot')">📧 Snapshot</button>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'") }', 'activity')">📧 Activity</button>
         </div>
       </div>
     `;
@@ -361,6 +468,142 @@ function esc(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+// ─── Email Modal ───
+const EMAIL_RECIPIENTS = [
+  { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+  { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
+];
+
+let emailModalRecipients = null;
+let emailModalState = { projectId: null, projectName: '', type: '', sending: false, result: null };
+
+function initEmailRecipients() {
+  emailModalRecipients = EMAIL_RECIPIENTS.map(r => ({ ...r }));
+  emailModalRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+}
+
+function openEmailModal(projectId, projectName, type) {
+  initEmailRecipients();
+  emailModalState = { projectId, projectName, type, sending: false, result: null };
+  renderEmailModal();
+}
+
+function closeEmailModal() {
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+  emailModalState = { projectId: null, projectName: '', type: '', sending: false, result: null };
+}
+
+function renderEmailModal() {
+  // Remove existing
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+
+  const { projectId, projectName, type, sending, result } = emailModalState;
+  const typeLabel = type === 'snapshot' ? 'Snapshot' : 'Activity Digest';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeEmailModal(); });
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-card';
+
+  let html = `<h2>📧 Email ${esc(typeLabel)}</h2>`;
+  html += `<p class="subtitle">Project: <strong>${esc(projectName)}</strong></p>`;
+
+  html += '<div style="margin-bottom:16px"><label style="font-weight:600;display:block;margin-bottom:8px">Send to:</label>';
+  emailModalRecipients.forEach((r, i) => {
+    html += '<div class="recipient-row">';
+    html += `<input type="checkbox" data-idx="${i}" ${r.checked ? 'checked' : ''}>`;
+    if (r.editable) {
+      html += `<input type="email" placeholder="email@example.com" value="${esc(r.email)}" data-edit-idx="${i}">`;
+    } else {
+      html += `<span style="font-size:14px">${esc(r.email)}</span>`;
+    }
+    html += `<span style="font-size:12px;color:var(--text-dim)">${esc(r.label)}</span>`;
+    html += '</div>';
+  });
+  html += '</div>';
+
+  if (result?.ok) {
+    html += `<div class="msg-ok">✅ Sent to: ${result.sent_to.join(', ')}</div>`;
+  }
+  if (result?.error) {
+    html += `<div class="msg-err">❌ ${esc(result.error)}</div>`;
+  }
+
+  html += '<div class="modal-actions">';
+  if (result?.ok) {
+    html += '<button class="primary" id="em-done">✓ Done</button>';
+  } else {
+    html += '<button id="em-cancel">Cancel</button>';
+    const disabled = sending ? ' disabled' : '';
+    html += `<button class="primary" id="em-send"${disabled}>${sending ? 'Sending…' : '📨 Send ' + esc(typeLabel)}</button>`;
+  }
+  html += '</div>';
+
+  modal.innerHTML = html;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+
+  // Wire up events
+  modal.querySelectorAll('input[data-idx]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      emailModalRecipients[parseInt(cb.dataset.idx)].checked = cb.checked;
+    });
+  });
+  modal.querySelectorAll('input[data-edit-idx]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.editIdx);
+      emailModalRecipients[idx].email = inp.value;
+      emailModalRecipients[idx].checked = inp.value.trim().length > 0;
+      const cb = modal.querySelector(`input[data-idx="${idx}"]`);
+      if (cb) cb.checked = emailModalRecipients[idx].checked;
+    });
+  });
+  const doneBtn = modal.querySelector('#em-done');
+  if (doneBtn) doneBtn.addEventListener('click', closeEmailModal);
+  const cancelBtn = modal.querySelector('#em-cancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeEmailModal);
+  const sendBtn = modal.querySelector('#em-send');
+  if (sendBtn) sendBtn.addEventListener('click', sendEmailFromModal);
+}
+
+async function sendEmailFromModal() {
+  const recipients = emailModalRecipients
+    .filter(r => r.checked && r.email.trim())
+    .map(r => r.email.trim());
+  if (recipients.length === 0) {
+    emailModalState.result = { error: 'Select at least one recipient' };
+    renderEmailModal();
+    return;
+  }
+  emailModalState.sending = true;
+  renderEmailModal();
+  try {
+    const { projectId, type } = emailModalState;
+    const url = `/api/projects/${projectId}/${type}/email`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipients }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: r.statusText }));
+      throw new Error(err.detail || err.error || 'Send failed');
+    }
+    const data = await r.json();
+    emailModalState.sending = false;
+    emailModalState.result = { ok: true, sent_to: data.sent_to || recipients };
+    renderEmailModal();
+  } catch(e) {
+    emailModalState.sending = false;
+    emailModalState.result = { error: e.message };
+    renderEmailModal();
+  }
 }
 
 checkHealth();
