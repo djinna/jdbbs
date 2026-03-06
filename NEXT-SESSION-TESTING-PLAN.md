@@ -1,5 +1,7 @@
 # Testing Plan for ProdCal
 
+**STATUS: ✅ COMPLETE** - See commit 4f217cd
+
 Repo: `/home/exedev/prodcal`. Go backend + vanilla JS SPA, SQLite (actual DB at `/home/exedev/db.sqlite3`), systemd service on port 8000.
 
 ## Context
