@@ -53,7 +53,8 @@ func (s *Server) setUpDatabase(dbPath string) error {
 	return nil
 }
 
-func (s *Server) Serve(addr string) error {
+// Handler returns the fully configured HTTP handler for the server.
+func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
 	// Health check
@@ -86,6 +87,13 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("GET /api/transmittals/{id}/versions/{vid}", s.handleGetTransmittalVersion)
 	mux.HandleFunc("POST /api/transmittals/{id}/versions/{vid}/restore", s.handleRestoreTransmittalVersion)
 	mux.HandleFunc("POST /api/transmittals/{id}/duplicate", s.handleDuplicateTransmittal)
+
+	// Books API
+	mux.HandleFunc("GET /api/books", s.handleListBooks)
+	mux.HandleFunc("POST /api/books/upload", s.handleUploadBook)
+	mux.HandleFunc("POST /api/books/{id}/convert", s.handleConvertBook)
+	mux.HandleFunc("GET /api/books/{id}/download/{format}", s.handleDownloadBook)
+	mux.HandleFunc("DELETE /api/books/{id}", s.handleDeleteBook)
 
 	// Email API
 	mux.HandleFunc("POST /api/projects/{id}/transmittal/email", s.handleSendTransmittalEmail)
@@ -175,8 +183,12 @@ func (s *Server) Serve(addr string) error {
 		s.serveIndex(w)
 	})
 
+	return mux
+}
+
+func (s *Server) Serve(addr string) error {
 	slog.Info("starting server", "addr", addr)
-	return http.ListenAndServe(addr, mux)
+	return http.ListenAndServe(addr, s.Handler())
 }
 
 func (s *Server) serveTransmittal(w http.ResponseWriter) {

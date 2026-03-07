@@ -16,6 +16,49 @@ type AuthToken struct {
 	CreatedAt time.Time
 }
 
+type Book struct {
+	ID             int64
+	Title          string
+	Author         string
+	Series         string
+	SourceFilename string
+	SourceData     []byte
+	PdfData        []byte
+	EpubData       []byte
+	Status         string
+	ErrorMsg       string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type Client struct {
+	Slug         string
+	Name         string
+	PasswordHash string
+	CreatedAt    time.Time
+}
+
+type FileLog struct {
+	ID           int64
+	ProjectID    int64
+	Direction    string
+	Filename     string
+	FileType     string
+	SentBy       string
+	ReceivedBy   string
+	Notes        string
+	TransferDate string
+	CreatedAt    time.Time
+}
+
+type Journal struct {
+	ID        int64
+	ProjectID int64
+	EntryType string
+	Content   string
+	CreatedAt time.Time
+}
+
 type Migration struct {
 	MigrationNumber int64
 	MigrationName   string
@@ -55,4 +98,21 @@ type Task struct {
 	ActualBudget float64
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type Transmittal struct {
+	ID        int64
+	ProjectID int64
+	Status    string
+	Data      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type TransmittalVersion struct {
+	ID            int64
+	TransmittalID int64
+	Data          string
+	Status        string
+	SavedAt       time.Time
 }
