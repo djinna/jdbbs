@@ -5,6 +5,7 @@
 package dbgen
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -29,6 +30,7 @@ type Book struct {
 	ErrorMsg       string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	ProjectID      sql.NullInt64
 }
 
 type BookSpec struct {
@@ -37,6 +39,8 @@ type BookSpec struct {
 	Data      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	CoverData []byte
+	CoverType string
 }
 
 type Client struct {

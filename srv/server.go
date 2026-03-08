@@ -93,6 +93,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/books/upload", s.handleUploadBook)
 	mux.HandleFunc("POST /api/books/{id}/convert", s.handleConvertBook)
 	mux.HandleFunc("GET /api/books/{id}/download/{format}", s.handleDownloadBook)
+	mux.HandleFunc("PUT /api/books/{id}/project", s.handleLinkBookProject)
 	mux.HandleFunc("DELETE /api/books/{id}", s.handleDeleteBook)
 
 	// Book Spec API
@@ -100,7 +101,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/projects/{id}/book-spec", s.handleUpdateBookSpec)
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/pull-transmittal", s.handlePullTransmittalToSpec)
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/generate-config", s.handleGenerateConfig)
+	mux.HandleFunc("POST /api/projects/{id}/book-spec/cover", s.handleUploadCover)
+	mux.HandleFunc("GET /api/projects/{id}/book-spec/cover", s.handleGetCover)
 	mux.HandleFunc("GET /api/fonts", s.handleListFonts)
+
+	// EPUB generation
+	mux.HandleFunc("POST /api/books/{id}/generate-epub", s.handleGenerateEPUB)
 
 	// Email API
 	mux.HandleFunc("POST /api/projects/{id}/transmittal/email", s.handleSendTransmittalEmail)

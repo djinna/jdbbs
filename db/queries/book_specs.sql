@@ -10,3 +10,9 @@ RETURNING *;
 
 -- name: DeleteBookSpec :exec
 DELETE FROM book_specs WHERE project_id = ?;
+
+-- name: GetBookSpecCover :one
+SELECT id, project_id, cover_data, cover_type FROM book_specs WHERE project_id = ?;
+
+-- name: UpdateBookSpecCover :exec
+UPDATE book_specs SET cover_data = ?, cover_type = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?;

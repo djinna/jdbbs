@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"time"
 )
 
 const deleteBookSpec = `-- name: DeleteBookSpec :exec
@@ -23,9 +24,17 @@ SELECT id, project_id, data, created_at, updated_at
 FROM book_specs WHERE project_id = ?
 `
 
-func (q *Queries) GetBookSpec(ctx context.Context, projectID int64) (BookSpec, error) {
+type GetBookSpecRow struct {
+	ID        int64
+	ProjectID int64
+	Data      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) GetBookSpec(ctx context.Context, projectID int64) (GetBookSpecRow, error) {
 	row := q.db.QueryRowContext(ctx, getBookSpec, projectID)
-	var i BookSpec
+	var i GetBookSpecRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
@@ -36,11 +45,49 @@ func (q *Queries) GetBookSpec(ctx context.Context, projectID int64) (BookSpec, e
 	return i, err
 }
 
+const getBookSpecCover = `-- name: GetBookSpecCover :one
+SELECT id, project_id, cover_data, cover_type FROM book_specs WHERE project_id = ?
+`
+
+type GetBookSpecCoverRow struct {
+	ID        int64
+	ProjectID int64
+	CoverData []byte
+	CoverType string
+}
+
+func (q *Queries) GetBookSpecCover(ctx context.Context, projectID int64) (GetBookSpecCoverRow, error) {
+	row := q.db.QueryRowContext(ctx, getBookSpecCover, projectID)
+	var i GetBookSpecCoverRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.CoverData,
+		&i.CoverType,
+	)
+	return i, err
+}
+
+const updateBookSpecCover = `-- name: UpdateBookSpecCover :exec
+UPDATE book_specs SET cover_data = ?, cover_type = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?
+`
+
+type UpdateBookSpecCoverParams struct {
+	CoverData []byte
+	CoverType string
+	ProjectID int64
+}
+
+func (q *Queries) UpdateBookSpecCover(ctx context.Context, arg UpdateBookSpecCoverParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookSpecCover, arg.CoverData, arg.CoverType, arg.ProjectID)
+	return err
+}
+
 const upsertBookSpec = `-- name: UpsertBookSpec :one
 INSERT INTO book_specs (project_id, data, updated_at)
 VALUES (?, ?, CURRENT_TIMESTAMP)
 ON CONFLICT(project_id) DO UPDATE SET data = excluded.data, updated_at = CURRENT_TIMESTAMP
-RETURNING id, project_id, data, created_at, updated_at
+RETURNING id, project_id, data, created_at, updated_at, cover_data, cover_type
 `
 
 type UpsertBookSpecParams struct {
@@ -57,6 +104,8 @@ func (q *Queries) UpsertBookSpec(ctx context.Context, arg UpsertBookSpecParams) 
 		&i.Data,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CoverData,
+		&i.CoverType,
 	)
 	return i, err
 }

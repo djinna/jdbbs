@@ -414,6 +414,10 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
           <option value="">None</option>
         </select>
       </div>
+      <div>
+        <label>Link to Project</label>
+        <select id="book-project"><option value="">None</option></select>
+      </div>
       <div class="actions">
         <button class="btn" id="btn-upload" disabled>Upload &amp; Convert</button>
         <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
@@ -597,6 +601,12 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <label class="ts-check"><input type="checkbox" data-path="back_matter.bibliography"> Bibliography</label>
               <label class="ts-check"><input type="checkbox" data-path="back_matter.index"> Index</label>
             </div>
+
+            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
+              <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <button class="btn btn-sm" id="ts-compile-pdf" disabled style="border-color:var(--accent);color:var(--accent)">Compile PDF</button>
+              <span id="ts-compile-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
+            </div>
           </div>
         </div>
 
@@ -669,6 +679,12 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <div class="ts-field"><label>Language</label><input type="text" data-path="epub.language" placeholder="en"></div>
               <div class="ts-field"><label>Subject / Tags</label><input type="text" data-path="epub.subject" placeholder="Fiction, Anthology"></div>
               <div class="ts-field full"><label>Description</label><textarea data-path="epub.description" rows="2" placeholder="A brief book description for EPUB metadata" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+            </div>
+
+            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
+              <select id="ts-epub-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <button class="btn btn-sm" id="ts-generate-epub" disabled style="border-color:var(--green);color:var(--green)">Generate EPUB</button>
+              <span id="ts-epub-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
             </div>
           </div>
         </div>
@@ -802,6 +818,7 @@ async function loadProjects() {
     renderStats(projects);
     renderProjects(projects);
     tsPopulateProjects(projects);
+    populateBookProjectSelector(projects);
   } catch(e) {
     $loading.textContent = 'Error loading projects: ' + e.message;
   }
@@ -1099,6 +1116,8 @@ $btnUpload.addEventListener('click', async () => {
   fd.append('title', $bookTitle.value.trim());
   fd.append('author', $bookAuthor.value.trim());
   fd.append('series', $bookSeries.value);
+  const bookProjectId = document.getElementById('book-project').value;
+  if (bookProjectId) fd.append('project_id', bookProjectId);
 
   try {
     const r = await fetch('/api/books/upload', { method: 'POST', body: fd });
@@ -1163,7 +1182,8 @@ function renderBooks(books) {
     const ago = timeAgo(b.UpdatedAt);
     let actions = '';
     if (b.Status === 'ready') {
-      actions += `<a href="/api/books/${b.ID}/download/pdf" class="dl-pdf">Download PDF</a>`;
+      actions += `<a href="/api/books/${b.ID}/download/pdf" class="dl-pdf">PDF</a>`;
+      actions += `<a href="/api/books/${b.ID}/download/epub" class="dl-epub" title="Download EPUB (generate first if needed)" onclick="event.preventDefault(); downloadOrGenerateEPUB(${b.ID})">EPUB</a>`;
     }
     if (b.Status === 'error') {
       actions += `<button onclick="retryConvert(${b.ID})">Retry</button>`;
@@ -1177,7 +1197,7 @@ function renderBooks(books) {
       <div class="book-info">
         <div class="book-title">${esc(b.Title)}</div>
         <div class="book-author">${esc(b.Author)}${b.Series ? ' \u00b7 ' + esc(b.Series) : ''}</div>
-        <div class="book-meta">${esc(b.SourceFilename)} \u00b7 ${ago}</div>
+        <div class="book-meta">${esc(b.SourceFilename)} \u00b7 ${ago}${b.ProjectID && b.ProjectID.Valid ? ' \u00b7 <span style="color:var(--accent)">linked</span>' : ''}</div>
       </div>
       ${statusBadge}
       <div class="book-actions">${actions}</div>
@@ -1211,6 +1231,55 @@ async function deleteBook(id) {
   if (!confirm('Delete this book?')) return;
   await fetch(`/api/books/${id}`, { method: 'DELETE' });
   loadBooks();
+}
+
+async function downloadOrGenerateEPUB(id) {
+  // Try downloading first
+  try {
+    const check = await fetch(`/api/books/${id}/download/epub`, { method: 'HEAD' });
+    if (check.ok) {
+      window.location.href = `/api/books/${id}/download/epub`;
+      return;
+    }
+  } catch(e) {}
+  // Generate then download
+  if (!confirm('No EPUB yet. Generate one now?')) return;
+  try {
+    const r = await fetch(`/api/books/${id}/generate-epub`, { method: 'POST' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: r.statusText }));
+      alert('EPUB error: ' + (err.error || 'failed'));
+      return;
+    }
+    // Poll for availability
+    let attempts = 0;
+    const iv = setInterval(async () => {
+      attempts++;
+      if (attempts > 30) { clearInterval(iv); alert('EPUB generation timed out'); return; }
+      const check = await fetch(`/api/books/${id}/download/epub`, { method: 'HEAD' });
+      if (check.ok) {
+        clearInterval(iv);
+        window.location.href = `/api/books/${id}/download/epub`;
+      }
+    }, 2000);
+  } catch(e) {
+    alert('EPUB error: ' + e.message);
+  }
+}
+
+// Populate book-project selector
+function populateBookProjectSelector(projects) {
+  const sel = document.getElementById('book-project');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">None</option>';
+  (projects || []).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    sel.appendChild(o);
+  });
+  if (prev) sel.value = prev;
 }
 
 // ─── Typesetting Tab ───
@@ -1265,8 +1334,15 @@ async function tsLoadSpec(pid) {
     tsExport.disabled = false;
     document.getElementById('ts-preview-config').disabled = false;
     tsPopulateForm();
+    // Show cover preview from server if available
+    if (json.has_cover) {
+      document.getElementById('ts-cover-preview').innerHTML = `<img src="/api/projects/${pid}/book-spec/cover?t=${Date.now()}">`;
+    } else {
+      document.getElementById('ts-cover-preview').innerHTML = '';
+    }
     tsDirty = false;
     tsSaveStatus.textContent = '';
+    tsLoadLinkedBooks();
   } catch(e) {
     tsSaveStatus.textContent = 'Error loading spec';
   }
@@ -1526,20 +1602,34 @@ document.getElementById('ts-preview-config').addEventListener('click', async () 
   }
 });
 
-// Cover image preview (client-side only for now)
+// Cover image — upload to server, not base64
 document.getElementById('ts-cover-select').addEventListener('click', () => document.getElementById('ts-cover-file').click());
-document.getElementById('ts-cover-file').addEventListener('change', (e) => {
+document.getElementById('ts-cover-file').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
+  const pid = tsProject.value;
+  if (!pid) { alert('Select a project first'); return; }
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  try {
+    const r = await fetch(`/api/projects/${pid}/book-spec/cover`, { method: 'POST', body: fd });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: 'upload failed' }));
+      alert('Cover upload error: ' + (err.error || 'failed'));
+      return;
+    }
+    // Show preview from server URL
     const preview = document.getElementById('ts-cover-preview');
-    preview.innerHTML = '<img src="' + ev.target.result + '">';
-    // Store as base64 in spec (future: upload to server)
-    tsSetPath(tsSpec, 'epub.cover_image', ev.target.result);
-    tsMarkDirty();
-  };
-  reader.readAsDataURL(file);
+    preview.innerHTML = `<img src="/api/projects/${pid}/book-spec/cover?t=${Date.now()}">`;
+    // Remove any old base64 from spec
+    if (tsSpec.epub) delete tsSpec.epub.cover_image;
+    tsSaveStatus.textContent = 'Cover uploaded';
+    tsSaveStatus.style.color = 'var(--green)';
+    setTimeout(() => { if (!tsDirty) tsSaveStatus.textContent = ''; }, 2000);
+  } catch(e) {
+    alert('Cover upload error: ' + e.message);
+  }
 });
 
 document.getElementById('ts-add-style').addEventListener('click', () => {
@@ -1548,6 +1638,108 @@ document.getElementById('ts-add-style').addEventListener('click', () => {
   tsSpec.custom_styles.push({ name: '', type: 'character', typst: '', word_style: '', description: '' });
   tsRenderCustomStyles();
   tsMarkDirty();
+});
+
+// ─── Compile / Generate from Typesetting tab ───
+const tsPdfBook = document.getElementById('ts-pdf-book');
+const tsEpubBook = document.getElementById('ts-epub-book');
+const tsCompilePdf = document.getElementById('ts-compile-pdf');
+const tsGenerateEpub = document.getElementById('ts-generate-epub');
+const tsCompileStatus = document.getElementById('ts-compile-status');
+const tsEpubStatus = document.getElementById('ts-epub-status');
+
+async function tsLoadLinkedBooks() {
+  const pid = tsProject.value;
+  if (!pid) return;
+  try {
+    const r = await fetch('/api/books');
+    const books = await r.json();
+    // Filter to books linked to this project, or show all if none linked
+    const linked = books.filter(b => b.ProjectID && b.ProjectID.Valid && b.ProjectID.Int64 == pid);
+    const pool = linked.length > 0 ? linked : books;
+    [tsPdfBook, tsEpubBook].forEach(sel => {
+      sel.innerHTML = '<option value="">Select book\u2026</option>';
+      pool.forEach(b => {
+        const o = document.createElement('option');
+        o.value = b.ID;
+        o.textContent = b.Title + (b.Status !== 'ready' && b.Status !== 'uploaded' ? ` (${b.Status})` : '');
+        sel.appendChild(o);
+      });
+    });
+  } catch(e) {}
+}
+
+tsPdfBook.addEventListener('change', () => tsCompilePdf.disabled = !tsPdfBook.value);
+tsEpubBook.addEventListener('change', () => tsGenerateEpub.disabled = !tsEpubBook.value);
+
+tsCompilePdf.addEventListener('click', async () => {
+  const bid = tsPdfBook.value;
+  if (!bid) return;
+  // Save spec first
+  if (tsDirty) await tsSaveSpec();
+  tsCompileStatus.textContent = 'Compiling\u2026';
+  tsCompileStatus.style.color = 'var(--yellow)';
+  tsCompilePdf.disabled = true;
+  try {
+    const r = await fetch(`/api/books/${bid}/convert`, { method: 'POST' });
+    if (!r.ok) throw new Error('Convert failed');
+    // Poll for completion
+    let attempts = 0;
+    const iv = setInterval(async () => {
+      attempts++;
+      if (attempts > 60) { clearInterval(iv); tsCompileStatus.textContent = 'Timed out'; tsCompileStatus.style.color = 'var(--red)'; return; }
+      const r2 = await fetch('/api/books');
+      const books = await r2.json();
+      const book = books.find(b => b.ID == bid);
+      if (book && book.Status === 'ready') {
+        clearInterval(iv);
+        tsCompileStatus.textContent = 'Done! ';
+        tsCompileStatus.style.color = 'var(--green)';
+        tsCompileStatus.innerHTML += `<a href="/api/books/${bid}/download/pdf" style="color:var(--accent);font-size:0.72rem">Download PDF</a>`;
+        tsCompilePdf.disabled = false;
+      } else if (book && book.Status === 'error') {
+        clearInterval(iv);
+        tsCompileStatus.textContent = 'Error: ' + (book.ErrorMsg || 'unknown');
+        tsCompileStatus.style.color = 'var(--red)';
+        tsCompilePdf.disabled = false;
+      }
+    }, 2000);
+  } catch(e) {
+    tsCompileStatus.textContent = 'Error: ' + e.message;
+    tsCompileStatus.style.color = 'var(--red)';
+    tsCompilePdf.disabled = false;
+  }
+});
+
+tsGenerateEpub.addEventListener('click', async () => {
+  const bid = tsEpubBook.value;
+  if (!bid) return;
+  if (tsDirty) await tsSaveSpec();
+  tsEpubStatus.textContent = 'Generating\u2026';
+  tsEpubStatus.style.color = 'var(--yellow)';
+  tsGenerateEpub.disabled = true;
+  try {
+    const r = await fetch(`/api/books/${bid}/generate-epub`, { method: 'POST' });
+    if (!r.ok) throw new Error('EPUB generation failed');
+    // Poll
+    let attempts = 0;
+    const iv = setInterval(async () => {
+      attempts++;
+      if (attempts > 30) { clearInterval(iv); tsEpubStatus.textContent = 'Timed out'; tsEpubStatus.style.color = 'var(--red)'; return; }
+      const check = await fetch(`/api/books/${bid}/download/epub`, { method: 'HEAD' });
+      if (check.ok) {
+        clearInterval(iv);
+        tsEpubStatus.textContent = 'Done! ';
+        tsEpubStatus.style.color = 'var(--green)';
+        tsEpubStatus.innerHTML += `<a href="/api/books/${bid}/download/epub" style="color:var(--accent);font-size:0.72rem">Download EPUB</a>`;
+        tsGenerateEpub.disabled = false;
+      }
+    }, 2000);
+  } catch(e) {
+    tsEpubStatus.textContent = 'Error: ' + e.message;
+    tsEpubStatus.style.color = 'var(--red)';
+    tsGenerateEpub.disabled = false;
+  }
 });
 
 // ─── Init ───

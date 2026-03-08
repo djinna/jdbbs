@@ -2,6 +2,8 @@ package srv
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -54,9 +56,18 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 	title := strings.TrimSpace(r.FormValue("title"))
 	author := strings.TrimSpace(r.FormValue("author"))
 	series := strings.TrimSpace(r.FormValue("series"))
+	projectIDStr := strings.TrimSpace(r.FormValue("project_id"))
 	if title == "" || author == "" {
 		jsonErr(w, "title and author required", 400)
 		return
+	}
+
+	var projectID sql.NullInt64
+	if projectIDStr != "" {
+		pid, err := strconv.ParseInt(projectIDStr, 10, 64)
+		if err == nil {
+			projectID = sql.NullInt64{Int64: pid, Valid: true}
+		}
 	}
 
 	file, header, err := r.FormFile("file")
@@ -79,6 +90,7 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 		Series:         series,
 		SourceFilename: header.Filename,
 		SourceData:     data,
+		ProjectID:      projectID,
 	})
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
@@ -335,14 +347,63 @@ func (s *Server) handleDeleteBook(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]string{"ok": "true"})
 }
 
-// buildTypstConfig looks up the book_spec for any project linked to this book
+// handleLinkBookProject links/unlinks a book to a project.
+func (s *Server) handleLinkBookProject(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+
+	var body struct {
+		ProjectID *int64 `json:"project_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonErr(w, "bad request", 400)
+		return
+	}
+
+	var pid sql.NullInt64
+	if body.ProjectID != nil {
+		pid = sql.NullInt64{Int64: *body.ProjectID, Valid: true}
+	}
+
+	q := dbgen.New(s.DB)
+	if err := q.UpdateBookProject(r.Context(), dbgen.UpdateBookProjectParams{
+		ProjectID: pid,
+		ID:        bid,
+	}); err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+
+	jsonOK(w, map[string]string{"ok": "true"})
+}
+
+// buildTypstConfig looks up the book_spec for the linked project
 // and generates Typst config override lines. Returns empty string if no spec found.
 func (s *Server) buildTypstConfig(bid int64, book dbgen.Book) string {
-	// For now, we don't have a direct book→project link.
-	// Future: look up project_id from a join or from request context.
-	// This is a hook point — when project_id is available, we'll generate:
-	//   #let config = merge-config(( page-width: 5.5in, ... ))
-	return ""
+	if !book.ProjectID.Valid {
+		return ""
+	}
+
+	q := dbgen.New(s.DB)
+	spec, err := q.GetBookSpec(context.Background(), book.ProjectID.Int64)
+	if err != nil {
+		slog.Debug("no book spec for project", "project_id", book.ProjectID.Int64, "err", err)
+		return ""
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal([]byte(spec.Data), &data); err != nil {
+		slog.Warn("bad spec JSON", "project_id", book.ProjectID.Int64, "err", err)
+		return ""
+	}
+
+	return specToTypstConfig(data)
 }
 
 func escapeTypstString(s string) string {

@@ -7,13 +7,14 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
 const createBook = `-- name: CreateBook :one
-INSERT INTO books (title, author, series, source_filename, source_data, status, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, 'uploaded', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, title, author, series, source_filename, source_data, pdf_data, epub_data, status, error_msg, created_at, updated_at
+INSERT INTO books (title, author, series, source_filename, source_data, project_id, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, 'uploaded', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, title, author, series, source_filename, source_data, pdf_data, epub_data, status, error_msg, created_at, updated_at, project_id
 `
 
 type CreateBookParams struct {
@@ -22,6 +23,7 @@ type CreateBookParams struct {
 	Series         string
 	SourceFilename string
 	SourceData     []byte
+	ProjectID      sql.NullInt64
 }
 
 func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, error) {
@@ -31,6 +33,7 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		arg.Series,
 		arg.SourceFilename,
 		arg.SourceData,
+		arg.ProjectID,
 	)
 	var i Book
 	err := row.Scan(
@@ -46,6 +49,7 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		&i.ErrorMsg,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ProjectID,
 	)
 	return i, err
 }
@@ -60,7 +64,7 @@ func (q *Queries) DeleteBook(ctx context.Context, id int64) error {
 }
 
 const getBook = `-- name: GetBook :one
-SELECT id, title, author, series, source_filename, source_data, pdf_data, epub_data, status, error_msg, created_at, updated_at FROM books WHERE id = ?
+SELECT id, title, author, series, source_filename, source_data, pdf_data, epub_data, status, error_msg, created_at, updated_at, project_id FROM books WHERE id = ?
 `
 
 func (q *Queries) GetBook(ctx context.Context, id int64) (Book, error) {
@@ -79,6 +83,7 @@ func (q *Queries) GetBook(ctx context.Context, id int64) (Book, error) {
 		&i.ErrorMsg,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ProjectID,
 	)
 	return i, err
 }
@@ -117,8 +122,60 @@ func (q *Queries) GetBookPDF(ctx context.Context, id int64) (GetBookPDFRow, erro
 	return i, err
 }
 
+const getBooksByProject = `-- name: GetBooksByProject :many
+SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at
+FROM books WHERE project_id = ? ORDER BY created_at DESC
+`
+
+type GetBooksByProjectRow struct {
+	ID             int64
+	Title          string
+	Author         string
+	Series         string
+	SourceFilename string
+	Status         string
+	ErrorMsg       string
+	ProjectID      sql.NullInt64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+func (q *Queries) GetBooksByProject(ctx context.Context, projectID sql.NullInt64) ([]GetBooksByProjectRow, error) {
+	rows, err := q.db.QueryContext(ctx, getBooksByProject, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetBooksByProjectRow
+	for rows.Next() {
+		var i GetBooksByProjectRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Author,
+			&i.Series,
+			&i.SourceFilename,
+			&i.Status,
+			&i.ErrorMsg,
+			&i.ProjectID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBooks = `-- name: ListBooks :many
-SELECT id, title, author, series, source_filename, status, error_msg, created_at, updated_at
+SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at
 FROM books ORDER BY created_at DESC
 `
 
@@ -130,6 +187,7 @@ type ListBooksRow struct {
 	SourceFilename string
 	Status         string
 	ErrorMsg       string
+	ProjectID      sql.NullInt64
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -151,6 +209,7 @@ func (q *Queries) ListBooks(ctx context.Context) ([]ListBooksRow, error) {
 			&i.SourceFilename,
 			&i.Status,
 			&i.ErrorMsg,
+			&i.ProjectID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -192,6 +251,20 @@ type UpdateBookPDFParams struct {
 
 func (q *Queries) UpdateBookPDF(ctx context.Context, arg UpdateBookPDFParams) error {
 	_, err := q.db.ExecContext(ctx, updateBookPDF, arg.PdfData, arg.ID)
+	return err
+}
+
+const updateBookProject = `-- name: UpdateBookProject :exec
+UPDATE books SET project_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+`
+
+type UpdateBookProjectParams struct {
+	ProjectID sql.NullInt64
+	ID        int64
+}
+
+func (q *Queries) UpdateBookProject(ctx context.Context, arg UpdateBookProjectParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookProject, arg.ProjectID, arg.ID)
 	return err
 }
 

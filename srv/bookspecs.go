@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"srv.exe.dev/db/dbgen"
@@ -81,14 +83,30 @@ func (s *Server) handleGetBookSpec(w http.ResponseWriter, r *http.Request) {
 	spec, err := q.GetBookSpec(r.Context(), pid)
 	if err == sql.ErrNoRows {
 		// Auto-create with defaults
-		spec, err = q.UpsertBookSpec(r.Context(), dbgen.UpsertBookSpecParams{
+		full, uErr := q.UpsertBookSpec(r.Context(), dbgen.UpsertBookSpecParams{
 			ProjectID: pid,
 			Data:      defaultSpecData(),
 		})
+		if uErr != nil {
+			jsonErr(w, uErr.Error(), 500)
+			return
+		}
+		spec = dbgen.GetBookSpecRow{
+			ID: full.ID, ProjectID: full.ProjectID,
+			Data: full.Data, CreatedAt: full.CreatedAt, UpdatedAt: full.UpdatedAt,
+		}
+		err = nil
 	}
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
+	}
+
+	// Check if cover exists
+	hasCover := false
+	coverRow, cErr := q.GetBookSpecCover(r.Context(), pid)
+	if cErr == nil && coverRow.CoverData != nil && len(coverRow.CoverData) > 0 {
+		hasCover = true
 	}
 
 	var raw json.RawMessage
@@ -98,6 +116,7 @@ func (s *Server) handleGetBookSpec(w http.ResponseWriter, r *http.Request) {
 		"id":         spec.ID,
 		"project_id": spec.ProjectID,
 		"data":       raw,
+		"has_cover":  hasCover,
 		"created_at": spec.CreatedAt,
 		"updated_at": spec.UpdatedAt,
 	})
@@ -418,4 +437,87 @@ func parseTrim(trim string, page map[string]any) {
 		page["width_in"] = dims[0]
 		page["height_in"] = dims[1]
 	}
+}
+
+// handleUploadCover accepts a cover image file upload and stores it in book_specs.
+func (s *Server) handleUploadCover(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+		jsonErr(w, "file too large", 400)
+		return
+	}
+
+	file, header, err := r.FormFile("cover")
+	if err != nil {
+		jsonErr(w, "cover file required", 400)
+		return
+	}
+	defer file.Close()
+
+	ct := header.Header.Get("Content-Type")
+	if ct != "image/jpeg" && ct != "image/png" {
+		jsonErr(w, "cover must be JPEG or PNG", 400)
+		return
+	}
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		jsonErr(w, "read error", 500)
+		return
+	}
+
+	// Ensure spec row exists
+	q := dbgen.New(s.DB)
+	_, err = q.GetBookSpec(r.Context(), pid)
+	if err == sql.ErrNoRows {
+		_, err = q.UpsertBookSpec(r.Context(), dbgen.UpsertBookSpecParams{
+			ProjectID: pid,
+			Data:      defaultSpecData(),
+		})
+		if err != nil {
+			jsonErr(w, err.Error(), 500)
+			return
+		}
+	}
+
+	err = q.UpdateBookSpecCover(r.Context(), dbgen.UpdateBookSpecCoverParams{
+		CoverData: data,
+		CoverType: ct,
+		ProjectID: pid,
+	})
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+
+	jsonOK(w, map[string]any{"ok": true, "size": len(data), "type": ct})
+}
+
+// handleGetCover serves the cover image for a project's book spec.
+func (s *Server) handleGetCover(w http.ResponseWriter, r *http.Request) {
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+
+	q := dbgen.New(s.DB)
+	row, err := q.GetBookSpecCover(r.Context(), pid)
+	if err != nil || row.CoverData == nil || len(row.CoverData) == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", row.CoverType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(row.CoverData)))
+	w.Header().Set("Cache-Control", "max-age=3600")
+	w.Write(row.CoverData)
 }
