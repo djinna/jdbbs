@@ -317,6 +317,22 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
 .ts-check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; }
 .ts-check input[type="checkbox"] { accent-color: var(--accent); }
 
+.ts-output-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 2rem 0 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.ts-output-card { border-left: 3px solid var(--accent); }
+.ts-output-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.04em; background: rgba(37,99,235,0.1); color: var(--accent); margin-right: 0.3rem; vertical-align: middle; }
+html.dark .ts-output-badge { background: rgba(91,154,255,0.15); }
+.ts-output-badge-epub { background: rgba(22,163,74,0.1); color: var(--green); }
+html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
+.ts-output-card.ts-output-card { border-left-color: var(--accent); }
+.ts-col:last-child .ts-output-card { border-left-color: var(--green); }
+.ts-subsection-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1rem 0 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+.ts-subsection-title:first-of-type { border-top: none; margin-top: 0.25rem; padding-top: 0; }
+
+.ts-cover-upload { display: flex; align-items: center; gap: 0.75rem; }
+.ts-cover-preview { width: 60px; height: 90px; border: 1px dashed var(--border); border-radius: 3px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--text-muted); overflow: hidden; flex-shrink: 0; }
+.ts-cover-preview img { width: 100%; height: 100%; object-fit: cover; }
+.ts-cover-actions { display: flex; flex-direction: column; gap: 0.25rem; }
+
 .ts-custom-styles { display: flex; flex-direction: column; gap: 0.5rem; }
 .ts-style-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.5rem; align-items: start; padding: 0.5rem; background: var(--bg); border-radius: 3px; border: 1px solid var(--border); }
 .ts-style-row input, .ts-style-row textarea { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--text); font-size: 0.78rem; font-family: inherit; }
@@ -425,8 +441,8 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
     <div id="ts-empty" class="ts-empty">Select a project to configure its typesetting spec.</div>
 
     <div id="ts-form" style="display:none">
+      <!-- ═══ SHARED: Book Info + Typography + Headings + Custom Styles ═══ -->
       <div class="ts-grid">
-        <!-- LEFT COLUMN -->
         <div class="ts-col">
           <div class="ts-section">
             <div class="ts-section-title">Book Info</div>
@@ -444,7 +460,49 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
           </div>
 
           <div class="ts-section">
-            <div class="ts-section-title">Page Geometry</div>
+            <div class="ts-section-title">Typography</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Body Font</label><input type="text" data-path="typography.body_font"></div>
+              <div class="ts-field"><label>Heading Font</label><input type="text" data-path="typography.heading_font"></div>
+              <div class="ts-field"><label>Code Font</label><input type="text" data-path="typography.code_font"></div>
+              <div class="ts-field"><label>Base Size (pt)</label><input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt" id="ts-base-size"></div>
+              <div class="ts-field"><label>Leading (pt) <span id="ts-leading-hint" style="font-weight:normal;color:var(--text-muted)"></span></label><input type="number" step="0.5" min="0" max="30" data-path="typography.leading_pt" id="ts-leading-pt"></div>
+              <div class="ts-field"><label>Paragraph Indent (em)</label><input type="number" step="0.05" min="0" max="3" data-path="typography.paragraph_indent_em"></div>
+              <div class="ts-field"><label>Justify</label><select data-path="typography.justify"><option value="true">Yes</option><option value="false">No</option></select></div>
+              <div class="ts-field"><label>Hyphenate</label><select data-path="typography.hyphenate"><option value="true">Yes</option><option value="false">No</option></select></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ts-col">
+          <div class="ts-section">
+            <div class="ts-section-title">Headings</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>H1 Size (em)</label><input type="number" step="0.01" data-path="headings.h1_size_em"></div>
+              <div class="ts-field"><label>H1 Weight</label><input type="text" data-path="headings.h1_weight"></div>
+              <div class="ts-field"><label>H2 Size (em)</label><input type="number" step="0.01" data-path="headings.h2_size_em"></div>
+              <div class="ts-field"><label>H2 Weight</label><input type="text" data-path="headings.h2_weight"></div>
+              <div class="ts-field"><label>H3 Size (em)</label><input type="number" step="0.01" data-path="headings.h3_size_em"></div>
+              <div class="ts-field"><label>H3 Weight</label><input type="text" data-path="headings.h3_weight"></div>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Custom Styles <button class="btn-link" id="ts-add-style">+ Add</button></div>
+            <div id="ts-custom-styles" class="ts-custom-styles"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ OUTPUT CARDS: PDF + EPUB side-by-side ═══ -->
+      <div class="ts-output-label">Output Formats</div>
+      <div class="ts-grid">
+        <!-- PDF / PRINT -->
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
+            <div class="ts-section-title"><span class="ts-output-badge">PDF</span> Print</div>
+
+            <div class="ts-subsection-title">Page Geometry</div>
             <div class="ts-page-layout">
               <div class="ts-fields">
                 <div class="ts-field full">
@@ -471,39 +529,28 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="ts-section">
-            <div class="ts-section-title">Typography</div>
+            <div class="ts-subsection-title">Running Headers</div>
             <div class="ts-fields">
-              <div class="ts-field"><label>Body Font</label><input type="text" data-path="typography.body_font"></div>
-              <div class="ts-field"><label>Heading Font</label><input type="text" data-path="typography.heading_font"></div>
-              <div class="ts-field"><label>Code Font</label><input type="text" data-path="typography.code_font"></div>
-              <div class="ts-field"><label>Base Size (pt)</label><input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt"></div>
-              <div class="ts-field"><label>Leading (em)</label><input type="number" step="0.05" min="0.2" max="1.5" data-path="typography.leading_em"></div>
-              <div class="ts-field"><label>Paragraph Indent (em)</label><input type="number" step="0.05" min="0" max="3" data-path="typography.paragraph_indent_em"></div>
-              <div class="ts-field"><label>Justify</label><select data-path="typography.justify"><option value="true">Yes</option><option value="false">No</option></select></div>
-              <div class="ts-field"><label>Hyphenate</label><select data-path="typography.hyphenate"><option value="true">Yes</option><option value="false">No</option></select></div>
+              <div class="ts-field"><label>Enabled</label><select data-path="running_headers.enabled"><option value="true">Yes</option><option value="false">No</option></select></div>
+              <div class="ts-field"><label>Verso (left)</label>
+                <select data-path="running_headers.verso">
+                  <option value="author">Author</option>
+                  <option value="title">Title</option>
+                  <option value="chapter">Chapter</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Recto (right)</label>
+                <select data-path="running_headers.recto">
+                  <option value="title">Title</option>
+                  <option value="author">Author</option>
+                  <option value="chapter">Chapter</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Header Size (em)</label><input type="number" step="0.05" data-path="running_headers.font_size_em"></div>
             </div>
-          </div>
 
-          <div class="ts-section">
-            <div class="ts-section-title">Headings</div>
-            <div class="ts-fields">
-              <div class="ts-field"><label>H1 Size (em)</label><input type="number" step="0.01" data-path="headings.h1_size_em"></div>
-              <div class="ts-field"><label>H1 Weight</label><input type="text" data-path="headings.h1_weight"></div>
-              <div class="ts-field"><label>H2 Size (em)</label><input type="number" step="0.01" data-path="headings.h2_size_em"></div>
-              <div class="ts-field"><label>H2 Weight</label><input type="text" data-path="headings.h2_weight"></div>
-              <div class="ts-field"><label>H3 Size (em)</label><input type="number" step="0.01" data-path="headings.h3_size_em"></div>
-              <div class="ts-field"><label>H3 Weight</label><input type="text" data-path="headings.h3_weight"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div class="ts-col">
-          <div class="ts-section">
-            <div class="ts-section-title">Elements</div>
+            <div class="ts-subsection-title">Elements</div>
             <div class="ts-fields">
               <div class="ts-field"><label>Section Break</label>
                 <select data-path="elements.section_break">
@@ -526,32 +573,8 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
               <div class="ts-field"><label>Footnote Size (em)</label><input type="number" step="0.05" data-path="elements.footnote_size_em"></div>
               <div class="ts-field"><label>Drop Caps</label><select data-path="elements.drop_caps"><option value="false">No</option><option value="true">Yes</option></select></div>
             </div>
-          </div>
 
-          <div class="ts-section">
-            <div class="ts-section-title">Running Headers</div>
-            <div class="ts-fields">
-              <div class="ts-field"><label>Enabled</label><select data-path="running_headers.enabled"><option value="true">Yes</option><option value="false">No</option></select></div>
-              <div class="ts-field"><label>Verso (left)</label>
-                <select data-path="running_headers.verso">
-                  <option value="author">Author</option>
-                  <option value="title">Title</option>
-                  <option value="chapter">Chapter</option>
-                </select>
-              </div>
-              <div class="ts-field"><label>Recto (right)</label>
-                <select data-path="running_headers.recto">
-                  <option value="title">Title</option>
-                  <option value="author">Author</option>
-                  <option value="chapter">Chapter</option>
-                </select>
-              </div>
-              <div class="ts-field"><label>Header Size (em)</label><input type="number" step="0.05" data-path="running_headers.font_size_em"></div>
-            </div>
-          </div>
-
-          <div class="ts-section">
-            <div class="ts-section-title">Front Matter</div>
+            <div class="ts-subsection-title">Front Matter</div>
             <div class="ts-checks" id="ts-front-matter">
               <label class="ts-check"><input type="checkbox" data-path="front_matter.half_title"> Half title</label>
               <label class="ts-check"><input type="checkbox" data-path="front_matter.series_title"> Series title</label>
@@ -565,10 +588,8 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
               <label class="ts-check"><input type="checkbox" data-path="front_matter.acknowledgments"> Acknowledgments</label>
               <label class="ts-check"><input type="checkbox" data-path="front_matter.introduction"> Introduction</label>
             </div>
-          </div>
 
-          <div class="ts-section">
-            <div class="ts-section-title">Back Matter</div>
+            <div class="ts-subsection-title">Back Matter</div>
             <div class="ts-checks" id="ts-back-matter">
               <label class="ts-check"><input type="checkbox" data-path="back_matter.notes"> Notes</label>
               <label class="ts-check"><input type="checkbox" data-path="back_matter.appendix"> Appendix</label>
@@ -577,10 +598,78 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
               <label class="ts-check"><input type="checkbox" data-path="back_matter.index"> Index</label>
             </div>
           </div>
+        </div>
 
-          <div class="ts-section">
-            <div class="ts-section-title">Custom Styles <button class="btn-link" id="ts-add-style">+ Add</button></div>
-            <div id="ts-custom-styles" class="ts-custom-styles"></div>
+        <!-- EPUB -->
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
+            <div class="ts-section-title"><span class="ts-output-badge ts-output-badge-epub">EPUB</span> Digital</div>
+
+            <div class="ts-subsection-title">Cover</div>
+            <div class="ts-fields">
+              <div class="ts-field full"><label>Cover Image</label>
+                <div class="ts-cover-upload" id="ts-cover-upload">
+                  <div id="ts-cover-preview" class="ts-cover-preview"></div>
+                  <div class="ts-cover-actions">
+                    <span style="font-size:0.78rem;color:var(--text-muted)">JPG or PNG, recommended 1600×2400</span>
+                    <button class="btn-link" id="ts-cover-select">Choose file…</button>
+                    <input type="file" id="ts-cover-file" accept="image/jpeg,image/png" style="display:none">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ts-subsection-title">Navigation</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>TOC Depth</label>
+                <select data-path="epub.toc_depth">
+                  <option value="1">1 — Chapters only</option>
+                  <option value="2">2 — Chapters + sections</option>
+                  <option value="3">3 — Chapters + sections + subsections</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Landmark Nav</label><select data-path="epub.landmarks"><option value="true">Yes</option><option value="false">No</option></select></div>
+            </div>
+
+            <div class="ts-subsection-title">Layout</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Chapter Break</label>
+                <select data-path="epub.chapter_break">
+                  <option value="page">Page break</option>
+                  <option value="rule">Horizontal rule</option>
+                  <option value="ornament">Ornament</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Section Break</label>
+                <select data-path="epub.section_break">
+                  <option value="breve">Breve (˘)</option>
+                  <option value="asterism">Asterism (⁂)</option>
+                  <option value="dinkus">Dinkus (* * *)</option>
+                  <option value="blank">Blank line</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Body Font Size</label>
+                <select data-path="epub.body_font_size">
+                  <option value="inherit">Reader default</option>
+                  <option value="0.9em">Small (0.9em)</option>
+                  <option value="1em">Medium (1em)</option>
+                  <option value="1.1em">Large (1.1em)</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Embed Fonts</label><select data-path="epub.embed_fonts"><option value="false">No</option><option value="true">Yes</option></select></div>
+            </div>
+
+            <div class="ts-subsection-title">CSS Overrides</div>
+            <div class="ts-field full" style="margin-bottom:0.5rem">
+              <textarea data-path="epub.custom_css" id="ts-epub-css" rows="6" placeholder="/* Custom CSS for EPUB body, headings, etc. */" style="width:100%;font-family:'JetBrains Mono','Menlo',monospace;font-size:0.72rem;padding:0.5rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);resize:vertical"></textarea>
+            </div>
+
+            <div class="ts-subsection-title">Metadata</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Language</label><input type="text" data-path="epub.language" placeholder="en"></div>
+              <div class="ts-field"><label>Subject / Tags</label><input type="text" data-path="epub.subject" placeholder="Fiction, Anthology"></div>
+              <div class="ts-field full"><label>Description</label><textarea data-path="epub.description" rows="2" placeholder="A brief book description for EPUB metadata" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1185,6 +1274,16 @@ async function tsLoadSpec(pid) {
 
 function tsPopulateForm() {
   if (!tsSpec) return;
+  // Migrate old leading_em → leading_pt
+  const typo = tsSpec.typography;
+  if (typo && typo.leading_em != null && typo.leading_pt == null) {
+    // Old format: leading_em was inter-line gap in em. Convert: em * base_size = pt
+    const base = typo.base_size_pt || 10;
+    typo.leading_pt = Math.round(typo.leading_em * base * 10) / 10;
+    delete typo.leading_em;
+  }
+  // Ensure epub section exists
+  if (!tsSpec.epub) tsSpec.epub = { toc_depth: 2, landmarks: true, chapter_break: 'page', section_break: 'breve', body_font_size: 'inherit', embed_fonts: false, custom_css: '', language: 'en', subject: '', description: '' };
   // Text/number/select inputs
   tsForm.querySelectorAll('[data-path]').forEach(el => {
     const val = tsGetPath(tsSpec, el.dataset.path);
@@ -1197,6 +1296,7 @@ function tsPopulateForm() {
     }
   });
   tsUpdatePagePreview();
+  tsUpdateLeadingHint();
   tsRenderCustomStyles();
 }
 
@@ -1224,6 +1324,7 @@ tsForm.addEventListener('input', (e) => {
   tsSetPath(tsSpec, el.dataset.path, val);
   tsMarkDirty();
   if (el.dataset.path.startsWith('page.')) tsUpdatePagePreview();
+  if (el.dataset.path === 'typography.base_size_pt' || el.dataset.path === 'typography.leading_pt') tsUpdateLeadingHint();
 });
 tsForm.addEventListener('change', (e) => {
   if (!e.target.dataset || !e.target.dataset.path) return;
@@ -1327,6 +1428,17 @@ function tsHandleTrimChange(trim) {
   tsUpdatePagePreview();
 }
 
+// Leading hint (10/12 notation)
+function tsUpdateLeadingHint() {
+  const base = tsGetPath(tsSpec, 'typography.base_size_pt') || 10;
+  const lead = tsGetPath(tsSpec, 'typography.leading_pt');
+  const hint = document.getElementById('ts-leading-hint');
+  if (hint && lead != null) {
+    const total = base + lead;
+    hint.textContent = '(' + base + '/' + total + ')';
+  }
+}
+
 // Page preview
 function tsUpdatePagePreview() {
   const w = tsGetPath(tsSpec, 'page.width_in') || 5.5;
@@ -1412,6 +1524,22 @@ document.getElementById('ts-preview-config').addEventListener('click', async () 
     tsSaveStatus.textContent = 'Config preview error';
     tsSaveStatus.style.color = 'var(--red)';
   }
+});
+
+// Cover image preview (client-side only for now)
+document.getElementById('ts-cover-select').addEventListener('click', () => document.getElementById('ts-cover-file').click());
+document.getElementById('ts-cover-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const preview = document.getElementById('ts-cover-preview');
+    preview.innerHTML = '<img src="' + ev.target.result + '">';
+    // Store as base64 in spec (future: upload to server)
+    tsSetPath(tsSpec, 'epub.cover_image', ev.target.result);
+    tsMarkDirty();
+  };
+  reader.readAsDataURL(file);
 });
 
 document.getElementById('ts-add-style').addEventListener('click', () => {

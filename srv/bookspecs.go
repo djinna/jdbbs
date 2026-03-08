@@ -26,7 +26,7 @@ func defaultSpecData() string {
   "typography": {
     "body_font": "Libertinus Serif", "heading_font": "Source Sans 3",
     "code_font": "JetBrains Mono",
-    "base_size_pt": 10, "leading_em": 0.6,
+    "base_size_pt": 10, "leading_pt": 2,
     "paragraph_indent_em": 0.75,
     "justify": true, "hyphenate": true
   },
@@ -55,7 +55,14 @@ func defaultSpecData() string {
     "notes": false, "appendix": false, "glossary": false,
     "bibliography": false, "index": false
   },
-  "custom_styles": []
+  "custom_styles": [],
+  "epub": {
+    "toc_depth": 2, "landmarks": true,
+    "chapter_break": "page", "section_break": "breve",
+    "body_font_size": "inherit", "embed_fonts": false,
+    "custom_css": "", "language": "en",
+    "subject": "", "description": ""
+  }
 }`
 }
 
@@ -352,6 +359,12 @@ func specToTypstConfig(data map[string]any) string {
 		}
 		if v, ok := typo["base_size_pt"].(float64); ok && v > 0 {
 			lines = append(lines, fmt.Sprintf("  base-size: %gpt,", v))
+		}
+		if v, ok := typo["leading_pt"].(float64); ok {
+			lines = append(lines, fmt.Sprintf("  leading: %gpt,", v))
+		}
+		if v, ok := typo["paragraph_indent_em"].(float64); ok {
+			lines = append(lines, fmt.Sprintf("  paragraph-indent: %gem,", v))
 		}
 	}
 
