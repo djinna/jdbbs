@@ -104,6 +104,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/cover", s.handleUploadCover)
 	mux.HandleFunc("GET /api/projects/{id}/book-spec/cover", s.handleGetCover)
 	mux.HandleFunc("GET /api/fonts", s.handleListFonts)
+	mux.HandleFunc("POST /api/projects/{id}/book-spec/word-template", s.handleGenerateWordTemplate)
 
 	// EPUB generation
 	mux.HandleFunc("POST /api/books/{id}/generate-epub", s.handleGenerateEPUB)

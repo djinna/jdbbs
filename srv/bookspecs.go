@@ -1,11 +1,14 @@
 package srv
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -299,19 +302,83 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 	jsonOK(w, map[string]any{"ok": true, "data": raw})
 }
 
-// handleListFonts returns available font families from the fonts directory.
+// handleListFonts returns available font families by running `typst fonts`.
 func (s *Server) handleListFonts(w http.ResponseWriter, r *http.Request) {
 	if !s.requireExeDevAdminAPI(w, r) {
 		return
 	}
-	// Hardcoded for now — could scan fonts/ dir later
-	fonts := []map[string]string{
-		{"family": "Source Sans 3", "category": "sans-serif"},
-		{"family": "JetBrains Mono", "category": "monospace"},
-		// System fonts that Typst can use
-		{"family": "Libertinus Serif", "category": "serif"},
-	}
+
+	fonts := listTypstFonts()
 	jsonOK(w, fonts)
+}
+
+// listTypstFonts runs `typst fonts --font-path <fontsDir>` and categorizes results.
+func listTypstFonts() []map[string]string {
+	cmd := exec.Command("typst", "fonts", "--font-path", fontsDir)
+	out, err := cmd.Output()
+	if err != nil {
+		slog.Warn("typst fonts failed", "err", err)
+		// Fallback
+		return []map[string]string{
+			{"family": "Libertinus Serif", "category": "serif"},
+			{"family": "Source Sans 3", "category": "sans-serif"},
+			{"family": "JetBrains Mono", "category": "monospace"},
+		}
+	}
+
+	// Known categories for common fonts
+	categories := map[string]string{
+		"Libertinus Serif":    "serif",
+		"New Computer Modern": "serif",
+		"Nimbus Roman":        "serif",
+		"P052":                "serif",
+		"C059":                "serif",
+		"URW Bookman":         "serif",
+		"DejaVu Serif":        "serif",
+		"Source Sans 3":       "sans-serif",
+		"Nimbus Sans":         "sans-serif",
+		"DejaVu Sans":         "sans-serif",
+		"URW Gothic":          "sans-serif",
+		"Droid Sans Fallback": "sans-serif",
+		"JetBrains Mono":      "monospace",
+		"JetBrains Mono NL":   "monospace",
+		"Noto Mono":           "monospace",
+		"Noto Sans Mono":      "monospace",
+		"DejaVu Sans Mono":    "monospace",
+		"Nimbus Mono PS":      "monospace",
+	}
+
+	// Fonts to skip (symbols, emoji, etc.)
+	skip := map[string]bool{
+		"D050000L":            true,
+		"FontAwesome":         true,
+		"Standard Symbols PS": true,
+		"Symbola":             true,
+		"Noto Color Emoji":    true,
+		"Z003":                true,
+		"New Computer Modern Math": true,
+	}
+
+	var fonts []map[string]string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		name := strings.TrimSpace(line)
+		if name == "" || skip[name] {
+			continue
+		}
+		cat, ok := categories[name]
+		if !ok {
+			cat = "other"
+		}
+		fonts = append(fonts, map[string]string{"family": name, "category": cat})
+	}
+
+	if len(fonts) == 0 {
+		fonts = []map[string]string{
+			{"family": "Libertinus Serif", "category": "serif"},
+		}
+	}
+
+	return fonts
 }
 
 // handleGenerateConfig returns the Typst config that would be generated from the spec.
@@ -406,6 +473,52 @@ func specToTypstConfig(data map[string]any) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// handleGenerateWordTemplate generates a styled .docx template from the book spec.
+func (s *Server) handleGenerateWordTemplate(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+
+	q := dbgen.New(s.DB)
+	spec, err := q.GetBookSpec(r.Context(), pid)
+	if err != nil {
+		jsonErr(w, "no spec found", 404)
+		return
+	}
+
+	// Run python script with spec JSON on stdin
+	script := bookProdRoot + "/scripts/generate-word-template.py"
+	cmd := exec.Command("python3", script)
+	cmd.Stdin = strings.NewReader(spec.Data)
+	var outBuf bytes.Buffer
+	var errBuf strings.Builder
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+
+	if err := cmd.Run(); err != nil {
+		slog.Error("word template generation failed", "err", err, "stderr", errBuf.String())
+		jsonErr(w, "template generation failed: "+errBuf.String(), 500)
+		return
+	}
+
+	// Derive filename from project name
+	project, _ := q.GetProject(r.Context(), pid)
+	filename := sanitizeFilename(project.Name)
+	if filename == "" {
+		filename = "template"
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-template.docx"`, filename))
+	w.Header().Set("Content-Length", strconv.Itoa(outBuf.Len()))
+	w.Write(outBuf.Bytes())
 }
 
 // helpers

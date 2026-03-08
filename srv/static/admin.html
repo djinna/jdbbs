@@ -222,6 +222,9 @@ html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
 .book-actions .dl-epub { color: var(--accent); border-color: var(--accent); }
 .book-actions .del { color: var(--red); border-color: transparent; }
 .book-actions .del:hover { border-color: var(--red); }
+.book-project-link { flex-shrink: 0; }
+.book-project-sel { font-size: 0.72rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; max-width: 140px; cursor: pointer; }
+.book-project-sel:focus { outline: none; border-color: var(--accent); }
 
 #loading, .empty {
   text-align: center; padding: 4rem; color: var(--text-muted); font-size: 0.9rem;
@@ -439,6 +442,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
         <button class="btn btn-sm" id="ts-save" disabled>Save Spec</button>
         <button class="btn btn-sm btn-secondary" id="ts-export" disabled>Export JSON</button>
         <button class="btn btn-sm btn-secondary" id="ts-preview-config" disabled>Preview Config</button>
+        <button class="btn btn-sm btn-secondary" id="ts-download-template" disabled title="Download styled Word template">Word Template</button>
       </div>
     </div>
 
@@ -466,9 +470,9 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
           <div class="ts-section">
             <div class="ts-section-title">Typography</div>
             <div class="ts-fields">
-              <div class="ts-field"><label>Body Font</label><input type="text" data-path="typography.body_font"></div>
-              <div class="ts-field"><label>Heading Font</label><input type="text" data-path="typography.heading_font"></div>
-              <div class="ts-field"><label>Code Font</label><input type="text" data-path="typography.code_font"></div>
+              <div class="ts-field"><label>Body Font</label><select data-path="typography.body_font" class="ts-font-select" data-font-category="serif,sans-serif,other"><option value="">Loading…</option></select></div>
+              <div class="ts-field"><label>Heading Font</label><select data-path="typography.heading_font" class="ts-font-select" data-font-category="sans-serif,serif,other"><option value="">Loading…</option></select></div>
+              <div class="ts-field"><label>Code Font</label><select data-path="typography.code_font" class="ts-font-select" data-font-category="monospace"><option value="">Loading…</option></select></div>
               <div class="ts-field"><label>Base Size (pt)</label><input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt" id="ts-base-size"></div>
               <div class="ts-field"><label>Leading (pt) <span id="ts-leading-hint" style="font-weight:normal;color:var(--text-muted)"></span></label><input type="number" step="0.5" min="0" max="30" data-path="typography.leading_pt" id="ts-leading-pt"></div>
               <div class="ts-field"><label>Paragraph Indent (em)</label><input type="number" step="0.05" min="0" max="3" data-path="typography.paragraph_indent_em"></div>
@@ -806,6 +810,7 @@ const $stats = document.getElementById('stats');
 const $projects = document.getElementById('projects');
 const $loading = document.getElementById('loading');
 
+let cachedProjects = [];
 async function loadProjects() {
   try {
     const r = await fetch('/api/admin/projects');
@@ -814,6 +819,7 @@ async function loadProjects() {
       return;
     }
     const projects = await r.json();
+    cachedProjects = projects;
     $loading.style.display = 'none';
     renderStats(projects);
     renderProjects(projects);
@@ -1180,6 +1186,16 @@ function renderBooks(books) {
     }[b.Status] || `<span class="badge badge-dim">${esc(b.Status)}</span>`;
 
     const ago = timeAgo(b.UpdatedAt);
+    const linkedPid = b.ProjectID && b.ProjectID.Valid ? b.ProjectID.Int64 : '';
+    const linkedProject = linkedPid ? cachedProjects.find(p => p.id == linkedPid) : null;
+    const projectName = linkedProject ? linkedProject.name : '';
+
+    // Build project dropdown options
+    let projectOpts = `<option value="">No project</option>`;
+    cachedProjects.forEach(p => {
+      projectOpts += `<option value="${p.id}"${p.id == linkedPid ? ' selected' : ''}>${esc(p.name)}</option>`;
+    });
+
     let actions = '';
     if (b.Status === 'ready') {
       actions += `<a href="/api/books/${b.ID}/download/pdf" class="dl-pdf">PDF</a>`;
@@ -1197,12 +1213,30 @@ function renderBooks(books) {
       <div class="book-info">
         <div class="book-title">${esc(b.Title)}</div>
         <div class="book-author">${esc(b.Author)}${b.Series ? ' \u00b7 ' + esc(b.Series) : ''}</div>
-        <div class="book-meta">${esc(b.SourceFilename)} \u00b7 ${ago}${b.ProjectID && b.ProjectID.Valid ? ' \u00b7 <span style="color:var(--accent)">linked</span>' : ''}</div>
+        <div class="book-meta">${esc(b.SourceFilename)} \u00b7 ${ago}</div>
+      </div>
+      <div class="book-project-link">
+        <select class="book-project-sel" data-book-id="${b.ID}" onchange="linkBookToProject(${b.ID}, this.value)" title="Link to project">${projectOpts}</select>
       </div>
       ${statusBadge}
       <div class="book-actions">${actions}</div>
     </div>`;
   }).join('');
+}
+
+async function linkBookToProject(bookId, projectId) {
+  try {
+    const pid = projectId ? parseInt(projectId) : null;
+    const r = await fetch(`/api/books/${bookId}/project`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: pid }),
+    });
+    if (!r.ok) throw new Error('Link failed');
+  } catch(e) {
+    alert('Failed to link book: ' + e.message);
+    loadBooks();
+  }
 }
 
 function timeAgo(dateStr) {
@@ -1316,6 +1350,7 @@ tsProject.addEventListener('change', () => {
     tsSave.disabled = true;
     tsExport.disabled = true;
     document.getElementById('ts-preview-config').disabled = true;
+    document.getElementById('ts-download-template').disabled = true;
     tsSpec = null;
     return;
   }
@@ -1324,6 +1359,7 @@ tsProject.addEventListener('change', () => {
 
 async function tsLoadSpec(pid) {
   try {
+    await tsLoadFonts();
     const res = await fetch(`/api/projects/${pid}/book-spec`);
     const json = await res.json();
     tsSpec = json.data;
@@ -1333,6 +1369,7 @@ async function tsLoadSpec(pid) {
     tsSave.disabled = false;
     tsExport.disabled = false;
     document.getElementById('ts-preview-config').disabled = false;
+    document.getElementById('ts-download-template').disabled = false;
     tsPopulateForm();
     // Show cover preview from server if available
     if (json.has_cover) {
@@ -1346,6 +1383,57 @@ async function tsLoadSpec(pid) {
   } catch(e) {
     tsSaveStatus.textContent = 'Error loading spec';
   }
+}
+
+// ─── Font Loading ───
+let tsFontsLoaded = false;
+let tsFontList = [];
+
+async function tsLoadFonts() {
+  if (tsFontsLoaded) return;
+  try {
+    const r = await fetch('/api/fonts');
+    tsFontList = await r.json();
+    tsFontsLoaded = true;
+    tsPopulateFontSelects();
+  } catch(e) {
+    console.error('Failed to load fonts:', e);
+  }
+}
+
+function tsPopulateFontSelects() {
+  document.querySelectorAll('.ts-font-select').forEach(sel => {
+    const preferred = (sel.dataset.fontCategory || '').split(',');
+    const currentVal = sel.value;
+    sel.innerHTML = '';
+
+    // Group fonts by category, preferred categories first
+    const groups = {};
+    tsFontList.forEach(f => {
+      const cat = f.category || 'other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(f.family);
+    });
+
+    // Sort: preferred categories first, then alphabetical
+    const catOrder = [...preferred.filter(c => groups[c]), ...Object.keys(groups).filter(c => !preferred.includes(c)).sort()];
+    const catLabels = { serif: 'Serif', 'sans-serif': 'Sans-Serif', monospace: 'Monospace', other: 'Other' };
+
+    catOrder.forEach(cat => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = catLabels[cat] || cat;
+      (groups[cat] || []).sort().forEach(family => {
+        const o = document.createElement('option');
+        o.value = family;
+        o.textContent = family;
+        optgroup.appendChild(o);
+      });
+      sel.appendChild(optgroup);
+    });
+
+    // Restore value
+    if (currentVal) sel.value = currentVal;
+  });
 }
 
 function tsPopulateForm() {
@@ -1600,6 +1688,36 @@ document.getElementById('ts-preview-config').addEventListener('click', async () 
     tsSaveStatus.textContent = 'Config preview error';
     tsSaveStatus.style.color = 'var(--red)';
   }
+});
+
+// Word template download
+document.getElementById('ts-download-template').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  if (tsDirty) await tsSaveSpec();
+  const btn = document.getElementById('ts-download-template');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec/word-template`, { method: 'POST' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'generation failed');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const disp = res.headers.get('Content-Disposition') || '';
+    const m = disp.match(/filename="([^"]+)"/);
+    a.download = m ? m[1] : 'template.docx';
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Word template error: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Word Template';
 });
 
 // Cover image — upload to server, not base64
