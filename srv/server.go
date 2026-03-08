@@ -95,6 +95,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/books/{id}/download/{format}", s.handleDownloadBook)
 	mux.HandleFunc("DELETE /api/books/{id}", s.handleDeleteBook)
 
+	// Book Spec API
+	mux.HandleFunc("GET /api/projects/{id}/book-spec", s.handleGetBookSpec)
+	mux.HandleFunc("PUT /api/projects/{id}/book-spec", s.handleUpdateBookSpec)
+	mux.HandleFunc("POST /api/projects/{id}/book-spec/pull-transmittal", s.handlePullTransmittalToSpec)
+	mux.HandleFunc("POST /api/projects/{id}/book-spec/generate-config", s.handleGenerateConfig)
+	mux.HandleFunc("GET /api/fonts", s.handleListFonts)
+
 	// Email API
 	mux.HandleFunc("POST /api/projects/{id}/transmittal/email", s.handleSendTransmittalEmail)
 	mux.HandleFunc("POST /api/projects/{id}/snapshot/email", s.handleSendProjectSnapshot)

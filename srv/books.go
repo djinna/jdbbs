@@ -180,8 +180,11 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	}
 
 	// Step 3: Create a standalone main.typ that includes the chapter
-	mainTyp := fmt.Sprintf(`#import "%s": *
+	// Check for a book spec (project-linked config overrides)
+	configOverride := s.buildTypstConfig(bid, book)
 
+	mainTyp := fmt.Sprintf(`#import "%s": *
+%s
 #show: book.with(
   title: "%s",
   subtitle: "%s",
@@ -196,6 +199,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 #include "chapter.typ"
 `,
 		seriesTemplate,
+		configOverride,
 		escapeTypstString(book.Title),
 		escapeTypstString(book.Series),
 		escapeTypstString(book.Title),
@@ -329,6 +333,16 @@ func (s *Server) handleDeleteBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonOK(w, map[string]string{"ok": "true"})
+}
+
+// buildTypstConfig looks up the book_spec for any project linked to this book
+// and generates Typst config override lines. Returns empty string if no spec found.
+func (s *Server) buildTypstConfig(bid int64, book dbgen.Book) string {
+	// For now, we don't have a direct book→project link.
+	// Future: look up project_id from a join or from request context.
+	// This is a hook point — when project_id is available, we'll generate:
+	//   #let config = merge-config(( page-width: 5.5in, ... ))
+	return ""
 }
 
 func escapeTypstString(s string) string {

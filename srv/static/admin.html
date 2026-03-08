@@ -279,6 +279,53 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
 .modal-actions button.primary:hover { opacity: 0.9; }
 .modal-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ─── Typesetting Tab ─── */
+.ts-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.ts-toolbar-left, .ts-toolbar-right { display: flex; align-items: center; gap: 0.5rem; }
+.ts-select { padding: 0.4rem 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 0.85rem; font-family: inherit; min-width: 200px; }
+.ts-select:focus { outline: none; border-color: var(--accent); }
+.ts-status { font-size: 0.78rem; color: var(--text-muted); }
+.ts-empty { text-align: center; padding: 4rem 2rem; color: var(--text-muted); font-size: 0.95rem; }
+
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btn-sm:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn-sm:disabled { opacity: 0.4; cursor: default; }
+
+.ts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+@media (max-width: 800px) { .ts-grid { grid-template-columns: 1fr; } }
+.ts-col { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.ts-section { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.25rem; }
+.ts-section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+
+.ts-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
+.ts-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.ts-field.full { grid-column: 1 / -1; }
+.ts-field label { font-size: 0.72rem; color: var(--text-secondary); }
+.ts-field input, .ts-field select { padding: 0.35rem 0.55rem; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); font-size: 0.82rem; font-family: inherit; }
+.ts-field input:focus, .ts-field select:focus { outline: none; border-color: var(--accent); }
+.ts-field input[type="number"] { max-width: 100px; }
+
+.ts-page-layout { display: flex; gap: 1.25rem; align-items: flex-start; }
+.ts-page-layout .ts-fields { flex: 1; }
+.ts-page-preview { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.ts-page-rect { position: relative; background: var(--bg); border: 1.5px solid var(--text-secondary); border-radius: 1px; width: 88px; height: 136px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+.ts-page-text-area { border: 1px dashed var(--accent); opacity: 0.4; border-radius: 1px; position: absolute; transition: all 0.3s; }
+.ts-page-dims { position: absolute; bottom: -1.2rem; left: 0; right: 0; text-align: center; font-size: 0.62rem; color: var(--text-muted); }
+
+.ts-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem 1rem; }
+.ts-check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; }
+.ts-check input[type="checkbox"] { accent-color: var(--accent); }
+
+.ts-custom-styles { display: flex; flex-direction: column; gap: 0.5rem; }
+.ts-style-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.5rem; align-items: start; padding: 0.5rem; background: var(--bg); border-radius: 3px; border: 1px solid var(--border); }
+.ts-style-row input, .ts-style-row textarea { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--text); font-size: 0.78rem; font-family: inherit; }
+.ts-style-row textarea { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 0.72rem; resize: vertical; min-height: 2.5rem; }
+.ts-style-remove { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.9rem; padding: 0.2rem; opacity: 0.6; }
+.ts-style-remove:hover { opacity: 1; }
+.btn-link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.72rem; font-family: inherit; padding: 0; }
+.btn-link:hover { text-decoration: underline; }
+
 .colophon {
   margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
   font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;
@@ -315,6 +362,7 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
   <div class="tabs">
     <div class="tab active" data-tab="projects">Projects</div>
     <div class="tab" data-tab="books">Books</div>
+    <div class="tab" data-tab="typesetting">Typesetting</div>
     <div class="status" id="status-indicator">
       <span class="dot"></span> <span id="status-label">checking…</span>
       <div class="tip" id="status-tip">Checking system health…</div>
@@ -358,6 +406,192 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
     </div>
     <div id="book-list-loading" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.9rem">Loading books…</div>
     <div id="book-list"></div>
+  </div>
+
+  <div id="tab-typesetting" class="tab-panel">
+    <div class="ts-toolbar">
+      <div class="ts-toolbar-left">
+        <select id="ts-project" class="ts-select"><option value="">Select project…</option></select>
+        <button class="btn btn-sm" id="ts-pull-tx" disabled>Pull from Transmittal</button>
+      </div>
+      <div class="ts-toolbar-right">
+        <span id="ts-save-status" class="ts-status"></span>
+        <button class="btn btn-sm" id="ts-save" disabled>Save Spec</button>
+        <button class="btn btn-sm btn-secondary" id="ts-export" disabled>Export JSON</button>
+        <button class="btn btn-sm btn-secondary" id="ts-preview-config" disabled>Preview Config</button>
+      </div>
+    </div>
+
+    <div id="ts-empty" class="ts-empty">Select a project to configure its typesetting spec.</div>
+
+    <div id="ts-form" style="display:none">
+      <div class="ts-grid">
+        <!-- LEFT COLUMN -->
+        <div class="ts-col">
+          <div class="ts-section">
+            <div class="ts-section-title">Book Info</div>
+            <div class="ts-fields">
+              <div class="ts-field full"><label>Title</label><input type="text" data-path="metadata.title"></div>
+              <div class="ts-field"><label>Subtitle</label><input type="text" data-path="metadata.subtitle"></div>
+              <div class="ts-field"><label>Author</label><input type="text" data-path="metadata.author"></div>
+              <div class="ts-field"><label>Series</label><input type="text" data-path="metadata.series"></div>
+              <div class="ts-field"><label>Publisher</label><input type="text" data-path="metadata.publisher"></div>
+              <div class="ts-field"><label>ISBN (Paper)</label><input type="text" data-path="metadata.isbn_paper"></div>
+              <div class="ts-field"><label>ISBN (Cloth)</label><input type="text" data-path="metadata.isbn_cloth"></div>
+              <div class="ts-field"><label>© Year</label><input type="text" data-path="metadata.copyright_year"></div>
+              <div class="ts-field"><label>© Holder</label><input type="text" data-path="metadata.copyright_holder"></div>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Page Geometry</div>
+            <div class="ts-page-layout">
+              <div class="ts-fields">
+                <div class="ts-field full">
+                  <label>Trim Size</label>
+                  <select data-path="page.trim" id="ts-trim-select">
+                    <option value="5.5 x 8.5">5.5 × 8.5</option>
+                    <option value="6 x 9">6 × 9</option>
+                    <option value="5 x 8">5 × 8</option>
+                    <option value="8.5 x 11">8.5 × 11</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div class="ts-field"><label>Width (in)</label><input type="number" step="0.01" data-path="page.width_in" id="ts-page-w"></div>
+                <div class="ts-field"><label>Height (in)</label><input type="number" step="0.01" data-path="page.height_in" id="ts-page-h"></div>
+                <div class="ts-field"><label>Top margin</label><input type="text" data-path="page.margin_top"></div>
+                <div class="ts-field"><label>Bottom margin</label><input type="text" data-path="page.margin_bottom"></div>
+                <div class="ts-field"><label>Inside margin</label><input type="text" data-path="page.margin_inside"></div>
+                <div class="ts-field"><label>Outside margin</label><input type="text" data-path="page.margin_outside"></div>
+              </div>
+              <div class="ts-page-preview" id="ts-page-preview">
+                <div class="ts-page-rect" id="ts-page-rect">
+                  <div class="ts-page-text-area" id="ts-text-area"></div>
+                  <div class="ts-page-dims" id="ts-page-dims">5.5 × 8.5</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Typography</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Body Font</label><input type="text" data-path="typography.body_font"></div>
+              <div class="ts-field"><label>Heading Font</label><input type="text" data-path="typography.heading_font"></div>
+              <div class="ts-field"><label>Code Font</label><input type="text" data-path="typography.code_font"></div>
+              <div class="ts-field"><label>Base Size (pt)</label><input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt"></div>
+              <div class="ts-field"><label>Leading (em)</label><input type="number" step="0.05" min="0.2" max="1.5" data-path="typography.leading_em"></div>
+              <div class="ts-field"><label>Paragraph Indent (em)</label><input type="number" step="0.05" min="0" max="3" data-path="typography.paragraph_indent_em"></div>
+              <div class="ts-field"><label>Justify</label><select data-path="typography.justify"><option value="true">Yes</option><option value="false">No</option></select></div>
+              <div class="ts-field"><label>Hyphenate</label><select data-path="typography.hyphenate"><option value="true">Yes</option><option value="false">No</option></select></div>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Headings</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>H1 Size (em)</label><input type="number" step="0.01" data-path="headings.h1_size_em"></div>
+              <div class="ts-field"><label>H1 Weight</label><input type="text" data-path="headings.h1_weight"></div>
+              <div class="ts-field"><label>H2 Size (em)</label><input type="number" step="0.01" data-path="headings.h2_size_em"></div>
+              <div class="ts-field"><label>H2 Weight</label><input type="text" data-path="headings.h2_weight"></div>
+              <div class="ts-field"><label>H3 Size (em)</label><input type="number" step="0.01" data-path="headings.h3_size_em"></div>
+              <div class="ts-field"><label>H3 Weight</label><input type="text" data-path="headings.h3_weight"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="ts-col">
+          <div class="ts-section">
+            <div class="ts-section-title">Elements</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Section Break</label>
+                <select data-path="elements.section_break">
+                  <option value="breve">Breve (˘)</option>
+                  <option value="asterism">Asterism (⁂)</option>
+                  <option value="dinkus">Dinkus (* * *)</option>
+                  <option value="fleuron">Fleuron (❧)</option>
+                  <option value="blank">Blank line</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Code Block Size (em)</label><input type="number" step="0.05" data-path="elements.code_block_size_em"></div>
+              <div class="ts-field"><label>Poem Size (em)</label><input type="number" step="0.05" data-path="elements.poem_size_em"></div>
+              <div class="ts-field"><label>Blockquote Style</label>
+                <select data-path="elements.blockquote_style">
+                  <option value="italic">Italic</option>
+                  <option value="indent">Indented</option>
+                  <option value="bar">Left bar</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Footnote Size (em)</label><input type="number" step="0.05" data-path="elements.footnote_size_em"></div>
+              <div class="ts-field"><label>Drop Caps</label><select data-path="elements.drop_caps"><option value="false">No</option><option value="true">Yes</option></select></div>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Running Headers</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Enabled</label><select data-path="running_headers.enabled"><option value="true">Yes</option><option value="false">No</option></select></div>
+              <div class="ts-field"><label>Verso (left)</label>
+                <select data-path="running_headers.verso">
+                  <option value="author">Author</option>
+                  <option value="title">Title</option>
+                  <option value="chapter">Chapter</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Recto (right)</label>
+                <select data-path="running_headers.recto">
+                  <option value="title">Title</option>
+                  <option value="author">Author</option>
+                  <option value="chapter">Chapter</option>
+                </select>
+              </div>
+              <div class="ts-field"><label>Header Size (em)</label><input type="number" step="0.05" data-path="running_headers.font_size_em"></div>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Front Matter</div>
+            <div class="ts-checks" id="ts-front-matter">
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.half_title"> Half title</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.series_title"> Series title</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.title_page"> Title page</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.copyright_page"> Copyright page</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.dedication"> Dedication</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.epigraph"> Epigraph</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.toc"> Table of contents</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.foreword"> Foreword</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.preface"> Preface</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.acknowledgments"> Acknowledgments</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.introduction"> Introduction</label>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Back Matter</div>
+            <div class="ts-checks" id="ts-back-matter">
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.notes"> Notes</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.appendix"> Appendix</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.glossary"> Glossary</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.bibliography"> Bibliography</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.index"> Index</label>
+            </div>
+          </div>
+
+          <div class="ts-section">
+            <div class="ts-section-title">Custom Styles <button class="btn-link" id="ts-add-style">+ Add</button></div>
+            <div id="ts-custom-styles" class="ts-custom-styles"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ts-config-preview" style="display:none;margin-top:1.5rem">
+        <div class="ts-section">
+          <div class="ts-section-title">Generated Typst Config</div>
+          <pre id="ts-config-code" style="font-family:'JetBrains Mono','Menlo',monospace;font-size:0.75rem;line-height:1.5;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.75rem 1rem;overflow-x:auto;color:var(--text);white-space:pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
   </div>
 
   <footer class="colophon">
@@ -478,6 +712,7 @@ async function loadProjects() {
     $loading.style.display = 'none';
     renderStats(projects);
     renderProjects(projects);
+    tsPopulateProjects(projects);
   } catch(e) {
     $loading.textContent = 'Error loading projects: ' + e.message;
   }
@@ -695,6 +930,7 @@ document.querySelectorAll('.tab[data-tab]').forEach(tab => {
     tab.classList.add('active');
     document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
     if (tab.dataset.tab === 'books') loadBooks();
+    if (tab.dataset.tab === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
   });
 });
 
@@ -887,6 +1123,304 @@ async function deleteBook(id) {
   await fetch(`/api/books/${id}`, { method: 'DELETE' });
   loadBooks();
 }
+
+// ─── Typesetting Tab ───
+const tsProject = document.getElementById('ts-project');
+const tsPullTx = document.getElementById('ts-pull-tx');
+const tsSave = document.getElementById('ts-save');
+const tsExport = document.getElementById('ts-export');
+const tsSaveStatus = document.getElementById('ts-save-status');
+const tsForm = document.getElementById('ts-form');
+const tsEmpty = document.getElementById('ts-empty');
+let tsSpec = null;
+let tsDirty = false;
+let tsAutoSaveTimer = null;
+
+// Populate project selector from existing loaded projects
+function tsPopulateProjects(projects) {
+  const prev = tsProject.value;
+  tsProject.innerHTML = '<option value="">Select project…</option>';
+  (projects || []).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    tsProject.appendChild(o);
+  });
+  if (prev) tsProject.value = prev;
+}
+
+tsProject.addEventListener('change', () => {
+  const pid = tsProject.value;
+  if (!pid) {
+    tsForm.style.display = 'none';
+    tsEmpty.style.display = 'block';
+    tsPullTx.disabled = true;
+    tsSave.disabled = true;
+    tsExport.disabled = true;
+    document.getElementById('ts-preview-config').disabled = true;
+    tsSpec = null;
+    return;
+  }
+  tsLoadSpec(pid);
+});
+
+async function tsLoadSpec(pid) {
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec`);
+    const json = await res.json();
+    tsSpec = json.data;
+    tsEmpty.style.display = 'none';
+    tsForm.style.display = 'block';
+    tsPullTx.disabled = false;
+    tsSave.disabled = false;
+    tsExport.disabled = false;
+    document.getElementById('ts-preview-config').disabled = false;
+    tsPopulateForm();
+    tsDirty = false;
+    tsSaveStatus.textContent = '';
+  } catch(e) {
+    tsSaveStatus.textContent = 'Error loading spec';
+  }
+}
+
+function tsPopulateForm() {
+  if (!tsSpec) return;
+  // Text/number/select inputs
+  tsForm.querySelectorAll('[data-path]').forEach(el => {
+    const val = tsGetPath(tsSpec, el.dataset.path);
+    if (el.type === 'checkbox') {
+      el.checked = !!val;
+    } else if (el.tagName === 'SELECT') {
+      el.value = String(val);
+    } else {
+      el.value = val != null ? val : '';
+    }
+  });
+  tsUpdatePagePreview();
+  tsRenderCustomStyles();
+}
+
+function tsGetPath(obj, path) {
+  return path.split('.').reduce((o, k) => o && o[k], obj);
+}
+
+function tsSetPath(obj, path, val) {
+  const keys = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (!cur[keys[i]]) cur[keys[i]] = {};
+    cur = cur[keys[i]];
+  }
+  cur[keys[keys.length - 1]] = val;
+}
+
+// Wire up change events (auto-save with debounce)
+tsForm.addEventListener('input', (e) => {
+  if (!e.target.dataset || !e.target.dataset.path) return;
+  const el = e.target;
+  let val = el.value;
+  if (el.type === 'number') val = parseFloat(val) || 0;
+  else if (el.tagName === 'SELECT' && (val === 'true' || val === 'false')) val = val === 'true';
+  tsSetPath(tsSpec, el.dataset.path, val);
+  tsMarkDirty();
+  if (el.dataset.path.startsWith('page.')) tsUpdatePagePreview();
+});
+tsForm.addEventListener('change', (e) => {
+  if (!e.target.dataset || !e.target.dataset.path) return;
+  const el = e.target;
+  if (el.type === 'checkbox') {
+    tsSetPath(tsSpec, el.dataset.path, el.checked);
+    tsMarkDirty();
+  } else if (el.tagName === 'SELECT') {
+    let val = el.value;
+    if (val === 'true' || val === 'false') val = val === 'true';
+    tsSetPath(tsSpec, el.dataset.path, val);
+    tsMarkDirty();
+    if (el.dataset.path === 'page.trim') tsHandleTrimChange(el.value);
+  }
+});
+
+function tsMarkDirty() {
+  tsDirty = true;
+  tsSaveStatus.textContent = 'Unsaved changes';
+  tsSaveStatus.style.color = 'var(--yellow)';
+  clearTimeout(tsAutoSaveTimer);
+  tsAutoSaveTimer = setTimeout(tsSaveSpec, 2000);
+}
+
+async function tsSaveSpec() {
+  const pid = tsProject.value;
+  if (!pid || !tsSpec) return;
+  tsSaveStatus.textContent = 'Saving…';
+  tsSaveStatus.style.color = 'var(--text-muted)';
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: tsSpec }),
+    });
+    if (res.ok) {
+      tsDirty = false;
+      tsSaveStatus.textContent = 'Saved';
+      tsSaveStatus.style.color = 'var(--green)';
+      setTimeout(() => { if (!tsDirty) tsSaveStatus.textContent = ''; }, 2000);
+    } else {
+      tsSaveStatus.textContent = 'Save failed';
+      tsSaveStatus.style.color = 'var(--red)';
+    }
+  } catch(e) {
+    tsSaveStatus.textContent = 'Save error';
+    tsSaveStatus.style.color = 'var(--red)';
+  }
+}
+tsSave.addEventListener('click', tsSaveSpec);
+
+// Pull from transmittal
+tsPullTx.addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  tsPullTx.disabled = true;
+  tsPullTx.textContent = 'Pulling…';
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec/pull-transmittal`, { method: 'POST' });
+    const json = await res.json();
+    if (json.data) {
+      tsSpec = json.data;
+      tsPopulateForm();
+      tsSaveStatus.textContent = 'Pulled from transmittal';
+      tsSaveStatus.style.color = 'var(--green)';
+      tsDirty = false;
+    } else {
+      tsSaveStatus.textContent = json.error || 'Pull failed';
+      tsSaveStatus.style.color = 'var(--red)';
+    }
+  } catch(e) {
+    tsSaveStatus.textContent = 'Pull error';
+    tsSaveStatus.style.color = 'var(--red)';
+  }
+  tsPullTx.disabled = false;
+  tsPullTx.textContent = 'Pull from Transmittal';
+});
+
+// Export JSON
+tsExport.addEventListener('click', () => {
+  if (!tsSpec) return;
+  const blob = new Blob([JSON.stringify(tsSpec, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (tsSpec.metadata?.title || 'spec').replace(/[^a-zA-Z0-9-_ ]/g, '') + '-spec.json';
+  a.click();
+});
+
+// Trim presets
+const trimPresets = { '5.5 x 8.5': [5.5, 8.5], '6 x 9': [6, 9], '5 x 8': [5, 8], '8.5 x 11': [8.5, 11] };
+function tsHandleTrimChange(trim) {
+  const dims = trimPresets[trim];
+  if (dims) {
+    tsSetPath(tsSpec, 'page.width_in', dims[0]);
+    tsSetPath(tsSpec, 'page.height_in', dims[1]);
+    const wEl = tsForm.querySelector('[data-path="page.width_in"]');
+    const hEl = tsForm.querySelector('[data-path="page.height_in"]');
+    if (wEl) wEl.value = dims[0];
+    if (hEl) hEl.value = dims[1];
+  }
+  tsUpdatePagePreview();
+}
+
+// Page preview
+function tsUpdatePagePreview() {
+  const w = tsGetPath(tsSpec, 'page.width_in') || 5.5;
+  const h = tsGetPath(tsSpec, 'page.height_in') || 8.5;
+  const rect = document.getElementById('ts-page-rect');
+  const textArea = document.getElementById('ts-text-area');
+  const dims = document.getElementById('ts-page-dims');
+  // Scale: max 136px height
+  const scale = 136 / h;
+  rect.style.width = Math.round(w * scale) + 'px';
+  rect.style.height = Math.round(h * scale) + 'px';
+  dims.textContent = w + ' × ' + h;
+
+  // Parse margins (strip 'in' suffix)
+  const mt = parseFloat(String(tsGetPath(tsSpec, 'page.margin_top')).replace('in', '')) || 0.75;
+  const mb = parseFloat(String(tsGetPath(tsSpec, 'page.margin_bottom')).replace('in', '')) || 0.75;
+  const mi = parseFloat(String(tsGetPath(tsSpec, 'page.margin_inside')).replace('in', '')) || 0.7;
+  const mo = parseFloat(String(tsGetPath(tsSpec, 'page.margin_outside')).replace('in', '')) || 0.6;
+  textArea.style.top = Math.round(mt * scale) + 'px';
+  textArea.style.bottom = Math.round(mb * scale) + 'px';
+  textArea.style.left = Math.round(mi * scale) + 'px';
+  textArea.style.right = Math.round(mo * scale) + 'px';
+}
+
+// Custom styles
+function tsRenderCustomStyles() {
+  const container = document.getElementById('ts-custom-styles');
+  const styles = tsSpec.custom_styles || [];
+  container.innerHTML = '';
+  if (styles.length === 0) {
+    container.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted);padding:0.5rem 0">No custom styles. Click + Add to create one.</div>';
+    return;
+  }
+  styles.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'ts-style-row';
+    row.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.3rem">
+        <input type="text" value="${esc(s.name || '')}" placeholder="Name" data-idx="${i}" data-field="name">
+        <input type="text" value="${esc(s.word_style || '')}" placeholder="Word style" data-idx="${i}" data-field="word_style">
+      </div>
+      <textarea data-idx="${i}" data-field="typst" placeholder="#let myStyle(content) = text(content)">${esc(s.typst || '')}</textarea>
+      <button class="ts-style-remove" data-idx="${i}">×</button>
+    `;
+    container.appendChild(row);
+  });
+  // Events
+  container.querySelectorAll('input, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = parseInt(el.dataset.idx);
+      tsSpec.custom_styles[idx][el.dataset.field] = el.value;
+      tsMarkDirty();
+    });
+  });
+  container.querySelectorAll('.ts-style-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      tsSpec.custom_styles.splice(parseInt(btn.dataset.idx), 1);
+      tsRenderCustomStyles();
+      tsMarkDirty();
+    });
+  });
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const tsPreviewConfig = document.getElementById('ts-preview-config');
+document.getElementById('ts-preview-config').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  // Save first if dirty
+  if (tsDirty) await tsSaveSpec();
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec/generate-config`, { method: 'POST' });
+    const json = await res.json();
+    const preview = document.getElementById('ts-config-preview');
+    const code = document.getElementById('ts-config-code');
+    if (json.config) {
+      code.textContent = json.config;
+      preview.style.display = 'block';
+      preview.scrollIntoView({ behavior: 'smooth' });
+    }
+  } catch(e) {
+    tsSaveStatus.textContent = 'Config preview error';
+    tsSaveStatus.style.color = 'var(--red)';
+  }
+});
+
+document.getElementById('ts-add-style').addEventListener('click', () => {
+  if (!tsSpec) return;
+  if (!tsSpec.custom_styles) tsSpec.custom_styles = [];
+  tsSpec.custom_styles.push({ name: '', type: 'character', typst: '', word_style: '', description: '' });
+  tsRenderCustomStyles();
+  tsMarkDirty();
+});
 
 // ─── Init ───
 checkHealth();

@@ -31,6 +31,14 @@ type Book struct {
 	UpdatedAt      time.Time
 }
 
+type BookSpec struct {
+	ID        int64
+	ProjectID int64
+	Data      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type Client struct {
 	Slug         string
 	Name         string
