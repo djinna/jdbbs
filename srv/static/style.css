@@ -129,20 +129,20 @@ body::after {
   z-index: 200;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
   background: var(--theme-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 0.3rem 0.4rem;
+  border-radius: 14px;
+  padding: 0.2rem 0.3rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: background 0.3s, border-color 0.3s;
 }
 
 .theme-bar .font-options {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.15rem;
   overflow: hidden;
   max-width: 0;
   opacity: 0;
@@ -155,25 +155,25 @@ body::after {
 }
 
 .theme-bar .font-name {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.55rem;
   color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s;
-  border-radius: 14px;
+  border-radius: 10px;
 }
 
 .theme-bar .font-name:hover { color: var(--text); }
 .theme-bar.expanded .font-name { display: none; }
 
 .theme-opt {
-  padding: 0.35rem 0.75rem;
-  border-radius: 14px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.55rem;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s;
@@ -196,7 +196,7 @@ html.dark .theme-opt.active {
 
 .theme-sep {
   width: 1px;
-  height: 18px;
+  height: 13px;
   background: var(--border);
   margin: 0 0.1rem;
   flex-shrink: 0;
@@ -204,8 +204,8 @@ html.dark .theme-opt.active {
 }
 
 .dark-btn {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border-radius: 50%;
   border: none;
@@ -214,7 +214,7 @@ html.dark .theme-opt.active {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 10px;
   cursor: pointer;
   transition: all 0.15s;
   flex-shrink: 0;
@@ -665,14 +665,14 @@ html.dark .badge-V\+J {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 11px;
   transition: all 0.15s;
   padding: 0;
   line-height: 1;

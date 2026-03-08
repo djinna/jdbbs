@@ -72,16 +72,16 @@ body::after {
 
 .theme-bar {
   position: fixed; top: 1rem; right: 2rem; z-index: 200;
-  display: flex; align-items: center; gap: 0.35rem;
+  display: flex; align-items: center; gap: 0.25rem;
   background: var(--theme-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: 20px;
-  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 0.2rem 0.3rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: background 0.3s, border-color 0.3s;
 }
 
 .theme-bar .font-options {
-  display: flex; gap: 0.25rem; overflow: hidden;
+  display: flex; gap: 0.15rem; overflow: hidden;
   max-width: 0; opacity: 0;
   transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
 }
@@ -90,16 +90,16 @@ body::after {
 }
 
 .theme-bar .font-name {
-  padding: 0.35rem 0.75rem; font-size: 0.8rem; color: var(--text-secondary);
+  padding: 0.25rem 0.5rem; font-size: 0.55rem; color: var(--text-secondary);
   cursor: pointer; white-space: nowrap; transition: color 0.15s;
-  border-radius: 14px;
+  border-radius: 10px;
 }
 .theme-bar .font-name:hover { color: var(--text); }
 .theme-bar.expanded .font-name { display: none; }
 
 .theme-opt {
-  padding: 0.35rem 0.75rem; border-radius: 14px; border: none;
-  background: transparent; color: var(--text-secondary); font-size: 0.78rem;
+  padding: 0.25rem 0.5rem; border-radius: 10px; border: none;
+  background: transparent; color: var(--text-secondary); font-size: 0.55rem;
   cursor: pointer; white-space: nowrap; transition: all 0.15s;
   font-family: inherit;
 }
@@ -108,15 +108,15 @@ body::after {
 html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
 
 .theme-sep {
-  width: 1px; height: 18px; background: var(--border);
+  width: 1px; height: 13px; background: var(--border);
   margin: 0 0.1rem; flex-shrink: 0; align-self: center;
 }
 
 .dark-btn {
-  width: 28px; height: 28px; padding: 0; border-radius: 50%; border: none;
+  width: 20px; height: 20px; padding: 0; border-radius: 50%; border: none;
   background: transparent; color: var(--text-secondary);
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  font-size: 10px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
 }
 .dark-btn:hover { color: var(--text); background: var(--progress-bg); }
 
