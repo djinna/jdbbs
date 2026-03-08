@@ -486,11 +486,11 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
           <div class="ts-section">
             <div class="ts-section-title">Headings</div>
             <div class="ts-fields">
-              <div class="ts-field"><label>H1 Size (em)</label><input type="number" step="0.01" data-path="headings.h1_size_em"></div>
+              <div class="ts-field"><label>H1 Size (pt)</label><input type="number" step="0.5" data-path="headings.h1_size_pt"></div>
               <div class="ts-field"><label>H1 Weight</label><input type="text" data-path="headings.h1_weight"></div>
-              <div class="ts-field"><label>H2 Size (em)</label><input type="number" step="0.01" data-path="headings.h2_size_em"></div>
+              <div class="ts-field"><label>H2 Size (pt)</label><input type="number" step="0.5" data-path="headings.h2_size_pt"></div>
               <div class="ts-field"><label>H2 Weight</label><input type="text" data-path="headings.h2_weight"></div>
-              <div class="ts-field"><label>H3 Size (em)</label><input type="number" step="0.01" data-path="headings.h3_size_em"></div>
+              <div class="ts-field"><label>H3 Size (pt)</label><input type="number" step="0.5" data-path="headings.h3_size_pt"></div>
               <div class="ts-field"><label>H3 Weight</label><input type="text" data-path="headings.h3_weight"></div>
             </div>
           </div>
@@ -538,24 +538,24 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               </div>
             </div>
 
-            <div class="ts-subsection-title">Running Headers</div>
+            <div class="ts-subsection-title">Running Heads</div>
             <div class="ts-fields">
-              <div class="ts-field"><label>Enabled</label><select data-path="running_headers.enabled"><option value="true">Yes</option><option value="false">No</option></select></div>
+              <div class="ts-field"><label>Enabled</label><select data-path="running_heads.enabled"><option value="true">Yes</option><option value="false">No</option></select></div>
+              <div class="ts-field"><label>Head Size (pt)</label><input type="number" step="0.5" data-path="running_heads.head_size_pt"></div>
               <div class="ts-field"><label>Verso (left)</label>
-                <select data-path="running_headers.verso">
+                <select data-path="running_heads.verso">
                   <option value="author">Author</option>
                   <option value="title">Title</option>
                   <option value="chapter">Chapter</option>
                 </select>
               </div>
               <div class="ts-field"><label>Recto (right)</label>
-                <select data-path="running_headers.recto">
+                <select data-path="running_heads.recto">
                   <option value="title">Title</option>
                   <option value="author">Author</option>
                   <option value="chapter">Chapter</option>
                 </select>
               </div>
-              <div class="ts-field"><label>Header Size (em)</label><input type="number" step="0.05" data-path="running_headers.font_size_em"></div>
             </div>
 
             <div class="ts-subsection-title">Elements</div>
@@ -569,8 +569,6 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
                   <option value="blank">Blank line</option>
                 </select>
               </div>
-              <div class="ts-field"><label>Code Block Size (em)</label><input type="number" step="0.05" data-path="elements.code_block_size_em"></div>
-              <div class="ts-field"><label>Poem Size (em)</label><input type="number" step="0.05" data-path="elements.poem_size_em"></div>
               <div class="ts-field"><label>Blockquote Style</label>
                 <select data-path="elements.blockquote_style">
                   <option value="italic">Italic</option>
@@ -578,8 +576,9 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
                   <option value="bar">Left bar</option>
                 </select>
               </div>
-              <div class="ts-field"><label>Footnote Size (em)</label><input type="number" step="0.05" data-path="elements.footnote_size_em"></div>
-              <div class="ts-field"><label>Drop Caps</label><select data-path="elements.drop_caps"><option value="false">No</option><option value="true">Yes</option></select></div>
+              <div class="ts-field"><label>Poem Size (pt)</label><input type="number" step="0.5" data-path="elements.poem_size_pt"></div>
+              <div class="ts-field"><label>Code Block Size (pt)</label><input type="number" step="0.5" data-path="elements.code_block_size_pt"></div>
+              <div class="ts-field"><label>Footnote Size (pt)</label><input type="number" step="0.5" data-path="elements.footnote_size_pt"></div>
             </div>
 
             <div class="ts-subsection-title">Front Matter</div>

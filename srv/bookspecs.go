@@ -36,19 +36,18 @@ func defaultSpecData() string {
     "justify": true, "hyphenate": true
   },
   "headings": {
-    "h1_size_em": 1.667, "h1_weight": "bold",
-    "h2_size_em": 1.333, "h2_weight": 600,
-    "h3_size_em": 1.0,   "h3_weight": "medium"
+    "h1_size_pt": 16.67, "h1_weight": "bold",
+    "h2_size_pt": 13.33, "h2_weight": 600,
+    "h3_size_pt": 10,     "h3_weight": "medium"
   },
   "elements": {
-    "section_break": "breve",
-    "code_block_size_em": 0.8, "poem_size_em": 0.75,
-    "blockquote_style": "italic",
-    "footnote_size_em": 0.75, "drop_caps": false
+    "section_break": "breve", "blockquote_style": "italic",
+    "poem_size_pt": 7.5, "code_block_size_pt": 8,
+    "footnote_size_pt": 7.5
   },
-  "running_headers": {
-    "enabled": true, "verso": "author", "recto": "title",
-    "font_size_em": 0.75
+  "running_heads": {
+    "enabled": true, "head_size_pt": 7.5,
+    "verso": "author", "recto": "title"
   },
   "front_matter": {
     "half_title": true, "series_title": false, "title_page": true,
