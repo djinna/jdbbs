@@ -28,12 +28,64 @@ const api = async (url, opts = {}) => {
   return data;
 };
 
-// ─── Theme ───
-function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
-function setTheme(t) { localStorage.setItem('prodcal-theme', t); document.documentElement.setAttribute('data-theme', t); }
-function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); render(); }
-function themeBtn() { return h('button', { className: 'theme-toggle', onClick: toggleTheme, title: 'Toggle light/dark mode' }, getTheme() === 'dark' ? '☀️' : '🌙'); }
-if (getTheme() === 'light') document.documentElement.setAttribute('data-theme', 'light');
+// ─── Font + Theme System ───
+var _fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
+  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
+  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
+  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
+};
+var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
+var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: false };
+try { var _saved = JSON.parse(localStorage.getItem('prodcal-theme-v1')); if (_saved) _themeState.dark = _saved.dark; } catch(e) {}
+
+function _applyTheme() {
+  var f = _fonts[_themeState.font];
+  if (f) {
+    document.body.style.fontFamily = f.family;
+    var nameEl = document.getElementById('font-name');
+    if (nameEl) nameEl.textContent = f.label;
+  }
+  document.documentElement.classList.toggle('dark', _themeState.dark);
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.font === _themeState.font);
+  });
+  var darkBtn = document.getElementById('dark-btn');
+  if (darkBtn) darkBtn.textContent = _themeState.dark ? '\u2600' : '\u263e';
+}
+function _saveTheme() {
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: _themeState.dark })); } catch(e) {}
+}
+function _setFont(key) { _themeState.font = key; _applyTheme(); _saveTheme(); }
+function _toggleDark() { _themeState.dark = !_themeState.dark; _applyTheme(); _saveTheme(); }
+
+function _ensureThemeBar() {
+  if (document.getElementById('theme-bar')) return;
+  var bar = document.createElement('div');
+  bar.className = 'theme-bar';
+  bar.id = 'theme-bar';
+  bar.innerHTML = '<div class="font-name" id="font-name" title="Click to change typeface">' + (_fonts[_themeState.font]?.label || '') + '</div>'
+    + '<div class="font-options" id="font-options">'
+    + '<button class="theme-opt" data-font="literata">Literata</button>'
+    + '<button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>'
+    + '<button class="theme-opt" data-font="menlo">Menlo</button>'
+    + '<button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>'
+    + '</div>'
+    + '<div class="theme-sep"></div>'
+    + '<button class="dark-btn" id="dark-btn" title="Toggle dark mode">\u263e</button>';
+  document.body.appendChild(bar);
+  var expanded = false;
+  var nameEl = document.getElementById('font-name');
+  nameEl.addEventListener('click', function() { expanded = !expanded; bar.classList.toggle('expanded', expanded); });
+  document.addEventListener('click', function(e) { if (expanded && !bar.contains(e.target)) { expanded = false; bar.classList.remove('expanded'); } });
+  bar.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+    btn.addEventListener('click', function() { _setFont(this.dataset.font); expanded = false; bar.classList.remove('expanded'); });
+  });
+  document.getElementById('dark-btn').addEventListener('click', _toggleDark);
+  _applyTheme();
+}
+function themeBtn() { return h('span'); }
+function getTheme() { return _themeState.dark ? 'dark' : 'light'; }
 
 // ─── State ───
 let state = {
@@ -207,13 +259,15 @@ function render() {
   if (state.view === 'loading') app.appendChild(h('div', { className: 'tx-container' }, h('p', null, 'Loading...')));
   else if (state.view === 'auth') app.appendChild(renderAuth());
   else if (state.view === 'form') app.appendChild(renderForm());
+  _ensureThemeBar();
+  _applyTheme();
 }
 
 // ─── Auth (reused pattern from calendar) ───
 function renderAuth() {
   let input;
   return h('div', { className: 'auth-screen' },
-    h('h2', null, '🔒 Password Required'),
+    h('h2', null, 'Password Required'),
     h('p', null, state.project ? state.project.Name + ' — Transmittal' : 'This project is protected'),
     input = h('input', { type: 'password', placeholder: 'Enter password' }),
     h('button', { className: 'btn btn-primary', onClick: async () => {
@@ -373,9 +427,9 @@ function renderVersionPanel() {
       }}, '×'),
     ),
     versions === null
-      ? h('p', { style: 'padding:12px;color:var(--text2)' }, 'Loading...')
+      ? h('p', { style: 'padding:12px;color:var(--text-secondary)' }, 'Loading...')
       : versions.length === 0
-        ? h('p', { style: 'padding:12px;color:var(--text2)' }, 'No versions yet. Versions are saved automatically as you edit (up to one every 5 minutes).')
+        ? h('p', { style: 'padding:12px;color:var(--text-secondary)' }, 'No versions yet. Versions are saved automatically as you edit (up to one every 5 minutes).')
         : h('div', { className: 'tx-version-list' },
             ...versions.map(v =>
               h('div', { className: 'tx-version-item' + (state.transmittal._preview === v.id ? ' active' : '') },
@@ -404,11 +458,11 @@ function renderDuplicateModal() {
   }},
     h('div', { className: 'tx-modal' },
       h('h3', null, 'Duplicate Transmittal'),
-      h('p', { style: 'color:var(--text2);font-size:13px;margin-bottom:12px' },
+      h('p', { style: 'color:var(--text-secondary);font-size:13px;margin-bottom:12px' },
         'Copy this transmittal to another project. Author, publisher, design, and other house settings are kept. Book-specific fields (title, dates, checklist) are cleared.'
       ),
       others.length === 0
-        ? h('p', { style: 'color:var(--text2)' }, 'No other projects available. Create a new project from the calendar first.')
+        ? h('p', { style: 'color:var(--text-secondary)' }, 'No other projects available. Create a new project from the calendar first.')
         : h('div', { className: 'tx-duplicate-list' },
             ...others.map(p =>
               h('button', { className: 'btn btn-sm tx-duplicate-item', onClick: () => {
@@ -417,7 +471,7 @@ function renderDuplicateModal() {
                 duplicateToProject(p.ID);
               }},
                 h('span', null, p.Name),
-                h('span', { style: 'color:var(--text2);font-size:11px' }, p.ClientSlug + '/' + p.ProjectSlug),
+                h('span', { style: 'color:var(--text-secondary);font-size:11px' }, p.ClientSlug + '/' + p.ProjectSlug),
               )
             ),
           ),
@@ -438,7 +492,7 @@ function renderForm() {
   return h('div', { className: 'tx-container' },
     // Preview banner
     isPreview ? h('div', { className: 'tx-preview-banner' },
-      h('span', null, '👁 Previewing version from ' + fmtDate(state.transmittal._previewDate)),
+      h('span', null, 'Previewing version from ' + fmtDate(state.transmittal._previewDate)),
       h('button', { className: 'btn btn-sm', onClick: () => restoreVersion(state.transmittal._preview) }, 'Restore this version'),
       h('button', { className: 'btn btn-sm', onClick: exitPreview }, 'Exit preview'),
     ) : null,
@@ -446,10 +500,6 @@ function renderForm() {
     h('div', { className: 'page-header' },
       h('div', { className: 'page-header-top' },
         h('div', { className: 'page-header-left' },
-          h('nav', { className: 'page-header-nav' },
-            h('a', { href: calendarUrl }, '📅 Calendar'),
-            h('span', { className: 'active' }, '📋 Transmittal'),
-          ),
           h('h1', { className: 'page-header-title' }, state.transmittal?.data?.book?.title || state.project?.Name || 'Transmittal'),
         ),
         h('div', { className: 'page-header-actions' },
@@ -482,7 +532,8 @@ function renderForm() {
         h('button', { className: 'page-header-back', onClick: () => {
           window.location.href = '/' + state.pathClient + '/';
         }}, '← ' + (state.pathClient || 'Home').toUpperCase()),
-        renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text2)' }, state.project.Name),
+        renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text-secondary)' }, state.project.Name),
+        h('a', { href: calendarUrl, style: 'font-size:0.8rem;color:var(--accent);text-decoration:none' }, 'Calendar'),
         h('span', { className: 'page-status page-status-' + state.transmittal.status },
           state.transmittal.status
         ),
@@ -720,7 +771,7 @@ function renderSubrightsSection() {
         !isNa ? h('input', { type: 'text', value: val || '', placeholder: 'details...',
           onInput: (e) => setField('subrights.' + key, e.target.value),
           style: 'flex:1;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px'
-        }) : h('span', { style: 'color:var(--text2);font-size:12px;cursor:pointer',
+        }) : h('span', { style: 'color:var(--text-secondary);font-size:12px;cursor:pointer',
           onClick: () => { setField('subrights.' + key, ''); render(); }
         }, 'n/a — click to enable'),
       );
@@ -857,7 +908,7 @@ function renderProofsSection() {
   const reviewers = (d.proofs && d.proofs.reviewers) || [];
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Page Proofs'),
-    h('div', { style: 'font-size:12px;color:var(--text2);margin-bottom:8px' }, '1st pages to be reviewed by:'),
+    h('div', { style: 'font-size:12px;color:var(--text-secondary);margin-bottom:8px' }, '1st pages to be reviewed by:'),
     ...reviewers.map((rev, i) =>
       h('div', { className: 'tx-reviewer' },
         h('input', { type: 'text', value: rev.name || '', placeholder: 'Name',
@@ -959,7 +1010,7 @@ function renderEmailModal() {
   return h('div', { className: 'tx-modal-overlay', onClick: (e) => { if (e.target.classList.contains('tx-modal-overlay')) closeModal(); } },
     h('div', { className: 'tx-modal email-modal' },
       h('div', { className: 'tx-modal-header' },
-        h('h2', null, '✉️ Email Transmittal'),
+        h('h2', null, 'Email Transmittal'),
         h('button', { className: 'tx-modal-close', onClick: closeModal }, '×'),
       ),
       h('div', { className: 'tx-modal-body' },
@@ -972,7 +1023,7 @@ function renderEmailModal() {
 
         state.emailConfigured === false
           ? h('div', { className: 'email-warning' },
-              '⚠️ Email is not configured on the server. ',
+              'Email is not configured on the server. ',
               'Set AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID environment variables.'
             )
           : null,
@@ -1015,25 +1066,25 @@ function renderEmailModal() {
         // Result
         state.emailResult?.ok
           ? h('div', { className: 'email-success' },
-              '✅ Sent to: ' + state.emailResult.sent_to.join(', ')
+              '2713 Sent to: ' + state.emailResult.sent_to.join(', ')
             )
           : null,
         state.emailResult?.error
           ? h('div', { className: 'email-error' },
-              '❌ ' + state.emailResult.error
+              '' + state.emailResult.error
             )
           : null,
 
         // Actions
         h('div', { className: 'email-actions' },
           state.emailResult?.ok
-            ? h('button', { className: 'btn btn-primary', onClick: closeModal }, '✓ Done')
+            ? h('button', { className: 'btn btn-primary', onClick: closeModal }, '2713 Done')
             : [
                 h('button', {
                   className: 'btn btn-primary',
                   disabled: state.emailSending || state.emailConfigured === false ? 'disabled' : undefined,
                   onClick: sendTransmittalEmail,
-                }, state.emailSending ? 'Sending…' : '📨 Send Email'),
+                }, state.emailSending ? 'Sending…' : 'Send Email'),
                 h('button', { className: 'btn btn-sm', onClick: closeModal }, 'Cancel'),
               ],
         ),

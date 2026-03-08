@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<script>
+(function() {
+  try {
+    var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+    if (t && t.dark) document.documentElement.classList.add('dark');
+  } catch(e) {}
+})();
+</script>
 <link rel="stylesheet" href="/static/style.css">
 <style>
   .dashboard { max-width: 1000px; margin: 0 auto; padding: 2rem; }
@@ -13,7 +24,7 @@
     margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
   }
   .dash-header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
-  .dash-header .subtitle { color: var(--text2); font-size: 14px; margin-top: 2px; }
+  .dash-header .subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 2px; }
 
   .stats-row {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -24,7 +35,7 @@
     border-radius: 12px; padding: 1.25rem;
   }
   .stat-card .label {
-    font-size: 0.75rem; color: var(--text2); text-transform: uppercase;
+    font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;
     letter-spacing: 0.05em; margin-bottom: 0.5rem;
   }
   .stat-card .value { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
@@ -43,9 +54,9 @@
   .project-meta {
     display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem;
   }
-  .project-meta span { font-size: 0.8rem; color: var(--text2); }
+  .project-meta span { font-size: 0.8rem; color: var(--text-secondary); }
   .progress-bar {
-    width: 100%; height: 6px; background: var(--surface2);
+    width: 100%; height: 6px; background: var(--badge-dim-bg);
     border-radius: 3px; overflow: hidden; margin-top: 0.75rem;
   }
   .progress-fill {
@@ -59,7 +70,7 @@
     padding: 0.25rem 0.6rem; border-radius: 9999px;
     font-size: 0.75rem; font-weight: 500;
   }
-  .badge-dim { background: var(--surface2); color: var(--text2); }
+  .badge-dim { background: var(--badge-dim-bg); color: var(--text-secondary); }
   .email-btn {
     background: none; border: none; color: var(--accent, #6c63ff); cursor: pointer;
     font-size: 0.8rem; padding: 0; text-decoration: none; font-family: inherit;
@@ -75,24 +86,24 @@
     border: 1px solid var(--border);
   }
   .auth-box h2 { font-size: 1.4rem; margin-bottom: 4px; }
-  .auth-box .auth-sub { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
+  .auth-box .auth-sub { color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; }
   .auth-box input {
     margin: 0 0 12px; padding: 10px 14px; width: 100%; border-radius: 8px;
     border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px;
   }
   .auth-box .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
   .auth-box .back-link { margin-top: 16px; }
-  .auth-box .back-link a { color: var(--text2); font-size: 13px; text-decoration: none; }
+  .auth-box .back-link a { color: var(--text-secondary); font-size: 13px; text-decoration: none; }
 
   .theme-toggle {
     display: inline-flex; align-items: center; justify-content: center;
     width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface2); color: var(--text2); cursor: pointer;
+    background: var(--badge-dim-bg); color: var(--text-secondary); cursor: pointer;
     font-size: 16px; transition: all 0.15s; padding: 0; line-height: 1;
   }
   .theme-toggle:hover { background: var(--border); color: var(--text); }
 
-  .empty { text-align: center; padding: 4rem; color: var(--text2); }
+  .empty { text-align: center; padding: 4rem; color: var(--text-secondary); }
 
   .activity-section {
     margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
@@ -106,7 +117,7 @@
   }
   .activity-tab {
     padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text2); cursor: pointer;
+    background: var(--surface); color: var(--text-secondary); cursor: pointer;
     font-size: 13px; font-weight: 500; transition: all 0.15s;
   }
   .activity-tab:hover { border-color: var(--accent); color: var(--text); }
@@ -119,10 +130,10 @@
     display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
   }
   .activity-item-header .project-label {
-    font-size: 11px; background: var(--surface2); padding: 1px 8px;
-    border-radius: 9999px; color: var(--text2); font-weight: 500;
+    font-size: 11px; background: var(--badge-dim-bg); padding: 1px 8px;
+    border-radius: 9999px; color: var(--text-secondary); font-weight: 500;
   }
-  .activity-item-date { font-size: 11px; color: var(--text2); margin-left: auto; }
+  .activity-item-date { font-size: 11px; color: var(--text-secondary); margin-left: auto; }
   .file-dir-sm { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 9999px; }
   .dir-in-sm { background: rgba(74, 222, 128, 0.15); color: var(--green, #4ade80); }
   .dir-out-sm { background: rgba(96, 165, 250, 0.15); color: var(--blue, #60a5fa); }
@@ -130,10 +141,13 @@
   .jt-call { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
   .jt-decision { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
   .jt-approval { background: rgba(74, 222, 128, 0.15); color: var(--green, #4ade80); }
-  .jt-note { background: var(--surface2); color: var(--text2); }
+  .jt-note { background: var(--badge-dim-bg); color: var(--text-secondary); }
 </style>
 </head>
 <body>
+<div class="grid-lines"><div class="grid-lines-inner">
+  <div class="grid-line"></div><div class="grid-line"></div>
+</div></div>
 <div id="app"></div>
 <script>
 const $ = (s) => document.querySelector(s);
@@ -145,18 +159,71 @@ const api = async (url, opts = {}) => {
 };
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
+function getTheme() { try { var t = JSON.parse(localStorage.getItem('prodcal-theme-v1')); return (t && t.dark) ? 'dark' : 'light'; } catch(e) { return 'light'; } }
 function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+  document.documentElement.classList.toggle('dark', t === 'dark');
 }
 function toggleTheme() {
-  const next = getTheme() === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('prodcal-theme', next);
+  const isDark = document.documentElement.classList.contains('dark');
+  const next = isDark ? 'light' : 'dark';
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: next === 'dark' })); } catch(e) {}
   applyTheme(next);
 }
 applyTheme(getTheme());
+
+// Font + Theme bar system
+var _fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
+  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
+  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
+  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
+};
+var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
+var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: document.documentElement.classList.contains('dark') };
+
+function _applyThemeBar() {
+  var f = _fonts[_themeState.font];
+  if (f) {
+    document.body.style.fontFamily = f.family;
+    var nameEl = document.getElementById('font-name');
+    if (nameEl) nameEl.textContent = f.label;
+  }
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.font === _themeState.font);
+  });
+  var darkBtn = document.getElementById('dark-btn');
+  if (darkBtn) darkBtn.textContent = _themeState.dark ? '\u2600' : '\u263e';
+}
+function _ensureThemeBar() {
+  if (document.getElementById('theme-bar')) return;
+  var bar = document.createElement('div');
+  bar.className = 'theme-bar'; bar.id = 'theme-bar';
+  bar.innerHTML = '<div class="font-name" id="font-name" title="Click to change typeface">' + (_fonts[_themeState.font]?.label || '') + '</div>'
+    + '<div class="font-options" id="font-options">'
+    + '<button class="theme-opt" data-font="literata">Literata</button>'
+    + '<button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>'
+    + '<button class="theme-opt" data-font="menlo">Menlo</button>'
+    + '<button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>'
+    + '</div><div class="theme-sep"></div>'
+    + '<button class="dark-btn" id="dark-btn" title="Toggle dark mode">\u263e</button>';
+  document.body.appendChild(bar);
+  var expanded = false;
+  document.getElementById('font-name').addEventListener('click', function() { expanded = !expanded; bar.classList.toggle('expanded', expanded); });
+  document.addEventListener('click', function(e) { if (expanded && !bar.contains(e.target)) { expanded = false; bar.classList.remove('expanded'); } });
+  bar.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _themeState.font = this.dataset.font; _applyThemeBar();
+      expanded = false; bar.classList.remove('expanded');
+    });
+  });
+  document.getElementById('dark-btn').addEventListener('click', function() {
+    _themeState.dark = !_themeState.dark;
+    document.documentElement.classList.toggle('dark', _themeState.dark);
+    try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: _themeState.dark })); } catch(e) {}
+    _applyThemeBar();
+  });
+  _applyThemeBar();
+}
 
 const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
 let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: null };
@@ -164,13 +231,13 @@ let state = { view: 'loading', client: null, projects: [], error: '', activityTa
 function render() {
   const app = $('#app');
   if (state.view === 'loading') {
-    app.innerHTML = '<div class="dashboard" style="text-align:center;padding-top:80px;color:var(--text2)">Loading…</div>';
+    app.innerHTML = '<div class="dashboard" style="text-align:center;padding-top:80px;color:var(--text-secondary)">Loading…</div>';
   } else if (state.view === 'auth') {
     app.innerHTML = '';
     const box = document.createElement('div');
     box.className = 'auth-box';
     box.innerHTML = `
-      <h2>🔒 Password Required</h2>
+      <h2>Password Required</h2>
       <p class="auth-sub">${esc(state.client?.name || clientSlug)}</p>
       <input type="password" id="pw" placeholder="Enter password" autofocus>
       <div><button class="btn btn-primary" id="loginBtn" style="width:100%">Unlock</button></div>
@@ -209,8 +276,7 @@ function render() {
           <div class="subtitle">${state.projects.length} project${state.projects.length !== 1 ? 's' : ''}</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-sm" id="digest-btn" style="font-size:12px" title="Email weekly digest">📧 Weekly Digest</button>
-          <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"></button>
+          <button class="btn btn-sm" id="digest-btn" style="font-size:12px" title="Email weekly digest">Weekly Digest</button>
         </div>
       </div>
       <div class="stats-row" id="stats"></div>
@@ -218,9 +284,9 @@ function render() {
     `;
     app.appendChild(div);
 
-    // Apply theme button
+    // Apply theme + inject theme bar
     applyTheme(getTheme());
-    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    _ensureThemeBar();
     document.getElementById('digest-btn').addEventListener('click', () => { state.showDigestEmail = true; state.digestResult = null; render(); });
 
     // Stats cards
@@ -253,7 +319,7 @@ function render() {
         const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
         const barClass = pct === 100 ? 'green' : pct > 50 ? 'accent' : 'yellow';
         const txBadge = p.has_transmittal
-          ? `<span class="badge badge-dim">📝 ${esc(p.transmittal_status || 'draft')}</span>` : '';
+          ? `<span class="badge badge-dim">${esc(p.transmittal_status || 'draft')}</span>` : '';
         return `
           <div class="project-card">
             <div class="project-top">
@@ -263,7 +329,7 @@ function render() {
               <div style="display:flex;gap:0.5rem">${txBadge}</div>
             </div>
             <div class="project-meta">
-              <span>📅 Start: ${esc(p.start_date || 'TBD')}</span>
+              <span>Start: ${esc(p.start_date || 'TBD')}</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center">
               <span style="font-size:0.85rem">
@@ -276,10 +342,10 @@ function render() {
               <div class="progress-fill ${barClass}" style="width:${pct}%"></div>
             </div>
             <div class="links">
-              <a href="${esc(p.path)}">📅 Calendar</a>
-              <a href="${esc(p.path)}transmittal/">📝 Transmittal</a>
-              <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">📧 Snapshot</button>
-              <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="activity">📧 Activity</button>
+              <a href="${esc(p.path)}">Calendar</a>
+              <a href="${esc(p.path)}transmittal/">Transmittal</a>
+              <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">Snapshot</button>
+              <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="activity">Activity</button>
             </div>
           </div>
         `;
@@ -299,8 +365,8 @@ function render() {
     actDiv.innerHTML = `
       <h2>Recent Activity</h2>
       <div class="activity-tabs">
-        <button class="activity-tab ${state.activityTab === 'files' ? 'active' : ''}" data-tab="files">📁 Files</button>
-        <button class="activity-tab ${state.activityTab === 'journal' ? 'active' : ''}" data-tab="journal">📓 Journal</button>
+        <button class="activity-tab ${state.activityTab === 'files' ? 'active' : ''}" data-tab="files">Files</button>
+        <button class="activity-tab ${state.activityTab === 'journal' ? 'active' : ''}" data-tab="journal">Journal</button>
       </div>
       <div id="activity-content"></div>
     `;
@@ -323,7 +389,7 @@ function render() {
 function renderActivityContent(container) {
   if (state.activityTab === 'files') {
     if (state.fileLog.length === 0) {
-      container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:1rem 0">No file transfers logged yet.</div>';
+      container.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:1rem 0">No file transfers logged yet.</div>';
     } else {
       container.innerHTML = state.fileLog.map(e => {
         const dirCls = e.direction === 'outbound' ? 'dir-out-sm' : 'dir-in-sm';
@@ -333,19 +399,19 @@ function renderActivityContent(container) {
             <div class="activity-item-header">
               <span class="file-dir-sm ${dirCls}">${dirLabel}</span>
               <strong>${esc(e.filename || '—')}</strong>
-              <span style="color:var(--text2)">${esc(e.file_type || '')}</span>
+              <span style="color:var(--text-secondary)">${esc(e.file_type || '')}</span>
               <span class="project-label">${esc(e.project_name)}</span>
               <span class="activity-item-date">${esc(e.transfer_date || '')}</span>
             </div>
-            ${e.notes ? '<div style="color:var(--text2);margin-top:2px">' + esc(e.notes) + '</div>' : ''}
-            <div style="color:var(--text2);font-size:11px;margin-top:2px">${esc(e.sent_by || '?')} → ${esc(e.received_by || '?')}</div>
+            ${e.notes ? '<div style="color:var(--text-secondary);margin-top:2px">' + esc(e.notes) + '</div>' : ''}
+            <div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${esc(e.sent_by || '?')} → ${esc(e.received_by || '?')}</div>
           </div>
         `;
       }).join('');
     }
   } else {
     if (state.journal.length === 0) {
-      container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:1rem 0">No journal entries yet.</div>';
+      container.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:1rem 0">No journal entries yet.</div>';
     } else {
       const typeEmoji = { call: '📞', decision: '⚖️', approval: '✅', note: '📝' };
       const typeCls = { call: 'jt-call', decision: 'jt-decision', approval: 'jt-approval', note: 'jt-note' };
@@ -445,8 +511,8 @@ function renderProjectEmailModal() {
   const modal = document.createElement('div');
   modal.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;';
 
-  let html = `<h2 style="margin:0 0 8px;font-size:18px;">📧 ${esc(typeLabel)}: ${esc(projEmailState.projectName)}</h2>`;
-  html += `<p style="color:var(--text2);font-size:14px;margin:0 0 16px">${typeDesc}</p>`;
+  let html = `<h2 style="margin:0 0 8px;font-size:18px;">${esc(typeLabel)}: ${esc(projEmailState.projectName)}</h2>`;
+  html += `<p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px">${typeDesc}</p>`;
 
   if (state.emailConfigured === false) {
     html += '<div style="background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e">⚠️ Email is not configured on the server.</div>';
@@ -461,13 +527,13 @@ function renderProjectEmailModal() {
     } else {
       html += `<span style="font-size:14px">${esc(r.email)}</span>`;
     }
-    html += `<span style="font-size:12px;color:var(--text2)">${esc(r.label)}</span>`;
+    html += `<span style="font-size:12px;color:var(--text-secondary)">${esc(r.label)}</span>`;
     html += '</div>';
   });
   html += '</div>';
 
   if (projEmailState.result?.ok) {
-    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✅ Sent to: ' + projEmailState.result.sent_to.join(', ') + '</div>';
+    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✓ Sent to: ' + projEmailState.result.sent_to.join(', ') + '</div>';
   }
   if (projEmailState.result?.error) {
     html += '<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626">❌ ' + esc(projEmailState.result.error) + '</div>';
@@ -578,8 +644,8 @@ function renderDigestModal(parent) {
   const modal = document.createElement('div');
   modal.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;';
 
-  let html = '<h2 style="margin:0 0 8px;font-size:18px;">📧 Email Weekly Digest</h2>';
-  html += '<p style="color:var(--text2);font-size:14px;margin:0 0 16px">Sends a digest of file transfers and journal entries from the last 7 days across all projects.</p>';
+  let html = '<h2 style="margin:0 0 8px;font-size:18px;">Email Weekly Digest</h2>';
+  html += '<p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px">Sends a digest of file transfers and journal entries from the last 7 days across all projects.</p>';
 
   if (state.emailConfigured === false) {
     html += '<div style="background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e">⚠️ Email is not configured on the server.</div>';
@@ -594,13 +660,13 @@ function renderDigestModal(parent) {
     } else {
       html += `<span style="font-size:14px">${esc(r.email)}</span>`;
     }
-    html += `<span style="font-size:12px;color:var(--text2)">${esc(r.label)}</span>`;
+    html += `<span style="font-size:12px;color:var(--text-secondary)">${esc(r.label)}</span>`;
     html += '</div>';
   });
   html += '</div>';
 
   if (state.digestResult?.ok) {
-    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✅ Sent to: ' + state.digestResult.sent_to.join(', ') + '</div>';
+    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✓ Sent to: ' + state.digestResult.sent_to.join(', ') + '</div>';
   }
   if (state.digestResult?.error) {
     html += '<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626">❌ ' + esc(state.digestResult.error) + '</div>';

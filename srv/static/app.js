@@ -35,13 +35,66 @@ const fmt = {
 
 let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [], fileLog: [], journal: [], showFileLogModal: false, showJournalModal: false, showActivityEmail: false, activitySending: false, activityResult: null };
 
-// ─── Theme ───
-function getTheme() { return localStorage.getItem('prodcal-theme') || 'dark'; }
-function setTheme(t) { localStorage.setItem('prodcal-theme', t); document.documentElement.setAttribute('data-theme', t); }
-function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); render(); }
-function themeBtn() { return h('button', { className: 'theme-toggle', onClick: toggleTheme, title: 'Toggle light/dark mode' }, getTheme() === 'dark' ? '☀️' : '🌙'); }
-// Apply saved theme immediately
-if (getTheme() === 'light') document.documentElement.setAttribute('data-theme', 'light');
+// ─── Font + Theme System ───
+var _fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
+  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
+  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
+  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
+};
+var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
+var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: false };
+try { var _saved = JSON.parse(localStorage.getItem('prodcal-theme-v1')); if (_saved) _themeState.dark = _saved.dark; } catch(e) {}
+
+function _applyTheme() {
+  var f = _fonts[_themeState.font];
+  if (f) {
+    document.body.style.fontFamily = f.family;
+    var nameEl = document.getElementById('font-name');
+    if (nameEl) nameEl.textContent = f.label;
+  }
+  document.documentElement.classList.toggle('dark', _themeState.dark);
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.font === _themeState.font);
+  });
+  var darkBtn = document.getElementById('dark-btn');
+  if (darkBtn) darkBtn.textContent = _themeState.dark ? '\u2600' : '\u263e';
+}
+function _saveTheme() {
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: _themeState.dark })); } catch(e) {}
+}
+function _setFont(key) { _themeState.font = key; _applyTheme(); _saveTheme(); }
+function _toggleDark() { _themeState.dark = !_themeState.dark; _applyTheme(); _saveTheme(); }
+
+// Inject theme bar into page (called after render)
+function _ensureThemeBar() {
+  if (document.getElementById('theme-bar')) return;
+  var bar = document.createElement('div');
+  bar.className = 'theme-bar';
+  bar.id = 'theme-bar';
+  bar.innerHTML = '<div class="font-name" id="font-name" title="Click to change typeface">' + (_fonts[_themeState.font]?.label || '') + '</div>'
+    + '<div class="font-options" id="font-options">'
+    + '<button class="theme-opt" data-font="literata">Literata</button>'
+    + '<button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>'
+    + '<button class="theme-opt" data-font="menlo">Menlo</button>'
+    + '<button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>'
+    + '</div>'
+    + '<div class="theme-sep"></div>'
+    + '<button class="dark-btn" id="dark-btn" title="Toggle dark mode">\u263e</button>';
+  document.body.appendChild(bar);
+  var expanded = false;
+  var nameEl = document.getElementById('font-name');
+  nameEl.addEventListener('click', function() { expanded = !expanded; bar.classList.toggle('expanded', expanded); });
+  document.addEventListener('click', function(e) { if (expanded && !bar.contains(e.target)) { expanded = false; bar.classList.remove('expanded'); } });
+  bar.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+    btn.addEventListener('click', function() { _setFont(this.dataset.font); expanded = false; bar.classList.remove('expanded'); });
+  });
+  document.getElementById('dark-btn').addEventListener('click', _toggleDark);
+  _applyTheme();
+}
+// Legacy compat
+function themeBtn() { return h('span'); }
+function getTheme() { return _themeState.dark ? 'dark' : 'light'; }
 
 function render() {
   const app = $('#app');
@@ -49,6 +102,8 @@ function render() {
   if (state.view === 'projects') app.appendChild(renderProjectList());
   else if (state.view === 'auth') app.appendChild(renderAuth());
   else if (state.view === 'project') app.appendChild(renderProject());
+  _ensureThemeBar();
+  _applyTheme();
 }
 
 // ─── Project List ───
@@ -60,10 +115,9 @@ async function loadProjects() {
 function renderProjectList() {
   return h('div', null,
     h('div', { className: 'header' },
-      h('h1', null, '📅 Production Calendar'),
+      h('h1', null, 'Production Calendar'),
       h('div', { className: 'header-actions' },
         h('button', { className: 'btn btn-primary', onClick: showNewProject }, '+ New Project'),
-        themeBtn(),
       )
     ),
     state.projects && state.projects.length
@@ -115,7 +169,7 @@ function showNewProject() {
           dateInput = h('input', { type: 'date', value: new Date().toISOString().slice(0, 10) }),
         ),
       ),
-      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:8px 0;font-size:13px;color:var(--text2)' },
+      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:8px 0;font-size:13px;color:var(--text-secondary)' },
         'URL will be: ', h('strong', { style: 'color:var(--accent2);font-family:monospace' }, '/‹client›/‹project›/'),
       ),
       h('div', { className: 'modal-actions' },
@@ -164,7 +218,7 @@ async function openProject(id) {
 function renderAuth() {
   let input;
   return h('div', { className: 'auth-screen' },
-    h('h2', null, '🔒 Password Required'),
+    h('h2', null, 'Password Required'),
     h('p', null, state.project ? state.project.Name : 'This project is protected'),
     input = h('input', { type: 'password', placeholder: 'Enter password' }),
     h('button', { className: 'btn btn-primary', onClick: async () => {
@@ -196,10 +250,6 @@ function renderProject() {
     h('div', { className: 'page-header' },
       h('div', { className: 'page-header-top' },
         h('div', { className: 'page-header-left' },
-          h('nav', { className: 'page-header-nav' },
-            h('span', { className: 'active' }, '📅 Calendar'),
-            txUrl ? h('a', { href: txUrl }, '📋 Transmittal') : null,
-          ),
           h('h1', { className: 'page-header-title' }, state.project.Name),
         ),
         h('div', { className: 'page-header-actions' },
@@ -207,12 +257,12 @@ function renderProject() {
           h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, 'Make New'),
           h('button', { className: 'btn btn-sm', onClick: () => { state.showSnapshotEmail = true; state.snapshotResult = null; render(); } }, 'Email'),
           h('button', { className: 'btn btn-sm', onClick: showSettings }, 'Settings'),
-          themeBtn(),
         ),
       ),
       h('div', { className: 'page-header-sub' },
         h('button', { className: 'page-header-back', onClick: () => { window.location.href = clientUrl; } }, '← ' + (state.project.ClientSlug || 'Projects').toUpperCase()),
-        renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text2)' }, state.project.Name),
+        renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text-secondary)' }, state.project.Name),
+        txUrl ? h('a', { href: txUrl, style: 'font-size:0.8rem;color:var(--accent);text-decoration:none' }, 'Transmittal') : null,
         h('span', { className: 'page-status' + (done === t.length && t.length > 0 ? ' page-status-final' : ' page-status-draft') },
           done + '/' + t.length + ' done'
         ),
@@ -413,7 +463,7 @@ function renderBudget() {
         ...tasks.map(t =>
           h('tr', { onClick: () => editTask(t) },
             h('td', null, t.Title),
-            h('td', { style: 'color:var(--text2)' }, t.BudgetNotes),
+            h('td', { style: 'color:var(--text-secondary)' }, t.BudgetNotes),
             h('td', { className: 'money' }, t.Hours ? t.Hours.toFixed(1) : '—'),
             h('td', { className: 'money' }, t.Rate ? fmt.money(t.Rate) : '—'),
             h('td', { className: 'money' }, fmt.money(t.OrigBudget)),
@@ -543,7 +593,7 @@ function showDuplicate() {
   const el = h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === el) el.remove(); } },
     h('div', { className: 'modal' },
       h('h2', null, '⧉ Make New From Template'),
-      h('p', { style: 'color:var(--text2);font-size:14px;margin-bottom:16px' },
+      h('p', { style: 'color:var(--text-secondary);font-size:14px;margin-bottom:16px' },
         'Duplicates all tasks with shifted dates. Resets status to pending, zeroes out budgets, and clears actual dates.'
       ),
       h('div', { className: 'form-row' },
@@ -572,7 +622,7 @@ function showDuplicate() {
           h('input', { type: 'text', value: state.project.StartDate || 'not set', disabled: true, style: 'opacity:0.6' }),
         ),
       ),
-      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:12px 0;font-size:13px;color:var(--text2)' },
+      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:12px 0;font-size:13px;color:var(--text-secondary)' },
         h('strong', { style: 'color:var(--text)' }, 'What gets copied: '),
         'Task names, assignees, durations (weeks), hours, rates, notes. ',
         h('br'),
@@ -632,7 +682,7 @@ function showSettings() {
         ),
       ),
       state.project.ClientSlug && state.project.ProjectSlug
-        ? h('div', { style: 'font-size:13px;color:var(--text2);margin-bottom:12px' },
+        ? h('div', { style: 'font-size:13px;color:var(--text-secondary);margin-bottom:12px' },
             'URL: ', h('a', { href: '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/', style: 'color:var(--accent2);font-family:monospace' },
               '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/'),
           )
@@ -665,7 +715,7 @@ function showSettings() {
           method: 'POST', body: JSON.stringify({ password: pw }),
         });
         alert('Password set!');
-      }}, '🔒 Set Password'),
+      }}, 'Set Password'),
       h('hr', { style: 'margin:16px 0;border-color:var(--border)' }),
       h('h3', { style: 'font-size:14px;margin-bottom:8px' }, 'Import Seed Data'),
       h('input', { type: 'file', accept: '.json', id: 'seed-file' }),
@@ -775,8 +825,8 @@ function renderSnapshotEmailModal() {
 
   return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeModal(); } },
     h('div', { className: 'modal' },
-      h('h2', null, '📧 Email Project Snapshot'),
-      h('p', { style: 'color:var(--text2);font-size:14px;margin:0 0 16px' },
+      h('h2', null, 'Email Project Snapshot'),
+      h('p', { style: 'color:var(--text-secondary);font-size:14px;margin:0 0 16px' },
         'Sends a comprehensive email with schedule overview, task list, budget summary, transmittal status, recent files, and journal entries.'
       ),
 
@@ -807,14 +857,14 @@ function renderSnapshotEmailModal() {
                   },
                 })
               : h('span', { style: 'font-size:14px' }, r.email),
-            h('span', { style: 'font-size:12px;color:var(--text2)' }, r.label),
+            h('span', { style: 'font-size:12px;color:var(--text-secondary)' }, r.label),
           )
         ),
       ),
 
       state.snapshotResult?.ok
         ? h('div', { style: 'background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46' },
-            '✅ Sent to: ' + state.snapshotResult.sent_to.join(', ')
+            '2713 Sent to: ' + state.snapshotResult.sent_to.join(', ')
           )
         : null,
       state.snapshotResult?.error
@@ -887,8 +937,8 @@ function renderActivityEmailModal() {
 
   return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeModal(); } },
     h('div', { className: 'modal' },
-      h('h2', null, '📧 Email Activity Update'),
-      h('p', { style: 'color:var(--text2);font-size:14px;margin:0 0 16px' },
+      h('h2', null, 'Email Activity Update'),
+      h('p', { style: 'color:var(--text-secondary);font-size:14px;margin:0 0 16px' },
         'Sends recent file transfers and journal entries from the last 7 days.'
       ),
 
@@ -919,14 +969,14 @@ function renderActivityEmailModal() {
                   },
                 })
               : h('span', { style: 'font-size:14px' }, r.email),
-            h('span', { style: 'font-size:12px;color:var(--text2)' }, r.label),
+            h('span', { style: 'font-size:12px;color:var(--text-secondary)' }, r.label),
           )
         ),
       ),
 
       state.activityResult?.ok
         ? h('div', { style: 'background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46' },
-            '✅ Sent to: ' + state.activityResult.sent_to.join(', ')
+            '2713 Sent to: ' + state.activityResult.sent_to.join(', ')
           )
         : null,
       state.activityResult?.error
@@ -995,9 +1045,9 @@ function renderFileLog() {
   const dirClass = d => d === 'outbound' ? 'dir-out' : 'dir-in';
   return h('div', { className: 'filelog-section' },
     h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px' },
-      h('span', { style: 'font-size:13px;color:var(--text2)' }, entries.length + ' file' + (entries.length !== 1 ? 's' : '') + ' logged'),
+      h('span', { style: 'font-size:13px;color:var(--text-secondary)' }, entries.length + ' file' + (entries.length !== 1 ? 's' : '') + ' logged'),
       h('div', { style: 'display:flex;gap:8px' },
-        h('button', { className: 'btn btn-sm', style: 'font-size:12px', onClick: () => { state.showActivityEmail = true; state.activityResult = null; render(); } }, '📧 Email'),
+        h('button', { className: 'btn btn-sm', style: 'font-size:12px', onClick: () => { state.showActivityEmail = true; state.activityResult = null; render(); } }, 'Email'),
         h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showFileLogModal = true; render(); } }, '+ Log Transfer'),
       ),
     ),
@@ -1021,7 +1071,7 @@ function renderFileLog() {
                 h('td', { style: 'font-weight:500' }, e.filename || '—'),
                 h('td', null, h('span', { className: 'badge badge-dim' }, e.file_type || '—')),
                 h('td', { style: 'font-size:13px' }, (e.sent_by || '?') + ' → ' + (e.received_by || '?')),
-                h('td', { style: 'color:var(--text2);font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, e.notes || ''),
+                h('td', { style: 'color:var(--text-secondary);font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, e.notes || ''),
                 h('td', null, h('button', { className: 'btn btn-sm btn-danger', style: 'padding:2px 6px;font-size:11px', onClick: () => deleteFileLogEntry(e.id) }, '✕')),
               )
             )),
@@ -1133,9 +1183,9 @@ function renderJournal() {
   const entries = state.journal;
   return h('div', { className: 'journal-section' },
     h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px' },
-      h('span', { style: 'font-size:13px;color:var(--text2)' }, entries.length + ' entr' + (entries.length !== 1 ? 'ies' : 'y')),
+      h('span', { style: 'font-size:13px;color:var(--text-secondary)' }, entries.length + ' entr' + (entries.length !== 1 ? 'ies' : 'y')),
       h('div', { style: 'display:flex;gap:8px' },
-        h('button', { className: 'btn btn-sm', style: 'font-size:12px', onClick: () => { state.showActivityEmail = true; state.activityResult = null; render(); } }, '📧 Email'),
+        h('button', { className: 'btn btn-sm', style: 'font-size:12px', onClick: () => { state.showActivityEmail = true; state.activityResult = null; render(); } }, 'Email'),
         h('button', { className: 'btn btn-sm btn-primary', onClick: () => { state.showJournalModal = true; render(); } }, '+ Add Entry'),
       ),
     ),
