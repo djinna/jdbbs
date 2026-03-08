@@ -23,7 +23,7 @@ func defaultSpecData() string {
     "copyright_year": "", "copyright_holder": "", "credit_lines": ""
   },
   "page": {
-    "trim": "5.5 x 8.5",
+    "trim": "us-digest",
     "width_in": 5.5, "height_in": 8.5,
     "margin_top": "0.75in", "margin_bottom": "0.75in",
     "margin_inside": "0.7in", "margin_outside": "0.6in"
@@ -405,13 +405,62 @@ func (s *Server) handleGenerateConfig(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{"config": config})
 }
 
+// fmtEm converts a pt value to em relative to base, formatted to 3 decimal
+// places with trailing zeros stripped.  E.g. 16.67/10 → "1.667", 8/10 → "0.8".
+func fmtEm(pt, base float64) string {
+	if base <= 0 {
+		base = 10
+	}
+	v := pt / base
+	s := fmt.Sprintf("%.3f", v)
+	s = strings.TrimRight(s, "0")
+	s = strings.TrimRight(s, ".")
+	return s
+}
+
+// fmtEmStr formats an em value (already in em) to 3 decimal places.
+func fmtEmStr(em float64) string {
+	s := fmt.Sprintf("%.3f", em)
+	s = strings.TrimRight(s, "0")
+	s = strings.TrimRight(s, ".")
+	return s
+}
+
+// getSizePtOrEm checks for "<key>_pt" (new format) then "<key>_em" (old format).
+// Returns the em value string and true if found. pt values are converted via baseSizePt.
+func getSizePtOrEm(m map[string]any, key string, baseSizePt float64) (string, bool) {
+	// Try new _pt format first
+	if v, ok := m[key+"_pt"].(float64); ok && v > 0 {
+		return fmtEm(v, baseSizePt), true
+	}
+	// Fall back to old _em format
+	if v, ok := m[key+"_em"].(float64); ok && v > 0 {
+		return fmtEmStr(v), true
+	}
+	return "", false
+}
+
 // specToTypstConfig converts a spec JSON map into Typst config override code.
 func specToTypstConfig(data map[string]any) string {
 	var lines []string
 	lines = append(lines, "\n// Project-specific config overrides (from spec)")
 	lines = append(lines, "#let config = merge-config((")
 
+	// Determine base_size_pt for em conversions (used by headings, elements, running heads)
+	baseSizePt := 10.0
+	if typo, ok := data["typography"].(map[string]any); ok {
+		if v, ok := typo["base_size_pt"].(float64); ok && v > 0 {
+			baseSizePt = v
+		}
+	}
+
 	if page, ok := data["page"].(map[string]any); ok {
+		// Emit page-paper for named Typst sizes (informational)
+		trim, _ := page["trim"].(string)
+		if trim != "" && trim != "custom" {
+			lines = append(lines, fmt.Sprintf("  // Paper: %s", trim))
+		}
+		// Always emit explicit dimensions (template uses width/height)
 		if w, ok := page["width_in"].(float64); ok && w > 0 {
 			lines = append(lines, fmt.Sprintf("  page-width: %gin,", w))
 		}
@@ -447,13 +496,114 @@ func specToTypstConfig(data map[string]any) string {
 		}
 		if v, ok := typo["leading_pt"].(float64); ok {
 			lines = append(lines, fmt.Sprintf("  leading: %gpt,", v))
+		} else if v, ok := typo["leading_em"].(float64); ok && v > 0 {
+			// Old format: leading_em × base_size = pt
+			leadPt := v * baseSizePt
+			lines = append(lines, fmt.Sprintf("  leading: %gpt,", leadPt))
 		}
 		if v, ok := typo["paragraph_indent_em"].(float64); ok {
 			lines = append(lines, fmt.Sprintf("  paragraph-indent: %gem,", v))
 		}
 	}
 
+
+
+	// Headings
+	if hdg, ok := data["headings"].(map[string]any); ok {
+		lines = append(lines, "  // Headings")
+		if em, ok := getSizePtOrEm(hdg, "h1_size", baseSizePt); ok {
+			lines = append(lines, fmt.Sprintf("  h1-size: %sem,", em))
+		}
+		if v, ok := hdg["h1_weight"]; ok {
+			switch w := v.(type) {
+			case string:
+				if w != "" {
+					lines = append(lines, fmt.Sprintf(`  h1-weight: "%s",`, w))
+				}
+			case float64:
+				if w > 0 {
+					lines = append(lines, fmt.Sprintf("  h1-weight: %g,", w))
+				}
+			}
+		}
+		if em, ok := getSizePtOrEm(hdg, "h2_size", baseSizePt); ok {
+			lines = append(lines, fmt.Sprintf("  h2-size: %sem,", em))
+		}
+		if v, ok := hdg["h2_weight"]; ok {
+			switch w := v.(type) {
+			case string:
+				if w != "" {
+					lines = append(lines, fmt.Sprintf(`  h2-weight: "%s",`, w))
+				}
+			case float64:
+				if w > 0 {
+					lines = append(lines, fmt.Sprintf("  h2-weight: %g,", w))
+				}
+			}
+		}
+		if em, ok := getSizePtOrEm(hdg, "h3_size", baseSizePt); ok {
+			lines = append(lines, fmt.Sprintf("  h3-size: %sem,", em))
+		}
+		if v, ok := hdg["h3_weight"]; ok {
+			switch w := v.(type) {
+			case string:
+				if w != "" {
+					lines = append(lines, fmt.Sprintf(`  h3-weight: "%s",`, w))
+				}
+			case float64:
+				if w > 0 {
+					lines = append(lines, fmt.Sprintf("  h3-weight: %g,", w))
+				}
+			}
+		}
+	}
+
+	// Elements
+	if elem, ok := data["elements"].(map[string]any); ok {
+		lines = append(lines, "  // Elements")
+		if v, ok := elem["section_break"].(string); ok && v != "" {
+			lines = append(lines, fmt.Sprintf(`  section-break: "%s",`, v))
+		}
+		if v, ok := elem["blockquote_style"].(string); ok && v != "" {
+			lines = append(lines, fmt.Sprintf(`  blockquote-style: "%s",`, v))
+		}
+		if em, ok := getSizePtOrEm(elem, "poem_size", baseSizePt); ok {
+			lines = append(lines, fmt.Sprintf("  poem-size: %sem,", em))
+		}
+		if em, ok := getSizePtOrEm(elem, "code_block_size", baseSizePt); ok {
+			lines = append(lines, fmt.Sprintf("  code-block-size: %sem,", em))
+		}
+		if em, ok := getSizePtOrEm(elem, "footnote_size", baseSizePt); ok {
+			lines = append(lines, fmt.Sprintf("  footnote-size: %sem,", em))
+		}
+	}
+
+	// Running heads — check both new "running_heads" and old "running_headers" keys
+	rh, _ := data["running_heads"].(map[string]any)
+	if rh == nil {
+		rh, _ = data["running_headers"].(map[string]any)
+	}
+	if rh != nil {
+		lines = append(lines, "  // Running heads")
+		if v, ok := rh["enabled"].(bool); ok {
+			lines = append(lines, fmt.Sprintf("  running-heads-enabled: %t,", v))
+		}
+		// Check head_size_pt (new), then font_size_em (old)
+		if v, ok := rh["head_size_pt"].(float64); ok && v > 0 {
+			lines = append(lines, fmt.Sprintf("  running-heads-size: %sem,", fmtEm(v, baseSizePt)))
+		} else if v, ok := rh["font_size_em"].(float64); ok && v > 0 {
+			lines = append(lines, fmt.Sprintf("  running-heads-size: %sem,", fmtEmStr(v)))
+		}
+		if v, ok := rh["verso"].(string); ok && v != "" {
+			lines = append(lines, fmt.Sprintf(`  running-heads-verso: "%s",`, v))
+		}
+		if v, ok := rh["recto"].(string); ok && v != "" {
+			lines = append(lines, fmt.Sprintf(`  running-heads-recto: "%s",`, v))
+		}
+	}
+
 	lines = append(lines, "))")
+
 
 	// Custom styles
 	if styles, ok := data["custom_styles"].([]any); ok {
@@ -538,12 +688,27 @@ func mapField(src map[string]any, srcKey string, dst map[string]any, dstKey stri
 }
 
 func parseTrim(trim string, page map[string]any) {
-	// Parse "5.5 x 8.5" → width/height
+	// Typst paper names and legacy "W x H" formats → width/height in inches
 	trimPresets := map[string][2]float64{
-		"5.5 x 8.5":  {5.5, 8.5},
-		"6 x 9":      {6.0, 9.0},
-		"8.5 x 11":   {8.5, 11.0},
-		"5 x 8":      {5.0, 8.0},
+		// Typst paper names
+		"us-digest":    {5.5, 8.5},                         // 139.7×215.9mm
+		"us-trade":     {6.0, 9.0},                         // 152.4×228.6mm
+		"uk-book-a":    {111.0 / 25.4, 178.0 / 25.4},       // 4.3701×7.0079
+		"uk-book-b":    {129.0 / 25.4, 198.0 / 25.4},       // 5.0787×7.7953
+		"a5":           {148.0 / 25.4, 210.0 / 25.4},       // 5.8268×8.2677
+		"a4":           {210.0 / 25.4, 297.0 / 25.4},       // 8.2677×11.6929
+		"a6":           {105.0 / 25.4, 148.0 / 25.4},       // 4.1339×5.8268
+		"jis-b5":       {182.0 / 25.4, 257.0 / 25.4},       // 7.1654×10.1181
+		"jis-b6":       {128.0 / 25.4, 182.0 / 25.4},       // 5.0394×7.1654
+		"us-letter":    {8.5, 11.0},
+		"us-legal":     {8.5, 14.0},
+		"us-executive": {7.25, 10.5},                        // 184.15×266.7mm
+		"us-statement": {5.5, 8.5},                          // same as digest
+		// Legacy "W x H" format aliases
+		"5.5 x 8.5": {5.5, 8.5},
+		"6 x 9":     {6.0, 9.0},
+		"5 x 8":     {5.0, 8.0},
+		"8.5 x 11":  {8.5, 11.0},
 	}
 	if dims, ok := trimPresets[trim]; ok {
 		page["width_in"] = dims[0]

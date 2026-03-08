@@ -516,11 +516,24 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
                 <div class="ts-field full">
                   <label>Trim Size</label>
                   <select data-path="page.trim" id="ts-trim-select">
-                    <option value="5.5 x 8.5">5.5 × 8.5</option>
-                    <option value="6 x 9">6 × 9</option>
-                    <option value="5 x 8">5 × 8</option>
-                    <option value="8.5 x 11">8.5 × 11</option>
-                    <option value="custom">Custom</option>
+                    <optgroup label="Book Sizes">
+                      <option value="us-digest">US Digest (5.5 × 8.5 in)</option>
+                      <option value="us-trade">US Trade (6 × 9 in)</option>
+                      <option value="uk-book-a">UK A-format (111 × 178 mm)</option>
+                      <option value="uk-book-b">UK B-format (129 × 198 mm)</option>
+                      <option value="a5">A5 (148 × 210 mm)</option>
+                      <option value="jis-b5">JIS B5 (182 × 257 mm)</option>
+                      <option value="jis-b6">JIS B6 (128 × 182 mm)</option>
+                    </optgroup>
+                    <optgroup label="Standard">
+                      <option value="us-letter">US Letter (8.5 × 11 in)</option>
+                      <option value="a4">A4 (210 × 297 mm)</option>
+                      <option value="us-legal">US Legal (8.5 × 14 in)</option>
+                      <option value="us-executive">US Executive (7.25 × 10.5 in)</option>
+                    </optgroup>
+                    <optgroup label="Custom">
+                      <option value="custom">Custom</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div class="ts-field"><label>Width (in)</label><input type="number" step="0.01" data-path="page.width_in" id="ts-page-w"></div>
@@ -1447,6 +1460,22 @@ function tsPopulateForm() {
   }
   // Ensure epub section exists
   if (!tsSpec.epub) tsSpec.epub = { toc_depth: 2, landmarks: true, chapter_break: 'page', section_break: 'breve', body_font_size: 'inherit', embed_fonts: false, custom_css: '', language: 'en', subject: '', description: '' };
+  // Migrate old "W x H" trim values to Typst paper names
+  if (tsSpec.page && tsSpec.page.trim) {
+    const oldTrim = tsSpec.page.trim;
+    if (trimAliases[oldTrim]) {
+      const mapped = trimAliases[oldTrim];
+      if (mapped !== 'custom') {
+        tsSpec.page.trim = mapped;
+      } else if (trimLegacyDims[oldTrim]) {
+        // Keep as custom but set dimensions
+        const ld = trimLegacyDims[oldTrim];
+        tsSpec.page.trim = 'custom';
+        tsSpec.page.width_in = ld[0];
+        tsSpec.page.height_in = ld[1];
+      }
+    }
+  }
   // Text/number/select inputs
   tsForm.querySelectorAll('[data-path]').forEach(el => {
     const val = tsGetPath(tsSpec, el.dataset.path);
@@ -1487,6 +1516,14 @@ tsForm.addEventListener('input', (e) => {
   tsSetPath(tsSpec, el.dataset.path, val);
   tsMarkDirty();
   if (el.dataset.path.startsWith('page.')) tsUpdatePagePreview();
+  // When user manually edits width or height, switch trim dropdown to Custom
+  if (el.dataset.path === 'page.width_in' || el.dataset.path === 'page.height_in') {
+    const trimSel = document.getElementById('ts-trim-select');
+    if (trimSel && trimSel.value !== 'custom') {
+      trimSel.value = 'custom';
+      tsSetPath(tsSpec, 'page.trim', 'custom');
+    }
+  }
   if (el.dataset.path === 'typography.base_size_pt' || el.dataset.path === 'typography.leading_pt') tsUpdateLeadingHint();
 });
 tsForm.addEventListener('change', (e) => {
@@ -1576,17 +1613,44 @@ tsExport.addEventListener('click', () => {
   a.click();
 });
 
-// Trim presets
-const trimPresets = { '5.5 x 8.5': [5.5, 8.5], '6 x 9': [6, 9], '5 x 8': [5, 8], '8.5 x 11': [8.5, 11] };
+// Trim presets — Typst paper names → [width_in, height_in]
+// All mm values converted via mm/25.4, rounded to 4 decimal places
+const trimPresets = {
+  'us-digest':    [+(139.7/25.4).toFixed(4), +(215.9/25.4).toFixed(4)],   // 5.5 × 8.5
+  'us-trade':     [+(152.4/25.4).toFixed(4), +(228.6/25.4).toFixed(4)],   // 6 × 9
+  'uk-book-a':    [+(111/25.4).toFixed(4),   +(178/25.4).toFixed(4)],     // 4.3701 × 7.0079
+  'uk-book-b':    [+(129/25.4).toFixed(4),   +(198/25.4).toFixed(4)],     // 5.0787 × 7.7953
+  'a5':           [+(148/25.4).toFixed(4),   +(210/25.4).toFixed(4)],     // 5.8268 × 8.2677
+  'a4':           [+(210/25.4).toFixed(4),   +(297/25.4).toFixed(4)],     // 8.2677 × 11.6929
+  'a6':           [+(105/25.4).toFixed(4),   +(148/25.4).toFixed(4)],     // 4.1339 × 5.8268
+  'jis-b5':       [+(182/25.4).toFixed(4),   +(257/25.4).toFixed(4)],     // 7.1654 × 10.1181
+  'jis-b6':       [+(128/25.4).toFixed(4),   +(182/25.4).toFixed(4)],     // 5.0394 × 7.1654
+  'us-letter':    [8.5, 11],
+  'us-legal':     [8.5, 14],
+  'us-executive': [+(184.15/25.4).toFixed(4), +(266.7/25.4).toFixed(4)],  // 7.25 × 10.5
+  'us-statement': [+(139.7/25.4).toFixed(4), +(215.9/25.4).toFixed(4)],   // same as digest
+};
+// Backward-compat aliases for old "W x H" format values
+const trimAliases = {
+  '5.5 x 8.5': 'us-digest',
+  '6 x 9':     'us-trade',
+  '5 x 8':     'custom',   // no Typst equivalent; treat as custom 5×8
+  '8.5 x 11':  'us-letter',
+};
+// Old W×H values that need explicit dims when they don't map to a Typst name
+const trimLegacyDims = {
+  '5 x 8': [5, 8],
+};
 function tsHandleTrimChange(trim) {
   const dims = trimPresets[trim];
   if (dims) {
-    tsSetPath(tsSpec, 'page.width_in', dims[0]);
-    tsSetPath(tsSpec, 'page.height_in', dims[1]);
+    const w = +dims[0], h = +dims[1];
+    tsSetPath(tsSpec, 'page.width_in', w);
+    tsSetPath(tsSpec, 'page.height_in', h);
     const wEl = tsForm.querySelector('[data-path="page.width_in"]');
     const hEl = tsForm.querySelector('[data-path="page.height_in"]');
-    if (wEl) wEl.value = dims[0];
-    if (hEl) hEl.value = dims[1];
+    if (wEl) wEl.value = w;
+    if (hEl) hEl.value = h;
   }
   tsUpdatePagePreview();
 }
