@@ -3,628 +3,475 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard — ProdCal</title>
+<title>Production</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<script>
+(function() {
+  try {
+    var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+    if (t && t.dark) document.documentElement.classList.add('dark');
+  } catch(e) {}
+})();
+</script>
 <style>
-:root {
-  --bg: #ffffff;
-  --surface: #f8f9fa;
-  --surface2: #f1f3f5;
-  --border: #e5e7eb;
-  --text: #111827;
-  --text-dim: #6b7280;
-  --accent: #2563eb;
-  --green: #16a34a;
-  --yellow: #ca8a04;
-  --red: #dc2626;
-  --orange: #ea580c;
-}
-[data-theme="dark"] {
-  --bg: #111111;
-  --surface: #1a1a1a;
-  --surface2: #222222;
-  --border: #2a2a2a;
-  --text: #e4e6f0;
-  --text-dim: #8b8fa8;
-  --accent: #2563eb;
-  --green: #4ade80;
-  --yellow: #facc15;
-  --red: #f87171;
-  --orange: #fb923c;
-}
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f8f9fa; --surface: #ffffff; --border: #e0e2e6;
+  --text: #111827; --text-secondary: #6b7280; --text-muted: #9ca3af;
+  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --yellow: #ca8a04; --orange: #ea580c;
+  --badge-green-bg: rgba(22,163,74,0.1); --badge-red-bg: rgba(220,38,38,0.1);
+  --badge-yellow-bg: rgba(202,138,4,0.1);
+  --badge-dim-bg: #f1f3f5; --progress-bg: #f1f3f5;
+  --toggle-bg: #f8f9fa;
+  --noise-opacity: 0.035; --grid-color: rgba(160,168,180,0.6);
+  --gradient-wash: linear-gradient(to bottom, rgba(230,233,240,0.3) 0%, transparent 60%);
+  --theme-bg: rgba(255,255,255,0.92);
+}
+
+html.dark {
+  --bg: #0f1115; --surface: #1a1d24; --border: #2a2d35;
+  --text: #e4e5e7; --text-secondary: #9ca0a8; --text-muted: #6b7074;
+  --accent: #5b9aff; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --orange: #fb923c;
+  --badge-green-bg: rgba(52,211,153,0.12); --badge-red-bg: rgba(248,113,113,0.12);
+  --badge-yellow-bg: rgba(251,191,36,0.12);
+  --badge-dim-bg: #23262e; --progress-bg: #23262e;
+  --toggle-bg: #23262e;
+  --noise-opacity: 0.012; --grid-color: rgba(90,96,110,0.7);
+  --gradient-wash: linear-gradient(to bottom, rgba(20,22,28,0.4) 0%, transparent 60%);
+  --theme-bg: rgba(26,29,36,0.92);
+}
+
 body {
-  font-family: 'Saira Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding: 2rem 1.5rem;
-  font-size: 17px;
+  background: var(--bg); font-family: 'IBM Plex Serif', Georgia, serif;
+  color: var(--text); min-height: 100vh; position: relative;
+  transition: background 0.3s, color 0.3s;
 }
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
-}
-h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.header-right {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-.health-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  font-weight: 400;
-}
-.health-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-.health-ok { background: var(--green); }
-.health-err { background: var(--red); }
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 15px;
-  transition: all 0.15s;
-  padding: 0;
-  line-height: 1;
-}
-.theme-toggle:hover { background: var(--surface2); color: var(--text); }
+body, body * { font-weight: 400; }
 
-/* Badges */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px; opacity: var(--noise-opacity);
 }
-.badge-green { background: rgba(22,163,74,0.08); color: var(--green); }
-.badge-yellow { background: rgba(202,138,4,0.08); color: var(--yellow); }
-.badge-red { background: rgba(220,38,38,0.08); color: var(--red); }
-.badge-dim { background: var(--surface2); color: var(--text-dim); }
-[data-theme="dark"] .badge-green { background: rgba(74,222,128,0.12); }
-[data-theme="dark"] .badge-yellow { background: rgba(250,204,21,0.12); }
-[data-theme="dark"] .badge-red { background: rgba(248,113,113,0.12); }
-
-/* Status dot inside badge */
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-.status-dot.green { background: var(--green); }
-.status-dot.yellow { background: var(--yellow); }
-.status-dot.red { background: var(--red); }
-.status-dot.dim { background: var(--text-dim); }
-
-/* Stats */
-.stats-row {
-  display: flex;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
-.stat-card {
-  flex: 1;
-  min-width: 120px;
-}
-.stat-card .label {
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  font-weight: 400;
-  margin-bottom: 0.25rem;
-}
-.stat-card .value {
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+body::after {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 50vh; z-index: 0;
+  pointer-events: none; background: var(--gradient-wash);
 }
 
-/* Tabs */
-.tab-bar {
-  display: flex;
-  gap: 0;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
+.grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: flex; justify-content: center; }
+.grid-lines-inner { width: 1140px; max-width: 100vw; display: flex; justify-content: space-between; padding: 0; }
+.grid-line {
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, var(--grid-color) 0px, var(--grid-color) 4px, transparent 4px, transparent 10px);
 }
-.tab-btn {
-  padding: 0.6rem 1.25rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--text-dim);
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
+
+.content { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+.theme-bar {
+  position: fixed; top: 1rem; right: 2rem; z-index: 200;
+  display: flex; align-items: center; gap: 0.35rem;
+  background: var(--theme-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 20px;
+  padding: 0.3rem 0.4rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.theme-bar .font-options {
+  display: flex; gap: 0.25rem; overflow: hidden;
+  max-width: 0; opacity: 0;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+}
+.theme-bar.expanded .font-options {
+  max-width: 400px; opacity: 1;
+}
+
+.theme-bar .font-name {
+  padding: 0.35rem 0.75rem; font-size: 0.8rem; color: var(--text-secondary);
+  cursor: pointer; white-space: nowrap; transition: color 0.15s;
+  border-radius: 14px;
+}
+.theme-bar .font-name:hover { color: var(--text); }
+.theme-bar.expanded .font-name { display: none; }
+
+.theme-opt {
+  padding: 0.35rem 0.75rem; border-radius: 14px; border: none;
+  background: transparent; color: var(--text-secondary); font-size: 0.78rem;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
   font-family: inherit;
 }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+.theme-opt:hover { color: var(--text); background: var(--progress-bg); }
+.theme-opt.active { color: var(--accent); background: rgba(37,99,235,0.08); }
+html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
+
+.theme-sep {
+  width: 1px; height: 18px; background: var(--border);
+  margin: 0 0.1rem; flex-shrink: 0; align-self: center;
 }
+
+.dark-btn {
+  width: 28px; height: 28px; padding: 0; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.dark-btn:hover { color: var(--text); background: var(--progress-bg); }
+
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 2rem;
+}
+.header h1 { font-size: 1.5rem; letter-spacing: -0.03em; color: var(--text); }
+
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 2rem; align-items: center; }
+.tab { padding: 0.6rem 1.25rem; font-size: 0.9rem; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs .status { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; padding-right: 0.25rem; position: relative; cursor: default; }
+.tabs .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+.tabs .status .tip { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.85rem; font-size: 0.76rem; line-height: 1.5; color: var(--text-secondary); white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; }
+.tabs .status:hover .tip { display: block; }
+
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
-/* Projects */
-.projects-grid {
-  display: grid;
-  gap: 0.75rem;
-}
-.project-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1.25rem 1.5rem;
-  transition: border-color 0.2s;
-}
-.project-card:hover {
-  border-color: var(--accent);
-}
-.project-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-}
-.project-name {
-  font-size: 1.15rem;
-  font-weight: 600;
-}
-.project-path {
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
-  margin-top: 0.15rem;
-}
-.project-meta {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.75rem;
-}
-.project-meta span {
-  font-size: 0.78rem;
-  color: var(--text-dim);
-}
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--surface2);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 0.6rem;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2.5rem; }
+.stat .label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+.stat .value { font-size: 1.75rem; letter-spacing: -0.02em; color: var(--text); }
+
+.project { padding: 1.25rem 0; border-bottom: 1px solid var(--border); }
+.project:last-of-type { border-bottom: none; }
+.project-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; }
+.project-title { font-size: 1.05rem; color: var(--text); }
+.project-path { font-size: 0.8rem; color: var(--text-muted); font-family: 'Menlo', 'Consolas', monospace; margin-top: 0.1rem; }
+.project-meta { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+.badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.72rem; }
+.badge-green { background: var(--badge-green-bg); color: var(--green); }
+.badge-red { background: var(--badge-red-bg); color: var(--red); }
+.badge-yellow { background: var(--badge-yellow-bg); color: var(--yellow); }
+.badge-dim { background: var(--badge-dim-bg); color: var(--text-secondary); }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.status-dot.green { background: var(--green); }
+.status-dot.yellow { background: var(--yellow); }
+.status-dot.red { background: var(--red); }
+.status-dot.dim { background: var(--text-secondary); }
+.task-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 0.35rem; }
+.task-row .active-count { color: var(--yellow); }
+.progress { width: 100%; height: 3px; background: var(--progress-bg); border-radius: 2px; overflow: hidden; margin-bottom: 0.6rem; }
+.progress-fill { height: 100%; border-radius: 2px; }
+.progress-fill.blue { background: var(--accent); }
 .progress-fill.green { background: var(--green); }
 .progress-fill.yellow { background: var(--yellow); }
-.progress-fill.accent { background: var(--accent); }
-.links {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
-}
-.links a, .links button.email-btn {
-  font-size: 0.78rem;
-  color: var(--accent);
-  text-decoration: none;
-}
-.links a:hover, .links button.email-btn:hover {
-  text-decoration: underline;
-}
-.email-btn {
-  background: none;
-  border: none;
-  font-size: 0.78rem;
-  color: var(--accent);
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-}
-.email-btn:hover {
-  text-decoration: underline;
-}
+.links { display: flex; gap: 0.75rem; }
+.links a, .links button.email-btn { font-size: 0.8rem; color: var(--accent); text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
+.links a:hover, .links button.email-btn:hover { text-decoration: underline; }
 
-#loading {
-  text-align: center;
-  padding: 4rem;
-  color: var(--text-dim);
-  font-size: 0.9rem;
-}
-.empty {
-  text-align: center;
-  padding: 4rem;
-  color: var(--text-dim);
-}
-
-/* Books */
-.upload-zone {
-  border: 1.5px dashed var(--border);
-  border-radius: 6px;
-  padding: 2.5rem;
-  text-align: center;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-}
-.upload-zone:hover, .upload-zone.dragover {
-  border-color: var(--accent);
-  background: rgba(37,99,235,0.03);
-  color: var(--text);
-}
-.upload-zone .icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-  color: var(--text-dim);
-}
+.section-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 2.5rem 0 1rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+.upload-zone { border: 2px dashed var(--border); border-radius: 6px; padding: 2rem; text-align: center; color: var(--text-secondary); margin-bottom: 1.25rem; transition: border-color 0.3s; cursor: pointer; }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(37,99,235,0.03); color: var(--text); }
+.upload-zone .icon { font-size: 1.5rem; margin-bottom: 0.25rem; color: var(--text-muted); }
 .upload-zone input[type="file"] { display: none; }
+
 .book-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin-bottom: 1.5rem; display: none;
 }
+.book-form.active { display: grid; }
 .book-form .full { grid-column: 1 / -1; }
 .book-form label {
-  display: block;
-  font-size: 0.78rem;
-  color: var(--text-dim);
+  display: block; font-size: 0.78rem; color: var(--text-secondary);
   margin-bottom: 0.3rem;
-  font-weight: 500;
 }
 .book-form input, .book-form select {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.9rem;
+  width: 100%; padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: var(--text); font-size: 0.9rem;
   font-family: inherit;
 }
 .book-form input:focus, .book-form select:focus {
-  outline: none;
-  border-color: var(--accent);
+  outline: none; border-color: var(--accent);
 }
 .book-form .actions {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
+  display: flex; gap: 0.75rem; align-items: center;
 }
 .btn {
-  padding: 0.45rem 1rem;
-  border-radius: 4px;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.15s;
-  font-family: inherit;
+  padding: 0.45rem 1rem; border-radius: 4px;
+  border: 1px solid var(--accent); background: var(--accent);
+  color: #fff; font-size: 0.85rem; cursor: pointer;
+  transition: opacity 0.15s; font-family: inherit;
 }
 .btn:hover { opacity: 0.9; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-secondary {
-  background: transparent;
-  color: var(--text);
-  border-color: var(--border);
+  background: transparent; color: var(--text); border-color: var(--border);
 }
-.btn-secondary:hover { background: var(--surface2); }
-.book-list {
-  display: grid;
-  gap: 0.5rem;
-}
-.book-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.85rem 1.25rem;
-}
-.book-row .book-info { flex: 1; }
-.book-row .book-title { font-weight: 600; font-size: 1.05rem; }
-.book-row .book-author { font-size: 0.82rem; color: var(--text-dim); }
-.book-row .book-meta {
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  margin-top: 0.2rem;
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
-}
-.book-row .book-actions { display: flex; gap: 0.4rem; align-items: center; }
-.book-row .book-actions a, .book-row .book-actions button {
-  font-size: 0.78rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-}
-.book-row .book-actions a:hover, .book-row .book-actions button:hover {
-  background: var(--surface2);
-}
-.book-row .book-actions .dl-pdf { color: var(--green); border-color: var(--green); }
-.book-row .book-actions .dl-epub { color: var(--accent); border-color: var(--accent); }
+.btn-secondary:hover { background: var(--progress-bg); }
 
-/* Modal */
+.book { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.book:last-child { border-bottom: none; }
+.book-info { flex: 1; }
+.book-title { font-size: 0.95rem; color: var(--text); }
+.book-author { font-size: 0.8rem; color: var(--text-secondary); }
+.book-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+.book-actions { display: flex; gap: 0.4rem; }
+.book-actions a, .book-actions button { font-size: 0.78rem; padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
+.book-actions a:hover, .book-actions button:hover { background: var(--progress-bg); }
+.book-actions .dl-pdf { color: var(--green); border-color: var(--green); }
+.book-actions .dl-epub { color: var(--accent); border-color: var(--accent); }
+.book-actions .del { color: var(--red); border-color: transparent; }
+.book-actions .del:hover { border-color: var(--red); }
+
+#loading, .empty {
+  text-align: center; padding: 4rem; color: var(--text-muted); font-size: 0.9rem;
+}
+
 .modal-backdrop {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3); display: flex;
+  align-items: center; justify-content: center; z-index: 1000;
 }
-[data-theme="dark"] .modal-backdrop {
-  background: rgba(0,0,0,0.6);
-}
+html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
 .modal-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 24px;
-  max-width: 460px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 24px; max-width: 460px; width: 90%; max-height: 80vh; overflow-y: auto;
 }
 .modal-card h2 {
-  margin: 0 0 6px;
-  font-size: 1.05rem;
-  font-weight: 600;
+  margin: 0 0 6px; font-size: 1.05rem;
 }
 .modal-card p.subtitle {
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  margin: 0 0 16px;
+  color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 16px;
 }
 .modal-card .recipient-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
 }
 .modal-card .recipient-row input[type="email"] {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.85rem;
-  font-family: inherit;
+  flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg); color: var(--text);
+  font-size: 0.85rem; font-family: inherit;
 }
 .modal-card .recipient-row input[type="email"]:focus {
-  outline: none;
-  border-color: var(--accent);
+  outline: none; border-color: var(--accent);
 }
 .modal-card .msg-ok {
-  background: rgba(22,163,74,0.06);
-  border: 1px solid rgba(22,163,74,0.15);
-  border-radius: 4px;
-  padding: 10px 12px;
-  margin-bottom: 16px;
-  font-size: 0.82rem;
-  color: var(--green);
+  background: rgba(22,163,74,0.06); border: 1px solid rgba(22,163,74,0.15);
+  border-radius: 4px; padding: 10px 12px; margin-bottom: 16px;
+  font-size: 0.82rem; color: var(--green);
 }
 .modal-card .msg-err {
-  background: rgba(220,38,38,0.06);
-  border: 1px solid rgba(220,38,38,0.15);
-  border-radius: 4px;
-  padding: 10px 12px;
-  margin-bottom: 16px;
-  font-size: 0.82rem;
-  color: var(--red);
+  background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.15);
+  border-radius: 4px; padding: 10px 12px; margin-bottom: 16px;
+  font-size: 0.82rem; color: var(--red);
 }
 .modal-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 16px;
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;
 }
 .modal-actions button {
-  padding: 7px 14px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  font-size: 0.85rem;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s;
+  padding: 7px 14px; border-radius: 4px; border: 1px solid var(--border);
+  background: transparent; color: var(--text); font-size: 0.85rem;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.modal-actions button:hover {
-  background: var(--surface2);
-}
+.modal-actions button:hover { background: var(--progress-bg); }
 .modal-actions button.primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
-.modal-actions button.primary:hover {
-  opacity: 0.9;
-}
-.modal-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-/* Colophon */
+.modal-actions button.primary:hover { opacity: 0.9; }
+.modal-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .colophon {
-  margin-top: 4rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  line-height: 1.5;
+  margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+  font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;
 }
 .colophon a {
-  color: var(--text-dim);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
 }
-.colophon a:hover {
-  color: var(--text);
-}
+.colophon a:hover { color: var(--text); }
 </style>
 </head>
 <body>
-<div class="container">
 
-<div class="header">
-  <h1>ProdCal</h1>
-  <div class="header-right">
-    <span class="health-badge" id="health">
-      <span class="health-indicator" id="health-dot"></span>
-      checking…
-    </span>
-    <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode"></button>
+<div class="grid-lines"><div class="grid-lines-inner">
+  <div class="grid-line"></div><div class="grid-line"></div>
+</div></div>
+
+<div class="theme-bar" id="theme-bar">
+  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
+  <div class="font-options" id="font-options">
+    <button class="theme-opt" data-font="literata">Literata</button>
+    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
+    <button class="theme-opt" data-font="menlo">Menlo</button>
+    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
   </div>
+  <div class="theme-sep"></div>
+  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
 </div>
 
-<div class="tab-bar">
-  <button class="tab-btn active" data-tab="projects">Projects</button>
-  <button class="tab-btn" data-tab="books">Books</button>
-</div>
-
-<div id="tab-projects" class="tab-panel active">
-  <div class="stats-row" id="stats"></div>
-  <div id="loading">Loading…</div>
-  <div class="projects-grid" id="projects"></div>
-</div>
-
-<div id="tab-books" class="tab-panel">
-  <div class="upload-zone" id="upload-zone">
-    <div class="icon">△</div>
-    <div>Drop a Word file here or <strong>click to upload</strong></div>
-    <div style="font-size:0.78rem;margin-top:0.5rem;color:var(--text-dim)">.docx files only</div>
-    <input type="file" id="book-file" accept=".docx,.doc">
+<div class="content">
+  <div class="header">
+    <h1>Production</h1>
   </div>
-  <div class="book-form" id="book-form" style="display:none">
-    <div>
-      <label>Title</label>
-      <input type="text" id="book-title" placeholder="Ghosts in Machines">
-    </div>
-    <div>
-      <label>Author</label>
-      <input type="text" id="book-author" placeholder="Author Name">
-    </div>
-    <div>
-      <label>Series</label>
-      <select id="book-series">
-        <option value="A Protocolized Anthology">Protocolized Anthology</option>
-        <option value="">None</option>
-      </select>
-    </div>
-    <div class="actions">
-      <button class="btn" id="btn-upload" disabled>Upload &amp; Convert</button>
-      <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
-      <span id="upload-status" style="font-size:0.82rem;color:var(--text-dim)"></span>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="projects">Projects</div>
+    <div class="tab" data-tab="books">Books</div>
+    <div class="status" id="status-indicator">
+      <span class="dot"></span> <span id="status-label">checking…</span>
+      <div class="tip" id="status-tip">Checking system health…</div>
     </div>
   </div>
-  <div id="book-list-loading" style="text-align:center;padding:2rem;color:var(--text-dim);font-size:0.9rem">Loading books…</div>
-  <div class="book-list" id="book-list"></div>
+
+  <div id="tab-projects" class="tab-panel active">
+    <div class="stats" id="stats"></div>
+    <div id="loading">Loading…</div>
+    <div id="projects"></div>
+  </div>
+
+  <div id="tab-books" class="tab-panel">
+    <div class="upload-zone" id="upload-zone">
+      <div class="icon">△</div>
+      <div>Drop a Word file here or <strong>click to upload</strong></div>
+      <div style="font-size:0.78rem;margin-top:0.35rem">.docx files only</div>
+      <input type="file" id="book-file" accept=".docx,.doc">
+    </div>
+    <div class="book-form" id="book-form">
+      <div>
+        <label>Title</label>
+        <input type="text" id="book-title" placeholder="Ghosts in Machines">
+      </div>
+      <div>
+        <label>Author</label>
+        <input type="text" id="book-author" placeholder="Author Name">
+      </div>
+      <div>
+        <label>Series</label>
+        <select id="book-series">
+          <option value="A Protocolized Anthology">Protocolized Anthology</option>
+          <option value="">None</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btn-upload" disabled>Upload &amp; Convert</button>
+        <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
+        <span id="upload-status" style="font-size:0.82rem;color:var(--text-muted)"></span>
+      </div>
+    </div>
+    <div id="book-list-loading" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.9rem">Loading books…</div>
+    <div id="book-list"></div>
+  </div>
+
+  <footer class="colophon">
+    <p>Set in a randomized selection from <a href="https://github.com/googlefonts/literata" target="_blank">Literata</a> by TypeTogether, <a href="https://github.com/IBM/plex" target="_blank">IBM Plex</a> by Mike Abbink & Bold Monday, and Menlo. Font preference resets on each visit; only dark mode persists.</p>
+  </footer>
+
 </div>
-
-<footer class="colophon">
-  <p>Set in <a href="https://github.com/Omnibus-Type/Saira" target="_blank">Saira Condensed</a> by Héctor Gatti &amp; Omnibus-Type — a contemporary sans serif system designed for newspapers, magazines, books, and websites.</p>
-</footer>
-
-</div><!-- .container -->
 
 <script>
-// Theme toggle — shared localStorage key with calendar/transmittal
-function getTheme() { return localStorage.getItem('prodcal-theme') || 'light'; }
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('theme-toggle').textContent = t === 'dark' ? '\u2600' : '\u263E';
-}
-function toggleTheme() {
-  const next = getTheme() === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('prodcal-theme', next);
-  applyTheme(next);
-}
-applyTheme(getTheme());
-document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+// ─── Font System ───
+var fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
+  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
+  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
+  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
+};
+var fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
+var state = { font: fontKeys[Math.floor(Math.random() * fontKeys.length)], dark: false };
+try {
+  var saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (saved) state.dark = saved.dark;
+} catch(e) {}
 
-const $stats = document.getElementById('stats');
-const $projects = document.getElementById('projects');
-const $loading = document.getElementById('loading');
-const $health = document.getElementById('health');
-const $healthDot = document.getElementById('health-dot');
+function applyState() {
+  var f = fonts[state.font];
+  if (f) {
+    document.body.style.fontFamily = f.family;
+    document.getElementById('font-name').textContent = f.label;
+  }
+  document.documentElement.classList.toggle('dark', state.dark);
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.font === state.font);
+  });
+  document.getElementById('dark-btn').textContent = state.dark ? '\u2600' : '\u263e';
+}
+
+function saveState() {
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: state.dark })); } catch(e) {}
+}
+
+function setFont(key) { state.font = key; applyState(); saveState(); }
+function toggleDark() { state.dark = !state.dark; applyState(); saveState(); }
+
+var bar = document.getElementById('theme-bar');
+var nameEl = document.getElementById('font-name');
+var expanded = false;
+
+nameEl.addEventListener('click', function() {
+  expanded = !expanded;
+  bar.classList.toggle('expanded', expanded);
+});
+
+document.addEventListener('click', function(e) {
+  if (expanded && !bar.contains(e.target)) {
+    expanded = false;
+    bar.classList.remove('expanded');
+  }
+});
+
+document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    setFont(this.dataset.font);
+    expanded = false;
+    bar.classList.remove('expanded');
+  });
+});
+
+document.getElementById('dark-btn').addEventListener('click', toggleDark);
+
+applyState();
+
+// ─── Health Check ───
+var statusMessages = {
+  healthy:  'All systems operational',
+  degraded: 'Some services are slow \u2014 we\u2019re looking into it',
+  unhealthy: 'System is experiencing issues — contact j@djinna.com'
+};
 
 async function checkHealth() {
   try {
     const r = await fetch('/healthz');
     const d = await r.json();
     if (d.status === 'ok') {
-      $healthDot.className = 'health-indicator health-ok';
-      $health.innerHTML = '<span class="health-indicator health-ok"></span> Healthy';
-      $health.className = 'health-badge';
+      setStatus('healthy');
     } else {
-      throw new Error(d.detail);
+      setStatus('degraded');
     }
   } catch(e) {
-    $healthDot.className = 'health-indicator health-err';
-    $health.innerHTML = '<span class="health-indicator health-err"></span> Unhealthy';
-    $health.className = 'health-badge';
+    setStatus('unhealthy');
   }
 }
+
+function setStatus(level) {
+  var el = document.getElementById('status-indicator');
+  var dot = el.querySelector('.dot');
+  var label = document.getElementById('status-label');
+  var tip = document.getElementById('status-tip');
+  var colors = { healthy: 'var(--green)', degraded: 'var(--yellow)', unhealthy: 'var(--red)' };
+  var labels = { healthy: 'Healthy', degraded: 'Degraded', unhealthy: 'Unhealthy' };
+  dot.style.background = colors[level];
+  label.textContent = labels[level];
+  tip.textContent = statusMessages[level];
+}
+
+// ─── Projects ───
+const $stats = document.getElementById('stats');
+const $projects = document.getElementById('projects');
+const $loading = document.getElementById('loading');
 
 async function loadProjects() {
   try {
     const r = await fetch('/api/admin/projects');
     if (r.status === 403) {
-      $loading.innerHTML = 'Forbidden \u2014 exe.dev login required. <a href="/" style="color:var(--accent)">Go to home</a>';
+      $loading.innerHTML = 'Forbidden — exe.dev login required. <a href="/" style="color:var(--accent)">Go to home</a>';
       return;
     }
     const projects = await r.json();
@@ -643,26 +490,11 @@ function renderStats(projects) {
   const withTransmittal = projects.filter(p => p.has_transmittal).length;
 
   $stats.innerHTML = `
-    <div class="stat-card">
-      <div class="label">Projects</div>
-      <div class="value">${projects.length}</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Total Tasks</div>
-      <div class="value">${totalTasks}</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Completed</div>
-      <div class="value">${totalDone}</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">In Progress</div>
-      <div class="value">${totalActive}</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Transmittals</div>
-      <div class="value">${withTransmittal}</div>
-    </div>
+    <div class="stat"><div class="label">Projects</div><div class="value">${projects.length}</div></div>
+    <div class="stat"><div class="label">Total Tasks</div><div class="value">${totalTasks}</div></div>
+    <div class="stat"><div class="label">Completed</div><div class="value">${totalDone}</div></div>
+    <div class="stat"><div class="label">In Progress</div><div class="value">${totalActive}</div></div>
+    <div class="stat"><div class="label">Transmittals</div><div class="value">${withTransmittal}</div></div>
   `;
 }
 
@@ -674,49 +506,41 @@ function renderProjects(projects) {
 
   $projects.innerHTML = projects.map(p => {
     const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
-    const barClass = pct === 100 ? 'green' : pct > 50 ? 'accent' : 'yellow';
+    const barClass = pct === 100 ? 'green' : pct > 50 ? 'blue' : 'yellow';
     const authBadge = p.has_auth
       ? '<span class="badge badge-green"><span class="status-dot green"></span> Protected</span>'
       : '<span class="badge badge-red"><span class="status-dot red"></span> No auth</span>';
     const transmittalBadge = p.has_transmittal
-      ? `<span class="badge badge-dim"><span class="status-dot dim"></span> ${p.transmittal_status || 'draft'}</span>`
+      ? `<span class="badge badge-dim"><span class="status-dot dim"></span> ${esc(p.transmittal_status || 'draft')}</span>`
       : '';
 
-    const created = new Date(p.created_at).toLocaleDateString();
-    const updated = new Date(p.updated_at).toLocaleDateString();
+    const created = p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : 'N/A';
+    const start = p.start_date || 'N/A';
+    const updated = p.updated_at ? new Date(p.updated_at).toISOString().split('T')[0] : 'N/A';
 
     return `
-      <div class="project-card">
+      <div class="project">
         <div class="project-top">
           <div>
-            <div class="project-name">${esc(p.name)}</div>
+            <div class="project-title">${esc(p.name)}</div>
             <div class="project-path">${esc(p.path)}</div>
           </div>
-          <div style="display:flex;gap:0.5rem">
+          <div style="display:flex;gap:0.4rem">
             ${authBadge}
             ${transmittalBadge}
           </div>
         </div>
-        <div class="project-meta">
-          <span>Start: ${esc(p.start_date || 'N/A')}</span>
-          <span>Created: ${created}</span>
-          <span>Updated: ${updated}</span>
+        <div class="project-meta">Created: ${created} &nbsp; Start: ${start} &nbsp; Updated: ${updated}</div>
+        <div class="task-row">
+          <span>${p.done_count}/${p.task_count} tasks done${p.active_count > 0 ? ` &middot; <span class="active-count">${p.active_count} active</span>` : ''}</span>
+          <span${pct===100?' style="color:var(--green)"':''}>${pct}%</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:0.85rem">
-            <strong>${p.done_count}</strong>/${p.task_count} tasks done
-            ${p.active_count > 0 ? `\u00b7 <span style="color:var(--yellow)">${p.active_count} active</span>` : ''}
-          </span>
-          <span style="font-size:0.85rem;font-weight:600;color:${pct===100?'var(--green)':'var(--text)'}">${pct}%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill ${barClass}" style="width:${pct}%"></div>
-        </div>
+        <div class="progress"><div class="progress-fill ${barClass}" style="width:${pct}%"></div></div>
         <div class="links">
           <a href="${esc(p.path)}" target="_blank">Calendar</a>
           <a href="${esc(p.path)}transmittal/" target="_blank">Transmittal</a>
-          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'") }', 'snapshot')">Snapshot</button>
-          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'") }', 'activity')">Activity</button>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
         </div>
       </div>
     `;
@@ -756,7 +580,6 @@ function closeEmailModal() {
 }
 
 function renderEmailModal() {
-  // Remove existing
   const existing = document.querySelector('.modal-backdrop');
   if (existing) existing.remove();
 
@@ -773,7 +596,7 @@ function renderEmailModal() {
   let html = `<h2>Email ${esc(typeLabel)}</h2>`;
   html += `<p class="subtitle">Project: <strong>${esc(projectName)}</strong></p>`;
 
-  html += '<div style="margin-bottom:16px"><label style="font-weight:600;display:block;margin-bottom:8px">Send to:</label>';
+  html += '<div style="margin-bottom:16px"><label style="display:block;margin-bottom:8px">Send to:</label>';
   emailModalRecipients.forEach((r, i) => {
     html += '<div class="recipient-row">';
     html += `<input type="checkbox" data-idx="${i}" ${r.checked ? 'checked' : ''}>`;
@@ -782,7 +605,7 @@ function renderEmailModal() {
     } else {
       html += `<span style="font-size:14px">${esc(r.email)}</span>`;
     }
-    html += `<span style="font-size:12px;color:var(--text-dim)">${esc(r.label)}</span>`;
+    html += `<span style="font-size:12px;color:var(--text-secondary)">${esc(r.label)}</span>`;
     html += '</div>';
   });
   html += '</div>';
@@ -800,7 +623,7 @@ function renderEmailModal() {
   } else {
     html += '<button id="em-cancel">Cancel</button>';
     const disabled = sending ? ' disabled' : '';
-    html += `<button class="primary" id="em-send"${disabled}>${sending ? 'Sending\u2026' : 'Send ' + esc(typeLabel)}</button>`;
+    html += `<button class="primary" id="em-send"${disabled}>${sending ? 'Sending…' : 'Send ' + esc(typeLabel)}</button>`;
   }
   html += '</div>';
 
@@ -808,7 +631,6 @@ function renderEmailModal() {
   backdrop.appendChild(modal);
   document.body.appendChild(backdrop);
 
-  // Wire up events
   modal.querySelectorAll('input[data-idx]').forEach(cb => {
     cb.addEventListener('change', () => {
       emailModalRecipients[parseInt(cb.dataset.idx)].checked = cb.checked;
@@ -866,13 +688,13 @@ async function sendEmailFromModal() {
 }
 
 // ─── Tabs ───
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'books') loadBooks();
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'books') loadBooks();
   });
 });
 
@@ -912,9 +734,8 @@ function handleFileSelect(file) {
     return;
   }
   selectedFile = file;
-  $bookForm.style.display = 'grid';
+  $bookForm.classList.add('active');
   $uploadZone.innerHTML = `<div class="icon">\u2713</div><div><strong>${esc(file.name)}</strong> (${(file.size/1024).toFixed(0)} KB)</div>`;
-  // Try to guess title from filename
   const name = file.name.replace(/\.docx?$/i, '').replace(/[-_]/g, ' ');
   if (!$bookTitle.value) $bookTitle.value = name;
   checkUploadReady();
@@ -932,13 +753,12 @@ $btnCancel.addEventListener('click', resetUploadForm);
 function resetUploadForm() {
   selectedFile = null;
   $bookFile.value = '';
-  $bookForm.style.display = 'none';
+  $bookForm.classList.remove('active');
   $bookTitle.value = '';
   $bookAuthor.value = '';
   $uploadStatus.textContent = '';
   $btnUpload.disabled = true;
-  $uploadZone.innerHTML = `<div class="icon">\u25B3</div><div>Drop a Word file here or <strong>click to upload</strong></div><div style="font-size:0.78rem;margin-top:0.5rem;color:var(--text-dim)">.docx files only</div><input type="file" id="book-file" accept=".docx,.doc">`;
-  // Re-bind file input
+  $uploadZone.innerHTML = `<div class="icon">\u25B3</div><div>Drop a Word file here or <strong>click to upload</strong></div><div style="font-size:0.78rem;margin-top:0.35rem">.docx files only</div><input type="file" id="book-file" accept=".docx,.doc">`;
   document.getElementById('book-file').addEventListener('change', function() {
     if (this.files.length) handleFileSelect(this.files[0]);
   });
@@ -947,7 +767,7 @@ function resetUploadForm() {
 $btnUpload.addEventListener('click', async () => {
   if (!selectedFile) return;
   $btnUpload.disabled = true;
-  $uploadStatus.textContent = 'Uploading\u2026';
+  $uploadStatus.textContent = 'Uploading…';
 
   const fd = new FormData();
   fd.append('file', selectedFile);
@@ -962,14 +782,12 @@ $btnUpload.addEventListener('click', async () => {
       throw new Error(err.error || 'Upload failed');
     }
     const data = await r.json();
-    $uploadStatus.textContent = 'Converting\u2026';
+    $uploadStatus.textContent = 'Converting…';
 
-    // Trigger conversion
     await fetch(`/api/books/${data.id}/convert`, { method: 'POST' });
     $uploadStatus.textContent = 'Conversion started!';
     resetUploadForm();
     loadBooks();
-    // Poll for completion
     pollBookStatus(data.id);
   } catch(e) {
     $uploadStatus.textContent = 'Error: ' + e.message;
@@ -1006,13 +824,13 @@ async function loadBooks() {
 
 function renderBooks(books) {
   if (!books || !books.length) {
-    $bookList.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-dim)">No books yet. Upload a Word file to get started.</div>';
+    $bookList.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">No books yet. Upload a Word file to get started.</div>';
     return;
   }
   $bookList.innerHTML = books.map(b => {
     const statusBadge = {
       'uploaded': '<span class="badge badge-dim"><span class="status-dot dim"></span> Uploaded</span>',
-      'converting': '<span class="badge badge-yellow"><span class="status-dot yellow"></span> Converting\u2026</span>',
+      'converting': '<span class="badge badge-yellow"><span class="status-dot yellow"></span> Converting…</span>',
       'ready': '<span class="badge badge-green"><span class="status-dot green"></span> Ready</span>',
       'error': `<span class="badge badge-red" title="${esc(b.ErrorMsg || '')}"><span class="status-dot red"></span> Error</span>`,
     }[b.Status] || `<span class="badge badge-dim">${esc(b.Status)}</span>`;
@@ -1028,15 +846,15 @@ function renderBooks(books) {
     if (b.Status === 'uploaded') {
       actions += `<button onclick="startConvert(${b.ID})">Convert</button>`;
     }
-    actions += `<button onclick="deleteBook(${b.ID})" style="color:var(--red)">Delete</button>`;
+    actions += `<button class="del" onclick="deleteBook(${b.ID})">Delete</button>`;
 
-    return `<div class="book-row">
+    return `<div class="book">
       <div class="book-info">
         <div class="book-title">${esc(b.Title)}</div>
         <div class="book-author">${esc(b.Author)}${b.Series ? ' \u00b7 ' + esc(b.Series) : ''}</div>
         <div class="book-meta">${esc(b.SourceFilename)} \u00b7 ${ago}</div>
       </div>
-      <div>${statusBadge}</div>
+      ${statusBadge}
       <div class="book-actions">${actions}</div>
     </div>`;
   }).join('');
@@ -1070,9 +888,9 @@ async function deleteBook(id) {
   loadBooks();
 }
 
+// ─── Init ───
 checkHealth();
 loadProjects();
-// Refresh every 30s
 setInterval(() => { checkHealth(); loadProjects(); }, 30000);
 </script>
 </body>
