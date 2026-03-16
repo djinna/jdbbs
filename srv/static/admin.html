@@ -511,25 +511,26 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
             <div class="ts-section-title"><span class="ts-output-badge">PDF</span> Print</div>
 
             <div class="ts-subsection-title">Page Geometry</div>
+            <div id="ts-trim-compare" style="margin-bottom:0.75rem;overflow-x:auto"></div>
             <div class="ts-page-layout">
               <div class="ts-fields">
                 <div class="ts-field full">
                   <label>Trim Size</label>
                   <select data-path="page.trim" id="ts-trim-select">
                     <optgroup label="Book Sizes">
-                      <option value="us-digest">US Digest (5.5 × 8.5 in)</option>
-                      <option value="us-trade">US Trade (6 × 9 in)</option>
-                      <option value="uk-book-a">UK A-format (111 × 178 mm)</option>
-                      <option value="uk-book-b">UK B-format (129 × 198 mm)</option>
-                      <option value="a5">A5 (148 × 210 mm)</option>
-                      <option value="jis-b5">JIS B5 (182 × 257 mm)</option>
-                      <option value="jis-b6">JIS B6 (128 × 182 mm)</option>
+                      <option value="uk-book-a">UK A-format (4.37 × 7.01 in / 111 × 178 mm)</option>
+                      <option value="jis-b6">JIS B6 (5.04 × 7.17 in / 128 × 182 mm)</option>
+                      <option value="uk-book-b">UK B-format (5.08 × 7.80 in / 129 × 198 mm)</option>
+                      <option value="us-digest">US Digest (5.5 × 8.5 in / 140 × 216 mm)</option>
+                      <option value="a5">A5 (5.83 × 8.27 in / 148 × 210 mm)</option>
+                      <option value="us-trade">US Trade (6 × 9 in / 152 × 229 mm)</option>
+                      <option value="jis-b5">JIS B5 (7.17 × 10.12 in / 182 × 257 mm)</option>
                     </optgroup>
                     <optgroup label="Standard">
-                      <option value="us-letter">US Letter (8.5 × 11 in)</option>
-                      <option value="a4">A4 (210 × 297 mm)</option>
-                      <option value="us-legal">US Legal (8.5 × 14 in)</option>
-                      <option value="us-executive">US Executive (7.25 × 10.5 in)</option>
+                      <option value="us-executive">US Executive (7.25 × 10.5 in / 184 × 267 mm)</option>
+                      <option value="a4">A4 (8.27 × 11.69 in / 210 × 297 mm)</option>
+                      <option value="us-letter">US Letter (8.5 × 11 in / 216 × 279 mm)</option>
+                      <option value="us-legal">US Legal (8.5 × 14 in / 216 × 356 mm)</option>
                     </optgroup>
                     <optgroup label="Custom">
                       <option value="custom">Custom</option>
@@ -547,6 +548,9 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
                 <div class="ts-page-rect" id="ts-page-rect">
                   <div class="ts-page-text-area" id="ts-text-area"></div>
                   <div class="ts-page-dims" id="ts-page-dims">5.5 × 8.5</div>
+                </div>
+                <div style="margin-top:1rem;text-align:center">
+                  <a href="https://typst.app/docs/reference/layout/page/#parameters-paper" target="_blank" rel="noopener" style="font-size:0.6rem;color:var(--text-muted);text-decoration:none;border-bottom:1px dotted var(--text-muted)">All Typst paper sizes ↗</a>
                 </div>
               </div>
             </div>
@@ -1667,7 +1671,50 @@ function tsUpdateLeadingHint() {
 }
 
 // Page preview
+// Trim size comparison strip — 7 book sizes drawn to relative scale
+const trimCompareData = [
+  { id: 'uk-book-a', label: 'UK A',     w: 4.37, h: 7.01 },
+  { id: 'jis-b6',    label: 'JIS B6',   w: 5.04, h: 7.17 },
+  { id: 'uk-book-b', label: 'UK B',     w: 5.08, h: 7.80 },
+  { id: 'us-digest', label: 'Digest',   w: 5.5,  h: 8.5  },
+  { id: 'a5',        label: 'A5',       w: 5.83, h: 8.27 },
+  { id: 'us-trade',  label: 'Trade',    w: 6,    h: 9    },
+  { id: 'jis-b5',    label: 'JIS B5',   w: 7.17, h: 10.12 },
+];
+function tsRenderTrimCompare() {
+  const container = document.getElementById('ts-trim-compare');
+  if (!container) return;
+  const trim = tsGetPath(tsSpec, 'page.trim') || 'us-digest';
+  const maxH = 10.12; // tallest book
+  const stripH = 48;  // px height of strip
+  const scale = stripH / maxH;
+  const gap = 6;
+  let totalW = 0;
+  trimCompareData.forEach(t => { totalW += Math.round(t.w * scale) + gap; });
+  totalW -= gap;
+  let svg = `<svg width="${totalW}" height="${stripH + 16}" viewBox="0 0 ${totalW} ${stripH + 16}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">`;
+  let x = 0;
+  trimCompareData.forEach(t => {
+    const rw = Math.round(t.w * scale);
+    const rh = Math.round(t.h * scale);
+    const ry = stripH - rh;
+    const active = (t.id === trim);
+    const fill = active ? 'var(--accent)' : 'var(--border)';
+    const opacity = active ? '0.25' : '0.5';
+    const stroke = active ? 'var(--accent)' : 'var(--text-muted)';
+    const strokeW = active ? '1.5' : '0.5';
+    const textFill = active ? 'var(--accent)' : 'var(--text-muted)';
+    const fontW = active ? '600' : '400';
+    svg += `<rect x="${x}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="${strokeW}" rx="1"/>`;
+    svg += `<text x="${x + rw/2}" y="${stripH + 11}" text-anchor="middle" fill="${textFill}" font-size="7" font-weight="${fontW}" font-family="inherit">${t.label}</text>`;
+    x += rw + gap;
+  });
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
 function tsUpdatePagePreview() {
+  tsRenderTrimCompare();
   const w = tsGetPath(tsSpec, 'page.width_in') || 5.5;
   const h = tsGetPath(tsSpec, 'page.height_in') || 8.5;
   const rect = document.getElementById('ts-page-rect');
