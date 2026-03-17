@@ -505,6 +505,85 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
       <!-- ═══ OUTPUT CARDS: PDF + EPUB side-by-side ═══ -->
       <div class="ts-output-label">Output Formats</div>
       <div class="ts-grid">
+        <!-- EPUB / DIGITAL -->
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
+            <div class="ts-section-title"><span class="ts-output-badge ts-output-badge-epub">EPUB</span> Digital</div>
+
+            <div class="ts-subsection-title">Cover</div>
+            <div class="ts-fields">
+              <div class="ts-field full"><label>Cover Image</label>
+                <div class="ts-cover-upload" id="ts-cover-upload">
+                  <div id="ts-cover-preview" class="ts-cover-preview"></div>
+                  <div class="ts-cover-actions">
+                    <span style="font-size:0.78rem;color:var(--text-muted)">JPG or PNG, recommended 1600×2400</span>
+                    <button class="btn-link" id="ts-cover-select">Choose file…</button>
+                    <input type="file" id="ts-cover-file" accept="image/jpeg,image/png" style="display:none">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ts-subsection-title">Navigation</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>TOC Depth
+                <select data-path="epub.toc_depth">
+                  <option value="1">1 — Chapters only</option>
+                  <option value="2">2 — Chapters + sections</option>
+                  <option value="3">3 — Chapters + sections + subsections</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Landmark Nav<select data-path="epub.landmarks"><option value="true">Yes</option><option value="false">No</option></select></label></div>
+            </div>
+
+            <div class="ts-subsection-title">Layout</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Chapter Break
+                <select data-path="epub.chapter_break">
+                  <option value="page">Page break</option>
+                  <option value="rule">Horizontal rule</option>
+                  <option value="ornament">Ornament</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Section Break
+                <select data-path="epub.section_break">
+                  <option value="breve">Breve (˘)</option>
+                  <option value="asterism">Asterism (⁂)</option>
+                  <option value="dinkus">Dinkus (* * *)</option>
+                  <option value="blank">Blank line</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Body Font Size
+                <select data-path="epub.body_font_size">
+                  <option value="inherit">Reader default</option>
+                  <option value="0.9em">Small (0.9em)</option>
+                  <option value="1em">Medium (1em)</option>
+                  <option value="1.1em">Large (1.1em)</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Embed Fonts<select data-path="epub.embed_fonts"><option value="false">No</option><option value="true">Yes</option></select></label></div>
+            </div>
+
+            <div class="ts-subsection-title">CSS Overrides</div>
+            <div class="ts-field full" style="margin-bottom:0.5rem">
+              <textarea data-path="epub.custom_css" id="ts-epub-css" rows="6" placeholder="/* Custom CSS for EPUB body, headings, etc. */" style="width:100%;font-family:'JetBrains Mono','Menlo',monospace;font-size:0.72rem;padding:0.5rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);resize:vertical"></textarea>
+            </div>
+
+            <div class="ts-subsection-title">Metadata</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Language<input type="text" data-path="epub.language" placeholder="en"></label></div>
+              <div class="ts-field"><label>Subject / Tags<input type="text" data-path="epub.subject" placeholder="Fiction, Anthology"></label></div>
+              <div class="ts-field full"><label>Description</label><textarea data-path="epub.description" rows="2" placeholder="A brief book description for EPUB metadata" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+            </div>
+
+            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
+              <select id="ts-epub-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <button class="btn btn-sm" id="ts-generate-epub" disabled style="border-color:var(--green);color:var(--green)">Generate EPUB</button>
+              <span id="ts-epub-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
+            </div>
+          </div>
+        </div>
+
         <!-- PDF / PRINT -->
         <div class="ts-col">
           <div class="ts-section ts-output-card">
@@ -626,85 +705,6 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
               <button class="btn btn-sm" id="ts-compile-pdf" disabled style="border-color:var(--accent);color:var(--accent)">Compile PDF</button>
               <span id="ts-compile-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- EPUB -->
-        <div class="ts-col">
-          <div class="ts-section ts-output-card">
-            <div class="ts-section-title"><span class="ts-output-badge ts-output-badge-epub">EPUB</span> Digital</div>
-
-            <div class="ts-subsection-title">Cover</div>
-            <div class="ts-fields">
-              <div class="ts-field full"><label>Cover Image</label>
-                <div class="ts-cover-upload" id="ts-cover-upload">
-                  <div id="ts-cover-preview" class="ts-cover-preview"></div>
-                  <div class="ts-cover-actions">
-                    <span style="font-size:0.78rem;color:var(--text-muted)">JPG or PNG, recommended 1600×2400</span>
-                    <button class="btn-link" id="ts-cover-select">Choose file…</button>
-                    <input type="file" id="ts-cover-file" accept="image/jpeg,image/png" style="display:none">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ts-subsection-title">Navigation</div>
-            <div class="ts-fields">
-              <div class="ts-field"><label>TOC Depth
-                <select data-path="epub.toc_depth">
-                  <option value="1">1 — Chapters only</option>
-                  <option value="2">2 — Chapters + sections</option>
-                  <option value="3">3 — Chapters + sections + subsections</option>
-                </select></label>
-              </div>
-              <div class="ts-field"><label>Landmark Nav<select data-path="epub.landmarks"><option value="true">Yes</option><option value="false">No</option></select></label></div>
-            </div>
-
-            <div class="ts-subsection-title">Layout</div>
-            <div class="ts-fields">
-              <div class="ts-field"><label>Chapter Break
-                <select data-path="epub.chapter_break">
-                  <option value="page">Page break</option>
-                  <option value="rule">Horizontal rule</option>
-                  <option value="ornament">Ornament</option>
-                </select></label>
-              </div>
-              <div class="ts-field"><label>Section Break
-                <select data-path="epub.section_break">
-                  <option value="breve">Breve (˘)</option>
-                  <option value="asterism">Asterism (⁂)</option>
-                  <option value="dinkus">Dinkus (* * *)</option>
-                  <option value="blank">Blank line</option>
-                </select></label>
-              </div>
-              <div class="ts-field"><label>Body Font Size
-                <select data-path="epub.body_font_size">
-                  <option value="inherit">Reader default</option>
-                  <option value="0.9em">Small (0.9em)</option>
-                  <option value="1em">Medium (1em)</option>
-                  <option value="1.1em">Large (1.1em)</option>
-                </select></label>
-              </div>
-              <div class="ts-field"><label>Embed Fonts<select data-path="epub.embed_fonts"><option value="false">No</option><option value="true">Yes</option></select></label></div>
-            </div>
-
-            <div class="ts-subsection-title">CSS Overrides</div>
-            <div class="ts-field full" style="margin-bottom:0.5rem">
-              <textarea data-path="epub.custom_css" id="ts-epub-css" rows="6" placeholder="/* Custom CSS for EPUB body, headings, etc. */" style="width:100%;font-family:'JetBrains Mono','Menlo',monospace;font-size:0.72rem;padding:0.5rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);resize:vertical"></textarea>
-            </div>
-
-            <div class="ts-subsection-title">Metadata</div>
-            <div class="ts-fields">
-              <div class="ts-field"><label>Language<input type="text" data-path="epub.language" placeholder="en"></label></div>
-              <div class="ts-field"><label>Subject / Tags<input type="text" data-path="epub.subject" placeholder="Fiction, Anthology"></label></div>
-              <div class="ts-field full"><label>Description</label><textarea data-path="epub.description" rows="2" placeholder="A brief book description for EPUB metadata" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
-            </div>
-
-            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
-              <select id="ts-epub-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
-              <button class="btn btn-sm" id="ts-generate-epub" disabled style="border-color:var(--green);color:var(--green)">Generate EPUB</button>
-              <span id="ts-epub-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
             </div>
           </div>
         </div>
