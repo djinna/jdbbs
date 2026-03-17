@@ -449,63 +449,25 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
     <div id="ts-empty" class="ts-empty">Select a project to configure its typesetting spec.</div>
 
     <div id="ts-form" style="display:none">
-      <!-- ═══ SHARED: Book Info + Typography + Headings + Custom Styles ═══ -->
-      <div class="ts-grid">
-        <div class="ts-col">
-          <div class="ts-section">
-            <div class="ts-section-title">Book Info</div>
-            <div class="ts-fields">
-              <div class="ts-field full"><label>Title<input type="text" data-path="metadata.title"></label></div>
-              <div class="ts-field"><label>Subtitle<input type="text" data-path="metadata.subtitle"></label></div>
-              <div class="ts-field"><label>Author<input type="text" data-path="metadata.author"></label></div>
-              <div class="ts-field"><label>Series<input type="text" data-path="metadata.series"></label></div>
-              <div class="ts-field"><label>Publisher<input type="text" data-path="metadata.publisher"></label></div>
-              <div class="ts-field"><label>ISBN (Paper)<input type="text" data-path="metadata.isbn_paper"></label></div>
-              <div class="ts-field"><label>ISBN (Cloth)<input type="text" data-path="metadata.isbn_cloth"></label></div>
-              <div class="ts-field"><label>© Year<input type="text" data-path="metadata.copyright_year"></label></div>
-              <div class="ts-field"><label>© Holder<input type="text" data-path="metadata.copyright_holder"></label></div>
-            </div>
-          </div>
-
-          <div class="ts-section">
-            <div class="ts-section-title">Typography</div>
-            <div class="ts-fields">
-              <div class="ts-field"><label>Body Font<select data-path="typography.body_font" class="ts-font-select" data-font-category="serif,sans-serif,other"><option value="">Loading…</option></select></label></div>
-              <div class="ts-field"><label>Heading Font<select data-path="typography.heading_font" class="ts-font-select" data-font-category="sans-serif,serif,other"><option value="">Loading…</option></select></label></div>
-              <div class="ts-field"><label>Code Font<select data-path="typography.code_font" class="ts-font-select" data-font-category="monospace"><option value="">Loading…</option></select></label></div>
-              <div class="ts-field"><label>Base Size (pt)<input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt" id="ts-base-size"></label></div>
-              <div class="ts-field"><label>Leading (pt) <span id="ts-leading-hint" style="font-weight:normal;color:var(--text-muted)"></span> <input type="number" step="0.5" min="0" max="30" data-path="typography.leading_pt" id="ts-leading-pt"></label></div>
-              <div class="ts-field"><label>Paragraph Indent (em)<input type="number" step="0.05" min="0" max="3" data-path="typography.paragraph_indent_em"></label></div>
-              <div class="ts-field"><label>Justify<select data-path="typography.justify"><option value="true">Yes</option><option value="false">No</option></select></label></div>
-              <div class="ts-field"><label>Hyphenate<select data-path="typography.hyphenate"><option value="true">Yes</option><option value="false">No</option></select></label></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="ts-col">
-          <div class="ts-section">
-            <div class="ts-section-title">Headings</div>
-            <div class="ts-fields">
-              <div class="ts-field"><label>H1 Size (pt)<input type="number" step="0.5" data-path="headings.h1_size_pt"></label></div>
-              <div class="ts-field"><label>H1 Weight<input type="text" data-path="headings.h1_weight"></label></div>
-              <div class="ts-field"><label>H2 Size (pt)<input type="number" step="0.5" data-path="headings.h2_size_pt"></label></div>
-              <div class="ts-field"><label>H2 Weight<input type="text" data-path="headings.h2_weight"></label></div>
-              <div class="ts-field"><label>H3 Size (pt)<input type="number" step="0.5" data-path="headings.h3_size_pt"></label></div>
-              <div class="ts-field"><label>H3 Weight<input type="text" data-path="headings.h3_weight"></label></div>
-            </div>
-          </div>
-
-          <div class="ts-section">
-            <div class="ts-section-title">Custom Styles <button class="btn-link" id="ts-add-style">+ Add</button></div>
-            <div id="ts-custom-styles" class="ts-custom-styles"></div>
-          </div>
+      <!-- ═══ SHARED: Book Info ═══ -->
+      <div class="ts-section">
+        <div class="ts-section-title">Book Info</div>
+        <div class="ts-fields">
+          <div class="ts-field full"><label>Title<input type="text" data-path="metadata.title"></label></div>
+          <div class="ts-field"><label>Subtitle<input type="text" data-path="metadata.subtitle"></label></div>
+          <div class="ts-field"><label>Author<input type="text" data-path="metadata.author"></label></div>
+          <div class="ts-field"><label>Series<input type="text" data-path="metadata.series"></label></div>
+          <div class="ts-field"><label>Publisher<input type="text" data-path="metadata.publisher"></label></div>
+          <div class="ts-field"><label>ISBN (Paper)<input type="text" data-path="metadata.isbn_paper"></label></div>
+          <div class="ts-field"><label>ISBN (Cloth)<input type="text" data-path="metadata.isbn_cloth"></label></div>
+          <div class="ts-field"><label>© Year<input type="text" data-path="metadata.copyright_year"></label></div>
+          <div class="ts-field"><label>© Holder<input type="text" data-path="metadata.copyright_holder"></label></div>
         </div>
       </div>
 
-      <!-- ═══ OUTPUT CARDS: PDF + EPUB side-by-side ═══ -->
-      <div class="ts-output-label">Output Formats</div>
+      <!-- ═══ EPUB / DIGITAL ═══ -->
+      <div class="ts-output-label">EPUB / Digital</div>
       <div class="ts-grid">
-        <!-- EPUB / DIGITAL -->
         <div class="ts-col">
           <div class="ts-section ts-output-card">
             <div class="ts-section-title"><span class="ts-output-badge ts-output-badge-epub">EPUB</span> Digital</div>
@@ -561,9 +523,12 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
                   <option value="1.1em">Large (1.1em)</option>
                 </select></label>
               </div>
-              <div class="ts-field"><label>Embed Fonts<select data-path="epub.embed_fonts"><option value="false">No</option><option value="true">Yes</option></select></label></div>
             </div>
+          </div>
+        </div>
 
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
             <div class="ts-subsection-title">CSS Overrides</div>
             <div class="ts-field full" style="margin-bottom:0.5rem">
               <textarea data-path="epub.custom_css" id="ts-epub-css" rows="6" placeholder="/* Custom CSS for EPUB body, headings, etc. */" style="width:100%;font-family:'JetBrains Mono','Menlo',monospace;font-size:0.72rem;padding:0.5rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);resize:vertical"></textarea>
@@ -583,11 +548,36 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- PDF / PRINT -->
+      <!-- ═══ PDF / PRINT ═══ -->
+      <div class="ts-output-label">PDF / Print</div>
+      <div class="ts-grid">
         <div class="ts-col">
           <div class="ts-section ts-output-card">
             <div class="ts-section-title"><span class="ts-output-badge">PDF</span> Print</div>
+
+            <div class="ts-subsection-title">Typography</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Body Font<select data-path="typography.body_font" class="ts-font-select" data-font-category="serif,sans-serif,other"><option value="">Loading…</option></select></label></div>
+              <div class="ts-field"><label>Heading Font<select data-path="typography.heading_font" class="ts-font-select" data-font-category="sans-serif,serif,other"><option value="">Loading…</option></select></label></div>
+              <div class="ts-field"><label>Code Font<select data-path="typography.code_font" class="ts-font-select" data-font-category="monospace"><option value="">Loading…</option></select></label></div>
+              <div class="ts-field"><label>Base Size (pt)<input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt" id="ts-base-size"></label></div>
+              <div class="ts-field"><label>Leading (pt) <span id="ts-leading-hint" style="font-weight:normal;color:var(--text-muted)"></span> <input type="number" step="0.5" min="0" max="30" data-path="typography.leading_pt" id="ts-leading-pt"></label></div>
+              <div class="ts-field"><label>Paragraph Indent (em)<input type="number" step="0.05" min="0" max="3" data-path="typography.paragraph_indent_em"></label></div>
+              <div class="ts-field"><label>Justify<select data-path="typography.justify"><option value="true">Yes</option><option value="false">No</option></select></label></div>
+              <div class="ts-field"><label>Hyphenate<select data-path="typography.hyphenate"><option value="true">Yes</option><option value="false">No</option></select></label></div>
+            </div>
+
+            <div class="ts-subsection-title">Headings</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>H1 Size (pt)<input type="number" step="0.5" data-path="headings.h1_size_pt"></label></div>
+              <div class="ts-field"><label>H1 Weight<input type="text" data-path="headings.h1_weight"></label></div>
+              <div class="ts-field"><label>H2 Size (pt)<input type="number" step="0.5" data-path="headings.h2_size_pt"></label></div>
+              <div class="ts-field"><label>H2 Weight<input type="text" data-path="headings.h2_weight"></label></div>
+              <div class="ts-field"><label>H3 Size (pt)<input type="number" step="0.5" data-path="headings.h3_size_pt"></label></div>
+              <div class="ts-field"><label>H3 Weight<input type="text" data-path="headings.h3_weight"></label></div>
+            </div>
 
             <div class="ts-subsection-title">Page Geometry</div>
             <div id="ts-trim-compare" style="margin-bottom:0.75rem;overflow-x:auto"></div>
@@ -676,7 +666,11 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <div class="ts-field"><label>Code Block Size (pt)<input type="number" step="0.5" data-path="elements.code_block_size_pt"></label></div>
               <div class="ts-field"><label>Footnote Size (pt)<input type="number" step="0.5" data-path="elements.footnote_size_pt"></label></div>
             </div>
+          </div>
+        </div>
 
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
             <div class="ts-subsection-title">Front Matter</div>
             <div class="ts-checks" id="ts-front-matter">
               <label class="ts-check"><input type="checkbox" data-path="front_matter.half_title"> Half title</label>
@@ -700,6 +694,9 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <label class="ts-check"><input type="checkbox" data-path="back_matter.bibliography"> Bibliography</label>
               <label class="ts-check"><input type="checkbox" data-path="back_matter.index"> Index</label>
             </div>
+
+            <div class="ts-subsection-title">Custom Styles <button class="btn-link" id="ts-add-style">+ Add</button></div>
+            <div id="ts-custom-styles" class="ts-custom-styles"></div>
 
             <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
               <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
