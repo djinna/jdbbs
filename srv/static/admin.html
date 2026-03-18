@@ -337,6 +337,24 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 .ts-cover-actions { display: flex; flex-direction: column; gap: 0.25rem; }
 
 .ts-custom-styles { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* Corrections */
+.corr-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.corr-table th { text-align: left; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); font-weight: 400; }
+.corr-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+.corr-table tr:last-child td { border-bottom: none; }
+.corr-find { font-family: 'JetBrains Mono','Menlo',monospace; font-size: 0.72rem; background: var(--badge-red-bg); color: var(--red); padding: 0.1rem 0.3rem; border-radius: 2px; word-break: break-all; }
+.corr-replace { font-family: 'JetBrains Mono','Menlo',monospace; font-size: 0.72rem; background: var(--badge-green-bg); color: var(--green); padding: 0.1rem 0.3rem; border-radius: 2px; word-break: break-all; }
+.corr-status { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 9999px; font-size: 0.65rem; cursor: pointer; }
+.corr-status-pending { background: var(--badge-yellow-bg); color: var(--yellow); }
+.corr-status-applied { background: var(--badge-green-bg); color: var(--green); }
+.corr-status-skipped { background: var(--badge-dim-bg); color: var(--text-muted); }
+.corr-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.85rem; padding: 0.1rem 0.3rem; opacity: 0.5; }
+.corr-del:hover { opacity: 1; }
+.corr-add-row { display: grid; grid-template-columns: 1fr 1fr 0.6fr 1fr auto; gap: 0.5rem; align-items: end; margin-top: 0.75rem; }
+.corr-add-row input { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); font-size: 0.78rem; font-family: inherit; }
+.corr-add-row input:focus { outline: none; border-color: var(--accent); }
+@media (max-width: 700px) { .corr-add-row { grid-template-columns: 1fr 1fr; } }
 .ts-style-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.5rem; align-items: start; padding: 0.5rem; background: var(--bg); border-radius: 3px; border: 1px solid var(--border); }
 .ts-style-row input, .ts-style-row textarea { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--text); font-size: 0.78rem; font-family: inherit; }
 .ts-style-row textarea { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 0.72rem; resize: vertical; min-height: 2.5rem; }
@@ -702,6 +720,33 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
               <button class="btn btn-sm" id="ts-compile-pdf" disabled style="border-color:var(--accent);color:var(--accent)">Compile PDF</button>
               <span id="ts-compile-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ CORRECTIONS ═══ -->
+      <div class="ts-output-label">Corrections</div>
+      <div class="ts-section" id="ts-corrections-section">
+        <div class="ts-section-title">
+          <span>Corrections Ledger</span>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <button class="btn-link" id="corr-export-yaml">Export YAML</button>
+            <button class="btn-link" id="corr-add-btn">+ Add Correction</button>
+          </div>
+        </div>
+        <div id="corr-list">
+          <div style="font-size:0.78rem;color:var(--text-muted);padding:0.5rem 0">No corrections yet.</div>
+        </div>
+        <div id="corr-add-form" style="display:none">
+          <div class="corr-add-row">
+            <input type="text" id="corr-find" placeholder="Find text…">
+            <input type="text" id="corr-replace" placeholder="Replace with…">
+            <input type="text" id="corr-chapter" placeholder="Chapter (opt)">
+            <input type="text" id="corr-note" placeholder="Note (opt)">
+            <div style="display:flex;gap:0.3rem">
+              <button class="btn btn-sm" id="corr-save">Save</button>
+              <button class="btn btn-sm btn-secondary" id="corr-cancel">Cancel</button>
             </div>
           </div>
         </div>
@@ -1393,6 +1438,7 @@ async function tsLoadSpec(pid) {
     tsDirty = false;
     tsSaveStatus.textContent = '';
     tsLoadLinkedBooks();
+    corrLoad();
   } catch(e) {
     tsSaveStatus.textContent = 'Error loading spec';
   }
@@ -1964,6 +2010,135 @@ tsGenerateEpub.addEventListener('click', async () => {
     tsEpubStatus.textContent = 'Error: ' + e.message;
     tsEpubStatus.style.color = 'var(--red)';
     tsGenerateEpub.disabled = false;
+  }
+});
+
+// ─── Corrections ───
+let corrData = [];
+
+async function corrLoad() {
+  const pid = tsProject.value;
+  if (!pid) return;
+  try {
+    const r = await fetch(`/api/projects/${pid}/corrections`);
+    corrData = await r.json();
+    corrRender();
+  } catch(e) {
+    console.error('Failed to load corrections:', e);
+  }
+}
+
+function corrRender() {
+  const container = document.getElementById('corr-list');
+  if (corrData.length === 0) {
+    container.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted);padding:0.5rem 0">No corrections yet.</div>';
+    return;
+  }
+  let html = '<table class="corr-table"><thead><tr><th>Find</th><th>Replace</th><th>Chapter</th><th>Note</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>';
+  corrData.forEach(c => {
+    const statusClass = 'corr-status-' + c.status;
+    const date = c.created_at ? c.created_at.substring(0, 10) : '';
+    html += `<tr>
+      <td><span class="corr-find">${esc(c.find_text)}</span></td>
+      <td><span class="corr-replace">${esc(c.replace_text)}</span></td>
+      <td>${esc(c.chapter || '')}</td>
+      <td>${esc(c.note || '')}</td>
+      <td><span class="corr-status ${statusClass}" data-id="${c.id}" title="Click to cycle status">${c.status}</span></td>
+      <td style="white-space:nowrap;font-size:0.72rem;color:var(--text-muted)">${date}</td>
+      <td><button class="corr-del" data-id="${c.id}" title="Delete">&times;</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  // Status click to cycle
+  container.querySelectorAll('.corr-status').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id = el.dataset.id;
+      const current = el.textContent.trim();
+      const next = current === 'pending' ? 'applied' : current === 'applied' ? 'skipped' : 'pending';
+      try {
+        await fetch(`/api/corrections/${id}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: next }),
+        });
+        corrLoad();
+      } catch(e) { console.error(e); }
+    });
+  });
+
+  // Delete buttons
+  container.querySelectorAll('.corr-del').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id = el.dataset.id;
+      const pid = tsProject.value;
+      if (!pid || !confirm('Delete this correction?')) return;
+      try {
+        await fetch(`/api/projects/${pid}/corrections/${id}`, { method: 'DELETE' });
+        corrLoad();
+      } catch(e) { console.error(e); }
+    });
+  });
+}
+
+// Add correction form
+document.getElementById('corr-add-btn').addEventListener('click', () => {
+  document.getElementById('corr-add-form').style.display = 'block';
+  document.getElementById('corr-find').focus();
+});
+
+document.getElementById('corr-cancel').addEventListener('click', () => {
+  document.getElementById('corr-add-form').style.display = 'none';
+  document.getElementById('corr-find').value = '';
+  document.getElementById('corr-replace').value = '';
+  document.getElementById('corr-chapter').value = '';
+  document.getElementById('corr-note').value = '';
+});
+
+document.getElementById('corr-save').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  const find = document.getElementById('corr-find').value.trim();
+  const replace = document.getElementById('corr-replace').value;
+  const chapter = document.getElementById('corr-chapter').value.trim();
+  const note = document.getElementById('corr-note').value.trim();
+  if (!find) { alert('Find text is required'); return; }
+  try {
+    await fetch(`/api/projects/${pid}/corrections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ find_text: find, replace_text: replace, chapter: chapter || undefined, note: note || undefined }),
+    });
+    document.getElementById('corr-add-form').style.display = 'none';
+    document.getElementById('corr-find').value = '';
+    document.getElementById('corr-replace').value = '';
+    document.getElementById('corr-chapter').value = '';
+    document.getElementById('corr-note').value = '';
+    corrLoad();
+  } catch(e) {
+    alert('Error saving correction: ' + e.message);
+  }
+});
+
+// Export YAML
+document.getElementById('corr-export-yaml').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  try {
+    const r = await fetch(`/api/projects/${pid}/corrections/export`, { method: 'POST' });
+    if (!r.ok) throw new Error('Export failed');
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const disp = r.headers.get('Content-Disposition') || '';
+    const m = disp.match(/filename="([^"]+)"/);
+    a.download = m ? m[1] : `corrections-project-${pid}.yaml`;
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Export error: ' + e.message);
   }
 });
 

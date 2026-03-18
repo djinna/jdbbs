@@ -125,6 +125,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/projects/{id}/journal", s.handleCreateJournal)
 	mux.HandleFunc("DELETE /api/projects/{id}/journal/{entry}", s.handleDeleteJournal)
 
+	// Corrections API
+	mux.HandleFunc("GET /api/projects/{id}/corrections", s.handleListCorrections)
+	mux.HandleFunc("POST /api/projects/{id}/corrections", s.handleCreateCorrection)
+	mux.HandleFunc("DELETE /api/projects/{id}/corrections/{entry}", s.handleDeleteCorrection)
+	mux.HandleFunc("PUT /api/corrections/{id}/status", s.handleUpdateCorrectionStatus)
+	mux.HandleFunc("POST /api/projects/{id}/corrections/export", s.handleExportCorrections)
+
 	// Client API
 	mux.HandleFunc("GET /api/clients/{client}", s.handleClientInfo)
 	mux.HandleFunc("POST /api/clients/{client}/verify", s.handleClientVerify)
