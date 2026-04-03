@@ -145,13 +145,8 @@ func (s *Server) Handler() http.Handler {
 	staticServer := http.FileServer(http.FS(static))
 	mux.Handle("GET /static/", http.StripPrefix("/static", staticServer))
 
-	// Root: redirect admin users to /admin/, show landing page for everyone else
+	// Root: always show landing page
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Header.Get("X-ExeDev-UserID")
-		if userID != "" {
-			http.Redirect(w, r, "/admin/", http.StatusFound)
-			return
-		}
 		s.serveLanding(w)
 	})
 
