@@ -160,7 +160,7 @@ func (s *Server) Handler() http.Handler {
 		path := r.URL.Path
 		parts := strings.Split(strings.Trim(path, "/"), "/")
 		if len(parts) == 0 || parts[0] == "" {
-			http.NotFound(w, r)
+			s.serveLanding(w)
 			return
 		}
 		// /{client}/ -> client portal
