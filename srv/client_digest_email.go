@@ -17,13 +17,14 @@ type clientDigestProject struct {
 }
 
 type clientDigestParams struct {
-	ClientName string
-	ClientSlug string
-	Days       int
-	Since      string
-	Generated  string
-	Projects   []clientDigestProject
-	TotalFiles int
+	ClientName   string
+	ClientSlug   string
+	BaseURL      string
+	Days         int
+	Since        string
+	Generated    string
+	Projects     []clientDigestProject
+	TotalFiles   int
 	TotalJournal int
 }
 
@@ -149,6 +150,7 @@ func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) 
 	dp := clientDigestParams{
 		ClientName:   clientName,
 		ClientSlug:   clientSlug,
+		BaseURL:      s.BaseURL,
 		Days:         days,
 		Since:        since,
 		Generated:    now.Format("January 2, 2006 at 3:04 PM MST"),
@@ -317,7 +319,7 @@ func buildClientDigestHTML(p clientDigestParams) string {
 	b.WriteString(`<tr><td style="padding:28px 36px;">`)
 	b.WriteString(`<div style="border-top:2px solid #f0eeff;padding-top:16px;text-align:center;">`)
 	b.WriteString(fmt.Sprintf(`<p style="margin:0 0 6px;font-size:12px;color:#aaa;">Generated %s</p>`, html.EscapeString(p.Generated)))
-	clientURL := fmt.Sprintf("https://jdbb-prod.exe.xyz/%s/", p.ClientSlug)
+	clientURL := fmt.Sprintf("%s/%s/", p.BaseURL, p.ClientSlug)
 	b.WriteString(fmt.Sprintf(`<p style="margin:0;"><a href="%s" style="font-size:13px;color:#6c63ff;text-decoration:none;font-weight:600;">View Client Portal \u2192</a></p>`, clientURL))
 	b.WriteString(`</div>`)
 	b.WriteString(`</td></tr>`)
@@ -381,7 +383,7 @@ func buildClientDigestText(p clientDigestParams) string {
 
 	b.WriteString(strings.Repeat("\u2500", 50) + "\n")
 	b.WriteString(fmt.Sprintf("Sent: %s\n", p.Generated))
-	clientURL := fmt.Sprintf("https://jdbb-prod.exe.xyz/%s/", p.ClientSlug)
+	clientURL := fmt.Sprintf("%s/%s/", p.BaseURL, p.ClientSlug)
 	b.WriteString(fmt.Sprintf("View portal: %s\n", clientURL))
 
 	return b.String()

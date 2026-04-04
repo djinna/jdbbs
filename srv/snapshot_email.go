@@ -54,7 +54,7 @@ func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Reques
 		jsonErr(w, "project not found", 404)
 		return
 	}
-	projectURL := fmt.Sprintf("https://jdbb-prod.exe.xyz/%s/%s/", clientSlug, projectSlug)
+	projectURL := fmt.Sprintf("%s/%s/%s/", s.BaseURL, clientSlug, projectSlug)
 
 	// ── Load tasks ──
 	rows, err := s.DB.QueryContext(r.Context(),

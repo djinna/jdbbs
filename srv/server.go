@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,11 +25,22 @@ var staticFS embed.FS
 type Server struct {
 	DB       *sql.DB
 	Hostname string
+	BaseURL  string
 	Email    *EmailConfig
 }
 
 func New(dbPath, hostname string) (*Server, error) {
 	srv := &Server{Hostname: hostname}
+	
+	// Set BaseURL from environment or derive from hostname
+	baseURL := os.Getenv("PRODCAL_BASE_URL")
+	if baseURL == "" {
+		// Default to exe.xyz pattern with current hostname (no port needed - proxy handles it)
+		baseURL = fmt.Sprintf("https://%s.exe.xyz", hostname)
+	}
+	srv.BaseURL = baseURL
+	slog.Info("server base URL configured", "base_url", baseURL)
+	
 	if err := srv.setUpDatabase(dbPath); err != nil {
 		return nil, err
 	}

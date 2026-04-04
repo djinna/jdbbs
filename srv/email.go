@@ -423,7 +423,7 @@ func (s *Server) handleSendTransmittalEmail(w http.ResponseWriter, r *http.Reque
 	_ = s.DB.QueryRowContext(r.Context(),
 		`SELECT client_slug, project_slug FROM projects WHERE id = ?`, pid,
 	).Scan(&clientSlug, &projectSlug)
-	projectURL := fmt.Sprintf("https://jdbb-prod.exe.xyz/%s/%s/transmittal/", clientSlug, projectSlug)
+	projectURL := fmt.Sprintf("%s/%s/%s/transmittal/", s.BaseURL, clientSlug, projectSlug)
 
 	title := txData.Book.Title
 	if title == "" {

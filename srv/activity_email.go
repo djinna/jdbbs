@@ -59,7 +59,7 @@ func (s *Server) handleSendActivityEmail(w http.ResponseWriter, r *http.Request)
 		jsonErr(w, "project not found", 404)
 		return
 	}
-	projectURL := fmt.Sprintf("https://jdbb-prod.exe.xyz/%s/%s/", clientSlug, projectSlug)
+	projectURL := fmt.Sprintf("%s/%s/%s/", s.BaseURL, clientSlug, projectSlug)
 
 	now := time.Now()
 	since := now.AddDate(0, 0, -days).Format("2006-01-02")
