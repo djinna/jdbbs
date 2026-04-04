@@ -318,14 +318,20 @@ async function loadTransmittal() {
 
 // ─── Form field helpers ───
 function textField(label, path, opts = {}) {
-  const val = getField(path) || '';
+  const currentVal = getField(path);
+  const val = opts.value !== undefined ? opts.value : (currentVal || '');
   const inp = h('input', {
     type: opts.type || 'text',
     value: val,
     placeholder: opts.placeholder || '',
-    onInput: (e) => setField(path, opts.type === 'number' ? (parseFloat(e.target.value) || 0) : e.target.value),
+    readOnly: opts.readOnly ? 'readonly' : undefined,
+    onInput: opts.readOnly ? undefined : (e) => setField(path, opts.type === 'number' ? (parseFloat(e.target.value) || 0) : e.target.value),
   });
-  return h('div', { className: 'tx-field' }, h('label', null, label), inp);
+  return h('div', { className: `tx-field ${opts.className || ''}`.trim() },
+    label ? h('label', null, label) : null,
+    inp,
+    opts.helpText ? h('div', { className: 'tx-help' }, opts.helpText) : null,
+  );
 }
 
 function textareaField(label, path, opts = {}) {
@@ -335,10 +341,14 @@ function textareaField(label, path, opts = {}) {
     placeholder: opts.placeholder || '',
     onInput: (e) => setField(path, e.target.value),
   }, val);
-  return h('div', { className: 'tx-field' }, h('label', null, label), ta);
+  return h('div', { className: `tx-field ${opts.className || ''}`.trim() },
+    label ? h('label', null, label) : null,
+    ta,
+    opts.helpText ? h('div', { className: 'tx-help' }, opts.helpText) : null,
+  );
 }
 
-function selectField(label, path, options) {
+function selectField(label, path, options, opts = {}) {
   const val = getField(path) || '';
   const sel = h('select', { onChange: (e) => setField(path, e.target.value) },
     ...options.map(([v, l]) => {
@@ -347,7 +357,11 @@ function selectField(label, path, options) {
       return opt;
     })
   );
-  return h('div', { className: 'tx-field' }, h('label', null, label), sel);
+  return h('div', { className: `tx-field ${opts.className || ''}`.trim() },
+    label ? h('label', null, label) : null,
+    sel,
+    opts.helpText ? h('div', { className: 'tx-help' }, opts.helpText) : null,
+  );
 }
 
 function checkField(label, path) {
@@ -363,11 +377,11 @@ function calcCompletion() {
   const d = state.transmittal.data;
   let filled = 0, total = 0;
   // Book fields
-  for (const k of ['author','title','publisher','editor','transmittal_date']) {
+  for (const k of ['author','title','publisher','editor','isbn_paper','isbn_epub','isbn_cloth']) {
     total++; if (d.book && d.book[k]) filled++;
   }
   // Production
-  for (const k of ['transmittal_date','mechs_delivery','print_run']) {
+  for (const k of ['start_date','pages_to_printer','pages_to_epub','print_run']) {
     total++; if (d.production && d.production[k]) filled++;
   }
   // Checklist — count items with here_now or to_come_when
@@ -395,6 +409,37 @@ function fmtDate(iso) {
   if (isNaN(d)) return iso;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function parseYMD(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  return isNaN(d) ? null : d;
+}
+
+function toYMD(dateObj) {
+  if (!dateObj || isNaN(dateObj)) return '';
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function calcWeeksBetween(startStr, endStr) {
+  const start = parseYMD(startStr);
+  const end = parseYMD(endStr);
+  if (!start || !end) return '';
+  const ms = end.getTime() - start.getTime();
+  if (ms < 0) return '';
+  return (ms / (1000 * 60 * 60 * 24 * 7)).toFixed(1);
+}
+
+function addWeeks(dateStr, weeks) {
+  const base = parseYMD(dateStr);
+  if (!base) return '';
+  const out = new Date(base);
+  out.setDate(out.getDate() + (weeks * 7));
+  return toYMD(out);
 }
 
 // ─── Project Switcher dropdown ───
@@ -558,15 +603,15 @@ function renderForm() {
         renderProductionSection(),
         renderChecklistSection(),
         renderIllustrationsSection(),
+        renderCoverSection(),
       ),
       // RIGHT COLUMN
       h('div', { className: 'tx-column' },
+        renderEditingSection(),
         renderPermissionsSection(),
         renderPageIVSection(),
         renderSubrightsSection(),
-        renderEditingSection(),
         renderDesignSection(),
-        renderCoverSection(),
         renderFilesSection(),
         renderProofsSection(),
         renderOtherSection(),
@@ -694,7 +739,7 @@ function renderIllustrationsSection() {
   const types = [
     ['Figures', 'figures'], ['Tables', 'tables'], ['Photos', 'photos'], ['Other', 'other']
   ];
-  return h('div', { className: 'tx-section' },
+  return h('div', { className: 'tx-section tx-section-important' },
     h('div', { className: 'tx-section-header' }, 'Illustrations'),
     h('table', { className: 'tx-illus-table' },
       h('thead', null, h('tr', null,
@@ -714,7 +759,11 @@ function renderIllustrationsSection() {
         )
       )),
     ),
-    textareaField('Art & Production Plan / Budget', 'illustrations.art_plan', { rows: 4 }),
+    textareaField('Art & Production Plan / Budget', 'illustrations.art_plan', {
+      rows: 4,
+      className: 'tx-field-important',
+      helpText: 'Priority field: include art plan expectations, budget notes, and constraints.',
+    }),
   );
 }
 
@@ -783,42 +832,79 @@ function renderSubrightsSection() {
 function renderEditingSection() {
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Editing'),
+    selectField('Developmental Edit Needed', 'editing.developmental_edit', [
+      ['','— Select —'],
+      ['none','No'],
+      ['light','Light pass'],
+      ['standard','Standard developmental edit'],
+      ['heavy','Heavy / substantive'],
+    ]),
+    textareaField('Instructions for Developmental Editor', 'editing.developmental_instructions', {
+      rows: 3,
+      className: 'tx-field-important',
+      placeholder: 'Any guidance for developmental edit focus, scope, or priorities...',
+      helpText: 'Priority field: use this for anything the developmental editor must not miss.',
+    }),
     selectField('Level of Copyediting', 'editing.copyediting_level', [
       ['','— Select —'],['light','Light'],['medium','Medium'],['heavy','Heavy']
     ]),
+    textareaField('Instructions for Copyeditor', 'editing.instructions', {
+      rows: 4,
+      className: 'tx-field-important',
+      helpText: 'Priority field: use this for anything the copyeditor must not miss.',
+    }),
     textField('Special Characters', 'editing.special_characters'),
     textField('Mathematical Formulas', 'editing.math_formulas'),
-    textareaField('Other Instructions for Copyeditor', 'editing.instructions'),
   );
 }
 
 // ─── Section: Book Design ───
 function renderDesignSection() {
+  const trimVal = getField('design.trim') || '';
+  const standardTrims = ['5.5 x 8.5', '6 x 9', '8.5 x 11', 'dont_care', ''];
+
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Book Design'),
+    textareaField('Trim Guidance', 'design.trim_guidance', {
+      rows: 3,
+      className: 'tx-field-important',
+      placeholder: 'e.g. coffee table, pocket book size, gift format',
+      helpText: 'Priority field: use this for trim intent, flexibility, and format direction.',
+    }),
     h('div', { className: 'tx-field' },
       h('label', null, 'Trim Size'),
-      h('div', { className: 'tx-check-group' },
+      h('div', { className: 'tx-check-group tx-trim-options' },
         ...['5.5 x 8.5', '6 x 9', '8.5 x 11'].map(sz =>
           h('label', { className: 'tx-check' },
             h('input', { type: 'radio', name: 'trim', value: sz,
-              checked: getField('design.trim') === sz ? 'checked' : undefined,
+              checked: trimVal === sz ? 'checked' : undefined,
               onChange: () => { setField('design.trim', sz); render(); }
-            }), sz
+            }), sz.toUpperCase()
           )
         ),
         h('label', { className: 'tx-check' },
-          h('input', { type: 'radio', name: 'trim', value: 'other',
-            checked: !['5.5 x 8.5','6 x 9','8.5 x 11',''].includes(getField('design.trim')) ? 'checked' : undefined,
-            onChange: () => { setField('design.trim', '7x9'); render(); }
-          }), 'other:'
+          h('input', { type: 'radio', name: 'trim', value: 'dont_care',
+            checked: trimVal === 'dont_care' ? 'checked' : undefined,
+            onChange: () => { setField('design.trim', 'dont_care'); render(); }
+          }), `DON'T CARE`
         ),
-        !['5.5 x 8.5','6 x 9','8.5 x 11',''].includes(getField('design.trim'))
-          ? h('input', { type: 'text', value: getField('design.trim'), style: 'width:80px;padding:2px 4px;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text)',
-              onInput: (e) => setField('design.trim', e.target.value) })
+        h('label', { className: 'tx-check' },
+          h('input', { type: 'radio', name: 'trim', value: 'other',
+            checked: !standardTrims.includes(trimVal) ? 'checked' : undefined,
+            onChange: () => { setField('design.trim', '7 x 9'); render(); }
+          }), 'OTHER:'
+        ),
+        !standardTrims.includes(trimVal)
+          ? h('input', {
+              type: 'text',
+              className: 'tx-trim-other-input',
+              value: trimVal,
+              onInput: (e) => setField('design.trim', e.target.value)
+            })
           : null,
       ),
     ),
+
     h('div', { className: 'tx-row-3' },
       textField('Est. Book pp', 'design.est_pages'),
       textField('PPI', 'design.ppi'),
@@ -831,6 +917,10 @@ function renderDesignSection() {
       textField('Outside Designer', 'design.outside_designer'),
     ),
     textField('Reuse Previous Book', 'design.reuse_previous'),
+    textareaField('Additional Design Notes', 'design.freeform_notes', {
+      rows: 3,
+      placeholder: 'Any free-form direction for format, feel, or production constraints...',
+    }),
   );
 }
 
@@ -844,21 +934,26 @@ function renderCoverSection() {
     ),
     h('div', { className: 'tx-field' },
       h('label', null, 'JDBB'),
-      h('div', { className: 'tx-check-group' },
-        checkField('Front', 'cover.jdbb_front'),
-        checkField('Spine', 'cover.jdbb_spine'),
-        checkField('Back', 'cover.jdbb_back'),
+      h('div', { className: 'tx-check-group tx-cover-options' },
+        checkField('FRONT', 'cover.jdbb_front'),
+        checkField('SPINE', 'cover.jdbb_spine'),
+        checkField('BACK', 'cover.jdbb_back'),
       ),
     ),
     h('div', { className: 'tx-field' },
       h('label', null, 'Publisher'),
-      h('div', { className: 'tx-check-group' },
-        checkField('Front', 'cover.pub_front'),
-        checkField('Spine', 'cover.pub_spine'),
-        checkField('Back', 'cover.pub_back'),
+      h('div', { className: 'tx-check-group tx-cover-options' },
+        checkField('FRONT', 'cover.pub_front'),
+        checkField('SPINE', 'cover.pub_spine'),
+        checkField('BACK', 'cover.pub_back'),
       ),
     ),
     textField('Cover Credit', 'cover.credit'),
+    textareaField('Production Plan / Budget', 'cover.production_plan_budget', {
+      rows: 3,
+      className: 'tx-field-important',
+      helpText: 'Priority field: key production-plan and budget context for cover + print timing.',
+    }),
   );
 }
 
@@ -870,20 +965,20 @@ function renderFilesSection() {
     h('div', { className: 'tx-section-header' }, 'Files & Delivery'),
     h('div', { className: 'tx-field' },
       h('label', null, 'Printer Delivery Format'),
-      h('div', { className: 'tx-check-group' },
+      h('div', { className: 'tx-check-group tx-delivery-options' },
         ...['native', 'postscript', 'PDF'].map(fmt =>
           h('label', { className: 'tx-check' },
             h('input', { type: 'radio', name: 'printer_format', value: fmt,
               checked: getField('files.printer_format') === fmt ? 'checked' : undefined,
               onChange: () => { setField('files.printer_format', fmt); render(); }
-            }), fmt
+            }), fmt.toUpperCase()
           )
         ),
       ),
     ),
     h('div', { className: 'tx-field' },
       h('label', null, 'Customer Archives'),
-      h('div', { className: 'tx-check-group', style: 'flex-direction:column;gap:4px' },
+      h('div', { className: 'tx-check-group tx-delivery-archives' },
         ...['native', 'export final text', 'PDF: for web, by chapter', 'PDF: for print, by chapter'].map(opt => {
           const has = archives.includes(opt);
           return h('label', { className: 'tx-check' },
@@ -894,7 +989,7 @@ function renderFilesSection() {
                 else newArr = newArr.filter(x => x !== opt);
                 setField('files.archives', newArr);
               }
-            }), opt
+            }), opt.toUpperCase()
           );
         }),
       ),

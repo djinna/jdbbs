@@ -90,6 +90,15 @@
   padding: 16px;
 }
 
+.tx-section-important {
+  border-color: rgba(37, 99, 235, 0.35);
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+
+html.dark .tx-section-important {
+  border-color: rgba(91, 154, 255, 0.5);
+}
+
 .tx-section-header {
   font-size: 0.72rem;
   font-weight: 400;
@@ -156,6 +165,29 @@ html.dark .tx-field select:focus {
   min-height: 60px;
 }
 
+.tx-help {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.tx-field-important {
+  padding: 10px;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.tx-field-important label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+html.dark .tx-field-important {
+  border-color: rgba(91, 154, 255, 0.5);
+}
+
 .tx-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -198,7 +230,8 @@ html.dark .tx-field select:focus {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.1;
   font-weight: 400;
   color: var(--text);
   cursor: pointer;
@@ -208,6 +241,7 @@ html.dark .tx-field select:focus {
 .tx-check input[type="radio"] {
   width: auto;
   margin: 0;
+  margin-right: 4px;
   cursor: pointer;
 }
 
@@ -215,6 +249,40 @@ html.dark .tx-field select:focus {
   text-decoration: line-through;
   color: var(--text-secondary);
   opacity: 0.6;
+}
+
+/* Consistent option styling for Trim / Cover / Files */
+.tx-trim-options,
+.tx-cover-options,
+.tx-delivery-options,
+.tx-delivery-archives {
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-trim-options .tx-check,
+.tx-cover-options .tx-check,
+.tx-delivery-options .tx-check,
+.tx-delivery-archives .tx-check {
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  line-height: 1.1;
+}
+
+.tx-trim-other-input {
+  width: 92px;
+  padding: 4px 6px;
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.tx-delivery-archives {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 /* ─── Checklist table ─── */
