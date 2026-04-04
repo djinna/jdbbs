@@ -7,7 +7,7 @@ Hi team,
 The online production calendar is up and ready for a test run.
 It's built from the original .xls production schedule template.
 
-URL:  https://jdbb-prod.exe.xyz/vgr/aog/
+URL:  https://jdbbs.exe.xyz/vgr/aog/
 Password:  artofgig2026
 
 What you'll see:

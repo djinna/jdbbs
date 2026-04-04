@@ -4,7 +4,7 @@ Production Calendar + Manuscript Transmittal
 
 ## Current Setup (exe.dev)
 
-- **URL**: https://jdbb-prod.exe.xyz:8000/
+- **URL**: https://jdbbs.exe.xyz/
 - **Service**: systemd unit `srv` on port 8000
 - **Database**: SQLite at `/home/exedev/prodcal/db.sqlite3` (WAL mode)
 - **Backups**: Daily at 3 AM to `~/backups/`, 7-day retention

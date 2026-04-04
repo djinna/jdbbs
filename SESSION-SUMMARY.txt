@@ -43,8 +43,8 @@ New files:
 
 PROJECT: Online shared/protected production calendar
 REPO: /home/exedev/prodcal (Go web app)
-PUBLIC URL: https://jdbb-prod.exe.xyz/vgr/aog/
-ADMIN URL: https://jdbb-prod.exe.xyz/ (requires exe.dev login)
+PUBLIC URL: https://jdbbs.exe.xyz/vgr/aog/
+ADMIN URL: https://jdbbs.exe.xyz/ (requires exe.dev login)
 PASSWORD: artofgig2026
 
 WHAT IT IS
@@ -218,7 +218,7 @@ SESSION 5 CHANGES
 
 INFRASTRUCTURE
 --------------
-• exe.dev proxy: port 8000 → https://jdbb-prod.exe.xyz/
+• exe.dev proxy: port 8000 → https://jdbbs.exe.xyz/
 • Blink SSH configured on iOS (key: eve.dev, host: exe.dev)
 • systemd service: srv.service
 • Binary: make build → ./prodcal
@@ -230,10 +230,10 @@ This is a continuation of the production calendar + manuscript
 transmittal project.
 
 Repo: /home/exedev/prodcal
-Live: https://jdbb-prod.exe.xyz/vgr/aog/ (password: artofgig2026)
-Transmittal: https://jdbb-prod.exe.xyz/vgr/aog/transmittal/
-Admin: https://jdbb-prod.exe.xyz/admin/ (exe.dev login)
-Notes: https://jdbb-prod.exe.xyz/static/notes.html
+Live: https://jdbbs.exe.xyz/vgr/aog/ (password: artofgig2026)
+Transmittal: https://jdbbs.exe.xyz/vgr/aog/transmittal/
+Admin: https://jdbbs.exe.xyz/admin/ (exe.dev login)
+Notes: https://jdbbs.exe.xyz/static/notes.html
 
 Go backend + vanilla JS SPA, SQLite DB, systemd service.
 Email: AgentMail configured (jdbb@agentmail.to), env in .env.
@@ -247,7 +247,7 @@ Tasks:
    (or PDF attachment). The Go backend has all the data; the
    AgentMail send endpoint is already wired in srv/email.go.
 
-2. Root URL (https://jdbb-prod.exe.xyz/) currently serves the
+2. Root URL (https://jdbbs.exe.xyz/) currently serves the
    calendar SPA to anyone — it shows a project list without
    auth. Consider: should / redirect to a landing page, show
    only public-facing info, or require auth?
@@ -256,7 +256,7 @@ Tasks:
    This is by design (X-ExeDev-UserID header). It works when
    accessed through the exe.dev proxy with a logged-in session.
    If it's blocked for YOU, check that you're logged into
-   exe.dev and accessing via https://jdbb-prod.exe.xyz/admin/.
+   exe.dev and accessing via https://jdbbs.exe.xyz/admin/.
 
 Nice-to-haves:
   • Periodic status digest email (weekly?) for all projects
