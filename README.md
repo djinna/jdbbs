@@ -4,6 +4,10 @@ This is a starter template for building Go web applications on exe.dev. It demon
 
 Use this as a foundation to build your own service.
 
+## Repo conventions
+
+- Checkpoint tags and rollback workflow: see `CHECKPOINTS.md`.
+
 ## Building and Running
 
 Build with `make build`, then run `./srv`. The server listens on port 8000 by default.
