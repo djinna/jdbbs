@@ -610,11 +610,10 @@ function renderForm() {
         renderEditingSection(),
         renderPermissionsSection(),
         renderPageIVSection(),
-        renderSubrightsSection(),
         renderDesignSection(),
-        renderFilesSection(),
         renderProofsSection(),
-        renderOtherSection(),
+        renderFilesSection(),
+        renderSubrightsSection(),
       ),
     ),
   );
@@ -791,7 +790,7 @@ function renderPermissionsSection() {
 // ─── Section: Page IV (Copyright) ───
 function renderPageIVSection() {
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Page IV (Copyright)'),
+    h('div', { className: 'tx-section-header' }, 'PUB INFO & ©'),
     h('div', { className: 'tx-row' },
       textField('Copyright Year', 'page_iv.copyright_year'),
       textField('Held by', 'page_iv.held_by'),
@@ -1020,14 +1019,6 @@ function renderProofsSection() {
     h('button', { className: 'tx-add-btn', onClick: () => {
       reviewers.push({ name: '', contact: '' }); setField('proofs.reviewers', reviewers); render();
     }}, '+ Add Reviewer'),
-  );
-}
-
-// ─── Section: Other Instructions ───
-function renderOtherSection() {
-  return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Other Instructions'),
-    textareaField('', 'other_instructions', { rows: 4, placeholder: 'Any other instructions...' }),
   );
 }
 
