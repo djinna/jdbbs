@@ -189,6 +189,12 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	// Notify admin of client transmittal update (throttled, background)
+	// Skip notification if this is an admin/exe.dev user editing
+	if r.Header.Get("X-ExeDev-UserID") == "" {
+		txNotifier.maybeNotify(s, pid)
+	}
+
 	jsonOK(w, map[string]any{"ok": true})
 }
 
