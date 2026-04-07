@@ -239,10 +239,14 @@ h1 {
     Shared project tracking for authors, editors, and production teams.
   </p>
   <div class="actions">
-    <div>
-      <a href="/__exe.dev/login?redirect=/" class="btn btn-primary">Client Portal &rarr;</a>
-      <span class="btn-note">(select your project after login)</span>
-    </div>
+    <form id="portal-form" style="display:flex;flex-direction:column;gap:0.7rem;align-items:center;width:min(100%, 420px)">
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:center;width:100%">
+        <input id="client-slug" type="text" placeholder="Client code (e.g. vgr)" autocomplete="off" spellcheck="false" style="flex:1 1 180px;min-width:180px;padding:0.95rem 1rem;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--text);font:inherit">
+        <button type="submit" class="btn btn-primary">Client Portal &rarr;</button>
+      </div>
+      <span class="btn-note">Enter your client code to open your portal, then select your project.</span>
+      <div id="portal-error" style="display:none;color:#b91c1c;font-size:0.82rem"></div>
+    </form>
   </div>
   <div class="footer">
     <a href="/__exe.dev/login?redirect=/admin/" style="color:var(--text-muted);text-decoration:none;font-size:0.72rem">Admin</a>
@@ -310,6 +314,24 @@ document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
 });
 
 document.getElementById('dark-btn').addEventListener('click', toggleDark);
+
+var portalForm = document.getElementById('portal-form');
+var clientSlugInput = document.getElementById('client-slug');
+var portalError = document.getElementById('portal-error');
+
+portalForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+  var raw = (clientSlugInput.value || '').trim().toLowerCase();
+  var slug = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (!slug) {
+    portalError.textContent = 'Enter your client code.';
+    portalError.style.display = 'block';
+    clientSlugInput.focus();
+    return;
+  }
+  portalError.style.display = 'none';
+  window.location.href = '/' + slug + '/';
+});
 
 applyState();
 </script>

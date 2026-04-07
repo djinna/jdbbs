@@ -264,7 +264,11 @@ function _ensureThemeBar() {
 }
 
 const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
-let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: null };
+let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: null, showNewProject: false, projectCreate: { name: '', start_date: '', project_slug: '', error: '', saving: false } };
+
+function slugifyProject(value) {
+  return (value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
 
 function render() {
   const app = $('#app');
@@ -314,6 +318,7 @@ function render() {
           <div class="subtitle">${state.projects.length} project${state.projects.length !== 1 ? 's' : ''}</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" id="new-project-btn" style="font-size:12px">New Project</button>
           <button class="btn btn-sm" id="digest-btn" style="font-size:12px" title="Email weekly digest">Weekly Digest</button>
         </div>
       </div>
@@ -325,6 +330,11 @@ function render() {
     // Apply theme + inject theme bar
     applyTheme(getTheme());
     _ensureThemeBar();
+    document.getElementById('new-project-btn').addEventListener('click', () => {
+      state.showNewProject = true;
+      state.projectCreate = { name: '', start_date: '', project_slug: '', error: '', saving: false };
+      render();
+    });
     document.getElementById('digest-btn').addEventListener('click', () => { state.showDigestEmail = true; state.digestResult = null; render(); });
 
     // Stats cards
@@ -421,6 +431,124 @@ function render() {
     if (state.showDigestEmail) {
       renderDigestModal(div);
     }
+    if (state.showNewProject) {
+      renderNewProjectModal(div);
+    }
+  }
+}
+
+function renderNewProjectModal(root) {
+  const backdrop = document.createElement('div');
+  backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop && !state.projectCreate.saving) {
+      state.showNewProject = false;
+      render();
+    }
+  });
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'width:min(92vw,520px);background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);';
+  modal.innerHTML = `
+    <h2 style="margin:0 0 6px;font-size:1.25rem">New Project</h2>
+    <p style="margin:0 0 18px;color:var(--text-secondary);font-size:14px">Create a fresh project in the ${esc(state.client?.name || clientSlug)} portal.</p>
+    <div style="display:grid;gap:12px">
+      <label style="display:grid;gap:6px;font-size:13px;color:var(--text-secondary)">
+        <span>Project name</span>
+        <input id="np-name" type="text" value="${esc(state.projectCreate.name)}" placeholder="Spring 2026 novel" style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit">
+      </label>
+      <label style="display:grid;gap:6px;font-size:13px;color:var(--text-secondary)">
+        <span>Project code / slug</span>
+        <input id="np-slug" type="text" value="${esc(state.projectCreate.project_slug)}" placeholder="spring-2026-novel" style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit">
+      </label>
+      <label style="display:grid;gap:6px;font-size:13px;color:var(--text-secondary)">
+        <span>Start date (optional)</span>
+        <input id="np-start" type="date" value="${esc(state.projectCreate.start_date)}" style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit">
+      </label>
+      <div style="font-size:12px;color:var(--text-secondary)">Portal URL will be /${esc(clientSlug)}/<span id="np-preview">${esc(state.projectCreate.project_slug || 'project-slug')}</span>/</div>
+      ${state.projectCreate.error ? `<div style="font-size:13px;color:#ef4444">${esc(state.projectCreate.error)}</div>` : ''}
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+      <button id="np-cancel" class="btn btn-sm btn-secondary" ${state.projectCreate.saving ? 'disabled' : ''}>Cancel</button>
+      <button id="np-create" class="btn btn-sm" ${state.projectCreate.saving ? 'disabled' : ''}>${state.projectCreate.saving ? 'Creating…' : 'Create Project'}</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  root.appendChild(backdrop);
+
+  const nameInput = modal.querySelector('#np-name');
+  const slugInput = modal.querySelector('#np-slug');
+  const startInput = modal.querySelector('#np-start');
+  const preview = modal.querySelector('#np-preview');
+
+  function syncPreview() {
+    preview.textContent = slugInput.value.trim() || 'project-slug';
+  }
+
+  nameInput.addEventListener('input', () => {
+    const nextName = nameInput.value;
+    const auto = slugifyProject(nextName);
+    const currentSlug = slugInput.value.trim();
+    if (!currentSlug || currentSlug === slugifyProject(state.projectCreate.name)) {
+      slugInput.value = auto;
+    }
+    state.projectCreate.name = nextName;
+    state.projectCreate.project_slug = slugInput.value.trim();
+    state.projectCreate.error = '';
+    syncPreview();
+  });
+  slugInput.addEventListener('input', () => {
+    slugInput.value = slugifyProject(slugInput.value);
+    state.projectCreate.project_slug = slugInput.value.trim();
+    state.projectCreate.error = '';
+    syncPreview();
+  });
+  startInput.addEventListener('input', () => {
+    state.projectCreate.start_date = startInput.value;
+    state.projectCreate.error = '';
+  });
+  syncPreview();
+
+  modal.querySelector('#np-cancel').addEventListener('click', () => {
+    if (state.projectCreate.saving) return;
+    state.showNewProject = false;
+    render();
+  });
+  modal.querySelector('#np-create').addEventListener('click', createProjectFromPortal);
+}
+
+async function createProjectFromPortal() {
+  state.projectCreate.name = state.projectCreate.name.trim();
+  state.projectCreate.project_slug = slugifyProject(state.projectCreate.project_slug || state.projectCreate.name);
+  if (!state.projectCreate.name) {
+    state.projectCreate.error = 'Project name is required.';
+    render();
+    return;
+  }
+  if (!state.projectCreate.project_slug) {
+    state.projectCreate.error = 'Project code is required.';
+    render();
+    return;
+  }
+  state.projectCreate.saving = true;
+  state.projectCreate.error = '';
+  render();
+  try {
+    await api('/api/clients/' + clientSlug + '/projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: state.projectCreate.name,
+        start_date: state.projectCreate.start_date,
+        project_slug: state.projectCreate.project_slug,
+      })
+    });
+    state.showNewProject = false;
+    state.projectCreate = { name: '', start_date: '', project_slug: '', error: '', saving: false };
+    await boot();
+  } catch (e) {
+    state.projectCreate.saving = false;
+    state.projectCreate.error = e.message || 'Create project failed';
+    render();
   }
 }
 

@@ -4,7 +4,29 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"srv.exe.dev/db/dbgen"
 )
+
+func normalizeProjectSlug(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	var b strings.Builder
+	lastHyphen := false
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastHyphen = false
+		case r == '-', r == '_', r == ' ', r == '.', r == '/':
+			if b.Len() > 0 && !lastHyphen {
+				b.WriteByte('-')
+				lastHyphen = true
+			}
+		}
+	}
+	return strings.Trim(b.String(), "-")
+}
 
 // hasAnyProjectAuthForClient checks if the user has a valid project-level auth cookie
 // for any project belonging to this client. This allows users who authenticated
@@ -217,4 +239,75 @@ func (s *Server) handleClientProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonOK(w, projects)
+}
+
+// handleClientCreateProject creates a new project from the client portal.
+// Requires valid client-level auth when the client is password-protected.
+func (s *Server) handleClientCreateProject(w http.ResponseWriter, r *http.Request) {
+	clientSlug := r.PathValue("client")
+	if clientSlug == "" {
+		jsonErr(w, "client slug required", 400)
+		return
+	}
+
+	var passwordHash string
+	err := s.DB.QueryRowContext(r.Context(),
+		`SELECT password_hash FROM clients WHERE slug = ?`, clientSlug,
+	).Scan(&passwordHash)
+	if err == sql.ErrNoRows {
+		jsonErr(w, "client not found", 404)
+		return
+	}
+	if err != nil {
+		jsonErr(w, "server error", 500)
+		return
+	}
+	if passwordHash != "" && !s.checkClientAuth(r, clientSlug) {
+		jsonErr(w, "client login required", http.StatusUnauthorized)
+		return
+	}
+
+	var body struct {
+		Name        string `json:"name"`
+		StartDate   string `json:"start_date"`
+		ProjectSlug string `json:"project_slug"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonErr(w, "bad request", 400)
+		return
+	}
+
+	body.Name = strings.TrimSpace(body.Name)
+	if body.Name == "" {
+		jsonErr(w, "name required", 400)
+		return
+	}
+
+	body.ProjectSlug = normalizeProjectSlug(body.ProjectSlug)
+	if body.ProjectSlug == "" {
+		body.ProjectSlug = normalizeProjectSlug(body.Name)
+	}
+	if body.ProjectSlug == "" {
+		jsonErr(w, "project slug required", 400)
+		return
+	}
+
+	q := dbgen.New(s.DB)
+	p, err := q.CreateProject(r.Context(), dbgen.CreateProjectParams{
+		Name:        body.Name,
+		StartDate:   strings.TrimSpace(body.StartDate),
+		ClientSlug:  clientSlug,
+		ProjectSlug: body.ProjectSlug,
+	})
+	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "unique") {
+			jsonErr(w, "project slug already exists for this client", 409)
+			return
+		}
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+
+	w.WriteHeader(201)
+	jsonOK(w, p)
 }

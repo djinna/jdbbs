@@ -31,7 +31,7 @@ type Server struct {
 
 func New(dbPath, hostname string) (*Server, error) {
 	srv := &Server{Hostname: hostname}
-	
+
 	// Set BaseURL from environment or derive from hostname
 	baseURL := os.Getenv("PRODCAL_BASE_URL")
 	if baseURL == "" {
@@ -40,7 +40,7 @@ func New(dbPath, hostname string) (*Server, error) {
 	}
 	srv.BaseURL = baseURL
 	slog.Info("server base URL configured", "base_url", baseURL)
-	
+
 	if err := srv.setUpDatabase(dbPath); err != nil {
 		return nil, err
 	}
@@ -148,6 +148,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/clients/{client}", s.handleClientInfo)
 	mux.HandleFunc("POST /api/clients/{client}/verify", s.handleClientVerify)
 	mux.HandleFunc("GET /api/clients/{client}/projects", s.handleClientProjects)
+	mux.HandleFunc("POST /api/clients/{client}/projects", s.handleClientCreateProject)
 	mux.HandleFunc("GET /api/clients/{client}/file-log", s.handleClientFileLog)
 	mux.HandleFunc("GET /api/clients/{client}/journal", s.handleClientJournal)
 	mux.HandleFunc("POST /api/clients/{client}/digest/email", s.handleSendClientDigest)
@@ -357,6 +358,10 @@ func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+
 	var body struct {
 		Name        string `json:"name"`
 		StartDate   string `json:"start_date"`
@@ -557,13 +562,13 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		ProjectID: pid, SortOrder: body.SortOrder,
 		Assignee: body.Assignee, Title: body.Title,
 		IsMilestone: body.IsMilestone,
-		OrigWeeks: body.OrigWeeks, CurrWeeks: body.CurrWeeks,
+		OrigWeeks:   body.OrigWeeks, CurrWeeks: body.CurrWeeks,
 		OrigDue: body.OrigDue, CurrDue: body.CurrDue,
 		ActualDone: body.ActualDone, Status: body.Status,
 		Words: body.Words, WordsPerHour: body.WordsPerHour,
 		Hours: body.Hours, Rate: body.Rate,
 		BudgetNotes: body.BudgetNotes,
-		OrigBudget: body.OrigBudget, CurrBudget: body.CurrBudget,
+		OrigBudget:  body.OrigBudget, CurrBudget: body.CurrBudget,
 		ActualBudget: body.ActualBudget,
 	})
 	if err != nil {
@@ -600,16 +605,16 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	if err := q.UpdateTask(r.Context(), dbgen.UpdateTaskParams{
 		Assignee: body.Assignee, Title: body.Title,
 		IsMilestone: body.IsMilestone,
-		OrigWeeks: body.OrigWeeks, CurrWeeks: body.CurrWeeks,
+		OrigWeeks:   body.OrigWeeks, CurrWeeks: body.CurrWeeks,
 		OrigDue: body.OrigDue, CurrDue: body.CurrDue,
 		ActualDone: body.ActualDone, Status: body.Status,
 		Words: body.Words, WordsPerHour: body.WordsPerHour,
 		Hours: body.Hours, Rate: body.Rate,
 		BudgetNotes: body.BudgetNotes,
-		OrigBudget: body.OrigBudget, CurrBudget: body.CurrBudget,
+		OrigBudget:  body.OrigBudget, CurrBudget: body.CurrBudget,
 		ActualBudget: body.ActualBudget,
-		SortOrder: body.SortOrder,
-		ID: tid,
+		SortOrder:    body.SortOrder,
+		ID:           tid,
 	}); err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
@@ -770,13 +775,13 @@ func (s *Server) handleSeedProject(w http.ResponseWriter, r *http.Request) {
 			ProjectID: pid, SortOrder: int64(t.SortOrder),
 			Assignee: t.Assignee, Title: t.Task,
 			IsMilestone: milestone,
-			OrigWeeks: t.OrigWeeks, CurrWeeks: t.CurrWeeks,
+			OrigWeeks:   t.OrigWeeks, CurrWeeks: t.CurrWeeks,
 			OrigDue: t.OrigDue, CurrDue: t.CurrDue,
 			ActualDone: t.ActualDone, Status: status,
 			Words: int64(t.Words), WordsPerHour: int64(t.WordsPerHour),
 			Hours: t.Hours, Rate: t.Rate,
 			BudgetNotes: t.BudgetNotes,
-			OrigBudget: t.OrigBudget, CurrBudget: t.CurrBudget,
+			OrigBudget:  t.OrigBudget, CurrBudget: t.CurrBudget,
 			ActualBudget: t.ActualBudget,
 		})
 		if err != nil {
@@ -888,8 +893,8 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 			CurrWeeks:    t.OrigWeeks, // Reset curr to orig
 			OrigDue:      shiftDate(t.OrigDue, delta),
 			CurrDue:      shiftDate(t.OrigDue, delta), // Reset curr to shifted orig
-			ActualDone:   "",       // Clear
-			Status:       "pending", // Reset
+			ActualDone:   "",                          // Clear
+			Status:       "pending",                   // Reset
 			Words:        t.Words,
 			WordsPerHour: t.WordsPerHour,
 			Hours:        t.Hours,
@@ -905,7 +910,7 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 	}
 
 	jsonOK(w, map[string]any{
-		"project": newProject,
+		"project":      newProject,
 		"tasks_copied": len(tasks),
 	})
 }
