@@ -394,6 +394,10 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 <div class="content">
   <div class="header">
     <h1><a href="/" style="color:inherit;text-decoration:none">Production</a></h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-sm" id="new-project-btn">New Project</button>
+      <button class="btn btn-sm btn-secondary" id="new-client-btn">New Client</button>
+    </div>
   </div>
 
   <div class="tabs">
@@ -869,6 +873,7 @@ const $projects = document.getElementById('projects');
 const $loading = document.getElementById('loading');
 
 let cachedProjects = [];
+let cachedClients = [];
 async function loadProjects() {
   try {
     const r = await fetch('/api/admin/projects');
@@ -885,6 +890,16 @@ async function loadProjects() {
     populateBookProjectSelector(projects);
   } catch(e) {
     $loading.textContent = 'Error loading projects: ' + e.message;
+  }
+}
+
+async function loadClients() {
+  try {
+    const r = await fetch('/api/admin/clients');
+    if (!r.ok) return;
+    cachedClients = await r.json();
+  } catch (e) {
+    console.warn('Error loading clients:', e);
   }
 }
 
@@ -956,6 +971,114 @@ function esc(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+function openNewProjectModal() {
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+  const modal = document.createElement('div');
+  modal.className = 'modal-card';
+  modal.innerHTML = `
+    <h2>New Project</h2>
+    <p class="subtitle">Create a new seeded production calendar.</p>
+    <div class="book-form active" style="margin-bottom:0">
+      <div class="full"><label>Project name<input type="text" id="np-name" placeholder="The New Book"></label></div>
+      <div><label>Client slug<input type="text" id="np-client" list="np-client-list" placeholder="vgr"></label><datalist id="np-client-list">${cachedClients.map(c => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('')}</datalist></div>
+      <div><label>Project slug<input type="text" id="np-slug" placeholder="new-book"></label></div>
+      <div><label>Start date<input type="date" id="np-start"></label></div>
+      <div class="full" style="font-size:0.78rem;color:var(--text-secondary)">Type an existing client slug or enter a new one.</div>
+      <div class="full" id="np-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="np-cancel">Cancel</button>
+      <button class="primary" id="np-create">Create Project</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('#np-cancel').addEventListener('click', () => backdrop.remove());
+  modal.querySelector('#np-create').addEventListener('click', async () => {
+    const name = modal.querySelector('#np-name').value.trim();
+    const clientSlug = modal.querySelector('#np-client').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const projectSlug = modal.querySelector('#np-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const startDate = modal.querySelector('#np-start').value;
+    const errorEl = modal.querySelector('#np-error');
+    if (!name || !clientSlug || !projectSlug) {
+      errorEl.textContent = 'Project name, client slug, and project slug are required.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    try {
+      const r = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, client_slug: clientSlug, project_slug: projectSlug, start_date: startDate })
+      });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || r.statusText);
+      backdrop.remove();
+      await loadProjects();
+    } catch (e) {
+      errorEl.textContent = e.message;
+      errorEl.style.display = 'block';
+    }
+  });
+}
+
+function openNewClientModal() {
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+  const modal = document.createElement('div');
+  modal.className = 'modal-card';
+  modal.innerHTML = `
+    <h2>New Client</h2>
+    <p class="subtitle">Create a client record for project grouping. Optional password adds an extra portal password if access is not already handled elsewhere.</p>
+    <div class="book-form active" style="margin-bottom:0">
+      <div class="full"><label>Client name<input type="text" id="nc-name" placeholder="Client Name"></label></div>
+      <div><label>Client slug<input type="text" id="nc-slug" placeholder="client-slug"></label></div>
+      <div><label>Client password (optional)<input type="text" id="nc-password" placeholder="leave blank if handled elsewhere"></label></div>
+      <div class="full" id="nc-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="nc-cancel">Cancel</button>
+      <button class="primary" id="nc-create">Create Client</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('#nc-cancel').addEventListener('click', () => backdrop.remove());
+  modal.querySelector('#nc-create').addEventListener('click', async () => {
+    const name = modal.querySelector('#nc-name').value.trim();
+    const slug = modal.querySelector('#nc-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const password = modal.querySelector('#nc-password').value;
+    const errorEl = modal.querySelector('#nc-error');
+    if (!name || !slug) {
+      errorEl.textContent = 'Client name and client slug are required.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    try {
+      const r = await fetch('/api/admin/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slug, password })
+      });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || r.statusText);
+      backdrop.remove();
+      await loadClients();
+      await loadProjects();
+    } catch (e) {
+      errorEl.textContent = e.message;
+      errorEl.style.display = 'block';
+    }
+  });
 }
 
 // ─── Email Modal ───
@@ -1091,6 +1214,9 @@ async function sendEmailFromModal() {
     renderEmailModal();
   }
 }
+
+document.getElementById('new-project-btn').addEventListener('click', openNewProjectModal);
+document.getElementById('new-client-btn').addEventListener('click', openNewClientModal);
 
 // ─── Tabs ───
 document.querySelectorAll('.tab[data-tab]').forEach(tab => {
@@ -2144,8 +2270,9 @@ document.getElementById('corr-export-yaml').addEventListener('click', async () =
 
 // ─── Init ───
 checkHealth();
+loadClients();
 loadProjects();
-setInterval(() => { checkHealth(); loadProjects(); }, 30000);
+setInterval(() => { checkHealth(); loadClients(); loadProjects(); }, 30000);
 </script>
 </body>
 </html>

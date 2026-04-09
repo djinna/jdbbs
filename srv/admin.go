@@ -3,6 +3,7 @@ package srv
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 type projectSummary struct {
@@ -112,4 +113,95 @@ func (s *Server) handleAdminProjectList(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(projects)
+}
+
+type adminClientSummary struct {
+	Slug         string `json:"slug"`
+	Name         string `json:"name"`
+	HasAuth      bool   `json:"has_auth"`
+	ProjectCount int    `json:"project_count"`
+	CreatedAt    string `json:"created_at"`
+}
+
+func (s *Server) handleAdminClientList(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+
+	rows, err := s.DB.QueryContext(r.Context(), `
+		SELECT c.slug, c.name, c.password_hash, c.created_at, COUNT(p.id) as project_count
+		FROM clients c
+		LEFT JOIN projects p ON p.client_slug = c.slug
+		GROUP BY c.slug, c.name, c.password_hash, c.created_at
+		ORDER BY c.created_at DESC, c.slug ASC
+	`)
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+
+	var clients []adminClientSummary
+	for rows.Next() {
+		var c adminClientSummary
+		var passwordHash string
+		if err := rows.Scan(&c.Slug, &c.Name, &passwordHash, &c.CreatedAt, &c.ProjectCount); err != nil {
+			jsonErr(w, err.Error(), 500)
+			return
+		}
+		c.HasAuth = strings.TrimSpace(passwordHash) != ""
+		clients = append(clients, c)
+	}
+	if clients == nil {
+		clients = []adminClientSummary{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(clients)
+}
+
+func (s *Server) handleAdminCreateClient(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+
+	var body struct {
+		Name     string `json:"name"`
+		Slug     string `json:"slug"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonErr(w, "bad request", 400)
+		return
+	}
+	body.Name = strings.TrimSpace(body.Name)
+	body.Slug = normalizeProjectSlug(body.Slug)
+	if body.Name == "" {
+		jsonErr(w, "name required", 400)
+		return
+	}
+	if body.Slug == "" {
+		jsonErr(w, "slug required", 400)
+		return
+	}
+	passwordHash := ""
+	if strings.TrimSpace(body.Password) != "" {
+		passwordHash = hashToken(body.Password)
+	}
+	_, err := s.DB.ExecContext(r.Context(), `INSERT INTO clients (slug, name, password_hash) VALUES (?, ?, ?)`, body.Slug, body.Name, passwordHash)
+	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "unique") {
+			jsonErr(w, "client slug already exists", 409)
+			return
+		}
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	json.NewEncoder(w).Encode(map[string]any{
+		"slug":      body.Slug,
+		"name":      body.Name,
+		"has_auth":  passwordHash != "",
+		"created_ok": true,
+	})
 }
