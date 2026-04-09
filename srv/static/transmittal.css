@@ -85,9 +85,13 @@
 /* ─── Sections ─── */
 .tx-section {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid #c7ccd4;
   border-radius: 6px;
   padding: 16px;
+}
+
+html.dark .tx-section {
+  border-color: #4a505b;
 }
 
 .tx-section-important {
@@ -107,7 +111,11 @@ html.dark .tx-section-important {
   color: var(--accent);
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid #c7ccd4;
+}
+
+html.dark .tx-section-header {
+  border-bottom-color: #4a505b;
 }
 
 /* ─── Form fields ─── */
@@ -300,13 +308,21 @@ html.dark .tx-field-important {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 4px 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid #c7ccd4;
 }
 
 .tx-checklist td {
   padding: 3px 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid #d2d7df;
   vertical-align: middle;
+}
+
+html.dark .tx-checklist th {
+  border-bottom-color: #4a505b;
+}
+
+html.dark .tx-checklist td {
+  border-bottom-color: #434955;
 }
 
 .tx-checklist tr:last-child td {
@@ -329,7 +345,8 @@ html.dark .tx-field-important {
 }
 
 .tx-checklist input[type="text"],
-.tx-checklist input[type="date"] {
+.tx-checklist input[type="date"],
+.tx-checklist select {
   width: 100%;
   padding: 2px 4px;
   background: var(--bg);
@@ -342,8 +359,17 @@ html.dark .tx-field-important {
 }
 
 .tx-checklist input[type="text"]:focus,
-.tx-checklist input[type="date"]:focus {
+.tx-checklist input[type="date"]:focus,
+.tx-checklist select:focus {
   border-color: var(--accent);
+}
+
+.tx-checklist input[type="date"]:disabled {
+  background: var(--surface);
+  color: var(--text-muted);
+  border-color: var(--border);
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 .tx-checklist .stats-row td {

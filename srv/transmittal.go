@@ -9,33 +9,33 @@ import (
 
 func defaultTransmittalData() string {
 	return `{
-  "book": {"author":"","title":"","subtitle":"","title_status":"tentative","series":"","publisher":"","editor":"","transmittal_date":"","isbn_paper":"","isbn_cloth":""},
+  "book": {"author":"","title":"","subtitle":"","title_status":"tentative","series":"","publisher":"","editor":"","transmittal_date":"","isbn_paper":"","isbn_epub":"","isbn_cloth":""},
   "production": {"transmittal_date":"","mechs_delivery":"","weeks_in_production":"","bound_book_date":"","print_run":""},
   "checklist": [
-    {"component":"Half title pg","here_now":false,"to_come_when":"","indent":false},
-    {"component":"Series title/Frontis.","here_now":false,"to_come_when":"","indent":false},
-    {"component":"Title pg","here_now":false,"to_come_when":"","indent":false},
-    {"component":"Copyright pg","here_now":false,"to_come_when":"","indent":false},
-    {"component":"CIP","here_now":false,"to_come_when":"","indent":false},
-    {"component":"Dedication","here_now":false,"to_come_when":"","indent":false},
-    {"component":"Epigraph","here_now":false,"to_come_when":"","indent":true},
-    {"component":"Contents","here_now":false,"to_come_when":"","indent":false},
-    {"component":"List of Figures","here_now":false,"to_come_when":"","indent":true},
-    {"component":"List of Tables","here_now":false,"to_come_when":"","indent":true},
-    {"component":"Foreword","here_now":false,"to_come_when":"","indent":true},
-    {"component":"Preface","here_now":false,"to_come_when":"","indent":true},
-    {"component":"Acknowledgments","here_now":false,"to_come_when":"","indent":true},
-    {"component":"Introduction","here_now":false,"to_come_when":"","indent":false},
-    {"component":"Text","here_now":false,"to_come_when":"","indent":false}
+    {"component":"Half title pg","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"Series title/Frontis.","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"Title pg","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"Copyright pg","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"CIP","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"Dedication","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"Epigraph","status":"","here_now":false,"to_come_when":"","indent":true},
+    {"component":"Contents","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"List of Figures","status":"","here_now":false,"to_come_when":"","indent":true},
+    {"component":"List of Tables","status":"","here_now":false,"to_come_when":"","indent":true},
+    {"component":"Foreword","status":"","here_now":false,"to_come_when":"","indent":true},
+    {"component":"Preface","status":"","here_now":false,"to_come_when":"","indent":true},
+    {"component":"Acknowledgments","status":"","here_now":false,"to_come_when":"","indent":true},
+    {"component":"Introduction","status":"","here_now":false,"to_come_when":"","indent":false},
+    {"component":"Text","status":"","here_now":false,"to_come_when":"","indent":false}
   ],
   "checklist_stats": {"parts":"","chapters":"","words_chars":"","ms_pp":"","est_book_pp":""},
   "backmatter": [
-    {"component":"Notes","here_now":false,"to_come_when":"","subtype":"ft/end"},
-    {"component":"Appendix(es)","here_now":false,"to_come_when":""},
-    {"component":"Glossary","here_now":false,"to_come_when":""},
-    {"component":"Bibliography","here_now":false,"to_come_when":""},
-    {"component":"Index","here_now":false,"to_come_when":""},
-    {"component":"Other BM","here_now":false,"to_come_when":""}
+    {"component":"Notes","status":"","here_now":false,"to_come_when":"","subtype":"ft/end"},
+    {"component":"Appendix(es)","status":"","here_now":false,"to_come_when":""},
+    {"component":"Glossary","status":"","here_now":false,"to_come_when":""},
+    {"component":"Bibliography","status":"","here_now":false,"to_come_when":""},
+    {"component":"Index","status":"","here_now":false,"to_come_when":""},
+    {"component":"Other BM","status":"","here_now":false,"to_come_when":""}
   ],
   "illustrations": {"figures_no":0,"figures_here":false,"figures_to_come":"","tables_no":0,"tables_here":false,"tables_to_come":"","photos_no":0,"photos_here":false,"photos_to_come":"","other_no":0,"other_here":false,"other_to_come":"","art_plan":""},
   "permissions": {"reprint_status":"","reprint_when":"","consents_status":"","consents_when":""},
@@ -398,6 +398,7 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 		book["title"] = ""
 		book["subtitle"] = ""
 		book["isbn_paper"] = ""
+		book["isbn_epub"] = ""
 		book["isbn_cloth"] = ""
 		book["transmittal_date"] = ""
 		book["series"] = ""
@@ -419,6 +420,7 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 	if cl, ok := d["checklist"].([]any); ok {
 		for _, item := range cl {
 			if m, ok := item.(map[string]any); ok {
+				m["status"] = ""
 				m["here_now"] = false
 				m["to_come_when"] = ""
 			}
@@ -427,6 +429,7 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 	if bm, ok := d["backmatter"].([]any); ok {
 		for _, item := range bm {
 			if m, ok := item.(map[string]any); ok {
+				m["status"] = ""
 				m["here_now"] = false
 				m["to_come_when"] = ""
 			}

@@ -373,6 +373,14 @@ function checkField(label, path) {
 }
 
 // ─── Completion calc ───
+function getChecklistItemStatus(item) {
+  if (!item) return '';
+  if (item.status) return item.status;
+  if (item.here_now) return 'included';
+  if (item.to_come_when) return 'later';
+  return '';
+}
+
 function calcCompletion() {
   const d = state.transmittal.data;
   let filled = 0, total = 0;
@@ -384,14 +392,14 @@ function calcCompletion() {
   for (const k of ['start_date','pages_to_printer','pages_to_epub','print_run']) {
     total++; if (d.production && d.production[k]) filled++;
   }
-  // Checklist — count items with here_now or to_come_when
+  // Checklist — count items with explicit status, while preserving older saved data
   if (d.checklist) {
     total += d.checklist.length;
-    filled += d.checklist.filter(c => c.here_now || c.to_come_when).length;
+    filled += d.checklist.filter(c => !!getChecklistItemStatus(c)).length;
   }
   if (d.backmatter) {
     total += d.backmatter.length;
-    filled += d.backmatter.filter(c => c.here_now || c.to_come_when).length;
+    filled += d.backmatter.filter(c => !!getChecklistItemStatus(c)).length;
   }
   // Design
   for (const k of ['trim','complexity']) {
@@ -582,6 +590,7 @@ function renderForm() {
         h('span', { className: 'page-status page-status-' + state.transmittal.status },
           state.transmittal.status
         ),
+        h('span', { style: 'font-size:0.78rem;color:var(--text-secondary)' }, 'Autosaves as you edit'),
         h('span', { id: 'tx-save-status', className: 'tx-save-status' }),
       ),
     ),
@@ -637,8 +646,9 @@ function renderBookSection() {
     h('div', { className: 'tx-row' },
       textField('Transmittal Date', 'book.transmittal_date', { type: 'date' }),
     ),
-    h('div', { className: 'tx-row' },
+    h('div', { className: 'tx-row-3' },
       textField('ISBN (paper)', 'book.isbn_paper'),
+      textField('ISBN (EPUB)', 'book.isbn_epub'),
       textField('ISBN (cloth)', 'book.isbn_cloth'),
     ),
   );
@@ -667,47 +677,85 @@ function renderChecklistSection() {
   const backmatter = d.backmatter || [];
   const stats = d.checklist_stats || {};
 
+  function updateChecklistRow(collectionName, collection, index, nextStatus) {
+    const item = collection[index];
+    item.status = nextStatus;
+    if (nextStatus === 'included') {
+      item.here_now = true;
+      item.to_come_when = '';
+    } else if (nextStatus === 'later') {
+      item.here_now = false;
+    } else if (nextStatus === 'not_in_book') {
+      item.here_now = false;
+      item.to_come_when = '';
+    } else {
+      item.here_now = false;
+      item.to_come_when = '';
+    }
+    setField(collectionName, collection);
+    render();
+  }
+
+  function checklistRow(item, i, collectionName, collection, options = {}) {
+    const status = getChecklistItemStatus(item);
+    const disabled = status !== 'later';
+    return h('tr', null,
+      h('td', { className: options.indent ? 'component-indent' : 'component-name' },
+        options.label || item.component
+      ),
+      h('td', { style: 'width:190px' },
+        h('select', {
+          onChange: (e) => updateChecklistRow(collectionName, collection, i, e.target.value)
+        },
+          ...[
+            ['', '— Select —'],
+            ['included', 'In ms now'],
+            ['later', 'Coming later'],
+            ['not_in_book', 'Not included'],
+          ].map(([value, label]) => {
+            const opt = h('option', { value }, label);
+            if (status === value) opt.selected = true;
+            return opt;
+          })
+        )
+      ),
+      h('td', { style: 'width:140px' },
+        h('input', {
+          type: 'date',
+          value: item.to_come_when || '',
+          placeholder: 'Expected date',
+          disabled: disabled ? 'disabled' : undefined,
+          onChange: (e) => {
+            collection[i].status = 'later';
+            collection[i].here_now = false;
+            collection[i].to_come_when = e.target.value;
+            setField(collectionName, collection);
+            render();
+          }
+        })
+      ),
+    );
+  }
+
   const checklistRows = checklist.map((item, i) =>
-    h('tr', null,
-      h('td', { className: item.indent ? 'component-indent' : 'component-name' }, item.component),
-      h('td', { style: 'text-align:center;width:60px' },
-        h('input', { type: 'checkbox', checked: item.here_now ? 'checked' : undefined,
-          onChange: (e) => { checklist[i].here_now = e.target.checked; setField('checklist', checklist); }
-        }),
-      ),
-      h('td', { style: 'width:100px' },
-        h('input', { type: 'text', value: item.to_come_when || '', placeholder: 'date',
-          onInput: (e) => { checklist[i].to_come_when = e.target.value; setField('checklist', checklist); }
-        }),
-      ),
-    )
+    checklistRow(item, i, 'checklist', checklist, { indent: item.indent })
   );
 
   const bmRows = backmatter.map((item, i) =>
-    h('tr', null,
-      h('td', { className: 'component-name' },
-        item.component + (item.subtype ? ' (' + item.subtype + ')' : ''),
-      ),
-      h('td', { style: 'text-align:center;width:60px' },
-        h('input', { type: 'checkbox', checked: item.here_now ? 'checked' : undefined,
-          onChange: (e) => { backmatter[i].here_now = e.target.checked; setField('backmatter', backmatter); }
-        }),
-      ),
-      h('td', { style: 'width:100px' },
-        h('input', { type: 'text', value: item.to_come_when || '', placeholder: 'date',
-          onInput: (e) => { backmatter[i].to_come_when = e.target.value; setField('backmatter', backmatter); }
-        }),
-      ),
-    )
+    checklistRow(item, i, 'backmatter', backmatter, {
+      label: item.component + (item.subtype ? ' (' + item.subtype + ')' : ''),
+      indent: false,
+    })
   );
 
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Manuscript Checklist'),
+    h('div', { className: 'tx-help' }, 'For each component, choose whether it is in the manuscript now, coming later, or not included in this book.'),
     h('table', { className: 'tx-checklist' },
       h('thead', null, h('tr', null,
         h('th', null, 'Component'),
-        h('th', { style: 'text-align:center' }, 'Here'),
-        h('th', null, 'To Come'),
+        h('th', null, 'Status'),
+        h('th', null, 'Expected date'),
       )),
       h('tbody', null,
         ...checklistRows,
