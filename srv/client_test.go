@@ -95,7 +95,25 @@ func TestClientCreateProjectWithClientAuth(t *testing.T) {
 	if resp.StatusCode != 201 {
 		t.Fatalf("create client project: expected 201, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	projectID := itoa(int64(created["ID"].(float64)))
+
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+projectID+"/tasks", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("list seeded client tasks: expected 200, got %d", resp.StatusCode)
+	}
+	var tasks []map[string]any
+	decodeJSON(t, resp, &tasks)
+	if len(tasks) != 31 {
+		t.Fatalf("expected 31 seeded tasks for client project, got %d", len(tasks))
+	}
+	if tasks[0]["Title"] != "Ms transmittal" {
+		t.Fatalf("expected first seeded task to be 'Ms transmittal', got %v", tasks[0]["Title"])
+	}
+	if tasks[30]["Title"] != "Log in mechs" {
+		t.Fatalf("expected last seeded task to be 'Log in mechs', got %v", tasks[30]["Title"])
+	}
 
 	req, err = http.NewRequest("GET", ts.URL+"/api/clients/vgr/projects", nil)
 	if err != nil {
@@ -122,5 +140,39 @@ func TestClientCreateProjectWithClientAuth(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("expected second-project in client project list, got %+v", projects)
+	}
+}
+
+func TestAdminCreateProjectSeedsStandardWorkflow(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name":         "Admin Seeded",
+		"start_date":   "2026-04-09",
+		"client_slug":  "vgr",
+		"project_slug": "admin-seeded",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create admin project: expected 201, got %d", resp.StatusCode)
+	}
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	projectID := itoa(int64(created["ID"].(float64)))
+
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+projectID+"/tasks", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("list seeded admin tasks: expected 200, got %d", resp.StatusCode)
+	}
+	var tasks []map[string]any
+	decodeJSON(t, resp, &tasks)
+	if len(tasks) != 31 {
+		t.Fatalf("expected 31 seeded tasks for admin project, got %d", len(tasks))
+	}
+	if tasks[0]["Title"] != "Ms transmittal" {
+		t.Fatalf("expected first seeded task to be 'Ms transmittal', got %v", tasks[0]["Title"])
+	}
+	if tasks[23]["Title"] != "Send mechs to printer" {
+		t.Fatalf("expected seeded printer task, got %v", tasks[23]["Title"])
 	}
 }

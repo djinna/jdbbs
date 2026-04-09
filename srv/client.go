@@ -292,7 +292,14 @@ func (s *Server) handleClientCreateProject(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	q := dbgen.New(s.DB)
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		jsonErr(w, "begin tx failed: "+err.Error(), 500)
+		return
+	}
+	defer tx.Rollback()
+
+	q := dbgen.New(tx)
 	p, err := q.CreateProject(r.Context(), dbgen.CreateProjectParams{
 		Name:        body.Name,
 		StartDate:   strings.TrimSpace(body.StartDate),
@@ -305,6 +312,14 @@ func (s *Server) handleClientCreateProject(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		jsonErr(w, err.Error(), 500)
+		return
+	}
+	if err := seedProjectWithStandardWorkflow(r.Context(), q, p.ID); err != nil {
+		jsonErr(w, "seed workflow failed: "+err.Error(), 500)
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		jsonErr(w, "commit failed: "+err.Error(), 500)
 		return
 	}
 

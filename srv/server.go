@@ -1,6 +1,7 @@
 package srv
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"embed"
@@ -376,7 +377,14 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "client_slug and project_slug required", 400)
 		return
 	}
-	q := dbgen.New(s.DB)
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		jsonErr(w, "begin tx failed: "+err.Error(), 500)
+		return
+	}
+	defer tx.Rollback()
+
+	q := dbgen.New(tx)
 	p, err := q.CreateProject(r.Context(), dbgen.CreateProjectParams{
 		Name:        body.Name,
 		StartDate:   body.StartDate,
@@ -385,6 +393,14 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
+		return
+	}
+	if err := seedProjectWithStandardWorkflow(r.Context(), q, p.ID); err != nil {
+		jsonErr(w, "seed workflow failed: "+err.Error(), 500)
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		jsonErr(w, "commit failed: "+err.Error(), 500)
 		return
 	}
 	w.WriteHeader(201)
@@ -745,6 +761,76 @@ type seedTask struct {
 	OrigBudget   float64 `json:"orig_budget"`
 	CurrBudget   float64 `json:"curr_budget"`
 	ActualBudget float64 `json:"actual_budget"`
+}
+
+var standardWorkflowSeedTasks = []seedTask{
+	{SortOrder: 1, Assignee: "NW", Task: "Ms transmittal", OrigDue: "2026-02-23", CurrDue: "2026-02-23"},
+	{SortOrder: 2, Assignee: "JD", Task: "JD.Review1.ms", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-03-02", CurrDue: "2026-03-02"},
+	{SortOrder: 3, Assignee: "VR", Task: "Copyedit1", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-03-09", CurrDue: "2026-03-09"},
+	{SortOrder: 4, Assignee: "JD", Task: "JD.Review2.ms", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-03-16", CurrDue: "2026-03-16"},
+	{SortOrder: 5, Assignee: "VR", Task: "Start Cover Design", OrigDue: "2026-03-16", CurrDue: "2026-03-16"},
+	{SortOrder: 6, Assignee: "VR", Task: "VR Review.ms", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-03-23", CurrDue: "2026-03-23"},
+	{SortOrder: 7, Assignee: "NW", Task: "Back cover copy to JD", OrigDue: "2026-03-23", CurrDue: "2026-03-23"},
+	{SortOrder: 8, Assignee: "JD", Task: "Copyedit2", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-03-30", CurrDue: "2026-03-30"},
+	{SortOrder: 9, Assignee: "JD", Task: "Interior Design", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-04-06", CurrDue: "2026-04-06"},
+	{SortOrder: 10, Assignee: "JD", Task: "Send for CIP", OrigDue: "2026-04-06", CurrDue: "2026-04-06"},
+	{SortOrder: 11, Assignee: "JD", Task: "Input cxs | Typeset1", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-04-13", CurrDue: "2026-04-13"},
+	{SortOrder: 12, Assignee: "JD", Task: "Send for galley copies", OrigDue: "2026-04-20", CurrDue: "2026-04-20"},
+	{SortOrder: 13, Assignee: "JD", Task: "Proof1", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-04-20", CurrDue: "2026-04-20"},
+	{SortOrder: 14, Assignee: "VR", Task: "VR Review.pp", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-04-27", CurrDue: "2026-04-27"},
+	{SortOrder: 15, Assignee: "VR", Task: "Complete cover", OrigDue: "2026-04-27", CurrDue: "2026-04-27"},
+	{SortOrder: 16, Assignee: "JD", Task: "JD.Review3.pp", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-05-04", CurrDue: "2026-05-04"},
+	{SortOrder: 17, Assignee: "JD", Task: "Request print quotes", OrigDue: "2026-05-04", CurrDue: "2026-05-04"},
+	{SortOrder: 18, Assignee: "JD", Task: "Send for bar code", OrigDue: "2026-05-04", CurrDue: "2026-05-04"},
+	{SortOrder: 19, Assignee: "JD", Task: "Typeset2", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-05-11", CurrDue: "2026-05-11"},
+	{SortOrder: 20, Assignee: "JD", Task: "Proof2  |  (Index)", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-05-18", CurrDue: "2026-05-18"},
+	{SortOrder: 21, Assignee: "VR", Task: "VR Final Review", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-05-25", CurrDue: "2026-05-25"},
+	{SortOrder: 22, Assignee: "JD", Task: "JD.Review4.mechs", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-06-01", CurrDue: "2026-06-01"},
+	{SortOrder: 23, Assignee: "V+J", Task: "Set back cover/index", OrigDue: "2026-06-01", CurrDue: "2026-06-01"},
+	{SortOrder: 24, Assignee: "V+J", Task: "Send mechs to printer", OrigWeeks: 0.5, CurrWeeks: 0.5, OrigDue: "2026-06-04", CurrDue: "2026-06-04"},
+	{SortOrder: 25, Assignee: "JD", Task: "Approve blues", OrigDue: "2026-07-09", CurrDue: "2026-07-09"},
+	{SortOrder: 26, Assignee: "VR", Task: "Plan comp copy shipping", OrigDue: "2026-07-09", CurrDue: "2026-07-09"},
+	{SortOrder: 27, Assignee: "JD", Task: "Printer  [ship date]", OrigWeeks: 4, CurrWeeks: 4, OrigDue: "2026-07-02", CurrDue: "2026-07-02"},
+	{SortOrder: 28, Assignee: "PR", Task: "Bound books", OrigWeeks: 1, CurrWeeks: 1, OrigDue: "2026-07-09", CurrDue: "2026-07-09"},
+	{SortOrder: 29, Assignee: "VR", Task: "Ship all comps", OrigDue: "2026-07-09", CurrDue: "2026-07-09"},
+	{SortOrder: 30, Assignee: "VR", Task: "Send copyright reg", OrigDue: "2026-07-09", CurrDue: "2026-07-09"},
+	{SortOrder: 31, Assignee: "VR", Task: "Log in mechs", OrigDue: "2026-07-09", CurrDue: "2026-07-09"},
+}
+
+func seedProjectWithStandardWorkflow(ctx context.Context, q *dbgen.Queries, projectID int64) error {
+	existingTasks, err := q.ListTasks(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	if len(existingTasks) > 0 {
+		return nil
+	}
+	for _, t := range standardWorkflowSeedTasks {
+		milestone := int64(0)
+		if t.IsMilestone {
+			milestone = 1
+		}
+		status := "pending"
+		if t.ActualDone != "" {
+			status = "done"
+		}
+		if _, err := q.CreateTask(ctx, dbgen.CreateTaskParams{
+			ProjectID: projectID, SortOrder: int64(t.SortOrder),
+			Assignee: t.Assignee, Title: t.Task,
+			IsMilestone: milestone,
+			OrigWeeks: t.OrigWeeks, CurrWeeks: t.CurrWeeks,
+			OrigDue: t.OrigDue, CurrDue: t.CurrDue,
+			ActualDone: t.ActualDone, Status: status,
+			Words: int64(t.Words), WordsPerHour: int64(t.WordsPerHour),
+			Hours: t.Hours, Rate: t.Rate,
+			BudgetNotes: t.BudgetNotes,
+			OrigBudget: t.OrigBudget, CurrBudget: t.CurrBudget,
+			ActualBudget: t.ActualBudget,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Server) handleSeedProject(w http.ResponseWriter, r *http.Request) {

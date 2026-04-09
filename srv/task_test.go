@@ -47,8 +47,18 @@ func TestTaskCRUD(t *testing.T) {
 	}
 	var tasks []map[string]any
 	decodeJSON(t, resp, &tasks)
-	if len(tasks) != 1 {
-		t.Errorf("expected 1 task, got %d", len(tasks))
+	if len(tasks) != 32 {
+		t.Errorf("expected 32 tasks including seeded workflow, got %d", len(tasks))
+	}
+	foundCreated := false
+	for _, got := range tasks {
+		if got["ID"] == task["ID"] {
+			foundCreated = true
+			break
+		}
+	}
+	if !foundCreated {
+		t.Fatalf("expected created task id %v in task list", task["ID"])
 	}
 
 	// Update task
@@ -56,7 +66,7 @@ func TestTaskCRUD(t *testing.T) {
 		"title":         "Updated Task",
 		"assignee":      "Bob",
 		"status":        "active",
-		"sort_order":    1,
+		"sort_order":    99,
 		"actual_budget": 250.0,
 	})
 	if resp.StatusCode != 200 {
@@ -67,11 +77,20 @@ func TestTaskCRUD(t *testing.T) {
 	// Verify update
 	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+pid+"/tasks", nil)
 	decodeJSON(t, resp, &tasks)
-	if tasks[0]["Title"] != "Updated Task" {
-		t.Errorf("expected updated title, got %v", tasks[0]["Title"])
+	updatedFound := false
+	for _, got := range tasks {
+		if got["ID"] == task["ID"] {
+			updatedFound = true
+			if got["Title"] != "Updated Task" {
+				t.Errorf("expected updated title, got %v", got["Title"])
+			}
+			if got["Status"] != "active" {
+				t.Errorf("expected status 'active', got %v", got["Status"])
+			}
+		}
 	}
-	if tasks[0]["Status"] != "active" {
-		t.Errorf("expected status 'active', got %v", tasks[0]["Status"])
+	if !updatedFound {
+		t.Fatalf("expected updated task id %v in task list", task["ID"])
 	}
 
 	// Delete task
@@ -84,8 +103,13 @@ func TestTaskCRUD(t *testing.T) {
 	// Verify deletion
 	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+pid+"/tasks", nil)
 	decodeJSON(t, resp, &tasks)
-	if len(tasks) != 0 {
-		t.Errorf("expected 0 tasks after delete, got %d", len(tasks))
+	if len(tasks) != 31 {
+		t.Errorf("expected 31 seeded tasks after delete, got %d", len(tasks))
+	}
+	for _, got := range tasks {
+		if got["ID"] == task["ID"] {
+			t.Fatalf("expected deleted task id %v to be absent", task["ID"])
+		}
 	}
 }
 
