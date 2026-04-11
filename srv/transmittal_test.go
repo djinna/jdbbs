@@ -49,6 +49,14 @@ func TestTransmittalDefaultsIncludeEPUBISBNAndChecklistStatus(t *testing.T) {
 	if firstBackmatter["status"] != "" {
 		t.Fatalf("expected default backmatter status to be empty, got %v", firstBackmatter["status"])
 	}
+
+	styles, ok := data["custom_styles"].([]any)
+	if !ok {
+		t.Fatalf("expected default transmittal data to include custom_styles array, got %T", data["custom_styles"])
+	}
+	if len(styles) != 0 {
+		t.Fatalf("expected default custom_styles to be empty, got %d items", len(styles))
+	}
 }
 
 func TestDuplicateTransmittalClearsChecklistStatusesAndDates(t *testing.T) {

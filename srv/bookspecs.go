@@ -19,7 +19,7 @@ func defaultSpecData() string {
 	return `{
   "metadata": {
     "title": "", "subtitle": "", "author": "", "series": "",
-    "publisher": "", "isbn_paper": "", "isbn_cloth": "",
+    "publisher": "", "isbn_paper": "", "isbn_epub": "", "isbn_cloth": "",
     "copyright_year": "", "copyright_holder": "", "credit_lines": ""
   },
   "page": {
@@ -211,6 +211,7 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 		mapField(book, "series", meta, "series")
 		mapField(book, "publisher", meta, "publisher")
 		mapField(book, "isbn_paper", meta, "isbn_paper")
+		mapField(book, "isbn_epub", meta, "isbn_epub")
 		mapField(book, "isbn_cloth", meta, "isbn_cloth")
 	}
 	if pageIV, ok := tx["page_iv"].(map[string]any); ok {
@@ -283,6 +284,35 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 				}
 			}
 		}
+	}
+
+	if styles, ok := tx["custom_styles"].([]any); ok {
+		var mapped []any
+		for _, item := range styles {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			name, _ := m["name"].(string)
+			styleType, _ := m["type"].(string)
+			desc, _ := m["description"].(string)
+			name = strings.TrimSpace(name)
+			styleType = strings.TrimSpace(styleType)
+			desc = strings.TrimSpace(desc)
+			if name == "" {
+				continue
+			}
+			if styleType == "" {
+				styleType = "paragraph"
+			}
+			mapped = append(mapped, map[string]any{
+				"name":        name,
+				"word_style":  name,
+				"type":        styleType,
+				"description": desc,
+			})
+		}
+		specData["custom_styles"] = mapped
 	}
 
 	// Save
@@ -640,6 +670,34 @@ func (s *Server) handleGenerateWordTemplate(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		jsonErr(w, "no spec found", 404)
 		return
+	}
+
+	var specData map[string]any
+	if err := json.Unmarshal([]byte(spec.Data), &specData); err != nil {
+		jsonErr(w, "invalid spec data", 500)
+		return
+	}
+	if styles, ok := specData["custom_styles"].([]any); ok {
+		seen := map[string]bool{}
+		for _, item := range styles {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			name, _ := m["word_style"].(string)
+			if strings.TrimSpace(name) == "" {
+				name, _ = m["name"].(string)
+			}
+			key := strings.ToLower(strings.TrimSpace(name))
+			if key == "" {
+				continue
+			}
+			if seen[key] {
+				jsonErr(w, "duplicate custom style names are not allowed in Word templates; use distinct names such as metadata-p and metadata-c", 400)
+				return
+			}
+			seen[key] = true
+		}
 	}
 
 	// Run python script with spec JSON on stdin

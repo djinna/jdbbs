@@ -877,6 +877,39 @@ function renderSubrightsSection() {
 
 // ─── Section: Editing ───
 function renderEditingSection() {
+  const styles = state.transmittal.data.custom_styles || [];
+
+  function duplicateCustomStyleName(nextStyles) {
+    const seen = new Set();
+    for (const item of nextStyles) {
+      const key = (item && item.name ? String(item.name) : '').trim().toLowerCase();
+      if (!key) continue;
+      if (seen.has(key)) return key;
+      seen.add(key);
+    }
+    return '';
+  }
+
+  function updateCustomStyles(nextStyles) {
+    const duplicate = duplicateCustomStyleName(nextStyles);
+    if (duplicate) {
+      alert(`Duplicate custom style name: ${duplicate}. Use distinct names such as metadata-p and metadata-c.`);
+      return;
+    }
+    setField('custom_styles', nextStyles);
+    render();
+  }
+
+  function addCustomStyle() {
+    const next = [...styles, { name: '', type: 'paragraph', description: '' }];
+    updateCustomStyles(next);
+  }
+
+  function removeCustomStyle(index) {
+    const next = styles.filter((_, i) => i !== index);
+    updateCustomStyles(next);
+  }
+
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Editing'),
     selectField('Developmental Edit Needed', 'editing.developmental_edit', [
@@ -902,6 +935,22 @@ function renderEditingSection() {
     }),
     textField('Special Characters', 'editing.special_characters'),
     textField('Mathematical Formulas', 'editing.math_formulas'),
+    h('div', { className: 'tx-section-header', style: 'margin-top:16px' }, 'Custom Styles'),
+    h('div', { className: 'tx-help' }, 'Add any project-specific Word styles needed for this manuscript. These will be copied into the book spec and used for Word template generation.'),
+    ...styles.map((style, i) =>
+      h('div', { className: 'tx-custom-style' },
+        h('div', { className: 'tx-row-3' },
+          textField('Style name', `custom_styles.${i}.name`),
+          selectField('Type', `custom_styles.${i}.type`, [
+            ['paragraph', 'Paragraph'],
+            ['character', 'Character'],
+          ]),
+          textField('Purpose / description', `custom_styles.${i}.description`)
+        ),
+        h('button', { className: 'tx-reviewer-remove', type: 'button', onClick: () => removeCustomStyle(i) }, 'Remove')
+      )
+    ),
+    h('button', { className: 'tx-add-btn', type: 'button', onClick: addCustomStyle }, '+ Add custom style'),
   );
 }
 

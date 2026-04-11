@@ -481,6 +481,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
           <div class="ts-field"><label>Series<input type="text" data-path="metadata.series"></label></div>
           <div class="ts-field"><label>Publisher<input type="text" data-path="metadata.publisher"></label></div>
           <div class="ts-field"><label>ISBN (Paper)<input type="text" data-path="metadata.isbn_paper"></label></div>
+          <div class="ts-field"><label>ISBN (EPUB)<input type="text" data-path="metadata.isbn_epub"></label></div>
           <div class="ts-field"><label>ISBN (Cloth)<input type="text" data-path="metadata.isbn_cloth"></label></div>
           <div class="ts-field"><label>© Year<input type="text" data-path="metadata.copyright_year"></label></div>
           <div class="ts-field"><label>© Holder<input type="text" data-path="metadata.copyright_holder"></label></div>
@@ -1923,14 +1924,22 @@ function tsRenderCustomStyles() {
         <input type="text" value="${esc(s.name || '')}" placeholder="Name" data-idx="${i}" data-field="name">
         <input type="text" value="${esc(s.word_style || '')}" placeholder="Word style" data-idx="${i}" data-field="word_style">
       </div>
+      <div style="display:flex;flex-direction:column;gap:0.3rem">
+        <select data-idx="${i}" data-field="type">
+          <option value="paragraph" ${(s.type || 'paragraph') === 'paragraph' ? 'selected' : ''}>Paragraph</option>
+          <option value="character" ${(s.type || 'paragraph') === 'character' ? 'selected' : ''}>Character</option>
+        </select>
+        <input type="text" value="${esc(s.description || '')}" placeholder="Description" data-idx="${i}" data-field="description">
+      </div>
       <textarea data-idx="${i}" data-field="typst" placeholder="#let myStyle(content) = text(content)">${esc(s.typst || '')}</textarea>
       <button class="ts-style-remove" data-idx="${i}">×</button>
     `;
     container.appendChild(row);
   });
   // Events
-  container.querySelectorAll('input, textarea').forEach(el => {
-    el.addEventListener('input', () => {
+  container.querySelectorAll('input, textarea, select').forEach(el => {
+    const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(eventName, () => {
       const idx = parseInt(el.dataset.idx);
       tsSpec.custom_styles[idx][el.dataset.field] = el.value;
       tsMarkDirty();
@@ -2032,7 +2041,7 @@ document.getElementById('ts-cover-file').addEventListener('change', async (e) =>
 document.getElementById('ts-add-style').addEventListener('click', () => {
   if (!tsSpec) return;
   if (!tsSpec.custom_styles) tsSpec.custom_styles = [];
-  tsSpec.custom_styles.push({ name: '', type: 'character', typst: '', word_style: '', description: '' });
+  tsSpec.custom_styles.push({ name: '', type: 'paragraph', typst: '', word_style: '', description: '' });
   tsRenderCustomStyles();
   tsMarkDirty();
 });

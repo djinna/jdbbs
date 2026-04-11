@@ -46,6 +46,7 @@ func defaultTransmittalData() string {
   "cover": {"paper":"","colors":"","jdbb_front":false,"jdbb_spine":false,"jdbb_back":false,"pub_front":false,"pub_spine":false,"pub_back":false,"credit":""},
   "files": {"printer_format":"","archives":[]},
   "proofs": {"reviewers":[]},
+  "custom_styles": [],
   "other_instructions": ""
 }`
 }
