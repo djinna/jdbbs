@@ -1053,42 +1053,56 @@ function renderCoverSection() {
   );
 }
 
-// ─── Section: Files ───
+// ─── Section: Deliverables ───
 function renderFilesSection() {
   const d = state.transmittal.data;
-  const archives = (d.files && d.files.archives) || [];
+  const deliverables = (d.files && d.files.deliverables) || [];
+  const deliverableOptions = [
+    'Print-ready PDF (interior)',
+    'EPUB file',
+    'Cover files (print + digital)',
+    'Typst source files',
+    'Final manuscript (Word/DOCX)',
+    'Fonts used (if licensable)',
+  ];
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Files & Delivery'),
+    h('div', { className: 'tx-section-header' }, 'Deliverables'),
     h('div', { className: 'tx-field' },
-      h('label', null, 'Printer Delivery Format'),
+      h('label', null, 'Client receives at project end'),
+      h('div', { className: 'tx-check-group tx-delivery-archives' },
+        ...deliverableOptions.map(opt => {
+          const has = deliverables.includes(opt);
+          return h('label', { className: 'tx-check' },
+            h('input', { type: 'checkbox', checked: has ? 'checked' : undefined,
+              onChange: (e) => {
+                let newArr = [...deliverables];
+                if (e.target.checked) newArr.push(opt);
+                else newArr = newArr.filter(x => x !== opt);
+                setField('files.deliverables', newArr);
+              }
+            }), opt
+          );
+        }),
+      ),
+    ),
+    h('div', { className: 'tx-field' },
+      h('label', null, 'Printer Delivery'),
       h('div', { className: 'tx-check-group tx-delivery-options' },
-        ...['native', 'postscript', 'PDF'].map(fmt =>
+        ...['PDF/X', 'Other'].map(fmt =>
           h('label', { className: 'tx-check' },
             h('input', { type: 'radio', name: 'printer_format', value: fmt,
               checked: getField('files.printer_format') === fmt ? 'checked' : undefined,
               onChange: () => { setField('files.printer_format', fmt); render(); }
-            }), fmt.toUpperCase()
+            }), fmt
           )
         ),
       ),
-    ),
-    h('div', { className: 'tx-field' },
-      h('label', null, 'Customer Archives'),
-      h('div', { className: 'tx-check-group tx-delivery-archives' },
-        ...['native', 'export final text', 'PDF: for web, by chapter', 'PDF: for print, by chapter'].map(opt => {
-          const has = archives.includes(opt);
-          return h('label', { className: 'tx-check' },
-            h('input', { type: 'checkbox', checked: has ? 'checked' : undefined,
-              onChange: (e) => {
-                let newArr = [...archives];
-                if (e.target.checked) newArr.push(opt);
-                else newArr = newArr.filter(x => x !== opt);
-                setField('files.archives', newArr);
-              }
-            }), opt.toUpperCase()
-          );
-        }),
-      ),
+      getField('files.printer_format') === 'Other'
+        ? h('input', { type: 'text', value: getField('files.printer_format_other') || '', placeholder: 'Specify format',
+            className: 'tx-input', style: 'margin-top:6px',
+            onInput: (e) => setField('files.printer_format_other', e.target.value)
+          })
+        : null,
     ),
   );
 }
@@ -1105,7 +1119,7 @@ function renderProofsSection() {
         h('input', { type: 'text', value: rev.name || '', placeholder: 'Name',
           onInput: (e) => { reviewers[i].name = e.target.value; setField('proofs.reviewers', reviewers); }
         }),
-        h('input', { type: 'text', value: rev.contact || '', placeholder: 'Address / Tel',
+        h('input', { type: 'text', value: rev.contact || '', placeholder: 'Email',
           onInput: (e) => { reviewers[i].contact = e.target.value; setField('proofs.reviewers', reviewers); }
         }),
         h('button', { className: 'tx-reviewer-remove', onClick: () => {
