@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prodcal Book Production Deep Dive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<script>
+(function() {
+  try {
+    var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+    if (t && t.dark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f8f9fa;
+  --surface: rgba(255,255,255,0.9);
+  --surface-strong: #ffffff;
+  --border: #e0e2e6;
+  --text: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --accent: #2563eb;
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #ca8a04;
+  --orange: #ea580c;
+  --blue: #2563eb;
+  --badge-green-bg: rgba(22,163,74,0.1);
+  --badge-red-bg: rgba(220,38,38,0.1);
+  --badge-yellow-bg: rgba(202,138,4,0.1);
+  --badge-blue-bg: rgba(37,99,235,0.08);
+  --progress-bg: #eef0f3;
+  --toggle-bg: #f8f9fa;
+  --noise-opacity: 0.035;
+  --grid-color: rgba(160,168,180,0.6);
+  --gradient-wash: linear-gradient(to bottom, rgba(230,233,240,0.3) 0%, transparent 60%);
+  --theme-bg: rgba(255,255,255,0.92);
+  --hover-tint: rgba(37,99,235,0.04);
+  --radius: 8px;
+  --shadow: 0 10px 28px rgba(17,24,39,0.08);
+}
+
+html.dark {
+  --bg: #0f1115;
+  --surface: rgba(26,29,36,0.9);
+  --surface-strong: #1a1d24;
+  --border: #2a2d35;
+  --text: #e4e5e7;
+  --text-secondary: #9ca0a8;
+  --text-muted: #6b7074;
+  --accent: #5b9aff;
+  --green: #34d399;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --orange: #fb923c;
+  --blue: #5b9aff;
+  --badge-green-bg: rgba(52,211,153,0.12);
+  --badge-red-bg: rgba(248,113,113,0.12);
+  --badge-yellow-bg: rgba(251,191,36,0.12);
+  --badge-blue-bg: rgba(91,154,255,0.12);
+  --progress-bg: #23262e;
+  --toggle-bg: #23262e;
+  --noise-opacity: 0.012;
+  --grid-color: rgba(90,96,110,0.7);
+  --gradient-wash: linear-gradient(to bottom, rgba(20,22,28,0.4) 0%, transparent 60%);
+  --theme-bg: rgba(26,29,36,0.92);
+  --hover-tint: rgba(91,154,255,0.05);
+  --shadow: 0 12px 34px rgba(0,0,0,0.28);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.45;
+  position: relative;
+  transition: background 0.3s, color 0.3s;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+  opacity: var(--noise-opacity);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50vh;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--gradient-wash);
+}
+
+.grid-lines {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+}
+
+.grid-lines-inner {
+  width: 1120px;
+  max-width: 100vw;
+  display: flex;
+  justify-content: space-between;
+}
+
+.grid-line {
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, var(--grid-color) 0px, var(--grid-color) 4px, transparent 4px, transparent 10px);
+}
+
+.theme-bar {
+  position: fixed;
+  top: 1rem;
+  right: 2rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--theme-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.2rem 0.3rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.theme-bar .font-options {
+  display: flex;
+  gap: 0.15rem;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+}
+
+.theme-bar.expanded .font-options {
+  max-width: 420px;
+  opacity: 1;
+}
+
+.font-name {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 10px;
+}
+
+.theme-bar.expanded .font-name { display: none; }
+
+.theme-opt,
+.dark-btn,
+.nav-dot {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.theme-opt {
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.55rem;
+  white-space: nowrap;
+}
+
+.theme-opt:hover,
+.dark-btn:hover,
+.nav-dot:hover {
+  color: var(--text);
+  background: var(--progress-bg);
+}
+
+.theme-opt.active {
+  color: var(--accent);
+  background: var(--badge-blue-bg);
+}
+
+.theme-sep {
+  width: 1px;
+  height: 13px;
+  background: var(--border);
+  margin: 0 0.1rem;
+}
+
+.dark-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-meta {
+  position: fixed;
+  top: 1rem;
+  left: 2rem;
+  z-index: 40;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.deck-chip,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+}
+
+.pill.blue { color: var(--accent); background: var(--badge-blue-bg); border-color: transparent; }
+.pill.green { color: var(--green); background: var(--badge-green-bg); border-color: transparent; }
+.pill.yellow { color: var(--yellow); background: var(--badge-yellow-bg); border-color: transparent; }
+.pill.red { color: var(--red); background: var(--badge-red-bg); border-color: transparent; }
+
+.nav-rail {
+  position: fixed;
+  left: 2rem;
+  bottom: 1.25rem;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.nav-dots {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  max-width: 220px;
+}
+
+.nav-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+}
+
+.nav-dot.active {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.nav-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.deck {
+  position: relative;
+  z-index: 1;
+  scroll-snap-type: y mandatory;
+}
+
+.slide {
+  min-height: 100vh;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+}
+
+.slide-inner {
+  width: min(1120px, calc(100vw - 4rem));
+  margin: 0 auto;
+  padding: 6rem 0 4rem;
+}
+
+.slide-head {
+  margin-bottom: 1.5rem;
+}
+
+.slide-kicker {
+  font: 500 0.72rem/1.2 'IBM Plex Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 0.8rem;
+}
+
+.slide-title {
+  font-size: clamp(2rem, 4vw, 4.1rem);
+  line-height: 0.97;
+  letter-spacing: -0.045em;
+  max-width: 24ch;
+}
+
+.slide-subtitle {
+  margin-top: 1rem;
+  font-size: clamp(1rem, 1.7vw, 1.25rem);
+  color: var(--text-secondary);
+  max-width: 52rem;
+}
+
+.lede {
+  font-size: 1.1rem;
+  max-width: 46rem;
+  color: var(--text-secondary);
+}
+
+.two-col,
+.three-col,
+.four-col,
+.matrix {
+  display: grid;
+  gap: 1rem;
+}
+
+.two-col { grid-template-columns: 1.15fr 0.85fr; }
+.three-col { grid-template-columns: repeat(3, 1fr); }
+.four-col { grid-template-columns: repeat(4, 1fr); }
+.matrix { grid-template-columns: repeat(2, 1fr); }
+
+.card,
+.panel,
+.stat,
+.step,
+.risk,
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.card,
+.panel,
+.risk,
+.step,
+.code-block { padding: 1.15rem 1.2rem; }
+
+.stat {
+  padding: 1rem 1.05rem;
+}
+
+.stat-label {
+  font: 500 0.7rem/1.2 'IBM Plex Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.stat-value {
+  font-size: 1.65rem;
+  letter-spacing: -0.03em;
+}
+
+.section-title {
+  font-size: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.mini {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.list div,
+.flow-item,
+.step li {
+  color: var(--text-secondary);
+}
+
+.flow {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.flow-item {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.flow-num {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 0.8rem/1 'IBM Plex Sans', sans-serif;
+  color: var(--accent);
+  background: var(--badge-blue-bg);
+}
+
+.flow-item h3,
+.step h3,
+.risk h3,
+.card h3,
+.panel h3 {
+  font-size: 0.98rem;
+  margin-bottom: 0.35rem;
+}
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+.pipeline-step {
+  position: relative;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.pipeline-step::after {
+  content: '->';
+  position: absolute;
+  top: 50%;
+  right: -0.8rem;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font: 500 0.8rem/1 'IBM Plex Sans', sans-serif;
+}
+
+.pipeline-step:last-child::after { display: none; }
+
+.pipeline-label {
+  font: 500 0.68rem/1.2 'IBM Plex Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.pipeline-text {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.code-block {
+  overflow: hidden;
+}
+
+.code-label {
+  font: 500 0.7rem/1.2 'IBM Plex Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.55rem;
+}
+
+pre,
+code {
+  font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.table-like {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 1rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.table-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.key {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.val {
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.risk {
+  border-left: 3px solid var(--border);
+}
+
+.risk.red { border-left-color: var(--red); }
+.risk.yellow { border-left-color: var(--yellow); }
+.risk.blue { border-left-color: var(--accent); }
+.risk.green { border-left-color: var(--green); }
+
+.footer-note {
+  margin-top: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.muted { color: var(--text-muted); }
+.accent { color: var(--accent); }
+.good { color: var(--green); }
+.warn { color: var(--yellow); }
+.bad { color: var(--red); }
+
+#slide-1 .slide-title {
+  max-width: 11ch;
+}
+
+@media (max-width: 1080px) {
+  .two-col,
+  .three-col,
+  .four-col,
+  .matrix,
+  .pipeline {
+    grid-template-columns: 1fr;
+  }
+
+  .slide-inner { width: min(1120px, calc(100vw - 2rem)); }
+  .deck-meta { left: 1rem; }
+  .theme-bar { right: 1rem; }
+  .nav-rail { left: 1rem; right: 1rem; bottom: 0.8rem; }
+  .nav-dots { max-width: none; }
+}
+
+@media (max-width: 720px) {
+  .slide-inner { padding-top: 5.6rem; padding-bottom: 5rem; }
+  .slide-title { max-width: none; }
+  .deck-chip:last-child { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="grid-lines"><div class="grid-lines-inner"><div class="grid-line"></div><div class="grid-line"></div></div></div>
+
+<div class="deck-meta">
+  <div class="deck-chip">Prodcal / deep dive</div>
+  <div class="deck-chip">manuscript transmittal -> EPUB + print PDF</div>
+</div>
+
+<div class="theme-bar" id="theme-bar">
+  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
+  <div class="font-options" id="font-options">
+    <button class="theme-opt" data-font="literata">Literata</button>
+    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
+    <button class="theme-opt" data-font="menlo">Menlo</button>
+    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
+  </div>
+  <div class="theme-sep"></div>
+  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">*</button>
+</div>
+
+<div class="nav-rail">
+  <div class="nav-dots" id="nav-dots"></div>
+  <div class="nav-hint">Arrow keys, Page Up/Down, or click a slide number.</div>
+</div>
+
+<main class="deck" id="deck">
+  <section class="slide" id="slide-1" data-title="Cover">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Technical Analysis</div>
+        <h1 class="slide-title">Prodcal is a production coordinator, a manuscript intake system, and a thin book-build orchestrator.</h1>
+        <p class="slide-subtitle">
+          The repo combines project scheduling, client/project auth, manuscript transmittal capture, book spec normalization,
+          and two output paths: a Typst-based interior PDF compiler and a Pandoc-based EPUB generator.
+        </p>
+      </div>
+      <div class="three-col">
+        <div class="stat">
+          <div class="stat-label">Primary stack</div>
+          <div class="stat-value">Go + SQLite + static HTML/JS</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Production assets</div>
+          <div class="stat-value">DOCX in, PDF/EPUB blobs out</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Core bridge</div>
+          <div class="stat-value">Transmittal -> book spec -> build config</div>
+        </div>
+      </div>
+      <div class="footer-note">Code paths reviewed: <code>srv/transmittal.go</code>, <code>srv/books.go</code>, <code>srv/epub.go</code>, <code>srv/bookspecs.go</code>, <code>srv/server.go</code>, <code>srv/static/admin.html</code>, and migrations under <code>db/migrations/</code>.</div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-2" data-title="Thesis">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Executive Read</div>
+        <h2 class="slide-title">The product model is coherent: editorial intake drives structured production metadata, which drives both schedule and output generation.</h2>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h3>What the system does well</h3>
+          <div class="list">
+            <div>It treats the manuscript transmittal as first-class operational data instead of an email attachment or static PDF.</div>
+            <div>It binds project schedule, asset flow, editorial notes, and build settings to the same project record.</div>
+            <div>It creates a real metadata bridge from intake fields into downstream typesetting and EPUB settings.</div>
+            <div>It uses static frontends with a small Go server, which keeps deployment and maintenance surface area low.</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Where the implementation is thin</h3>
+          <div class="list">
+            <div>Build execution depends on an external filesystem subtree at <code>/home/exedev/book-production</code>, so the repo is not self-contained.</div>
+            <div>Conversion jobs run as in-process goroutines with no durable queue, retries, ownership, or audit trail.</div>
+            <div>Output storage is blob-in-SQLite, which is workable for small scale but weak for large catalogs and large interiors.</div>
+            <div>Security is inconsistent: the book download endpoint is not protected even though book listing and conversion are admin-only.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-3" data-title="Flow">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">End-to-End Flow</div>
+        <h2 class="slide-title">From manuscript transmittal to deliverables</h2>
+        <p class="slide-subtitle">This is the actual flow encoded in the repo, not an abstract publishing lifecycle.</p>
+      </div>
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <div class="pipeline-label">1. project shell</div>
+          <div class="pipeline-text">Create a project with client/project slugs, dates, auth, tasks, and a client portal route.</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-label">2. transmittal intake</div>
+          <div class="pipeline-text">Auto-create a structured JSON transmittal, then save through the SPA with version snapshots.</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-label">3. spec normalization</div>
+          <div class="pipeline-text">Pull selected transmittal fields into a project-level book spec used by print and EPUB paths.</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-label">4. source ingest</div>
+          <div class="pipeline-text">Upload DOCX into the <code>books</code> table, optionally link it to the project, then compile outputs.</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-label">5. distribution</div>
+          <div class="pipeline-text">Download generated PDF/EPUB, track files, log journal items, and manage corrections/export.</div>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:1rem;">
+        <div class="code-block">
+          <div class="code-label">Primary routes</div>
+          <pre>GET    /{client}/{project}/transmittal/
+PUT    /api/projects/{id}/transmittal
+POST   /api/projects/{id}/book-spec/pull-transmittal
+POST   /api/books/upload
+POST   /api/books/{id}/convert
+POST   /api/books/{id}/generate-epub
+GET    /api/books/{id}/download/{format}</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-label">Primary tables</div>
+          <pre>projects
+tasks
+auth_tokens
+transmittals
+transmittal_versions
+book_specs
+books
+file_log
+journal
+corrections</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-4" data-title="UX">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Application Surface</div>
+        <h2 class="slide-title">The UI is split into three operator contexts.</h2>
+      </div>
+      <div class="three-col">
+        <div class="card">
+          <h3>Admin dashboard</h3>
+          <div class="mini">Served from <code>/admin/</code> via <code>srv/static/admin.html</code>.</div>
+          <div class="list" style="margin-top:0.75rem;">
+            <div>Project index and schedule oversight</div>
+            <div>Books tab for upload, convert, link, and download</div>
+            <div>Book spec UI for print and EPUB settings</div>
+            <div>Transmittal, activity email, snapshot email, and ops views</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Project SPA</h3>
+          <div class="mini">Served from <code>/{client}/{project}/</code> via <code>srv/static/index.html</code>.</div>
+          <div class="list" style="margin-top:0.75rem;">
+            <div>Task schedule, gantt/table/budget views</div>
+            <div>File log for structured handoffs</div>
+            <div>Journal for calls, decisions, approvals, notes</div>
+            <div>Activity and snapshot email sends</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Transmittal SPA</h3>
+          <div class="mini">Served from <code>/{client}/{project}/transmittal/</code>.</div>
+          <div class="list" style="margin-top:0.75rem;">
+            <div>Autosaving manuscript intake form</div>
+            <div>Version history and restore</div>
+            <div>Duplicate to another project</div>
+            <div>Project-auth aware access for external participants</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-note">Architecturally, the static HTML/JS frontends are thin clients over a single Go API surface. That keeps the product operationally simple.</div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-5" data-title="Data">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Data Model</div>
+        <h2 class="slide-title">The core design pattern is "structured JSON on project-linked records."</h2>
+      </div>
+      <div class="matrix">
+        <div class="panel">
+          <h3>Transmittal record</h3>
+          <div class="table-like">
+            <div class="table-row"><div class="key">Table</div><div class="val"><code>transmittals</code></div></div>
+            <div class="table-row"><div class="key">Cardinality</div><div class="val">One per project, unique by <code>project_id</code></div></div>
+            <div class="table-row"><div class="key">Payload</div><div class="val">Large JSON document: book metadata, checklist, backmatter, permissions, design, cover, files, proofs, instructions</div></div>
+            <div class="table-row"><div class="key">Lifecycle</div><div class="val">Auto-created on first GET if absent; updated in place via PUT</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Transmittal versions</h3>
+          <div class="table-like">
+            <div class="table-row"><div class="key">Table</div><div class="val"><code>transmittal_versions</code></div></div>
+            <div class="table-row"><div class="key">Trigger</div><div class="val">Snapshot previous state before update, but throttled to once per 5 minutes</div></div>
+            <div class="table-row"><div class="key">Purpose</div><div class="val">Undo / restore / compare operational form states</div></div>
+            <div class="table-row"><div class="key">Tradeoff</div><div class="val">Simple and effective, but not a full audit log of every keystroke or field-level actor history</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Book spec</h3>
+          <div class="table-like">
+            <div class="table-row"><div class="key">Table</div><div class="val"><code>book_specs</code></div></div>
+            <div class="table-row"><div class="key">Payload</div><div class="val">JSON for metadata, page geometry, typography, headings, running heads, custom styles, EPUB settings</div></div>
+            <div class="table-row"><div class="key">Binary</div><div class="val">Cover image blob and MIME type live on the same row</div></div>
+            <div class="table-row"><div class="key">Role</div><div class="val">Canonical production configuration for both print and digital builds</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Book binaries</h3>
+          <div class="table-like">
+            <div class="table-row"><div class="key">Table</div><div class="val"><code>books</code></div></div>
+            <div class="table-row"><div class="key">Payload</div><div class="val">Uploaded DOCX blob, generated PDF blob, generated EPUB blob</div></div>
+            <div class="table-row"><div class="key">Status</div><div class="val"><code>uploaded</code>, <code>converting</code>, <code>ready</code>, <code>error</code></div></div>
+            <div class="table-row"><div class="key">Weakness</div><div class="val">Heavy binaries inside SQLite increase backup, replication, and concurrency pressure</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-6" data-title="Transmittal">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Intake Layer</div>
+        <h2 class="slide-title">The transmittal subsystem is the strongest product idea in the repo.</h2>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h3>Why it matters</h3>
+          <div class="flow">
+            <div class="flow-item">
+              <div class="flow-num">1</div>
+              <div>
+                <h3>Structured intake</h3>
+                <div>The default JSON schema captures the real publishing handoff: front matter, back matter, art, permissions, design, files, and proofs.</div>
+              </div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-num">2</div>
+              <div>
+                <h3>Continuous editing</h3>
+                <div><code>transmittal.js</code> autosaves with a 600ms debounce, so the form behaves like a working document rather than a submit-once artifact.</div>
+              </div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-num">3</div>
+              <div>
+                <h3>Recoverability</h3>
+                <div>Older states are stored in <code>transmittal_versions</code>, which is enough for practical restore operations without needing a complex revision engine.</div>
+              </div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-num">4</div>
+              <div>
+                <h3>Cross-project reuse</h3>
+                <div>The duplicate endpoint lets operators roll a transmittal forward into another project, which fits series or edition workflows.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-label">Representative transmittal sections</div>
+          <pre>book
+production
+checklist
+backmatter
+illustrations
+permissions
+page_iv
+subrights
+editing
+design
+cover
+files
+proofs
+other_instructions</pre>
+          <div class="footer-note">This is more operationally useful than a flat notes field. It gives the product a real publishing-specific domain model.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-7" data-title="Spec Bridge">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Normalization Layer</div>
+        <h2 class="slide-title">The book spec is the bridge from editorial intake to machine-consumable build configuration.</h2>
+      </div>
+      <div class="three-col">
+        <div class="card">
+          <h3>Pull-transmittal mapping</h3>
+          <div class="mini">Implemented in <code>handlePullTransmittalToSpec</code>.</div>
+          <div class="list" style="margin-top:0.7rem;">
+            <div>Book metadata flows into <code>metadata.*</code></div>
+            <div>Copyright page fields map into rights metadata</div>
+            <div>Trim selection maps into explicit width/height</div>
+            <div>Checklist and backmatter booleans become build toggles</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Print config emission</h3>
+          <div class="mini">Implemented in <code>specToTypstConfig</code>.</div>
+          <div class="list" style="margin-top:0.7rem;">
+            <div>Page size and margins</div>
+            <div>Body, heading, and code fonts</div>
+            <div>Base size, leading, paragraph indent</div>
+            <div>Heading sizes/weights, elements, running heads, custom Typst blocks</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>EPUB config emission</h3>
+          <div class="mini">Implemented in <code>parseEPUBSpec</code> + <code>buildCSS</code>.</div>
+          <div class="list" style="margin-top:0.7rem;">
+            <div>Language, subject, description, TOC depth</div>
+            <div>Cover image inclusion</div>
+            <div>Chapter and section break styling</div>
+            <div>Body font size and freeform custom CSS</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-note">The bridge is partial rather than exhaustive, but the architectural direction is correct: intake data gets normalized into a stable production schema before compilation.</div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-8" data-title="Print PDF">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Print Path</div>
+        <h2 class="slide-title">The PDF pipeline is a stitched toolchain: Pandoc -> Python transform -> Typst template -> compiled interior PDF.</h2>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h3>Actual execution sequence</h3>
+          <div class="flow">
+            <div class="flow-item">
+              <div class="flow-num">1</div>
+              <div><h3>DOCX stored as blob</h3><div><code>handleUploadBook</code> writes source bytes into <code>books.source_data</code>.</div></div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-num">2</div>
+              <div><h3>Pandoc conversion</h3><div><code>pandoc --from=docx+styles --to=markdown+fenced_divs</code> creates intermediate markdown.</div></div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-num">3</div>
+              <div><h3>Python transform</h3><div><code>md-to-chapter.py</code> converts markdown into a Typst chapter file.</div></div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-num">4</div>
+              <div><h3>Main Typst assembly</h3><div><code>runConversion</code> writes a <code>main.typ</code> that imports the external series template and injects project overrides.</div></div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-num">5</div>
+              <div><h3>Typst compile</h3><div><code>typst compile --font-path ...</code> renders <code>output.pdf</code>, which is then stored in <code>books.pdf_data</code>.</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-label">Print pipeline dependencies</div>
+          <pre>bookProdRoot = /home/exedev/book-production
+convertScript = /home/exedev/book-production/scripts/md-to-chapter.py
+seriesTemplate = /home/exedev/book-production/templates/series-template.typ
+fontsDir = /home/exedev/book-production/fonts
+
+optional symlinks:
+  styles.typ
+  images.typ</pre>
+          <div class="footer-note">Important inference: this repo orchestrates print compilation, but the real design/template system lives outside the repo. That is the biggest architectural dependency in the whole product.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-9" data-title="EPUB">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Digital Path</div>
+        <h2 class="slide-title">The EPUB path is simpler and cleaner than print: DOCX -> Pandoc EPUB3 with metadata, CSS, and optional cover.</h2>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h3>EPUB generation behavior</h3>
+          <div class="list">
+            <div>Starts from the same stored DOCX source.</div>
+            <div>Loads project-linked book spec when present.</div>
+            <div>Writes cover blob to a temp file if one exists.</div>
+            <div>Builds CSS from spec settings plus freeform user CSS.</div>
+            <div>Calls <code>pandoc --to=epub3 --toc</code> with metadata, cover, and stylesheet options.</div>
+            <div>Stores the resulting binary in <code>books.epub_data</code>.</div>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-label">EPUB-specific production controls</div>
+          <pre>language
+subject
+description
+toc_depth
+chapter_break
+section_break
+body_font_size
+embed_fonts
+custom_css
+cover image</pre>
+          <div class="footer-note">Compared with the print path, this is less bespoke and more portable. It is also less expressive because it relies on Pandoc EPUB generation rather than a richer digital composition layer.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-10" data-title="Ops">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Operational Layer</div>
+        <h2 class="slide-title">Prodcal is not only a compiler trigger. It also captures the handoff, propagation, and communication work around production.</h2>
+      </div>
+      <div class="four-col">
+        <div class="card">
+          <h3>Schedule + budget</h3>
+          <div class="mini">Projects and tasks remain the top-level organizing model.</div>
+        </div>
+        <div class="card">
+          <h3>File log</h3>
+          <div class="mini"><code>file_log</code> records inbound/outbound transfers, file types, recipients, and notes.</div>
+        </div>
+        <div class="card">
+          <h3>Journal</h3>
+          <div class="mini"><code>journal</code> stores calls, decisions, approvals, and notes for project memory.</div>
+        </div>
+        <div class="card">
+          <h3>Corrections</h3>
+          <div class="mini"><code>corrections</code> tracks discrete find/replace changes and exports them as YAML.</div>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:1rem;">
+        <div class="panel">
+          <h3>Why this matters</h3>
+          <div class="list">
+            <div>The repo understands that book production is not just rendering. It is coordination, approvals, and asset propagation.</div>
+            <div>The file log and journal make the product more useful to small production teams than a build-only tool would be.</div>
+            <div>The corrections export suggests a path toward structured downstream amendment workflows.</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Current limit</h3>
+          <div class="list">
+            <div>These operational records are adjacent to the build pipeline, but not deeply wired into it.</div>
+            <div>Corrections are exported, but not automatically applied or reconciled against source/build versions.</div>
+            <div>There is no explicit artifact lineage linking a generated PDF/EPUB to a transmittal version, correction set, or exact spec revision.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-11" data-title="Risks">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Technical Risks</div>
+        <h2 class="slide-title">The biggest gaps are durability, security, and provenance.</h2>
+      </div>
+      <div class="matrix">
+        <div class="risk red">
+          <h3>Unauthenticated book download endpoint</h3>
+          <div class="mini"><code>handleDownloadBook</code> does not call <code>requireExeDevAdminAPI</code> or <code>requireAuth</code>.</div>
+          <div class="footer-note">Impact: if IDs are guessable, uploaded/generated book files are publicly retrievable.</div>
+        </div>
+        <div class="risk yellow">
+          <h3>In-process background jobs only</h3>
+          <div class="mini">Both conversion paths launch goroutines directly from request handlers.</div>
+          <div class="footer-note">Impact: no persistence across restarts, no queueing, no backpressure, no recovery semantics.</div>
+        </div>
+        <div class="risk yellow">
+          <h3>External build system dependency</h3>
+          <div class="mini">Templates, fonts, and scripts live outside the repo at a fixed absolute path.</div>
+          <div class="footer-note">Impact: reproducibility is weak; local dev and disaster recovery depend on hidden state.</div>
+        </div>
+        <div class="risk yellow">
+          <h3>No typed schemas for JSON payloads</h3>
+          <div class="mini">Transmittal and spec payloads are manipulated through <code>map[string]any</code> and raw JSON strings.</div>
+          <div class="footer-note">Impact: silent drift, weak validation, brittle migrations.</div>
+        </div>
+        <div class="risk blue">
+          <h3>Blob-heavy SQLite design</h3>
+          <div class="mini">DOCX, PDF, EPUB, and covers all live in SQLite rows.</div>
+          <div class="footer-note">Impact: acceptable at low scale, but not ideal for large assets, retention, or artifact serving.</div>
+        </div>
+        <div class="risk blue">
+          <h3>Weak artifact provenance</h3>
+          <div class="mini">Outputs are not explicitly tied to spec version, transmittal version, correction export, or toolchain version.</div>
+          <div class="footer-note">Impact: hard to answer "what exactly produced this file?"</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-12" data-title="Roadmap">
+    <div class="slide-inner">
+      <div class="slide-head">
+        <div class="slide-kicker">Recommended Next Architecture</div>
+        <h2 class="slide-title">If the goal is a stronger production platform, keep the product model and harden the execution model.</h2>
+      </div>
+      <div class="three-col">
+        <div class="card">
+          <h3>1. Secure and version artifacts</h3>
+          <div class="list">
+            <div>Protect all book downloads.</div>
+            <div>Create an <code>artifacts</code> table or object store layer.</div>
+            <div>Stamp artifacts with source book ID, spec hash, transmittal version, and toolchain version.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>2. Introduce durable jobs</h3>
+          <div class="list">
+            <div>Replace request-spawned goroutines with a persisted job queue.</div>
+            <div>Track queued/running/failed/completed states and stderr.</div>
+            <div>Add retry semantics and operator-visible run history.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>3. Formalize schemas</h3>
+          <div class="list">
+            <div>Define typed Go structs for transmittal and book spec.</div>
+            <div>Validate payloads server-side.</div>
+            <div>Make transmittal -> spec mapping explicit, testable, and migratable.</div>
+          </div>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:1rem;">
+        <div class="panel">
+          <h3>What I would preserve</h3>
+          <div class="list">
+            <div>The transmittal-first product concept</div>
+            <div>The project-level coordination model</div>
+            <div>The clean static frontend approach</div>
+            <div>The spec bridge between editorial and rendering concerns</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>What I would change first</h3>
+          <div class="list">
+            <div>Lock down downloads immediately</div>
+            <div>Move build dependencies inside a reproducible package or container image</div>
+            <div>Persist build jobs and artifact lineage</div>
+            <div>Add integration tests around transmittal mapping and both output pipelines</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-note">Bottom line: the repo already contains a credible production-system thesis. The work now is less about inventing features and more about making the execution layer trustworthy.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+var fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif', Georgia, serif", label: 'IBM Plex Serif' },
+  'ibm-sans': { family: "'IBM Plex Sans', -apple-system, sans-serif", label: 'IBM Plex Sans' },
+  literata: { family: "'Literata', Georgia, serif", label: 'Literata' },
+  menlo: { family: "'Menlo', 'Consolas', 'Monaco', monospace", label: 'Menlo' }
+};
+var fontKeys = ['ibm-serif', 'literata', 'menlo', 'ibm-sans'];
+var themeState = { font: 'ibm-serif', dark: document.documentElement.classList.contains('dark') };
+
+try {
+  var saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (saved && typeof saved.dark === 'boolean') themeState.dark = saved.dark;
+} catch (e) {}
+
+function applyTheme() {
+  document.documentElement.classList.toggle('dark', themeState.dark);
+  document.body.style.fontFamily = fonts[themeState.font].family;
+  document.getElementById('font-name').textContent = fonts[themeState.font].label;
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.font === themeState.font);
+  });
+  document.getElementById('dark-btn').textContent = themeState.dark ? 'o' : '*';
+}
+
+function saveTheme() {
+  try {
+    localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: themeState.dark }));
+  } catch (e) {}
+}
+
+function setFont(key) {
+  themeState.font = key;
+  applyTheme();
+  saveTheme();
+}
+
+function toggleDark() {
+  themeState.dark = !themeState.dark;
+  applyTheme();
+  saveTheme();
+}
+
+var bar = document.getElementById('theme-bar');
+var expanded = false;
+document.getElementById('font-name').addEventListener('click', function() {
+  expanded = !expanded;
+  bar.classList.toggle('expanded', expanded);
+});
+document.addEventListener('click', function(e) {
+  if (expanded && !bar.contains(e.target)) {
+    expanded = false;
+    bar.classList.remove('expanded');
+  }
+});
+document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    setFont(this.dataset.font);
+    expanded = false;
+    bar.classList.remove('expanded');
+  });
+});
+document.getElementById('dark-btn').addEventListener('click', toggleDark);
+applyTheme();
+
+var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+var navDots = document.getElementById('nav-dots');
+slides.forEach(function(slide, idx) {
+  var btn = document.createElement('button');
+  btn.className = 'nav-dot';
+  btn.textContent = String(idx + 1);
+  btn.setAttribute('aria-label', 'Go to slide ' + (idx + 1));
+  btn.addEventListener('click', function() {
+    slide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  navDots.appendChild(btn);
+});
+
+var dotEls = Array.prototype.slice.call(document.querySelectorAll('.nav-dot'));
+function setActiveSlide(index) {
+  dotEls.forEach(function(dot, idx) {
+    dot.classList.toggle('active', idx === index);
+  });
+}
+
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      var idx = slides.indexOf(entry.target);
+      if (idx >= 0) setActiveSlide(idx);
+    }
+  });
+}, { threshold: 0.55 });
+
+slides.forEach(function(slide) { observer.observe(slide); });
+setActiveSlide(0);
+
+document.addEventListener('keydown', function(e) {
+  var current = dotEls.findIndex(function(dot) { return dot.classList.contains('active'); });
+  if (current < 0) current = 0;
+  if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+    e.preventDefault();
+    slides[Math.min(current + 1, slides.length - 1)].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+    e.preventDefault();
+    slides[Math.max(current - 1, 0)].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (e.key === 'Home') {
+    e.preventDefault();
+    slides[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (e.key === 'End') {
+    e.preventDefault();
+    slides[slides.length - 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+</script>
+</body>
+</html>
