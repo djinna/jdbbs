@@ -444,14 +444,14 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
         <input type="text" id="book-title" placeholder="Ghosts in Machines"></label>
       </div>
       <div>
-        <label>Author
+        <label>Author *
         <input type="text" id="book-author" placeholder="Author Name"></label>
       </div>
       <div>
         <label>Series
         <select id="book-series">
-          <option value="A Protocolized Anthology">Protocolized Anthology</option>
           <option value="">None</option>
+          <option value="A Protocolized Anthology">Protocolized Anthology</option>
         </select></label>
       </div>
       <div>
@@ -1315,16 +1315,24 @@ document.getElementById('new-project-btn').addEventListener('click', openNewProj
 document.getElementById('new-client-btn').addEventListener('click', openNewClientModal);
 
 // ─── Tabs ───
-function showTab(tabName) {
+function normalizeAdminTab(tabName) {
+  return ['projects', 'typesetting', 'files', 'archived'].includes(tabName) ? tabName : 'projects';
+}
+
+function showTab(tabName, opts = {}) {
+  const normalized = normalizeAdminTab(tabName);
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  const tab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+  const tab = document.querySelector(`.tab[data-tab="${normalized}"]`);
   if (tab) tab.classList.add('active');
-  const panel = document.getElementById('tab-' + tabName);
+  const panel = document.getElementById('tab-' + normalized);
   if (panel) panel.classList.add('active');
-  if (tabName === 'files') loadBooks();
-  if (tabName === 'archived') loadArchivedProjects();
-  if (tabName === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
+  if (opts.updateHash !== false && window.location.hash !== `#${normalized}`) {
+    window.location.hash = normalized;
+  }
+  if (normalized === 'files') loadBooks();
+  if (normalized === 'archived') loadArchivedProjects();
+  if (normalized === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
 }
 
 function showProjectsTab() {
@@ -1334,6 +1342,11 @@ function showProjectsTab() {
 document.querySelectorAll('.tab[data-tab]').forEach(tab => {
   tab.addEventListener('click', () => showTab(tab.dataset.tab));
 });
+
+window.addEventListener('hashchange', () => {
+  showTab(window.location.hash.replace(/^#/, ''), { updateHash: false });
+});
+showTab(window.location.hash.replace(/^#/, '') || 'projects', { updateHash: false });
 
 // ─── Books ───
 const $uploadZone = document.getElementById('upload-zone');
@@ -1485,12 +1498,6 @@ function renderBooks(books) {
     if (b.Status === 'ready') {
       actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/pdf`)}" class="dl-pdf">PDF</a>`;
       actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/epub`)}" class="dl-epub" title="Download EPUB (generate first if needed)" onclick="event.preventDefault(); downloadOrGenerateEPUB(${b.ID})">EPUB</a>`;
-    }
-    if (b.Status === 'error') {
-      actions += `<button onclick="retryConvert(${b.ID})">Retry</button>`;
-    }
-    if (b.Status === 'uploaded') {
-      actions += `<button onclick="startConvert(${b.ID})">Convert</button>`;
     }
     actions += `<button class="del" onclick="deleteBook(${b.ID})">Delete</button>`;
 
