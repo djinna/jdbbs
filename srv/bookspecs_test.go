@@ -88,3 +88,86 @@ func TestPullTransmittalMapsCustomStyles(t *testing.T) {
 		t.Fatalf("expected second custom style type character, got %v", second["type"])
 	}
 }
+
+func TestPullTransmittalMapsSharedTypesettingFields(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name":         "Shared Typesetting Mapping",
+		"start_date":   "2026-04-12",
+		"client_slug":  "vgr",
+		"project_slug": "shared-typesetting-mapping",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: expected 201, got %d", resp.StatusCode)
+	}
+	var project map[string]any
+	decodeJSON(t, resp, &project)
+	pid := itoa(int64(project["ID"].(float64)))
+
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+pid+"/transmittal", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("get transmittal: expected 200, got %d", resp.StatusCode)
+	}
+	var tx map[string]any
+	decodeJSON(t, resp, &tx)
+	data := tx["data"].(map[string]any)
+
+	editing := data["editing"].(map[string]any)
+	editing["developmental_instructions"] = "Focus on structure and pacing."
+	editing["instructions"] = "Preserve house italics conventions."
+
+	design := data["design"].(map[string]any)
+	design["trim_guidance"] = "Gift-book feel; flexible if cost pushes smaller trim."
+	design["trim"] = "6 x 9"
+	design["est_pages"] = "240"
+	design["ppi"] = "300"
+	design["spine_width"] = "0.65 in"
+	design["complexity"] = "complex_jdbb"
+	design["outside_designer"] = "Jane Doe"
+	design["reuse_previous"] = "Series Vol. 1"
+	design["freeform_notes"] = "Needs room for image-heavy openers."
+
+	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/transmittal", map[string]any{
+		"status": "draft",
+		"data":   data,
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("update transmittal: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/book-spec/pull-transmittal", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("pull transmittal into spec: expected 200, got %d", resp.StatusCode)
+	}
+	var result map[string]any
+	decodeJSON(t, resp, &result)
+	dataOut := result["data"].(map[string]any)
+	typesetting, ok := dataOut["typesetting"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected typesetting map in pulled spec, got %T", dataOut["typesetting"])
+	}
+
+	if typesetting["developmental_instructions"] != "Focus on structure and pacing." {
+		t.Fatalf("expected developmental instructions mapped, got %v", typesetting["developmental_instructions"])
+	}
+	if typesetting["copyeditor_instructions"] != "Preserve house italics conventions." {
+		t.Fatalf("expected copyeditor instructions mapped, got %v", typesetting["copyeditor_instructions"])
+	}
+	if typesetting["trim_guidance"] != "Gift-book feel; flexible if cost pushes smaller trim." {
+		t.Fatalf("expected trim guidance mapped, got %v", typesetting["trim_guidance"])
+	}
+	if typesetting["trim_size"] != "6 x 9" {
+		t.Fatalf("expected trim size mapped, got %v", typesetting["trim_size"])
+	}
+	if typesetting["design_notes"] != "Needs room for image-heavy openers." {
+		t.Fatalf("expected design notes mapped, got %v", typesetting["design_notes"])
+	}
+
+	page := dataOut["page"].(map[string]any)
+	if page["trim"] != "6 x 9" {
+		t.Fatalf("expected page.trim still mapped from design.trim, got %v", page["trim"])
+	}
+}

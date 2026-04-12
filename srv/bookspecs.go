@@ -59,6 +59,12 @@ func defaultSpecData() string {
     "notes": false, "appendix": false, "glossary": false,
     "bibliography": false, "index": false
   },
+  "typesetting": {
+    "developmental_instructions": "", "copyeditor_instructions": "",
+    "trim_guidance": "", "trim_size": "", "est_pages": "",
+    "ppi": "", "spine_width": "", "complexity": "",
+    "outside_designer": "", "reuse_previous": "", "design_notes": ""
+  },
   "custom_styles": [],
   "epub": {
     "toc_depth": 2, "landmarks": true,
@@ -220,7 +226,22 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 		mapField(pageIV, "held_by", meta, "copyright_holder")
 		mapField(pageIV, "credit", meta, "credit_lines")
 	}
+	if editing, ok := tx["editing"].(map[string]any); ok {
+		typesetting := ensureMap(specData, "typesetting")
+		mapField(editing, "developmental_instructions", typesetting, "developmental_instructions")
+		mapField(editing, "instructions", typesetting, "copyeditor_instructions")
+	}
 	if design, ok := tx["design"].(map[string]any); ok {
+		typesetting := ensureMap(specData, "typesetting")
+		mapField(design, "trim_guidance", typesetting, "trim_guidance")
+		mapField(design, "trim", typesetting, "trim_size")
+		mapField(design, "est_pages", typesetting, "est_pages")
+		mapField(design, "ppi", typesetting, "ppi")
+		mapField(design, "spine_width", typesetting, "spine_width")
+		mapField(design, "complexity", typesetting, "complexity")
+		mapField(design, "outside_designer", typesetting, "outside_designer")
+		mapField(design, "reuse_previous", typesetting, "reuse_previous")
+		mapField(design, "freeform_notes", typesetting, "design_notes")
 		if trim, ok := design["trim"].(string); ok && trim != "" {
 			page := ensureMap(specData, "page")
 			page["trim"] = trim
