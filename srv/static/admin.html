@@ -915,6 +915,8 @@ const $archivedLoading = document.getElementById('archived-loading');
 let cachedProjects = [];
 let cachedClients = [];
 async function loadProjects() {
+  $loading.style.display = 'block';
+  $loading.textContent = 'Loading…';
   try {
     const r = await fetch('/api/admin/projects');
     if (r.status === 403) {
@@ -929,6 +931,7 @@ async function loadProjects() {
     tsPopulateProjects(projects);
     populateBookProjectSelector(projects);
   } catch(e) {
+    $loading.style.display = 'block';
     $loading.textContent = 'Error loading projects: ' + e.message;
   }
 }
@@ -1330,6 +1333,7 @@ function showTab(tabName, opts = {}) {
   if (opts.updateHash !== false && window.location.hash !== `#${normalized}`) {
     window.location.hash = normalized;
   }
+  if (normalized === 'projects') loadProjects();
   if (normalized === 'files') loadBooks();
   if (normalized === 'archived') loadArchivedProjects();
   if (normalized === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
