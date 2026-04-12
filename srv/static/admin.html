@@ -459,7 +459,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
         <select id="book-project"><option value="">None</option></select></label>
       </div>
       <div class="actions">
-        <button class="btn" id="btn-upload" disabled>Upload &amp; Convert</button>
+        <button class="btn" id="btn-upload" disabled>Upload</button>
         <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
         <span id="upload-status" style="font-size:0.82rem;color:var(--text-muted)"></span>
       </div>
@@ -1420,14 +1420,10 @@ $btnUpload.addEventListener('click', async () => {
       const err = await r.json().catch(() => ({ error: r.statusText }));
       throw new Error(err.error || 'Upload failed');
     }
-    const data = await r.json();
-    $uploadStatus.textContent = 'Converting…';
-
-    await fetch(`/api/books/${data.id}/convert`, { method: 'POST' });
-    $uploadStatus.textContent = 'Conversion started!';
+    await r.json();
+    $uploadStatus.textContent = 'Uploaded!';
     resetUploadForm();
     loadBooks();
-    pollBookStatus(data.id);
   } catch(e) {
     $uploadStatus.textContent = 'Error: ' + e.message;
     $btnUpload.disabled = false;
