@@ -2,10 +2,13 @@
 SELECT * FROM projects WHERE id = ?;
 
 -- name: GetProjectByPath :one
-SELECT * FROM projects WHERE client_slug = ? AND project_slug = ?;
+SELECT * FROM projects WHERE client_slug = ? AND project_slug = ? AND archived_at IS NULL;
 
 -- name: ListProjects :many
-SELECT * FROM projects ORDER BY updated_at DESC;
+SELECT * FROM projects WHERE archived_at IS NULL ORDER BY updated_at DESC;
+
+-- name: ListArchivedProjects :many
+SELECT * FROM projects WHERE archived_at IS NOT NULL ORDER BY archived_at DESC, updated_at DESC;
 
 -- name: CreateProject :one
 INSERT INTO projects (name, start_date, client_slug, project_slug, created_at, updated_at)
@@ -62,3 +65,6 @@ SELECT * FROM auth_tokens WHERE project_id = ? AND token_hash = ?;
 
 -- name: ListAuthTokens :many
 SELECT * FROM auth_tokens WHERE project_id = ?;
+
+-- name: DeleteAuthTokensByProject :exec
+DELETE FROM auth_tokens WHERE project_id = ?;

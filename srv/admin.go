@@ -7,20 +7,21 @@ import (
 )
 
 type projectSummary struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	ClientSlug  string `json:"client_slug"`
-	ProjectSlug string `json:"project_slug"`
-	StartDate   string `json:"start_date"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
-	TaskCount   int    `json:"task_count"`
-	DoneCount   int    `json:"done_count"`
-	ActiveCount int    `json:"active_count"`
-	HasAuth     bool   `json:"has_auth"`
-	HasTransmittal bool `json:"has_transmittal"`
+	ID                int64  `json:"id"`
+	Name              string `json:"name"`
+	ClientSlug        string `json:"client_slug"`
+	ProjectSlug       string `json:"project_slug"`
+	StartDate         string `json:"start_date"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
+	ArchivedAt        string `json:"archived_at"`
+	TaskCount         int    `json:"task_count"`
+	DoneCount         int    `json:"done_count"`
+	ActiveCount       int    `json:"active_count"`
+	HasAuth           bool   `json:"has_auth"`
+	HasTransmittal    bool   `json:"has_transmittal"`
 	TransmittalStatus string `json:"transmittal_status"`
-	Path        string `json:"path"`
+	Path              string `json:"path"`
 }
 
 func (s *Server) requireExeDevAdmin(w http.ResponseWriter, r *http.Request) bool {
@@ -64,10 +65,18 @@ func (s *Server) handleAdminProjectList(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	archivedOnly := r.URL.Query().Get("archived") == "1"
+	whereClause := "p.archived_at IS NULL"
+	orderClause := "p.updated_at DESC"
+	if archivedOnly {
+		whereClause = "p.archived_at IS NOT NULL"
+		orderClause = "p.archived_at DESC, p.updated_at DESC"
+	}
+
 	rows, err := s.DB.QueryContext(r.Context(), `
 		SELECT
 			p.id, p.name, p.client_slug, p.project_slug,
-			p.start_date, p.created_at, p.updated_at,
+			p.start_date, p.created_at, p.updated_at, COALESCE(p.archived_at, ''),
 			COUNT(t.id) as task_count,
 			SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done_count,
 			SUM(CASE WHEN t.status = 'active' OR t.status = 'in_progress' THEN 1 ELSE 0 END) as active_count,
@@ -77,9 +86,9 @@ func (s *Server) handleAdminProjectList(w http.ResponseWriter, r *http.Request) 
 		FROM projects p
 		LEFT JOIN tasks t ON t.project_id = p.id
 		LEFT JOIN transmittals tr ON tr.project_id = p.id
+		WHERE `+whereClause+`
 		GROUP BY p.id
-		ORDER BY p.updated_at DESC
-	`)
+		ORDER BY `+orderClause)
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
@@ -93,7 +102,7 @@ func (s *Server) handleAdminProjectList(w http.ResponseWriter, r *http.Request) 
 		var hasAuthInt int64
 		err := rows.Scan(
 			&ps.ID, &ps.Name, &ps.ClientSlug, &ps.ProjectSlug,
-			&ps.StartDate, &ps.CreatedAt, &ps.UpdatedAt,
+			&ps.StartDate, &ps.CreatedAt, &ps.UpdatedAt, &ps.ArchivedAt,
 			&ps.TaskCount, &ps.DoneCount, &ps.ActiveCount,
 			&hasAuthInt, &hasTransmittalID, &ps.TransmittalStatus,
 		)

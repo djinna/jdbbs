@@ -50,6 +50,18 @@ type Client struct {
 	CreatedAt    time.Time
 }
 
+type Correction struct {
+	ID          int64
+	ProjectID   int64
+	FindText    string
+	ReplaceText string
+	Chapter     sql.NullString
+	Note        sql.NullString
+	Status      string
+	AppliedAt   sql.NullTime
+	CreatedAt   time.Time
+}
+
 type FileLog struct {
 	ID           int64
 	ProjectID    int64
@@ -85,6 +97,7 @@ type Project struct {
 	UpdatedAt   time.Time
 	ClientSlug  string
 	ProjectSlug string
+	ArchivedAt  sql.NullTime
 }
 
 type Task struct {

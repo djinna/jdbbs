@@ -28,7 +28,7 @@ func (q *Queries) CreateAuthToken(ctx context.Context, arg CreateAuthTokenParams
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (name, start_date, client_slug, project_slug, created_at, updated_at)
 VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, name, start_date, created_at, updated_at, client_slug, project_slug
+RETURNING id, name, start_date, created_at, updated_at, client_slug, project_slug, archived_at
 `
 
 type CreateProjectParams struct {
@@ -54,6 +54,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.UpdatedAt,
 		&i.ClientSlug,
 		&i.ProjectSlug,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
@@ -146,6 +147,15 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 	return i, err
 }
 
+const deleteAuthTokensByProject = `-- name: DeleteAuthTokensByProject :exec
+DELETE FROM auth_tokens WHERE project_id = ?
+`
+
+func (q *Queries) DeleteAuthTokensByProject(ctx context.Context, projectID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteAuthTokensByProject, projectID)
+	return err
+}
+
 const deleteProject = `-- name: DeleteProject :exec
 DELETE FROM projects WHERE id = ?
 `
@@ -187,7 +197,7 @@ func (q *Queries) GetAuthToken(ctx context.Context, arg GetAuthTokenParams) (Aut
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug FROM projects WHERE id = ?
+SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug, archived_at FROM projects WHERE id = ?
 `
 
 func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
@@ -201,12 +211,13 @@ func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
 		&i.UpdatedAt,
 		&i.ClientSlug,
 		&i.ProjectSlug,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
 
 const getProjectByPath = `-- name: GetProjectByPath :one
-SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug FROM projects WHERE client_slug = ? AND project_slug = ?
+SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug, archived_at FROM projects WHERE client_slug = ? AND project_slug = ? AND archived_at IS NULL
 `
 
 type GetProjectByPathParams struct {
@@ -225,6 +236,7 @@ func (q *Queries) GetProjectByPath(ctx context.Context, arg GetProjectByPathPara
 		&i.UpdatedAt,
 		&i.ClientSlug,
 		&i.ProjectSlug,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
@@ -263,6 +275,42 @@ func (q *Queries) GetTask(ctx context.Context, id int64) (Task, error) {
 	return i, err
 }
 
+const listArchivedProjects = `-- name: ListArchivedProjects :many
+SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug, archived_at FROM projects WHERE archived_at IS NOT NULL ORDER BY archived_at DESC, updated_at DESC
+`
+
+func (q *Queries) ListArchivedProjects(ctx context.Context) ([]Project, error) {
+	rows, err := q.db.QueryContext(ctx, listArchivedProjects)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Project
+	for rows.Next() {
+		var i Project
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.StartDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ClientSlug,
+			&i.ProjectSlug,
+			&i.ArchivedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAuthTokens = `-- name: ListAuthTokens :many
 SELECT id, project_id, token_hash, label, created_at FROM auth_tokens WHERE project_id = ?
 `
@@ -297,7 +345,7 @@ func (q *Queries) ListAuthTokens(ctx context.Context, projectID int64) ([]AuthTo
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug FROM projects ORDER BY updated_at DESC
+SELECT id, name, start_date, created_at, updated_at, client_slug, project_slug, archived_at FROM projects WHERE archived_at IS NULL ORDER BY updated_at DESC
 `
 
 func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
@@ -317,6 +365,7 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 			&i.UpdatedAt,
 			&i.ClientSlug,
 			&i.ProjectSlug,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}

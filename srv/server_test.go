@@ -175,16 +175,51 @@ func TestProjectCRUD(t *testing.T) {
 		t.Errorf("expected name 'Updated Project', got %v", project["Name"])
 	}
 
-	// Delete project
+	// Delete endpoint is disabled in favor of archive
 	resp = apiRequestAdmin(t, ts, "DELETE", "/api/projects/"+itoa(projectID), nil)
-	if resp.StatusCode != 200 {
-		t.Fatalf("delete project: expected 200, got %d", resp.StatusCode)
+	if resp.StatusCode != 405 {
+		t.Fatalf("delete project: expected 405, got %d", resp.StatusCode)
 	}
+	resp.Body.Close()
 
-	// Verify deletion (should 404)
-	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+itoa(projectID), nil)
+	// Archive project instead
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+itoa(projectID)+"/archive", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("archive project: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// Archived projects should not resolve by public/project path APIs anymore
+	resp = apiRequestAdmin(t, ts, "GET", "/api/project-by-path/test/proj1", nil)
 	if resp.StatusCode != 404 {
-		t.Errorf("expected 404 after delete, got %d", resp.StatusCode)
+		t.Errorf("expected 404 after archive by path, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}
+
+func TestArchiveProjectRequiresAdminHeaderEvenForOpenProject(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name": "Archive Header Guard", "client_slug": "ahg", "project_slug": "one", "start_date": "2025-01-01",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: expected 201, got %d", resp.StatusCode)
+	}
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	pid := itoa(int64(created["ID"].(float64)))
+
+	resp = apiRequest(t, ts, "POST", "/api/projects/"+pid+"/archive", nil)
+	if resp.StatusCode != 401 {
+		t.Fatalf("archive project without admin header: expected 401, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+pid, nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("project should still exist after unauthorized archive, got %d", resp.StatusCode)
 	}
 	resp.Body.Close()
 }

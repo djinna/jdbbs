@@ -162,8 +162,12 @@ async function loadAllProjects() {
   }
 }
 
+function absoluteURL(path) {
+  return new URL(path, window.location.origin + '/').toString();
+}
+
 function switchProject(proj) {
-  const url = '/' + proj.ClientSlug + '/' + proj.ProjectSlug + '/transmittal/';
+  const url = absoluteURL('/' + proj.ClientSlug + '/' + proj.ProjectSlug + '/transmittal/');
   window.location.href = url;
 }
 
@@ -215,7 +219,7 @@ async function duplicateToProject(targetId) {
     const target = state.allProjects.find(p => p.ID === targetId);
     if (target) {
       if (confirm('Transmittal duplicated! Go to ' + target.Name + ' transmittal?')) {
-        window.location.href = '/' + target.ClientSlug + '/' + target.ProjectSlug + '/transmittal/';
+        window.location.href = absoluteURL('/' + target.ClientSlug + '/' + target.ProjectSlug + '/transmittal/');
       }
     } else {
       alert('Duplicated successfully!');

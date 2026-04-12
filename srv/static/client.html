@@ -196,6 +196,8 @@ const api = async (url, opts = {}) => {
   return data;
 };
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function portalBaseURL() { return window.location.origin + '/'; }
+function absoluteURL(path) { return new URL(path, portalBaseURL()).toString(); }
 
 function getTheme() { try { var t = JSON.parse(localStorage.getItem('prodcal-theme-v1')); return (t && t.dark) ? 'dark' : 'light'; } catch(e) { return 'light'; } }
 function applyTheme(t) {
@@ -284,7 +286,7 @@ function render() {
       <input type="password" id="pw" placeholder="Enter password" autofocus>
       <div><button class="btn btn-primary" id="loginBtn" style="width:100%">Unlock</button></div>
       ${state.error ? '<div class="error">' + esc(state.error) + '</div>' : ''}
-      <div class="back-link"><a href="/">← Back</a></div>
+      <div class="back-link"><a href="https://jdbbs.exe.xyz/">← Back</a></div>
     `;
     app.appendChild(box);
     const pw = box.querySelector('#pw');
@@ -368,6 +370,8 @@ function render() {
         const barClass = pct === 100 ? 'green' : pct > 50 ? 'accent' : 'yellow';
         const txBadge = p.has_transmittal
           ? `<span class="badge badge-dim">${esc(p.transmittal_status || 'draft')}</span>` : '';
+        const projectURL = absoluteURL(p.path);
+        const transmittalURL = absoluteURL(p.path + 'transmittal/');
         return `
           <div class="project-card">
             <div class="project-top">
@@ -390,8 +394,8 @@ function render() {
               <div class="progress-fill ${barClass}" style="width:${pct}%"></div>
             </div>
             <div class="links">
-              <a href="${esc(p.path)}">Calendar</a>
-              <a href="${esc(p.path)}transmittal/">Transmittal</a>
+              <a href="${esc(projectURL)}">Calendar</a>
+              <a href="${esc(transmittalURL)}">Transmittal</a>
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">Snapshot</button>
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="activity">Activity</button>
             </div>

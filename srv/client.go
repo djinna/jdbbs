@@ -197,7 +197,7 @@ func (s *Server) handleClientProjects(w http.ResponseWriter, r *http.Request) {
 		FROM projects p
 		LEFT JOIN tasks t ON t.project_id = p.id
 		LEFT JOIN transmittals tr ON tr.project_id = p.id
-		WHERE p.client_slug = ?
+		WHERE p.client_slug = ? AND p.archived_at IS NULL
 		GROUP BY p.id
 		ORDER BY p.name
 	`, clientSlug)

@@ -28,6 +28,10 @@ const api = async (url, opts = {}) => {
   return data;
 };
 
+function absoluteURL(path) {
+  return new URL(path, window.location.origin + '/').toString();
+}
+
 const fmt = {
   date(s) { if (!s) return '—'; const d = new Date(s + 'T00:00:00'); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); },
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
@@ -243,8 +247,8 @@ function renderProject() {
   const done = t.filter(x => x.Status === 'done').length;
 
   const txUrl = state.project.ClientSlug && state.project.ProjectSlug
-    ? '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/transmittal/' : null;
-  const clientUrl = state.project.ClientSlug ? '/' + state.project.ClientSlug + '/' : '/';
+    ? absoluteURL('/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/transmittal/') : null;
+  const clientUrl = state.project.ClientSlug ? absoluteURL('/' + state.project.ClientSlug + '/') : absoluteURL('/');
 
   return h('div', null,
     h('div', { className: 'page-header' },

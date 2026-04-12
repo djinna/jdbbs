@@ -249,7 +249,7 @@ h1 {
     </form>
   </div>
   <div class="footer">
-    <a href="/__exe.dev/login?redirect=/admin/" style="color:var(--text-muted);text-decoration:none;font-size:0.72rem">Admin</a>
+    <a href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/" style="color:var(--text-muted);text-decoration:none;font-size:0.72rem">Admin</a>
     &nbsp;&middot;&nbsp; &copy; 2025 JDBB
   </div>
 </div>
@@ -330,8 +330,12 @@ portalForm.addEventListener('submit', function(e) {
     return;
   }
   portalError.style.display = 'none';
-  window.location.href = '/' + slug + '/';
+  window.location.href = absoluteURL('/' + slug + '/');
 });
+
+function absoluteURL(path) {
+  return new URL(path, window.location.origin + '/').toString();
+}
 
 applyState();
 </script>

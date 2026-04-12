@@ -85,11 +85,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/projects/{id}", s.handleGetProject)
 	mux.HandleFunc("PUT /api/projects/{id}", s.handleUpdateProject)
 	mux.HandleFunc("DELETE /api/projects/{id}", s.handleDeleteProject)
+	mux.HandleFunc("POST /api/projects/{id}/archive", s.handleArchiveProject)
+	mux.HandleFunc("POST /api/projects/{id}/restore", s.handleRestoreProject)
 	mux.HandleFunc("GET /api/projects/{id}/tasks", s.handleListTasks)
 	mux.HandleFunc("POST /api/projects/{id}/tasks", s.handleCreateTask)
 	mux.HandleFunc("PUT /api/tasks/{id}", s.handleUpdateTask)
 	mux.HandleFunc("DELETE /api/tasks/{id}", s.handleDeleteTask)
 	mux.HandleFunc("POST /api/projects/{id}/auth", s.handleSetAuth)
+	mux.HandleFunc("DELETE /api/projects/{id}/auth", s.handleClearAuth)
 	mux.HandleFunc("POST /api/projects/{id}/verify", s.handleVerifyAuth)
 	mux.HandleFunc("POST /api/projects/{id}/seed", s.handleSeedProject)
 	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
@@ -498,16 +501,35 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteProject(w http.ResponseWriter, r *http.Request) {
+	jsonErr(w, "project deletion disabled; archive instead", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleArchiveProject(w http.ResponseWriter, r *http.Request) {
 	pid, err := s.projectIDFromPath(r)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
 		return
 	}
-	if !s.requireAuth(w, r, pid) {
+	if !s.requireExeDevAdminAPI(w, r) {
 		return
 	}
-	q := dbgen.New(s.DB)
-	if err := q.DeleteProject(r.Context(), pid); err != nil {
+	if _, err := s.DB.ExecContext(r.Context(), `UPDATE projects SET archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, pid); err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	jsonOK(w, map[string]string{"ok": "true"})
+}
+
+func (s *Server) handleRestoreProject(w http.ResponseWriter, r *http.Request) {
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	if _, err := s.DB.ExecContext(r.Context(), `UPDATE projects SET archived_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, pid); err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
 	}
@@ -698,6 +720,31 @@ func (s *Server) handleSetAuth(w http.ResponseWriter, r *http.Request) {
 		Value:    body.Password,
 		Path:     "/",
 		MaxAge:   86400 * 365,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	jsonOK(w, map[string]string{"ok": "true"})
+}
+
+func (s *Server) handleClearAuth(w http.ResponseWriter, r *http.Request) {
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	q := dbgen.New(s.DB)
+	if err := q.DeleteAuthTokensByProject(r.Context(), pid); err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     fmt.Sprintf("prodcal_auth_%d", pid),
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})

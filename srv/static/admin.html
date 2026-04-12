@@ -300,6 +300,14 @@ html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
 
 .ts-section { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.25rem; }
 .ts-section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+.ts-origin-note { margin: 0 0 1rem; padding: 0.65rem 0.8rem; border: 1px dashed var(--border); border-radius: 6px; background: var(--surface); color: var(--text-secondary); font-size: 0.76rem; line-height: 1.45; }
+.ts-origin-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 999px; padding: 0.15rem 0.45rem; background: var(--bg); }
+.ts-subsection-title .ts-origin-badge { margin-left: 0.45rem; vertical-align: middle; }
+.ts-field-from-tx input,
+.ts-field-from-tx textarea,
+.ts-field-from-tx select,
+.ts-origin-panel { border-style: dashed !important; }
+.ts-origin-panel { border: 1px dashed var(--border); border-radius: 6px; padding: 0.75rem; background: color-mix(in srgb, var(--surface) 84%, var(--bg) 16%); }
 
 .ts-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
 .ts-field { display: flex; flex-direction: column; gap: 0.2rem; }
@@ -393,7 +401,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 
 <div class="content">
   <div class="header">
-    <h1><a href="/" style="color:inherit;text-decoration:none">Production</a></h1>
+    <h1><a href="https://jdbbs.exe.xyz/" style="color:inherit;text-decoration:none">Production</a></h1>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-sm" id="new-project-btn">New Project</button>
       <button class="btn btn-sm btn-secondary" id="new-client-btn">New Client</button>
@@ -402,8 +410,9 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 
   <div class="tabs">
     <div class="tab active" data-tab="projects">Projects</div>
-    <div class="tab" data-tab="books">Books</div>
     <div class="tab" data-tab="typesetting">Typesetting</div>
+    <div class="tab" data-tab="files">Files</div>
+    <div class="tab" data-tab="archived">Archived</div>
     <div class="status" id="status-indicator">
       <span class="dot"></span> <span id="status-label">checking…</span>
       <div class="tip" id="status-tip">Checking system health…</div>
@@ -416,7 +425,13 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
     <div id="projects"></div>
   </div>
 
-  <div id="tab-books" class="tab-panel">
+  <div id="tab-archived" class="tab-panel">
+    <div class="section-label" style="margin-top:0;padding-top:0;border-top:none;display:flex;justify-content:space-between;align-items:center">Archived Projects <button class="btn btn-sm btn-secondary" onclick="showProjectsTab()">Back to Projects</button></div>
+    <div id="archived-loading">Loading…</div>
+    <div id="archived-projects"></div>
+  </div>
+
+  <div id="tab-files" class="tab-panel">
     <div class="upload-zone" id="upload-zone">
       <div class="icon">△</div>
       <div>Drop a Word file here or <strong>click to upload</strong></div>
@@ -471,20 +486,42 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
     <div id="ts-empty" class="ts-empty">Select a project to configure its typesetting spec.</div>
 
     <div id="ts-form" style="display:none">
+      <div class="ts-origin-note">Dotted fields and panels are seeded from Transmittal. They stay editable here so Typesetting can refine them without losing the handoff context.</div>
+
+      <div class="ts-origin-note"><strong>Auth labels:</strong> <span class="ts-origin-badge">Open access</span> means no project password is set. <span class="ts-origin-badge">Project password</span> means this project has a project-level password enabled.</div>
+
       <!-- ═══ SHARED: Book Info ═══ -->
       <div class="ts-section">
-        <div class="ts-section-title">Book Info</div>
+        <div class="ts-section-title"><span>Book Info</span><span class="ts-origin-badge">Pulled from Transmittal · editable</span></div>
         <div class="ts-fields">
-          <div class="ts-field full"><label>Title<input type="text" data-path="metadata.title"></label></div>
-          <div class="ts-field"><label>Subtitle<input type="text" data-path="metadata.subtitle"></label></div>
-          <div class="ts-field"><label>Author<input type="text" data-path="metadata.author"></label></div>
-          <div class="ts-field"><label>Series<input type="text" data-path="metadata.series"></label></div>
-          <div class="ts-field"><label>Publisher<input type="text" data-path="metadata.publisher"></label></div>
-          <div class="ts-field"><label>ISBN (Paper)<input type="text" data-path="metadata.isbn_paper"></label></div>
-          <div class="ts-field"><label>ISBN (EPUB)<input type="text" data-path="metadata.isbn_epub"></label></div>
-          <div class="ts-field"><label>ISBN (Cloth)<input type="text" data-path="metadata.isbn_cloth"></label></div>
-          <div class="ts-field"><label>© Year<input type="text" data-path="metadata.copyright_year"></label></div>
-          <div class="ts-field"><label>© Holder<input type="text" data-path="metadata.copyright_holder"></label></div>
+          <div class="ts-field ts-field-from-tx full"><label>Title<input type="text" data-path="metadata.title"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Subtitle<input type="text" data-path="metadata.subtitle"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Author<input type="text" data-path="metadata.author"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Series<input type="text" data-path="metadata.series"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Publisher<input type="text" data-path="metadata.publisher"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>ISBN (Paper)<input type="text" data-path="metadata.isbn_paper"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>ISBN (EPUB)<input type="text" data-path="metadata.isbn_epub"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>ISBN (Cloth)<input type="text" data-path="metadata.isbn_cloth"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>© Year<input type="text" data-path="metadata.copyright_year"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>© Holder<input type="text" data-path="metadata.copyright_holder"></label></div>
+        </div>
+      </div>
+
+      <!-- ═══ SHARED: TYPESETTING NOTES ═══ -->
+      <div class="ts-section" style="margin-top:1rem">
+        <div class="ts-section-title"><span>Typesetting</span><span class="ts-origin-badge">Pulled from Transmittal · editable</span></div>
+        <div class="ts-fields">
+          <div class="ts-field ts-field-from-tx full"><label>Instructions for Developmental Editor</label><textarea data-path="typesetting.developmental_instructions" rows="3" placeholder="Any guidance for developmental edit focus, scope, or priorities..." style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+          <div class="ts-field ts-field-from-tx full"><label>Instructions for Copyeditor</label><textarea data-path="typesetting.copyeditor_instructions" rows="4" placeholder="Any guidance for copyediting priorities, style, or exceptions..." style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+          <div class="ts-field ts-field-from-tx full"><label>Trim Guidance</label><textarea data-path="typesetting.trim_guidance" rows="3" placeholder="e.g. coffee table, pocket book size, gift format" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+          <div class="ts-field ts-field-from-tx"><label>Trim Size<input type="text" data-path="typesetting.trim_size" placeholder="5.5 x 8.5"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Est. Book pp<input type="text" data-path="typesetting.est_pages"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>PPI<input type="text" data-path="typesetting.ppi"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Spine Width<input type="text" data-path="typesetting.spine_width"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Text Complexity<input type="text" data-path="typesetting.complexity"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Outside Designer<input type="text" data-path="typesetting.outside_designer"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Reuse Previous Book<input type="text" data-path="typesetting.reuse_previous"></label></div>
+          <div class="ts-field ts-field-from-tx full"><label>Additional Design Notes</label><textarea data-path="typesetting.design_notes" rows="3" placeholder="Any free-form direction for format, feel, or production constraints..." style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
         </div>
       </div>
 
@@ -694,8 +731,8 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 
         <div class="ts-col">
           <div class="ts-section ts-output-card">
-            <div class="ts-subsection-title">Front Matter</div>
-            <div class="ts-checks" id="ts-front-matter">
+            <div class="ts-subsection-title">Front Matter <span class="ts-origin-badge">Pulled</span></div>
+            <div class="ts-checks ts-origin-panel" id="ts-front-matter">
               <label class="ts-check"><input type="checkbox" data-path="front_matter.half_title"> Half title</label>
               <label class="ts-check"><input type="checkbox" data-path="front_matter.series_title"> Series title</label>
               <label class="ts-check"><input type="checkbox" data-path="front_matter.title_page"> Title page</label>
@@ -709,8 +746,8 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <label class="ts-check"><input type="checkbox" data-path="front_matter.introduction"> Introduction</label>
             </div>
 
-            <div class="ts-subsection-title">Back Matter</div>
-            <div class="ts-checks" id="ts-back-matter">
+            <div class="ts-subsection-title">Back Matter <span class="ts-origin-badge">Pulled</span></div>
+            <div class="ts-checks ts-origin-panel" id="ts-back-matter">
               <label class="ts-check"><input type="checkbox" data-path="back_matter.notes"> Notes</label>
               <label class="ts-check"><input type="checkbox" data-path="back_matter.appendix"> Appendix</label>
               <label class="ts-check"><input type="checkbox" data-path="back_matter.glossary"> Glossary</label>
@@ -718,8 +755,8 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <label class="ts-check"><input type="checkbox" data-path="back_matter.index"> Index</label>
             </div>
 
-            <div class="ts-subsection-title">Custom Styles <button class="btn-link" id="ts-add-style">+ Add</button></div>
-            <div id="ts-custom-styles" class="ts-custom-styles"></div>
+            <div class="ts-subsection-title">Custom Styles <span class="ts-origin-badge">Pulled</span> <button class="btn-link" id="ts-add-style">+ Add</button></div>
+            <div id="ts-custom-styles" class="ts-custom-styles ts-origin-panel"></div>
 
             <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
               <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
@@ -872,6 +909,8 @@ function setStatus(level) {
 const $stats = document.getElementById('stats');
 const $projects = document.getElementById('projects');
 const $loading = document.getElementById('loading');
+const $archivedProjects = document.getElementById('archived-projects');
+const $archivedLoading = document.getElementById('archived-loading');
 
 let cachedProjects = [];
 let cachedClients = [];
@@ -879,7 +918,7 @@ async function loadProjects() {
   try {
     const r = await fetch('/api/admin/projects');
     if (r.status === 403) {
-      $loading.innerHTML = 'Forbidden — exe.dev login required. <a href="/" style="color:var(--accent)">Go to home</a>';
+      $loading.innerHTML = `Forbidden — exe.dev login required. <a href="${adminBaseURL()}" style="color:var(--accent)">Go to home</a>`;
       return;
     }
     const projects = await r.json();
@@ -891,6 +930,18 @@ async function loadProjects() {
     populateBookProjectSelector(projects);
   } catch(e) {
     $loading.textContent = 'Error loading projects: ' + e.message;
+  }
+}
+
+async function loadArchivedProjects() {
+  try {
+    const r = await fetch('/api/admin/projects?archived=1');
+    if (!r.ok) throw new Error('Failed to load archived projects');
+    const projects = await r.json();
+    $archivedLoading.style.display = 'none';
+    renderArchivedProjects(projects);
+  } catch (e) {
+    $archivedLoading.textContent = 'Error loading archived projects: ' + e.message;
   }
 }
 
@@ -919,6 +970,14 @@ function renderStats(projects) {
   `;
 }
 
+function adminBaseURL() {
+  return window.location.origin + '/';
+}
+
+function absoluteURL(path) {
+  return new URL(path, adminBaseURL()).toString();
+}
+
 function renderProjects(projects) {
   if (!projects.length) {
     $projects.innerHTML = '<div class="empty">No projects yet.</div>';
@@ -929,8 +988,8 @@ function renderProjects(projects) {
     const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
     const barClass = pct === 100 ? 'green' : pct > 50 ? 'blue' : 'yellow';
     const authBadge = p.has_auth
-      ? '<span class="badge badge-green"><span class="status-dot green"></span> Protected</span>'
-      : '<span class="badge badge-red"><span class="status-dot red"></span> No auth</span>';
+      ? '<span class="badge badge-green"><span class="status-dot green"></span> Project password</span>'
+      : '<span class="badge badge-red"><span class="status-dot red"></span> Open access</span>';
     const transmittalBadge = p.has_transmittal
       ? `<span class="badge badge-dim"><span class="status-dot dim"></span> ${esc(p.transmittal_status || 'draft')}</span>`
       : '';
@@ -939,12 +998,15 @@ function renderProjects(projects) {
     const start = p.start_date || 'N/A';
     const updated = p.updated_at ? new Date(p.updated_at).toISOString().split('T')[0] : 'N/A';
 
+    const projectURL = absoluteURL(p.path);
+    const transmittalURL = absoluteURL(p.path + 'transmittal/');
+
     return `
       <div class="project">
         <div class="project-top">
           <div>
             <div class="project-title">${esc(p.name)}</div>
-            <div class="project-path">${esc(p.path)}</div>
+            <div class="project-path">${esc(projectURL)}</div>
           </div>
           <div style="display:flex;gap:0.4rem">
             ${authBadge}
@@ -958,10 +1020,12 @@ function renderProjects(projects) {
         </div>
         <div class="progress"><div class="progress-fill ${barClass}" style="width:${pct}%"></div></div>
         <div class="links">
-          <a href="${esc(p.path)}" target="_blank">Calendar</a>
-          <a href="${esc(p.path)}transmittal/" target="_blank">Transmittal</a>
+          <a href="${esc(projectURL)}" target="_blank">Calendar</a>
+          <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
+          ${p.has_auth ? `<!-- Remove password --> <button class="email-btn" style="color:var(--red)" onclick="removeProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Remove password</button>` : `<!-- Set password --> <button class="email-btn" style="color:var(--green)" onclick="setProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Set password</button>`}
+          <button class="email-btn" style="color:var(--yellow)" onclick="archiveProject(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Archive</button>
         </div>
       </div>
     `;
@@ -972,6 +1036,37 @@ function esc(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+function renderArchivedProjects(projects) {
+  if (!projects.length) {
+    $archivedProjects.innerHTML = '<div class="empty">No archived projects.</div>';
+    return;
+  }
+  $archivedProjects.innerHTML = projects.map(p => {
+    const projectURL = absoluteURL(p.path);
+    const transmittalURL = absoluteURL(p.path + 'transmittal/');
+    const archived = p.archived_at ? p.archived_at.split('T')[0].split(' ')[0] : '—';
+    return `
+      <div class="project">
+        <div class="project-top">
+          <div>
+            <div class="project-title">${esc(p.name)}</div>
+            <div class="project-path">${esc(projectURL)}</div>
+          </div>
+          <span class="badge badge-dim"><span class="status-dot dim"></span> Archived ${esc(archived)}</span>
+        </div>
+        <div class="project-meta">Created: ${esc(p.created_at || '—')} &nbsp; Start: ${esc(p.start_date || '—')} &nbsp; Updated: ${esc(p.updated_at || '—')}</div>
+        <div class="links">
+          <a href="${esc(projectURL)}" target="_blank">Calendar</a>
+          <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
+          <button class="email-btn" style="color:var(--green)" onclick="restoreProject(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Restore</button>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function openNewProjectModal() {
@@ -1220,15 +1315,24 @@ document.getElementById('new-project-btn').addEventListener('click', openNewProj
 document.getElementById('new-client-btn').addEventListener('click', openNewClientModal);
 
 // ─── Tabs ───
+function showTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+  if (tab) tab.classList.add('active');
+  const panel = document.getElementById('tab-' + tabName);
+  if (panel) panel.classList.add('active');
+  if (tabName === 'files') loadBooks();
+  if (tabName === 'archived') loadArchivedProjects();
+  if (tabName === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
+}
+
+function showProjectsTab() {
+  showTab('projects');
+}
+
 document.querySelectorAll('.tab[data-tab]').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    if (tab.dataset.tab === 'books') loadBooks();
-    if (tab.dataset.tab === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
-  });
+  tab.addEventListener('click', () => showTab(tab.dataset.tab));
 });
 
 // ─── Books ───
@@ -1383,8 +1487,8 @@ function renderBooks(books) {
 
     let actions = '';
     if (b.Status === 'ready') {
-      actions += `<a href="/api/books/${b.ID}/download/pdf" class="dl-pdf">PDF</a>`;
-      actions += `<a href="/api/books/${b.ID}/download/epub" class="dl-epub" title="Download EPUB (generate first if needed)" onclick="event.preventDefault(); downloadOrGenerateEPUB(${b.ID})">EPUB</a>`;
+      actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/pdf`)}" class="dl-pdf">PDF</a>`;
+      actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/epub`)}" class="dl-epub" title="Download EPUB (generate first if needed)" onclick="event.preventDefault(); downloadOrGenerateEPUB(${b.ID})">EPUB</a>`;
     }
     if (b.Status === 'error') {
       actions += `<button onclick="retryConvert(${b.ID})">Retry</button>`;
@@ -1452,12 +1556,81 @@ async function deleteBook(id) {
   loadBooks();
 }
 
+async function setProjectPassword(id, name) {
+  const password = prompt(`Set a project password for "${name}"`);
+  if (!password) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Set password failed');
+    await loadProjects();
+  } catch (e) {
+    alert('Failed to set project password: ' + e.message);
+  }
+}
+
+async function removeProjectPassword(id, name) {
+  if (!confirm(`Remove the project password for "${name}"? This will make the project open access.`)) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/auth`, { method: 'DELETE' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Remove password failed');
+    await loadProjects();
+  } catch (e) {
+    alert('Failed to remove project password: ' + e.message);
+  }
+}
+
+async function archiveProject(id, name) {
+  if (!confirm(`Archive project "${name}"?\n\nThis hides it from the main Projects list and moves it to Archived. Nothing is deleted.`)) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/archive`, { method: 'POST' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Archive failed');
+    if (tsProject.value == String(id)) {
+      tsProject.value = '';
+      tsForm.style.display = 'none';
+      tsEmpty.style.display = 'block';
+      tsPullTx.disabled = true;
+      tsSave.disabled = true;
+      tsExport.disabled = true;
+      document.getElementById('ts-preview-config').disabled = true;
+      document.getElementById('ts-download-template').disabled = true;
+      tsSpec = null;
+    }
+    await loadProjects();
+    await loadArchivedProjects();
+    await loadBooks();
+  } catch (e) {
+    alert('Failed to archive project: ' + e.message);
+  }
+}
+
+async function restoreProject(id, name) {
+  if (!confirm(`Restore project "${name}" to the active Projects list?`)) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/restore`, { method: 'POST' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Restore failed');
+    await loadProjects();
+    await loadArchivedProjects();
+    await loadBooks();
+  } catch (e) {
+    alert('Failed to restore project: ' + e.message);
+  }
+}
+
 async function downloadOrGenerateEPUB(id) {
   // Try downloading first
   try {
-    const check = await fetch(`/api/books/${id}/download/epub`, { method: 'HEAD' });
+    const epubURL = absoluteURL(`/api/books/${id}/download/epub`);
+    const check = await fetch(epubURL, { method: 'HEAD' });
     if (check.ok) {
-      window.location.href = `/api/books/${id}/download/epub`;
+      window.location.href = epubURL;
       return;
     }
   } catch(e) {}
@@ -1475,10 +1648,11 @@ async function downloadOrGenerateEPUB(id) {
     const iv = setInterval(async () => {
       attempts++;
       if (attempts > 30) { clearInterval(iv); alert('EPUB generation timed out'); return; }
-      const check = await fetch(`/api/books/${id}/download/epub`, { method: 'HEAD' });
+      const epubURL = absoluteURL(`/api/books/${id}/download/epub`);
+      const check = await fetch(epubURL, { method: 'HEAD' });
       if (check.ok) {
         clearInterval(iv);
-        window.location.href = `/api/books/${id}/download/epub`;
+        window.location.href = epubURL;
       }
     }, 2000);
   } catch(e) {
@@ -1634,6 +1808,8 @@ function tsPopulateForm() {
   }
   // Ensure epub section exists
   if (!tsSpec.epub) tsSpec.epub = { toc_depth: 2, landmarks: true, chapter_break: 'page', section_break: 'breve', body_font_size: 'inherit', embed_fonts: false, custom_css: '', language: 'en', subject: '', description: '' };
+  // Ensure shared typesetting section exists
+  if (!tsSpec.typesetting) tsSpec.typesetting = { developmental_instructions: '', copyeditor_instructions: '', trim_guidance: '', trim_size: '', est_pages: '', ppi: '', spine_width: '', complexity: '', outside_designer: '', reuse_previous: '', design_notes: '' };
   // Migrate old "W x H" trim values to Typst paper names
   if (tsSpec.page && tsSpec.page.trim) {
     const oldTrim = tsSpec.page.trim;
@@ -2101,7 +2277,7 @@ tsCompilePdf.addEventListener('click', async () => {
         clearInterval(iv);
         tsCompileStatus.textContent = 'Done! ';
         tsCompileStatus.style.color = 'var(--green)';
-        tsCompileStatus.innerHTML += `<a href="/api/books/${bid}/download/pdf" style="color:var(--accent);font-size:0.72rem">Download PDF</a>`;
+        tsCompileStatus.innerHTML += `<a href="${absoluteURL(`/api/books/${bid}/download/pdf`)}" style="color:var(--accent);font-size:0.72rem">Download PDF</a>`;
         tsCompilePdf.disabled = false;
       } else if (book && book.Status === 'error') {
         clearInterval(iv);
@@ -2132,12 +2308,13 @@ tsGenerateEpub.addEventListener('click', async () => {
     const iv = setInterval(async () => {
       attempts++;
       if (attempts > 30) { clearInterval(iv); tsEpubStatus.textContent = 'Timed out'; tsEpubStatus.style.color = 'var(--red)'; return; }
-      const check = await fetch(`/api/books/${bid}/download/epub`, { method: 'HEAD' });
+      const epubURL = absoluteURL(`/api/books/${bid}/download/epub`);
+      const check = await fetch(epubURL, { method: 'HEAD' });
       if (check.ok) {
         clearInterval(iv);
         tsEpubStatus.textContent = 'Done! ';
         tsEpubStatus.style.color = 'var(--green)';
-        tsEpubStatus.innerHTML += `<a href="/api/books/${bid}/download/epub" style="color:var(--accent);font-size:0.72rem">Download EPUB</a>`;
+        tsEpubStatus.innerHTML += `<a href="${epubURL}" style="color:var(--accent);font-size:0.72rem">Download EPUB</a>`;
         tsGenerateEpub.disabled = false;
       }
     }, 2000);

@@ -131,3 +131,39 @@ func TestAuthWithCookie(t *testing.T) {
 	}
 	resp.Body.Close()
 }
+
+func TestRemoveProjectAuthRestoresOpenAccess(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name": "Toggle Auth", "client_slug": "tog", "project_slug": "auth", "start_date": "2025-01-01",
+	})
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	pid := itoa(int64(created["ID"].(float64)))
+
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/auth", map[string]string{"password": "***"})
+	if resp.StatusCode != 200 {
+		t.Fatalf("set auth: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequest(t, ts, "GET", "/api/projects/"+pid+"/tasks", nil)
+	if resp.StatusCode != 401 {
+		t.Fatalf("expected 401 before auth removal, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequestAdmin(t, ts, "DELETE", "/api/projects/"+pid+"/auth", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("remove auth: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequest(t, ts, "GET", "/api/projects/"+pid+"/tasks", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("expected 200 after auth removal, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}
