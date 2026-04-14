@@ -8,7 +8,11 @@ import (
 
 func seedClient(t *testing.T, s *Server, slug, name, password string) {
 	t.Helper()
-	_, err := s.DB.Exec(`INSERT INTO clients (slug, name, password_hash) VALUES (?, ?, ?)`, slug, name, hashToken(password))
+	hash, err := hashPassword(password)
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	_, err = s.DB.Exec(`INSERT INTO clients (slug, name, password_hash) VALUES (?, ?, ?)`, slug, name, hash)
 	if err != nil {
 		t.Fatalf("seed client: %v", err)
 	}

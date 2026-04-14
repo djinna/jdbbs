@@ -33,6 +33,15 @@ type Book struct {
 	ProjectID      sql.NullInt64
 }
 
+type BookOutput struct {
+	ID             int64
+	BookID         int64
+	OutputFormat   string
+	OutputData     []byte
+	SourceFilename string
+	CreatedAt      time.Time
+}
+
 type BookSpec struct {
 	ID        int64
 	ProjectID int64
@@ -81,6 +90,20 @@ type Journal struct {
 	EntryType string
 	Content   string
 	CreatedAt time.Time
+}
+
+type ManuscriptPreflight struct {
+	ID             int64
+	ProjectID      int64
+	BookID         int64
+	Status         string
+	SummaryJson    string
+	ReportJson     string
+	ReportHtml     string
+	ErrorMsg       string
+	SourceFilename string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type Migration struct {

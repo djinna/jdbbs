@@ -4,3 +4,6 @@ db.sqlite3*
 seed_data.json
 .env
 *.sqlite3
+SESSION-SUMMARY.txt
+TEAM-UPDATE.txt
+.hermes/

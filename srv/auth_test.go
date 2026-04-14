@@ -167,3 +167,84 @@ func TestRemoveProjectAuthRestoresOpenAccess(t *testing.T) {
 	}
 	resp.Body.Close()
 }
+
+func TestListProjectsRequiresAdmin(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	// Without admin header should fail
+	resp := apiRequest(t, ts, "GET", "/api/projects", nil)
+	if resp.StatusCode != 401 {
+		t.Errorf("expected 401 without admin, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// With admin header should succeed
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects", nil)
+	if resp.StatusCode != 200 {
+		t.Errorf("expected 200 with admin, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}
+
+func TestDownloadBookRequiresAuth(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	// Create a project with auth
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name": "Book Auth Test", "client_slug": "ba", "project_slug": "test", "start_date": "2025-01-01",
+	})
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	pid := int64(created["ID"].(float64))
+
+	// Set auth on the project
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+itoa(pid)+"/auth", map[string]string{"password": "secret"})
+	resp.Body.Close()
+
+	// Insert a book linked to the project
+	_, err := s.DB.Exec(`INSERT INTO books (title, author, pdf_data, status, project_id) VALUES (?, ?, ?, ?, ?)`,
+		"Test Book", "Author", []byte("fakepdf"), "ready", pid)
+	if err != nil {
+		t.Fatalf("insert book: %v", err)
+	}
+
+	// Download without auth should fail
+	resp = apiRequest(t, ts, "GET", "/api/books/1/download/pdf", nil)
+	if resp.StatusCode != 401 {
+		t.Errorf("expected 401 without auth for book download, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// Download with admin should succeed
+	resp = apiRequestAdmin(t, ts, "GET", "/api/books/1/download/pdf", nil)
+	if resp.StatusCode != 200 {
+		t.Errorf("expected 200 with admin for book download, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}
+
+func TestCoverRequiresAuth(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	// Create a project with auth
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name": "Cover Auth Test", "client_slug": "ca", "project_slug": "test", "start_date": "2025-01-01",
+	})
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	pid := itoa(int64(created["ID"].(float64)))
+
+	// Set auth on the project
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/auth", map[string]string{"password": "secret"})
+	resp.Body.Close()
+
+	// Cover without auth should fail
+	resp = apiRequest(t, ts, "GET", "/api/projects/"+pid+"/book-spec/cover", nil)
+	if resp.StatusCode != 401 {
+		t.Errorf("expected 401 without auth for cover, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}

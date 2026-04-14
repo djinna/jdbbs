@@ -71,7 +71,7 @@ func (s *Server) checkClientAuth(r *http.Request, clientSlug string) bool {
 		return false
 	}
 
-	return hashToken(c.Value) == passwordHash
+	return checkPassword(c.Value, passwordHash)
 }
 
 // getClientSlugForProject returns the client_slug for a given project ID.
@@ -118,7 +118,7 @@ func (s *Server) handleClientVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if hashToken(body.Password) != passwordHash {
+	if !checkPassword(body.Password, passwordHash) {
 		jsonErr(w, "invalid password", http.StatusUnauthorized)
 		return
 	}

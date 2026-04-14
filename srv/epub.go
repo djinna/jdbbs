@@ -143,6 +143,15 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 	}
 
 	// Store in DB
+	if _, err := q.CreateBookOutput(ctx, dbgen.CreateBookOutputParams{
+		BookID:         bid,
+		OutputFormat:   "epub",
+		OutputData:     epubData,
+		SourceFilename: book.SourceFilename,
+	}); err != nil {
+		slog.Error("epub: persist history", "id", bid, "err", err)
+		return
+	}
 	if err := q.UpdateBookEPUB(ctx, dbgen.UpdateBookEPUBParams{
 		EpubData: epubData,
 		ID:       bid,

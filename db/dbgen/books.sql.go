@@ -122,6 +122,22 @@ func (q *Queries) GetBookPDF(ctx context.Context, id int64) (GetBookPDFRow, erro
 	return i, err
 }
 
+const getBookProjectID = `-- name: GetBookProjectID :one
+SELECT id, project_id FROM books WHERE id = ?
+`
+
+type GetBookProjectIDRow struct {
+	ID        int64
+	ProjectID sql.NullInt64
+}
+
+func (q *Queries) GetBookProjectID(ctx context.Context, id int64) (GetBookProjectIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getBookProjectID, id)
+	var i GetBookProjectIDRow
+	err := row.Scan(&i.ID, &i.ProjectID)
+	return i, err
+}
+
 const getBooksByProject = `-- name: GetBooksByProject :many
 SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at
 FROM books WHERE project_id = ? ORDER BY created_at DESC

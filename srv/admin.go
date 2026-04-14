@@ -194,7 +194,12 @@ func (s *Server) handleAdminCreateClient(w http.ResponseWriter, r *http.Request)
 	}
 	passwordHash := ""
 	if strings.TrimSpace(body.Password) != "" {
-		passwordHash = hashToken(body.Password)
+		var err2 error
+		passwordHash, err2 = hashPassword(body.Password)
+		if err2 != nil {
+			jsonErr(w, "failed to hash password", 500)
+			return
+		}
 	}
 	_, err := s.DB.ExecContext(r.Context(), `INSERT INTO clients (slug, name, password_hash) VALUES (?, ?, ?)`, body.Slug, body.Name, passwordHash)
 	if err != nil {

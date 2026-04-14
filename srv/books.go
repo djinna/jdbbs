@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ import (
 const (
 	maxUploadSize   = 50 << 20 // 50 MB
 	bookProdRoot    = "/home/exedev/book-production"
-	convertScript   = bookProdRoot + "/scripts/md-to-chapter.py"
+	typstFilter     = bookProdRoot + "/scripts/docx-to-typst-enhanced.lua"
 	seriesTemplate  = bookProdRoot + "/templates/series-template.typ"
 	fontsDir        = bookProdRoot + "/fonts"
 )
@@ -161,83 +162,80 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 	slog.Info("book conversion starting", "id", bid, "title", book.Title)
 
-	// Step 1: pandoc docx → markdown with styles
-	mdPath := filepath.Join(tmpDir, "chapter.md")
+	// Step 1: direct pandoc docx -> typst using the working book-production filter.
+	typPath := filepath.Join(tmpDir, "book.typ")
 	pandocCmd := exec.Command("pandoc",
 		"--from=docx+styles",
-		"--to=markdown+fenced_divs",
-		"-o", mdPath,
 		docxPath,
+		"--lua-filter="+typstFilter,
+		"--extract-media="+filepath.Join(tmpDir, "media"),
+		"-t", "typst",
+		"-o", typPath,
 	)
 	if out, err := pandocCmd.CombinedOutput(); err != nil {
-		s.failConversion(bid, fmt.Sprintf("pandoc: %s\n%s", err, string(out)))
+		s.failConversion(bid, fmt.Sprintf("pandoc typst: %s\n%s", err, string(out)))
 		return
 	}
 
-	// Step 2: python md → typst chapter (script writes to stdout)
-	chapterPath := filepath.Join(tmpDir, "chapter.typ")
-	pyCmd := exec.Command("python3", convertScript, mdPath, book.Title, book.Author)
-	chapterOut, err := pyCmd.Output()
+	// Step 2: replace placeholder header with real metadata and any spec-driven config.
+	typData, err := os.ReadFile(typPath)
 	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			s.failConversion(bid, fmt.Sprintf("md-to-chapter: %s\n%s", err, string(ee.Stderr)))
-		} else {
-			s.failConversion(bid, fmt.Sprintf("md-to-chapter: %s", err))
-		}
-		return
-	}
-	if err := os.WriteFile(chapterPath, chapterOut, 0644); err != nil {
-		s.failConversion(bid, "write chapter: "+err.Error())
+		s.failConversion(bid, "read generated typst: "+err.Error())
 		return
 	}
 
-	// Step 3: Create a standalone main.typ that includes the chapter
-	// Check for a book spec (project-linked config overrides)
 	configOverride := s.buildTypstConfig(bid, book)
-
-	mainTyp := fmt.Sprintf(`#import "%s": *
+	headerReplacement := fmt.Sprintf(`#import "%s": *
 %s
 #show: book.with(
   title: "%s",
-  subtitle: "%s",
-)
-
-// Chapter content
-#set page(numbering: "1")
-
-#set-story-info(title: "%s", author: "%s")
-#no-header()
-
-#include "chapter.typ"
+  author: "%s",
 `,
 		seriesTemplate,
 		configOverride,
 		escapeTypstString(book.Title),
-		escapeTypstString(book.Series),
-		escapeTypstString(book.Title),
 		escapeTypstString(book.Author),
 	)
+	if strings.TrimSpace(book.Series) != "" {
+		headerReplacement += fmt.Sprintf("  subtitle: \"%s\",\n", escapeTypstString(book.Series))
+	}
+	headerReplacement += `)
 
-	mainPath := filepath.Join(tmpDir, "main.typ")
-	if err := os.WriteFile(mainPath, []byte(mainTyp), 0644); err != nil {
-		s.failConversion(bid, "write main.typ: "+err.Error())
+`
+
+	const generatedHeader = `#import "/templates/series-template.typ": *
+
+#show: book.with(
+  title: "TITLE",
+  author: "AUTHOR",
+)
+
+`
+
+	typText := strings.Replace(string(typData), generatedHeader, headerReplacement, 1)
+	if typText == string(typData) {
+		s.failConversion(bid, "direct typst header replacement failed: expected generated header not found")
 		return
 	}
 
-	// Also symlink styles.typ and images.typ if they exist
-	for _, dep := range []string{"styles.typ", "images.typ"} {
-		src := filepath.Join(bookProdRoot, "templates", dep)
-		if _, err := os.Stat(src); err == nil {
-			os.Symlink(src, filepath.Join(tmpDir, dep))
-		}
+	// Narrow cleanup for manuscript patterns that Pandoc/Typst adjacency can misparse.
+	typText = literalTypstMentions(typText)
+	typText = clampTypstInlineImages(typText)
+	typText = strings.ReplaceAll(typText, ")#strong[", ") #strong[")
+	typText = strings.ReplaceAll(typText, ")](", ")] (")
+	typText = strings.ReplaceAll(typText, "\n/\n", "\n#poem[/]\n")
+
+	if err := os.WriteFile(typPath, []byte(typText), 0644); err != nil {
+		s.failConversion(bid, "write direct typst: "+err.Error())
+		return
 	}
 
-	// Step 4: typst compile (root=/ so absolute template paths work)
+	// Step 3: typst compile the generated full document.
 	pdfPath := filepath.Join(tmpDir, "output.pdf")
 	typstCmd := exec.Command("typst", "compile",
 		"--root", "/",
 		"--font-path", fontsDir,
-		mainPath,
+		typPath,
 		pdfPath,
 	)
 	typstCmd.Dir = tmpDir
@@ -255,6 +253,15 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 	// Store PDF in DB
 	ctx := context.Background()
+	if _, err := q.CreateBookOutput(ctx, dbgen.CreateBookOutputParams{
+		BookID:         bid,
+		OutputFormat:   "pdf",
+		OutputData:     pdfData,
+		SourceFilename: book.SourceFilename,
+	}); err != nil {
+		s.failConversion(bid, "persist pdf history: "+err.Error())
+		return
+	}
 	if err := q.UpdateBookPDF(ctx, dbgen.UpdateBookPDFParams{
 		PdfData: pdfData,
 		ID:      bid,
@@ -287,9 +294,24 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	format := r.PathValue("format")
-
 	q := dbgen.New(s.DB)
+
+	// Auth: look up book's project and require auth if set
+	bookRef, err := q.GetBookProjectID(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+	if bookRef.ProjectID.Valid {
+		if !s.requireAuth(w, r, bookRef.ProjectID.Int64) {
+			return
+		}
+	} else if !s.requireExeDevAdminAPI(w, r) {
+		// Books without a project require admin access
+		return
+	}
+
+	format := r.PathValue("format")
 
 	switch format {
 	case "pdf":
@@ -410,6 +432,17 @@ func escapeTypstString(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `"`, `\"`)
 	return s
+}
+
+var typstMentionRe = regexp.MustCompile(`(^|[^[:alnum:]_/])@([A-Za-z0-9_]+)`)
+var typstImageClampRe = regexp.MustCompile(`#image\("([^"]+)"(?:,\s*width:\s*[^,\)]+)?(?:,\s*height:\s*[^,\)]+)?([^\)]*)\)`)
+
+func literalTypstMentions(s string) string {
+	return typstMentionRe.ReplaceAllString(s, `${1}#sym.at#h(0em)${2}`)
+}
+
+func clampTypstInlineImages(s string) string {
+	return typstImageClampRe.ReplaceAllString(s, `#image("$1", width: 100%, fit: "contain"$2)`)
 }
 
 func sanitizeFilename(s string) string {

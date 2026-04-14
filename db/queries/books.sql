@@ -34,3 +34,6 @@ SELECT id, title, epub_data FROM books WHERE id = ?;
 -- name: GetBooksByProject :many
 SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at
 FROM books WHERE project_id = ? ORDER BY created_at DESC;
+
+-- name: GetBookProjectID :one
+SELECT id, project_id FROM books WHERE id = ?;

@@ -30,7 +30,7 @@ func defaultSpecData() string {
   },
   "typography": {
     "body_font": "Libertinus Serif", "heading_font": "Source Sans 3",
-    "code_font": "JetBrains Mono",
+    "code_font": "JetBrains Mono", "tweet_font": "Source Sans 3",
     "base_size_pt": 10, "leading_pt": 2,
     "paragraph_indent_em": 0.75,
     "justify": true, "hyphenate": true
@@ -38,7 +38,8 @@ func defaultSpecData() string {
   "headings": {
     "h1_size_pt": 16.67, "h1_weight": "bold",
     "h2_size_pt": 13.33, "h2_weight": 600,
-    "h3_size_pt": 10,     "h3_weight": "medium"
+    "h3_size_pt": 10,     "h3_weight": "medium",
+    "align": "left"
   },
   "elements": {
     "section_break": "breve", "blockquote_style": "italic",
@@ -315,22 +316,39 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 				continue
 			}
 			name, _ := m["name"].(string)
+			wordStyle, _ := m["word_style"].(string)
 			styleType, _ := m["type"].(string)
 			desc, _ := m["description"].(string)
+			preset, _ := m["preset"].(string)
+			typstCode, _ := m["typst"].(string)
 			name = strings.TrimSpace(name)
+			wordStyle = strings.TrimSpace(wordStyle)
 			styleType = strings.TrimSpace(styleType)
 			desc = strings.TrimSpace(desc)
+			preset = strings.TrimSpace(preset)
+			typstCode = strings.TrimSpace(typstCode)
 			if name == "" {
 				continue
+			}
+			if wordStyle == "" {
+				wordStyle = name
 			}
 			if styleType == "" {
 				styleType = "paragraph"
 			}
+			if preset == "" {
+				preset = defaultCustomStylePreset(name, styleType)
+			}
+			if typstCode == "" {
+				typstCode = defaultCustomStyleTypst(name, styleType, preset)
+			}
 			mapped = append(mapped, map[string]any{
 				"name":        name,
-				"word_style":  name,
+				"word_style":  wordStyle,
 				"type":        styleType,
 				"description": desc,
+				"preset":      preset,
+				"typst":       typstCode,
 			})
 		}
 		specData["custom_styles"] = mapped
@@ -542,6 +560,9 @@ func specToTypstConfig(data map[string]any) string {
 		if v, ok := typo["code_font"].(string); ok && v != "" {
 			lines = append(lines, fmt.Sprintf(`  code-font: "%s",`, v))
 		}
+		if v, ok := typo["tweet_font"].(string); ok && v != "" {
+			lines = append(lines, fmt.Sprintf(`  tweet-font: "%s",`, v))
+		}
 		if v, ok := typo["base_size_pt"].(float64); ok && v > 0 {
 			lines = append(lines, fmt.Sprintf("  base-size: %gpt,", v))
 		}
@@ -607,6 +628,9 @@ func specToTypstConfig(data map[string]any) string {
 				}
 			}
 		}
+		if v, ok := hdg["align"].(string); ok && v != "" {
+			lines = append(lines, fmt.Sprintf(`  heading-align: "%s",`, v))
+		}
 	}
 
 	// Elements
@@ -661,7 +685,17 @@ func specToTypstConfig(data map[string]any) string {
 		var styleCodes []string
 		for _, s := range styles {
 			if m, ok := s.(map[string]any); ok {
-				if code, ok := m["typst"].(string); ok && code != "" {
+				code := ""
+				if raw, ok := m["typst"].(string); ok {
+					code = strings.TrimSpace(raw)
+				}
+				if code == "" {
+					name, _ := m["name"].(string)
+					styleType, _ := m["type"].(string)
+					preset, _ := m["preset"].(string)
+					code = defaultCustomStyleTypst(name, styleType, preset)
+				}
+				if code != "" {
 					styleCodes = append(styleCodes, code)
 				}
 			}
@@ -673,6 +707,83 @@ func specToTypstConfig(data map[string]any) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func defaultCustomStylePreset(name string, styleType string) string {
+	norm := strings.ToLower(strings.TrimSpace(name))
+	if styleType == "character" {
+		switch norm {
+		case "metadata-c":
+			return "metadata-inline"
+		default:
+			return "generic-inline"
+		}
+	}
+	switch norm {
+	case "tweet-p", "tweet":
+		return "tweet-block"
+	case "metadata-p":
+		return "metadata-paragraph"
+	case "metadata-c":
+		return "metadata-inline"
+	case "tweet-p-ascii":
+		return "ascii-block"
+	default:
+		return "generic-paragraph"
+	}
+}
+
+func defaultCustomStyleTypst(name string, styleType string, preset string) string {
+	norm := strings.ToLower(strings.TrimSpace(name))
+	if norm == "" {
+		norm = "my-style"
+	}
+	p := strings.TrimSpace(preset)
+	if p == "" {
+		p = defaultCustomStylePreset(name, styleType)
+	}
+	switch p {
+	case "tweet-block":
+		return fmt.Sprintf(`#let %s(content) = {
+  block(sticky: true, below: 0pt)[
+    set par(first-line-indent: 0em)
+    set text(font: config.tweet-font, size: 0.95em)
+    content
+  ]
+}`, norm)
+	case "metadata-paragraph":
+		return fmt.Sprintf(`#let %s(content) = {
+  block(above: 0pt, below: 0.45em)[
+    set par(first-line-indent: 0em)
+    set text(font: config.tweet-font, size: 0.75em, fill: luma(110))
+    content
+  ]
+}`, norm)
+	case "metadata-inline":
+		return fmt.Sprintf(`#let %s(content) = {
+  text(font: config.tweet-font, size: 0.75em, fill: luma(110))[#content]
+}`, norm)
+	case "ascii-block":
+		return fmt.Sprintf(`#let %s(content) = {
+  set text(font: config.code-font, size: config.poem-size)
+  set par(first-line-indent: 0em, leading: 0.6em, justify: false)
+  pad(left: 0.75em, top: 0.5em, bottom: 0.5em, content)
+
+}`, norm)
+	case "generic-inline":
+		return fmt.Sprintf(`#let %s(content) = {
+  text(font: config.body-font, size: 0.9em)[#content]
+}`, norm)
+	case "generic-paragraph":
+		return fmt.Sprintf(`#let %s(content) = {
+  content
+}`, norm)
+	default:
+		_ = styleType
+		return fmt.Sprintf(`#let %s(content) = {
+  content
+}`, norm)
+	}
 }
 
 // handleGenerateWordTemplate generates a styled .docx template from the book spec.
@@ -862,6 +973,10 @@ func (s *Server) handleGetCover(w http.ResponseWriter, r *http.Request) {
 	pid, err := s.projectIDFromPath(r)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
+		return
+	}
+
+	if !s.requireAuth(w, r, pid) {
 		return
 	}
 

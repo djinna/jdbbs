@@ -215,7 +215,7 @@ html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
 .book-title { font-size: 0.95rem; color: var(--text); }
 .book-author { font-size: 0.8rem; color: var(--text-secondary); }
 .book-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
-.book-actions { display: flex; gap: 0.4rem; }
+.book-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .book-actions a, .book-actions button { font-size: 0.78rem; padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
 .book-actions a:hover, .book-actions button:hover { background: var(--progress-bg); }
 .book-actions .dl-pdf { color: var(--green); border-color: var(--green); }
@@ -345,6 +345,8 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 .ts-cover-actions { display: flex; flex-direction: column; gap: 0.25rem; }
 
 .ts-custom-styles { display: flex; flex-direction: column; gap: 0.5rem; }
+.ts-output-actions { margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border); display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
+.ts-output-actions .ts-status-line { font-size:0.72rem; color:var(--text-muted); min-width:0; overflow-wrap:anywhere; flex:1 1 220px; }
 
 /* Corrections */
 .corr-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
@@ -363,12 +365,26 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 .corr-add-row input { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); font-size: 0.78rem; font-family: inherit; }
 .corr-add-row input:focus { outline: none; border-color: var(--accent); }
 @media (max-width: 700px) { .corr-add-row { grid-template-columns: 1fr 1fr; } }
-.ts-style-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.5rem; align-items: start; padding: 0.5rem; background: var(--bg); border-radius: 3px; border: 1px solid var(--border); }
-.ts-style-row input, .ts-style-row textarea { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--text); font-size: 0.78rem; font-family: inherit; }
-.ts-style-row textarea { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 0.72rem; resize: vertical; min-height: 2.5rem; }
-.ts-style-remove { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.9rem; padding: 0.2rem; opacity: 0.6; }
+.ts-style-row { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: start; padding: 0.65rem; background: var(--bg); border-radius: 3px; border: 1px solid var(--border); }
+.ts-style-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; align-items: start; grid-column: 1 / -1; min-width: 0; }
+.ts-style-meta > div { min-width: 0; }
+.ts-style-typst { display: flex; flex-direction: column; gap: 0.35rem; grid-column: 1 / 2; min-width: 0; }
+.ts-style-typst-head { display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; flex-wrap:wrap; font-size:0.68rem; color:var(--text-muted); }
+.ts-style-row input, .ts-style-row textarea, .ts-style-row select { width: 100%; box-sizing: border-box; padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--text); font-size: 0.78rem; font-family: inherit; }
+.ts-style-row input { min-width: 0; }
+.ts-style-row textarea { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 0.72rem; resize: vertical; min-height: 7rem; line-height: 1.35; }
+.ts-style-remove { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1rem; padding: 0.2rem; opacity: 0.6; align-self: start; grid-column: 2; grid-row: 1; }
 .ts-style-remove:hover { opacity: 1; }
 .btn-link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.72rem; font-family: inherit; padding: 0; }
+@media (max-width: 1200px) {
+  .ts-style-meta { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .ts-style-row { grid-template-columns: 1fr; }
+  .ts-style-meta { grid-template-columns: 1fr; }
+  .ts-style-typst, .ts-style-remove { grid-column: 1; }
+  .ts-style-remove { justify-self: end; grid-row: auto; }
+}
 .btn-link:hover { text-decoration: underline; }
 
 .colophon {
@@ -525,6 +541,23 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
         </div>
       </div>
 
+      <div class="ts-section" style="margin-top:1rem">
+        <div class="ts-section-title"><span>Manuscript Preflight</span><span class="ts-origin-badge">Shared by EPUB + PDF</span></div>
+        <div class="ts-fields">
+          <div class="ts-field full">
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+              <select id="ts-preflight-book" class="ts-select" style="min-width:180px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <button class="btn btn-sm btn-secondary" id="ts-run-preflight" disabled>Inspect Manuscript</button>
+              <span id="ts-preflight-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
+              <a id="ts-preflight-report-link" href="#" target="_blank" style="display:none;font-size:0.72rem">Open latest report</a>
+            </div>
+            <div id="ts-preflight-history" style="display:none;margin-top:0.4rem;font-size:0.72rem;color:var(--text-muted)"></div>
+            <div id="ts-preflight-summary" style="margin-top:0.75rem"></div>
+            <div id="ts-preflight-images" style="display:none;margin-top:0.75rem"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══ EPUB / DIGITAL ═══ -->
       <div class="ts-output-label">EPUB / Digital</div>
       <div class="ts-grid">
@@ -601,7 +634,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <div class="ts-field full"><label>Description</label><textarea data-path="epub.description" rows="2" placeholder="A brief book description for EPUB metadata" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
             </div>
 
-            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
+            <div class="ts-output-actions">
               <select id="ts-epub-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
               <button class="btn btn-sm" id="ts-generate-epub" disabled style="border-color:var(--green);color:var(--green)">Generate EPUB</button>
               <span id="ts-epub-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
@@ -621,6 +654,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
             <div class="ts-fields">
               <div class="ts-field"><label>Body Font<select data-path="typography.body_font" class="ts-font-select" data-font-category="serif,sans-serif,other"><option value="">Loading…</option></select></label></div>
               <div class="ts-field"><label>Heading Font<select data-path="typography.heading_font" class="ts-font-select" data-font-category="sans-serif,serif,other"><option value="">Loading…</option></select></label></div>
+              <div class="ts-field"><label>Tweet Font<select data-path="typography.tweet_font" class="ts-font-select" data-font-category="sans-serif,serif,other"><option value="">Loading…</option></select></label></div>
               <div class="ts-field"><label>Code Font<select data-path="typography.code_font" class="ts-font-select" data-font-category="monospace"><option value="">Loading…</option></select></label></div>
               <div class="ts-field"><label>Base Size (pt)<input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt" id="ts-base-size"></label></div>
               <div class="ts-field"><label>Leading (pt) <span id="ts-leading-hint" style="font-weight:normal;color:var(--text-muted)"></span> <input type="number" step="0.5" min="0" max="30" data-path="typography.leading_pt" id="ts-leading-pt"></label></div>
@@ -637,6 +671,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <div class="ts-field"><label>H2 Weight<input type="text" data-path="headings.h2_weight"></label></div>
               <div class="ts-field"><label>H3 Size (pt)<input type="number" step="0.5" data-path="headings.h3_size_pt"></label></div>
               <div class="ts-field"><label>H3 Weight<input type="text" data-path="headings.h3_weight"></label></div>
+              <div class="ts-field"><label>Heading Align<select data-path="headings.align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label></div>
             </div>
 
             <div class="ts-subsection-title">Page Geometry</div>
@@ -758,10 +793,10 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
             <div class="ts-subsection-title">Custom Styles <span class="ts-origin-badge">Pulled</span> <button class="btn-link" id="ts-add-style">+ Add</button></div>
             <div id="ts-custom-styles" class="ts-custom-styles ts-origin-panel"></div>
 
-            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
+            <div class="ts-output-actions">
               <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
               <button class="btn btn-sm" id="ts-compile-pdf" disabled style="border-color:var(--accent);color:var(--accent)">Compile PDF</button>
-              <span id="ts-compile-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
+              <span id="ts-compile-status" class="ts-status-line"></span>
             </div>
           </div>
         </div>
@@ -1807,11 +1842,13 @@ function tsPopulateForm() {
   if (!tsSpec) return;
   // Migrate old leading_em → leading_pt
   const typo = tsSpec.typography;
-  if (typo && typo.leading_em != null && typo.leading_pt == null) {
-    // Old format: leading_em was inter-line gap in em. Convert: em * base_size = pt
-    const base = typo.base_size_pt || 10;
+  if (typo && typeof typo.leading_em === 'number' && typo.leading_pt == null) {
+    const base = (typeof typo.base_size_pt === 'number' && typo.base_size_pt > 0) ? typo.base_size_pt : 10;
     typo.leading_pt = Math.round(typo.leading_em * base * 10) / 10;
     delete typo.leading_em;
+  }
+  if (typo && !typo.tweet_font) {
+    typo.tweet_font = typo.heading_font || 'Source Sans 3';
   }
   // Ensure epub section exists
   if (!tsSpec.epub) tsSpec.epub = { toc_depth: 2, landmarks: true, chapter_break: 'page', section_break: 'breve', body_font_size: 'inherit', embed_fonts: false, custom_css: '', language: 'en', subject: '', description: '' };
@@ -2091,6 +2128,73 @@ function tsUpdatePagePreview() {
 }
 
 // Custom styles
+function tsDefaultCustomStyleTypst(name, type = 'paragraph') {
+  const n = (name || '').trim().toLowerCase();
+  const preset = tsDefaultCustomStylePreset(name, type);
+  return tsDefaultCustomStyleTypstForPreset(n || 'my-style', type, preset);
+}
+
+function tsDefaultCustomStylePreset(name, type = 'paragraph') {
+  const n = (name || '').trim().toLowerCase();
+  if (type === 'character') {
+    if (n === 'metadata-c') return 'metadata-inline';
+    return 'generic-inline';
+  }
+  if (n === 'tweet-p' || n === 'tweet') return 'tweet-block';
+  if (n === 'metadata-p') return 'metadata-paragraph';
+  if (n === 'tweet-p-ascii') return 'ascii-block';
+  return 'generic-paragraph';
+}
+
+function tsDefaultCustomStyleTypstForPreset(name, type = 'paragraph', preset = '') {
+  const n = (name || '').trim().toLowerCase() || 'my-style';
+  const p = preset || tsDefaultCustomStylePreset(name, type);
+  switch (p) {
+    case 'tweet-block':
+      return `#let ${n}(content) = {
+  set par(first-line-indent: 0em)
+  set text(font: config.tweet-font, size: 0.95em)
+  content
+}`;
+    case 'metadata-paragraph':
+      return `#let ${n}(content) = {
+  set par(first-line-indent: 0em)
+  set text(font: config.tweet-font, size: 0.75em, fill: luma(110))
+  content
+}`;
+    case 'metadata-inline':
+      return `#let ${n}(content) = {
+  text(font: config.tweet-font, size: 0.75em, fill: luma(110))[#content]
+}`;
+    case 'ascii-block':
+      return `#let ${n}(content) = {
+  set text(font: config.code-font, size: config.poem-size)
+  set par(first-line-indent: 0em, leading: 0.6em, justify: false)
+  pad(left: 0.75em, top: 0.5em, bottom: 0.5em, content)
+}`;
+    case 'generic-inline':
+      return `#let ${n}(content) = {
+  text(font: config.body-font, size: 0.9em)[#content]
+}`;
+    case 'generic-paragraph':
+    default:
+      return `#let ${n}(content) = {
+  content
+}`;
+  }
+}
+
+function tsSuggestedTypstLabel(name, type = 'paragraph', preset = '') {
+  const n = (name || '').trim().toLowerCase();
+  const p = preset || tsDefaultCustomStylePreset(name, type);
+  if (!n) return 'Starter template';
+  if (p === 'tweet-block') return 'Suggested: tweet block using Tweet Font';
+  if (p === 'metadata-paragraph') return 'Suggested: smaller tweet metadata paragraph';
+  if (p === 'metadata-inline') return 'Suggested: inline tweet metadata';
+  if (p === 'ascii-block') return 'Suggested: mono/preformatted ASCII block';
+  return p === 'generic-inline' ? 'Suggested: inline style starter' : 'Suggested: paragraph style starter';
+}
+
 function tsRenderCustomStyles() {
   const container = document.getElementById('ts-custom-styles');
   const styles = tsSpec.custom_styles || [];
@@ -2100,21 +2204,41 @@ function tsRenderCustomStyles() {
     return;
   }
   styles.forEach((s, i) => {
+    const preset = s.preset || tsDefaultCustomStylePreset(s.name || '', s.type || 'paragraph');
+    const suggestedTypst = tsDefaultCustomStyleTypstForPreset(s.name || '', s.type || 'paragraph', preset);
+    const shownTypst = (s.typst && s.typst.trim()) ? s.typst : suggestedTypst;
     const row = document.createElement('div');
     row.className = 'ts-style-row';
     row.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:0.3rem">
-        <input type="text" value="${esc(s.name || '')}" placeholder="Name" data-idx="${i}" data-field="name">
-        <input type="text" value="${esc(s.word_style || '')}" placeholder="Word style" data-idx="${i}" data-field="word_style">
+      <div class="ts-style-meta">
+        <div style="display:flex;flex-direction:column;gap:0.3rem">
+          <input type="text" value="${esc(s.name || '')}" placeholder="Name" data-idx="${i}" data-field="name">
+          <input type="text" value="${esc(s.word_style || '')}" placeholder="Word style" data-idx="${i}" data-field="word_style">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.3rem">
+          <select data-idx="${i}" data-field="type">
+            <option value="paragraph" ${(s.type || 'paragraph') === 'paragraph' ? 'selected' : ''}>Paragraph</option>
+            <option value="character" ${(s.type || 'paragraph') === 'character' ? 'selected' : ''}>Character</option>
+          </select>
+          <select data-idx="${i}" data-field="preset">
+            <option value="tweet-block" ${preset === 'tweet-block' ? 'selected' : ''}>Tweet block</option>
+            <option value="metadata-paragraph" ${preset === 'metadata-paragraph' ? 'selected' : ''}>Metadata paragraph</option>
+            <option value="metadata-inline" ${preset === 'metadata-inline' ? 'selected' : ''}>Metadata inline</option>
+            <option value="ascii-block" ${preset === 'ascii-block' ? 'selected' : ''}>ASCII / preformatted</option>
+            <option value="generic-paragraph" ${preset === 'generic-paragraph' ? 'selected' : ''}>Generic paragraph</option>
+            <option value="generic-inline" ${preset === 'generic-inline' ? 'selected' : ''}>Generic inline</option>
+          </select>
+          <input type="text" value="${esc(s.description || '')}" placeholder="Description" data-idx="${i}" data-field="description">
+        </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:0.3rem">
-        <select data-idx="${i}" data-field="type">
-          <option value="paragraph" ${(s.type || 'paragraph') === 'paragraph' ? 'selected' : ''}>Paragraph</option>
-          <option value="character" ${(s.type || 'paragraph') === 'character' ? 'selected' : ''}>Character</option>
-        </select>
-        <input type="text" value="${esc(s.description || '')}" placeholder="Description" data-idx="${i}" data-field="description">
+      <div class="ts-style-typst">
+        <div class="ts-style-typst-head">
+          <span>${esc(tsSuggestedTypstLabel(s.name || '', s.type || 'paragraph', preset))}</span>
+          <button type="button" class="btn-link ts-style-suggest" data-idx="${i}">Use suggested</button>
+        </div>
+        <textarea data-idx="${i}" data-field="typst" placeholder="#let myStyle(content) = {\n  content\n}">${esc(shownTypst)}</textarea>
+        <div style="font-size:0.68rem;color:var(--text-muted)">Tip: use <code>config.tweet-font</code>, <code>config.body-font</code>, and <code>config.code-font</code> so this style follows your PDF / Print settings.</div>
       </div>
-      <textarea data-idx="${i}" data-field="typst" placeholder="#let myStyle(content) = text(content)">${esc(s.typst || '')}</textarea>
       <button class="ts-style-remove" data-idx="${i}">×</button>
     `;
     container.appendChild(row);
@@ -2124,7 +2248,43 @@ function tsRenderCustomStyles() {
     const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
     el.addEventListener(eventName, () => {
       const idx = parseInt(el.dataset.idx);
+      const style = tsSpec.custom_styles[idx] || {};
+      const oldName = style.name || '';
+      const oldType = style.type || 'paragraph';
+      const oldPreset = style.preset || tsDefaultCustomStylePreset(oldName, oldType);
+      const oldTypst = style.typst || '';
+      const oldSuggested = tsDefaultCustomStyleTypstForPreset(oldName, oldType, oldPreset);
       tsSpec.custom_styles[idx][el.dataset.field] = el.value;
+      if (el.dataset.field === 'name') {
+        if (!style.word_style || style.word_style === oldName) style.word_style = el.value;
+      }
+      if (el.dataset.field === 'name' || el.dataset.field === 'type') {
+        const nextName = tsSpec.custom_styles[idx].name || '';
+        const nextType = tsSpec.custom_styles[idx].type || 'paragraph';
+        if (!tsSpec.custom_styles[idx].preset || tsSpec.custom_styles[idx].preset === oldPreset) {
+          tsSpec.custom_styles[idx].preset = tsDefaultCustomStylePreset(nextName, nextType);
+        }
+      }
+      if (el.dataset.field === 'name' || el.dataset.field === 'type' || el.dataset.field === 'preset') {
+        const nextName = tsSpec.custom_styles[idx].name || '';
+        const nextType = tsSpec.custom_styles[idx].type || 'paragraph';
+        const nextPreset = tsSpec.custom_styles[idx].preset || tsDefaultCustomStylePreset(nextName, nextType);
+        const nextSuggested = tsDefaultCustomStyleTypstForPreset(nextName, nextType, nextPreset);
+        if (!oldTypst.trim() || oldTypst === oldSuggested) {
+          tsSpec.custom_styles[idx].typst = nextSuggested;
+          tsRenderCustomStyles();
+        }
+      }
+      tsMarkDirty();
+    });
+  });
+  container.querySelectorAll('.ts-style-suggest').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const style = tsSpec.custom_styles[idx] || {};
+      style.preset = style.preset || tsDefaultCustomStylePreset(style.name || '', style.type || 'paragraph');
+      style.typst = tsDefaultCustomStyleTypstForPreset(style.name || '', style.type || 'paragraph', style.preset);
+      tsRenderCustomStyles();
       tsMarkDirty();
     });
   });
@@ -2224,7 +2384,7 @@ document.getElementById('ts-cover-file').addEventListener('change', async (e) =>
 document.getElementById('ts-add-style').addEventListener('click', () => {
   if (!tsSpec) return;
   if (!tsSpec.custom_styles) tsSpec.custom_styles = [];
-  tsSpec.custom_styles.push({ name: '', type: 'paragraph', typst: '', word_style: '', description: '' });
+  tsSpec.custom_styles.push({ name: '', type: 'paragraph', preset: 'generic-paragraph', typst: '', word_style: '', description: '' });
   tsRenderCustomStyles();
   tsMarkDirty();
 });
@@ -2232,10 +2392,135 @@ document.getElementById('ts-add-style').addEventListener('click', () => {
 // ─── Compile / Generate from Typesetting tab ───
 const tsPdfBook = document.getElementById('ts-pdf-book');
 const tsEpubBook = document.getElementById('ts-epub-book');
+const tsPreflightBook = document.getElementById('ts-preflight-book');
 const tsCompilePdf = document.getElementById('ts-compile-pdf');
 const tsGenerateEpub = document.getElementById('ts-generate-epub');
+const tsRunPreflight = document.getElementById('ts-run-preflight');
 const tsCompileStatus = document.getElementById('ts-compile-status');
 const tsEpubStatus = document.getElementById('ts-epub-status');
+const tsPreflightStatus = document.getElementById('ts-preflight-status');
+const tsPreflightSummary = document.getElementById('ts-preflight-summary');
+const tsPreflightReportLink = document.getElementById('ts-preflight-report-link');
+const tsPreflightHistory = document.getElementById('ts-preflight-history');
+const tsPreflightImages = document.getElementById('ts-preflight-images');
+
+function tsPopulateBookSelects(pool, sels) {
+  sels.forEach(sel => {
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">Select book…</option>';
+    pool.forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.ID;
+      o.textContent = b.Title + (b.Status !== 'ready' && b.Status !== 'uploaded' ? ` (${b.Status})` : '');
+      sel.appendChild(o);
+    });
+    if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+  });
+  if (!tsPreflightBook.value && pool.length === 1) {
+    tsPreflightBook.value = String(pool[0].ID);
+  }
+}
+
+function tsRenderPreflightHistory(history) {
+  const items = Array.isArray(history) ? history : [];
+  if (!items.length) {
+    tsPreflightHistory.innerHTML = '';
+    tsPreflightHistory.style.display = 'none';
+    return;
+  }
+  const earlier = items.filter(item => !item.latest);
+  if (!earlier.length) {
+    tsPreflightHistory.innerHTML = '';
+    tsPreflightHistory.style.display = 'none';
+    return;
+  }
+  tsPreflightHistory.innerHTML = `Earlier reports: ${earlier.map(item => {
+    const label = esc((item.updated_at || '').replace('T', ' ').replace('Z', ' UTC') || `#${item.id}`);
+    const status = item.status ? ` <span style="color:var(--text-muted)">(${esc(item.status)})</span>` : '';
+    const href = absoluteURL(item.report_url || '#');
+    return `<a href="${href}" target="_blank">${label}</a>${status}`;
+  }).join(' · ')}`;
+  tsPreflightHistory.style.display = 'block';
+}
+
+function tsRenderPreflightSummary(data) {
+  if (!data || !data.exists) {
+    tsPreflightSummary.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted)">No preflight report yet. Run inspection before generating EPUB or PDF.</div>';
+    tsPreflightReportLink.style.display = 'none';
+    tsPreflightReportLink.removeAttribute('href');
+    tsRenderPreflightHistory([]);
+    tsPreflightImages.innerHTML = '';
+    tsPreflightImages.style.display = 'none';
+    return;
+  }
+  if (data.status === 'error') {
+    tsPreflightSummary.innerHTML = `<div style="font-size:0.78rem;color:var(--red)">Inspection failed: ${esc(data.error || 'unknown error')}</div>`;
+  } else if (data.summary) {
+    const s = data.summary;
+    const byType = s.by_type || {};
+    const chips = [
+      `${s.total} findings`,
+      `${s.high} high`,
+      `${s.medium} medium`,
+      `${s.low} low`
+    ];
+    const notable = [];
+    if (byType.declared_custom_style_used) notable.push(`${byType.declared_custom_style_used} declared style in use`);
+    if (byType.undeclared_custom_style) notable.push(`${byType.undeclared_custom_style} undeclared style`);
+    if (byType.special_typography) notable.push(`${byType.special_typography} ASCII/preformatted block`);
+    if (byType.language_script) notable.push(`${byType.language_script} script/language flag`);
+    if (byType.image_inventory) notable.push(`${byType.image_inventory} image`);
+    if (byType.manual_formatting) notable.push(`${byType.manual_formatting} local bold/italic/underline finding`);
+    const baseHtml = chips.map(c => `<span class="ts-origin-badge">${esc(c)}</span>`).join('');
+    const notableHtml = notable.length
+      ? `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;font-size:0.74rem;margin-top:0.45rem">${notable.map(c => `<span class="ts-origin-badge" style="border-color:var(--accent);color:var(--accent)">${esc(c)}</span>`).join('')}</div>`
+      : '';
+    tsPreflightSummary.innerHTML = `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;font-size:0.74rem">${baseHtml}<span style="color:var(--text-muted)">Last run ${esc(data.updated_at || '')}</span></div>${notableHtml}`;
+  }
+  if (data.report_url) {
+    tsPreflightReportLink.href = absoluteURL(data.report_url);
+    tsPreflightReportLink.style.display = 'inline';
+  } else {
+    tsPreflightReportLink.style.display = 'none';
+    tsPreflightReportLink.removeAttribute('href');
+  }
+  tsRenderPreflightHistory(data.history || []);
+  const images = Array.isArray(data.images) ? data.images : [];
+  if (images.length) {
+    tsPreflightImages.innerHTML = `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.35rem">Images in manuscript</div><div style="display:flex;flex-direction:column;gap:0.3rem">${images.map(img => {
+      const label = esc(img.location || `Image ${img.image_index || '?'}`);
+      const dims = (img.width_in && img.height_in) ? `${img.width_in} × ${img.height_in} in` : 'size unavailable';
+      return `<div style="font-size:0.74rem;border:1px solid var(--border);border-radius:6px;padding:0.45rem 0.6rem;background:var(--bg)"><strong>${label}</strong> <span style="color:var(--text-muted)">(${esc(dims)})</span></div>`;
+    }).join('')}</div>`;
+    tsPreflightImages.style.display = 'block';
+  } else {
+    tsPreflightImages.innerHTML = '';
+    tsPreflightImages.style.display = 'none';
+  }
+}
+
+async function tsLoadPreflightStatus() {
+  const pid = tsProject.value;
+  const bid = tsPreflightBook.value;
+  if (!pid || !bid) {
+    tsRenderPreflightSummary(null);
+    tsRunPreflight.disabled = !bid;
+    tsPreflightStatus.textContent = '';
+    return;
+  }
+  tsRunPreflight.disabled = false;
+  try {
+    const r = await fetch(`/api/projects/${pid}/preflight?book_id=${bid}`);
+    const data = await r.json();
+    tsRenderPreflightSummary(data);
+    tsRunPreflight.disabled = false;
+  } catch (e) {
+    tsPreflightSummary.innerHTML = '<div style="font-size:0.78rem;color:var(--red)">Failed to load preflight status.</div>';
+    tsPreflightReportLink.style.display = 'none';
+    tsRenderPreflightHistory([]);
+    tsRunPreflight.disabled = false;
+  }
+}
 
 async function tsLoadLinkedBooks() {
   const pid = tsProject.value;
@@ -2246,20 +2531,17 @@ async function tsLoadLinkedBooks() {
     // Filter to books linked to this project, or show all if none linked
     const linked = books.filter(b => b.ProjectID && b.ProjectID.Valid && b.ProjectID.Int64 == pid);
     const pool = linked.length > 0 ? linked : books;
-    [tsPdfBook, tsEpubBook].forEach(sel => {
-      sel.innerHTML = '<option value="">Select book\u2026</option>';
-      pool.forEach(b => {
-        const o = document.createElement('option');
-        o.value = b.ID;
-        o.textContent = b.Title + (b.Status !== 'ready' && b.Status !== 'uploaded' ? ` (${b.Status})` : '');
-        sel.appendChild(o);
-      });
-    });
+    tsPopulateBookSelects(pool, [tsPdfBook, tsEpubBook, tsPreflightBook]);
+    tsLoadPreflightStatus();
   } catch(e) {}
 }
 
 tsPdfBook.addEventListener('change', () => tsCompilePdf.disabled = !tsPdfBook.value);
 tsEpubBook.addEventListener('change', () => tsGenerateEpub.disabled = !tsEpubBook.value);
+tsPreflightBook.addEventListener('change', () => {
+  tsRunPreflight.disabled = !tsPreflightBook.value;
+  tsLoadPreflightStatus();
+});
 
 tsCompilePdf.addEventListener('click', async () => {
   const bid = tsPdfBook.value;
@@ -2304,7 +2586,7 @@ tsGenerateEpub.addEventListener('click', async () => {
   const bid = tsEpubBook.value;
   if (!bid) return;
   if (tsDirty) await tsSaveSpec();
-  tsEpubStatus.textContent = 'Generating\u2026';
+  tsEpubStatus.textContent = 'Generating…';
   tsEpubStatus.style.color = 'var(--yellow)';
   tsGenerateEpub.disabled = true;
   try {
@@ -2329,6 +2611,34 @@ tsGenerateEpub.addEventListener('click', async () => {
     tsEpubStatus.textContent = 'Error: ' + e.message;
     tsEpubStatus.style.color = 'var(--red)';
     tsGenerateEpub.disabled = false;
+  }
+});
+
+tsRunPreflight.addEventListener('click', async () => {
+  const pid = tsProject.value;
+  const bid = tsPreflightBook.value;
+  if (!pid || !bid) return;
+  tsRunPreflight.disabled = true;
+  tsPreflightStatus.textContent = 'Inspecting…';
+  tsPreflightStatus.style.color = 'var(--yellow)';
+  try {
+    const r = await fetch(`/api/projects/${pid}/preflight`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book_id: parseInt(bid, 10) }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Inspection failed');
+    tsPreflightStatus.textContent = data.status === 'error' ? 'Inspection completed with errors' : 'Inspection complete';
+    tsPreflightStatus.style.color = data.status === 'error' ? 'var(--red)' : 'var(--green)';
+    tsRenderPreflightSummary(data);
+  } catch(e) {
+    tsPreflightStatus.textContent = 'Error: ' + e.message;
+    tsPreflightStatus.style.color = 'var(--red)';
+    tsPreflightSummary.innerHTML = `<div style="font-size:0.78rem;color:var(--red)">Inspection failed: ${esc(e.message)}</div>`;
+    tsPreflightReportLink.style.display = 'none';
+  } finally {
+    tsRunPreflight.disabled = !tsPreflightBook.value;
   }
 });
 

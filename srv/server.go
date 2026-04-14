@@ -2,10 +2,8 @@ package srv
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
 	"embed"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -16,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"srv.exe.dev/db"
 	"srv.exe.dev/db/dbgen"
 )
@@ -23,11 +23,14 @@ import (
 //go:embed static/*
 var staticFS embed.FS
 
+type preflightRunnerFunc func(docxPath string, declaredStylesPath string) ([]byte, []byte, error)
+
 type Server struct {
-	DB       *sql.DB
-	Hostname string
-	BaseURL  string
-	Email    *EmailConfig
+	DB              *sql.DB
+	Hostname        string
+	BaseURL         string
+	Email           *EmailConfig
+	preflightRunner preflightRunnerFunc
 }
 
 func New(dbPath, hostname string) (*Server, error) {
@@ -123,6 +126,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/projects/{id}/book-spec/cover", s.handleGetCover)
 	mux.HandleFunc("GET /api/fonts", s.handleListFonts)
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/word-template", s.handleGenerateWordTemplate)
+
+	// Manuscript preflight
+	mux.HandleFunc("POST /api/projects/{id}/preflight", s.handleRunManuscriptPreflight)
+	mux.HandleFunc("GET /api/projects/{id}/preflight", s.handleGetManuscriptPreflight)
+	mux.HandleFunc("GET /api/projects/{id}/preflight/report", s.handleGetManuscriptPreflightReport)
 
 	// EPUB generation
 	mux.HandleFunc("POST /api/books/{id}/generate-epub", s.handleGenerateEPUB)
@@ -278,9 +286,21 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-func hashToken(token string) string {
-	h := sha256.Sum256([]byte(strings.TrimSpace(token)))
-	return hex.EncodeToString(h[:])
+// bcryptCost is the bcrypt work factor used for hashing passwords and tokens.
+const bcryptCost = 12
+
+// hashPassword hashes a plaintext password/token with bcrypt.
+func hashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(strings.TrimSpace(password)), bcryptCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+// checkPassword compares a plaintext password/token against a bcrypt hash.
+func checkPassword(password, hash string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(strings.TrimSpace(password))) == nil
 }
 
 func jsonErr(w http.ResponseWriter, msg string, code int) {
@@ -317,12 +337,10 @@ func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 		raw = r.Header.Get("X-Auth-Token")
 	}
 	if raw != "" {
-		_, err = q.GetAuthToken(r.Context(), dbgen.GetAuthTokenParams{
-			ProjectID: projectID,
-			TokenHash: hashToken(raw),
-		})
-		if err == nil {
-			return true
+		for _, tok := range tokens {
+			if checkPassword(raw, tok.TokenHash) {
+				return true
+			}
 		}
 	}
 
@@ -351,6 +369,9 @@ func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request, projectID i
 // --- Project handlers ---
 
 func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
 	q := dbgen.New(s.DB)
 	projects, err := q.ListProjects(r.Context())
 	if err != nil {
@@ -706,9 +727,14 @@ func (s *Server) handleSetAuth(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "password required", 400)
 		return
 	}
+	hash, err := hashPassword(body.Password)
+	if err != nil {
+		jsonErr(w, "failed to hash password", 500)
+		return
+	}
 	if err := q.CreateAuthToken(r.Context(), dbgen.CreateAuthTokenParams{
 		ProjectID: pid,
-		TokenHash: hashToken(body.Password),
+		TokenHash: hash,
 		Label:     "shared",
 	}); err != nil {
 		jsonErr(w, err.Error(), 500)
@@ -765,11 +791,19 @@ func (s *Server) handleVerifyAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := dbgen.New(s.DB)
-	_, err = q.GetAuthToken(r.Context(), dbgen.GetAuthTokenParams{
-		ProjectID: pid,
-		TokenHash: hashToken(body.Password),
-	})
-	if err != nil {
+	tokens, err := q.ListAuthTokens(r.Context(), pid)
+	if err != nil || len(tokens) == 0 {
+		jsonErr(w, "no auth configured", 404)
+		return
+	}
+	valid := false
+	for _, tok := range tokens {
+		if checkPassword(body.Password, tok.TokenHash) {
+			valid = true
+			break
+		}
+	}
+	if !valid {
 		jsonErr(w, "invalid password", 401)
 		return
 	}
