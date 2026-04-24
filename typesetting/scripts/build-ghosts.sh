@@ -3,18 +3,22 @@
 
 set -e
 
-cd ~/book-production
+# Resolve repo root (typesetting/ lives at <repo>/typesetting/)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+TYPESETTING_DIR="$REPO_ROOT/typesetting"
+cd "$REPO_ROOT"
 
 echo "=== Building Ghosts in Machines ==="
 
 # Create output directory
-mkdir -p src/ghosts
+mkdir -p manuscripts/ghosts
 mkdir -p output
 
 # Copy images from reference
-cp reference/ghosts_epub/OEBPS/image/ghosts_*.jpg src/ghosts/
-cp reference/ghosts_epub/OEBPS/image/ghosts_*.png src/ghosts/
-cp reference/ghosts_epub/OEBPS/image/ghostts_08_LOYALTY.jpg src/ghosts/
+cp reference/ghosts_epub/OEBPS/image/ghosts_*.jpg manuscripts/ghosts/
+cp reference/ghosts_epub/OEBPS/image/ghosts_*.png manuscripts/ghosts/
+cp reference/ghosts_epub/OEBPS/image/ghostts_08_LOYALTY.jpg manuscripts/ghosts/
 
 echo "Converting Word docs to markdown..."
 
@@ -22,14 +26,14 @@ echo "Converting Word docs to markdown..."
 for doc in manuscripts/ghosts/8000\ MS/*.docx; do
     base=$(basename "$doc" .docx)
     echo "  Converting: $base"
-    pandoc "$doc" -t markdown -o "src/ghosts/${base}.md"
+    pandoc "$doc" -t markdown -o "manuscripts/ghosts/${base}.md"
 done
 
 echo "Generating Typst source..."
 
 # Now create the main Typst file
-cat > src/ghosts/main.typ << 'TYPST'
-#import "../../templates/series-template.typ": *
+cat > manuscripts/ghosts/main.typ << 'TYPST'
+#import "../../typesetting/templates/series-template.typ": *
 
 #show: book.with(
   title: "Ghosts in Machines",
@@ -177,4 +181,4 @@ TYPST
 echo "Done generating main.typ"
 echo ""
 echo "Next: Create individual chapter .typ files from the markdown"
-echo "Then: typst compile --font-path fonts/ src/ghosts/main.typ output/ghosts.pdf"
+echo "Then: typst compile --font-path typesetting/fonts/ manuscripts/ghosts/main.typ output/ghosts.pdf"

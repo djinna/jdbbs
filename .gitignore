@@ -1,6 +1,9 @@
+jdbbs
 prodcal
 db.sqlite3*
+*.sqlite3
 *.db
 seed_data.json
 .env
-*.sqlite3
+output/
+bin/

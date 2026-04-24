@@ -18,13 +18,54 @@ import (
 	"srv.exe.dev/db/dbgen"
 )
 
-const (
-	maxUploadSize   = 50 << 20 // 50 MB
-	bookProdRoot    = "/home/exedev/book-production"
-	convertScript   = bookProdRoot + "/scripts/md-to-chapter.py"
-	seriesTemplate  = bookProdRoot + "/templates/series-template.typ"
-	fontsDir        = bookProdRoot + "/fonts"
-)
+const maxUploadSize = 50 << 20 // 50 MB
+
+// typesettingRoot returns the absolute path to the bundled typesetting/
+// directory (Typst templates, conversion scripts, fonts).
+//
+// Resolution order:
+//  1. JDBBS_TYPESETTING_DIR env var (if set), resolved to absolute.
+//  2. ./typesetting relative to the working directory (production layout).
+//  3. Walk up parent directories looking for a sibling `typesetting/`
+//     (handles `go test ./srv/...` running with CWD = repo/srv).
+//  4. Fall back to "typesetting" as a last resort.
+func typesettingRoot() string {
+	if env := os.Getenv("JDBBS_TYPESETTING_DIR"); env != "" {
+		if abs, err := filepath.Abs(env); err == nil {
+			return abs
+		}
+		return env
+	}
+	if abs, err := filepath.Abs("typesetting"); err == nil {
+		if _, err := os.Stat(abs); err == nil {
+			return abs
+		}
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		dir := cwd
+		for i := 0; i < 6; i++ {
+			candidate := filepath.Join(dir, "typesetting")
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+	abs, err := filepath.Abs("typesetting")
+	if err != nil {
+		return "typesetting"
+	}
+	return abs
+}
+
+// Helpers for paths inside the typesetting tree.
+func convertScriptPath() string  { return filepath.Join(typesettingRoot(), "scripts", "md-to-chapter.py") }
+func seriesTemplatePath() string { return filepath.Join(typesettingRoot(), "templates", "series-template.typ") }
+func fontsDirPath() string       { return filepath.Join(typesettingRoot(), "fonts") }
 
 // handleListBooks returns all books (without blob data).
 func (s *Server) handleListBooks(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +217,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 	// Step 2: python md → typst chapter (script writes to stdout)
 	chapterPath := filepath.Join(tmpDir, "chapter.typ")
-	pyCmd := exec.Command("python3", convertScript, mdPath, book.Title, book.Author)
+	pyCmd := exec.Command("python3", convertScriptPath(), mdPath, book.Title, book.Author)
 	chapterOut, err := pyCmd.Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
@@ -210,7 +251,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 #include "chapter.typ"
 `,
-		seriesTemplate,
+		seriesTemplatePath(),
 		configOverride,
 		escapeTypstString(book.Title),
 		escapeTypstString(book.Series),
@@ -226,7 +267,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 	// Also symlink styles.typ and images.typ if they exist
 	for _, dep := range []string{"styles.typ", "images.typ"} {
-		src := filepath.Join(bookProdRoot, "templates", dep)
+		src := filepath.Join(typesettingRoot(), "templates", dep)
 		if _, err := os.Stat(src); err == nil {
 			os.Symlink(src, filepath.Join(tmpDir, dep))
 		}
@@ -236,7 +277,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	pdfPath := filepath.Join(tmpDir, "output.pdf")
 	typstCmd := exec.Command("typst", "compile",
 		"--root", "/",
-		"--font-path", fontsDir,
+		"--font-path", fontsDirPath(),
 		mainPath,
 		pdfPath,
 	)

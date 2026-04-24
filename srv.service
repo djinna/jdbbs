@@ -1,17 +1,21 @@
 [Unit]
-Description=Production Calendar
+Description=JDBBS (Production Calendar + Book Production Pipeline)
+After=network.target
 
 [Service]
 Type=simple
 User=exedev
 Group=exedev
-WorkingDirectory=/home/exedev
-ExecStart=/home/exedev/prodcal/prodcal -listen :8000
+WorkingDirectory=/home/exedev/jdbbs
+ExecStart=/home/exedev/jdbbs/jdbbs -listen :8000
 Restart=always
 RestartSec=5
 Environment=HOME=/home/exedev
 Environment=USER=exedev
-EnvironmentFile=-/home/exedev/prodcal/.env
+# Override the location of typesetting/ if the binary is run from elsewhere.
+# By default the server resolves typesetting/ relative to WorkingDirectory.
+# Environment=JDBBS_TYPESETTING_DIR=/home/exedev/jdbbs/typesetting
+EnvironmentFile=-/home/exedev/jdbbs/.env
 StandardOutput=journal
 StandardError=journal
 

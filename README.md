@@ -1,61 +1,83 @@
-# Go Shelley Template
+# JDBBS
 
-This is a starter template for building Go web applications on exe.dev. It demonstrates end-to-end usage including HTTP handlers, authentication, database integration, and deployment.
+**Production Calendar + Book Production** in one Go binary.
 
-Use this as a foundation to build your own service.
+JDBBS unifies two former repos:
 
-## Repo conventions
+| Former repo | Role |
+|---|---|
+| [`djinna/prodcal`](https://github.com/djinna/prodcal) | Go web app: project scheduling, transmittals, book specs, client portals, AgentMail integration |
+| [`djinna/book-prod`](https://github.com/djinna/book-prod) | Typst-based book production pipeline: templates, fonts, DOCX/MD → PDF/EPUB scripts |
 
-- Checkpoint tags and rollback workflow: see `CHECKPOINTS.md`.
+Live at **<https://jdbbs.exe.xyz>**, hosted on the exe.dev VM at `/home/exedev/jdbbs/`.
 
-## Building and Running
-
-Build with `make build`, then run `./srv`. The server listens on port 8000 by default.
-
-## Running as a systemd service
-
-To run the server as a systemd service:
+## Quick start (development)
 
 ```bash
-# Install the service file
-sudo cp srv.service /etc/systemd/system/srv.service
+# 1. Build
+make build                     # → ./jdbbs
 
-# Reload systemd and enable the service
-sudo systemctl daemon-reload
-sudo systemctl enable srv.service
+# 2. Run (defaults to port 8000, sqlite at ./db.sqlite3)
+./jdbbs -listen :8000
 
-# Start the service
-sudo systemctl start srv
-
-# Check status
-systemctl status srv
-
-# View logs
-journalctl -u srv -f
+# 3. Health check
+curl http://localhost:8000/healthz
 ```
 
-To restart after code changes:
+`make test` runs the Go test suite. The book-production tests need Python +
+`python-docx` + `pyyaml`, and the PDF/EPUB pipelines additionally need
+[Typst](https://typst.app/), [Pandoc](https://pandoc.org/), and a system
+Libertinus Serif font. Use `make typeset-deps` to install the Python pieces.
+
+## Deployment
+
+Production runs as a systemd unit (`srv.service`) on the exe.dev VM:
 
 ```bash
+cd /home/exedev/jdbbs
+git pull origin main
 make build
 sudo systemctl restart srv
 ```
 
-## Authorization
+DNS (`jdbbs.exe.xyz`) is handled by the exe.dev HTTPS proxy, which terminates
+TLS and forwards to localhost:8000. See `docs/DEPLOY.md` for the full setup.
 
-exe.dev provides authorization headers and login/logout links
-that this template uses.
+## Repo layout
 
-When proxied through exed, requests will include `X-ExeDev-UserID` and
-`X-ExeDev-Email` if the user is authenticated via exe.dev.
+```
+cmd/srv/main.go      Binary entrypoint
+srv/                 HTTP handlers + embedded static SPA + tests
+  static/            admin.html, app.js, transmittal.*, client.html, ...
+  EMAIL_SYSTEM.md    Email pathways (6 total)
+db/                  SQLite open, migrations, sqlc queries + dbgen
+typesetting/
+  templates/         Typst master template + Pandoc + Word + EPUB
+  scripts/           md-to-chapter, generate-word-template, apply-corrections, ...
+  filters/           Pandoc Lua filters
+  fonts/             Source Sans 3, JetBrains Mono (Libertinus is system-installed)
+manuscripts/         Sample + ghosts source files (.typ, .md, .docx)
+reference/           Reference PDFs/EPUBs + extracted internals
+corrections/         Example corrections ledger (YAML)
+docs/                Architecture, deploy, typography, workflow
+scripts/backup-db.sh Daily backup helper
+```
 
-## Database
+## Configuration
 
-This template uses sqlite (`db.sqlite3`). SQL queries are managed with sqlc.
+Environment variables (all optional except AgentMail):
 
-## Code layout
+| Variable | Purpose |
+|---|---|
+| `AGENTMAIL_API_KEY` | AgentMail authentication |
+| `AGENTMAIL_INBOX_ID` | AgentMail sending inbox |
+| `PRODCAL_BASE_URL` | Override base URL (default: `https://{hostname}.exe.xyz`) |
+| `JDBBS_TYPESETTING_DIR` | Override path to `typesetting/` (default: `./typesetting`) |
 
-- `cmd/srv`: main package (binary entrypoint)
-- `srv`: HTTP server logic (handlers)
-- `srv/templates`: Go HTML templates
-- `db`: SQLite open + migrations (001-base.sql)
+## See also
+
+- `AGENTS.md` — guidance for AI coding assistants
+- `MIGRATION_LOG.md` — what was merged from prodcal + book-prod, open reconciliation items
+- `srv/EMAIL_SYSTEM.md` — email architecture
+- `docs/DEPLOY.md` — deployment and operational runbook
+- `docs/CHECKPOINTS.md` — checkpoint tags and rollback

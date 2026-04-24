@@ -1,10 +1,20 @@
-.PHONY: build clean stop start restart test
+.PHONY: build clean test vet lint typeset-deps
+
+# Binary name = repo name = service name on the VM.
+BINARY := jdbbs
 
 build:
-	go build -o prodcal ./cmd/srv
+	go build -o $(BINARY) ./cmd/srv
 
 clean:
-	rm -f prodcal
+	rm -f $(BINARY)
 
 test:
 	go test ./...
+
+vet:
+	go vet ./...
+
+# Install Python deps used by typesetting/scripts/*.py
+typeset-deps:
+	pip3 install --user python-docx pyyaml

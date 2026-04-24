@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -364,7 +365,7 @@ func (s *Server) handleListFonts(w http.ResponseWriter, r *http.Request) {
 
 // listTypstFonts runs `typst fonts --font-path <fontsDir>` and categorizes results.
 func listTypstFonts() []map[string]string {
-	cmd := exec.Command("typst", "fonts", "--font-path", fontsDir)
+	cmd := exec.Command("typst", "fonts", "--font-path", fontsDirPath())
 	out, err := cmd.Output()
 	if err != nil {
 		slog.Warn("typst fonts failed", "err", err)
@@ -722,7 +723,7 @@ func (s *Server) handleGenerateWordTemplate(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Run python script with spec JSON on stdin
-	script := bookProdRoot + "/scripts/generate-word-template.py"
+	script := filepath.Join(typesettingRoot(), "scripts", "generate-word-template.py")
 	cmd := exec.Command("python3", script)
 	cmd.Stdin = strings.NewReader(spec.Data)
 	var outBuf bytes.Buffer

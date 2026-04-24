@@ -1,6 +1,11 @@
-db.sqlite3
-db.sqlite3-wal
-db.sqlite3-shm
-prodcal
-*.gz
 .git
+.github
+*.gz
+*.sqlite3
+*.db
+db.sqlite3*
+.env
+output/
+bin/
+reference/
+manuscripts/
