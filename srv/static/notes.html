@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Notes — Version History</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+  h1 { color: #a78bfa; font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #888; font-size: 13px; margin-bottom: 24px; }
+  .version-list { list-style: none; padding: 0; margin: 24px 0; }
+  .version-list li { margin: 0; }
+  .version-list a {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 14px 16px; margin: 8px 0;
+    background: #16213e; border-radius: 10px;
+    text-decoration: none; color: #e0e0e0;
+    transition: background 0.15s;
+  }
+  .version-list a:hover { background: #1e2d50; }
+  .version-list .date { color: #a78bfa; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .version-list .label { color: #60a5fa; font-size: 13px; white-space: nowrap; }
+  .version-list .desc { color: #999; font-size: 13px; flex: 1; }
+  .version-list .current {
+    border: 1px solid #a78bfa44;
+    background: #1a2545;
+  }
+  .version-list .current::after {
+    content: '← latest';
+    color: #10b981; font-size: 11px; font-weight: 600;
+    margin-left: auto; white-space: nowrap;
+  }
+  .info-card { background: #16213e; border-radius: 12px; padding: 16px; margin: 16px 0; font-size: 13px; line-height: 1.7; color: #aaa; }
+  .info-card code { background: #0d1117; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #c9d1d9; }
+  .quick-links { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+  .quick-links a {
+    padding: 8px 14px; background: #6c63ff; color: white;
+    border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 500;
+  }
+  .quick-links a:hover { background: #5a52d5; }
+</style>
+</head>
+<body>
+<h1>📋 JDBB Production Tools — Notes Archive</h1>
+<p class="subtitle">Version history of project notes. Each session snapshot is preserved.</p>
+
+<div class="quick-links">
+  <a href="https://jdbbs.exe.xyz/vgr/aog/">📅 Calendar</a>
+  <a href="https://jdbbs.exe.xyz/vgr/aog/transmittal/">📝 Transmittal</a>
+  <a href="https://jdbbs.exe.xyz/admin/">⚙️ Admin</a>
+</div>
+
+<ul class="version-list" id="versions"></ul>
+
+<div class="info-card">
+  <strong>How versioning works:</strong><br>
+  Each session produces a timestamped notes file: <code>notes-YYYY-MM-DD-HHMM-sN.html</code><br>
+  The latest version is always linked first. Older versions stay accessible forever.<br>
+  Full session log: <code>SESSION-SUMMARY.txt</code> in the repo.
+</div>
+
+<script>
+// Manifest of all notes versions — newest first.
+// Add new entries at the top when creating a new session's notes.
+const versions = [
+  {
+    file: 'notes-2026-02-23-1940-s8.html',
+    date: '2026-02-23 19:40',
+    label: 'Session 8',
+    desc: 'AgentMail email notifications, timestamped notes archive, env var config',
+    current: true
+  },
+  {
+    file: 'notes-2026-02-23-1905-s7.html',
+    date: '2026-02-23 19:05',
+    label: 'Session 7',
+    desc: 'Admin dashboard, /healthz, daily backups, Dockerfile, DEPLOY.md',
+  },
+  // To add a new version:
+  // 1. Copy the current latest notes-*.html to a new dated file
+  // 2. Update the content in the new file
+  // 3. Add an entry here at the TOP of the array
+  // 4. Set current:true on the new entry, remove from old
+];
+
+const list = document.getElementById('versions');
+versions.forEach(v => {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.href = v.file;
+  if (v.current) a.classList.add('current');
+  a.innerHTML = `<span class="date">${v.date}</span><span class="label">${v.label}</span><span class="desc">${v.desc}</span>`;
+  li.appendChild(a);
+  list.appendChild(li);
+});
+</script>
+</body>
+</html>

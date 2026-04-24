@@ -1,0 +1,19 @@
+[Unit]
+Description=Production Calendar
+
+[Service]
+Type=simple
+User=exedev
+Group=exedev
+WorkingDirectory=/home/exedev
+ExecStart=/home/exedev/prodcal/prodcal -listen :8000
+Restart=always
+RestartSec=5
+Environment=HOME=/home/exedev
+Environment=USER=exedev
+EnvironmentFile=-/home/exedev/prodcal/.env
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

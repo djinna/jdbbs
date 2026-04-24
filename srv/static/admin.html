@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<script>
+(function() {
+  try {
+    var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+    if (t && t.dark) document.documentElement.classList.add('dark');
+  } catch(e) {}
+})();
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f8f9fa; --surface: #ffffff; --border: #e0e2e6;
+  --text: #111827; --text-secondary: #6b7280; --text-muted: #9ca3af;
+  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --yellow: #ca8a04; --orange: #ea580c;
+  --badge-green-bg: rgba(22,163,74,0.1); --badge-red-bg: rgba(220,38,38,0.1);
+  --badge-yellow-bg: rgba(202,138,4,0.1);
+  --badge-dim-bg: #f1f3f5; --progress-bg: #f1f3f5;
+  --toggle-bg: #f8f9fa;
+  --noise-opacity: 0.035; --grid-color: rgba(160,168,180,0.6);
+  --gradient-wash: linear-gradient(to bottom, rgba(230,233,240,0.3) 0%, transparent 60%);
+  --theme-bg: rgba(255,255,255,0.92);
+}
+
+html.dark {
+  --bg: #0f1115; --surface: #1a1d24; --border: #2a2d35;
+  --text: #e4e5e7; --text-secondary: #9ca0a8; --text-muted: #6b7074;
+  --accent: #5b9aff; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --orange: #fb923c;
+  --badge-green-bg: rgba(52,211,153,0.12); --badge-red-bg: rgba(248,113,113,0.12);
+  --badge-yellow-bg: rgba(251,191,36,0.12);
+  --badge-dim-bg: #23262e; --progress-bg: #23262e;
+  --toggle-bg: #23262e;
+  --noise-opacity: 0.012; --grid-color: rgba(90,96,110,0.7);
+  --gradient-wash: linear-gradient(to bottom, rgba(20,22,28,0.4) 0%, transparent 60%);
+  --theme-bg: rgba(26,29,36,0.92);
+}
+
+body {
+  background: var(--bg); font-family: 'IBM Plex Serif', Georgia, serif;
+  color: var(--text); min-height: 100vh; position: relative;
+  transition: background 0.3s, color 0.3s;
+}
+body, body * { font-weight: 400; }
+
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px; opacity: var(--noise-opacity);
+}
+body::after {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 50vh; z-index: 0;
+  pointer-events: none; background: var(--gradient-wash);
+}
+
+.grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: flex; justify-content: center; }
+.grid-lines-inner { width: 1120px; max-width: 100vw; display: flex; justify-content: space-between; padding: 0; }
+.grid-line {
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, var(--grid-color) 0px, var(--grid-color) 4px, transparent 4px, transparent 10px);
+}
+
+.content { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+.theme-bar {
+  position: fixed; top: 1rem; right: 2rem; z-index: 200;
+  display: flex; align-items: center; gap: 0.25rem;
+  background: var(--theme-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 0.2rem 0.3rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.theme-bar .font-options {
+  display: flex; gap: 0.15rem; overflow: hidden;
+  max-width: 0; opacity: 0;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+}
+.theme-bar.expanded .font-options {
+  max-width: 400px; opacity: 1;
+}
+
+.theme-bar .font-name {
+  padding: 0.25rem 0.5rem; font-size: 0.65rem; color: var(--text-secondary);
+  cursor: pointer; white-space: nowrap; transition: color 0.15s;
+  border-radius: 10px;
+}
+.theme-bar .font-name:hover { color: var(--text); }
+.theme-bar.expanded .font-name { display: none; }
+
+.theme-opt {
+  padding: 0.25rem 0.5rem; border-radius: 10px; border: none;
+  background: transparent; color: var(--text-secondary); font-size: 0.65rem;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  font-family: inherit;
+}
+.theme-opt:hover { color: var(--text); background: var(--progress-bg); }
+.theme-opt.active { color: var(--accent); background: rgba(37,99,235,0.08); }
+html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
+
+.theme-sep {
+  width: 1px; height: 13px; background: var(--border);
+  margin: 0 0.1rem; flex-shrink: 0; align-self: center;
+}
+
+.dark-btn {
+  width: 20px; height: 20px; padding: 0; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.dark-btn:hover { color: var(--text); background: var(--progress-bg); }
+
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 2rem;
+}
+.header h1 { font-size: 1.5rem; letter-spacing: -0.03em; color: var(--text); }
+
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 2rem; align-items: center; }
+.tab { padding: 0.6rem 1.25rem; font-size: 0.9rem; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs .status { margin-left: auto; font-size: 0.82rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; padding-right: 0.25rem; position: relative; cursor: default; }
+.tabs .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+.tabs .status .tip { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.85rem; font-size: 0.76rem; line-height: 1.5; color: var(--text-secondary); white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; }
+.tabs .status:hover .tip { display: block; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2.5rem; }
+.stat .label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+.stat .value { font-size: 1.75rem; letter-spacing: -0.02em; color: var(--text); }
+
+.project { padding: 1.25rem 0; border-bottom: 1px solid var(--border); }
+.project:last-of-type { border-bottom: none; }
+.project-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; }
+.project-title { font-size: 1.05rem; color: var(--text); }
+.project-path { font-size: 0.8rem; color: var(--text-muted); font-family: 'Menlo', 'Consolas', monospace; margin-top: 0.1rem; }
+.project-meta { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+.badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.72rem; }
+.badge-green { background: var(--badge-green-bg); color: var(--green); }
+.badge-red { background: var(--badge-red-bg); color: var(--red); }
+.badge-yellow { background: var(--badge-yellow-bg); color: var(--yellow); }
+.badge-dim { background: var(--badge-dim-bg); color: var(--text-secondary); }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.status-dot.green { background: var(--green); }
+.status-dot.yellow { background: var(--yellow); }
+.status-dot.red { background: var(--red); }
+.status-dot.dim { background: var(--text-secondary); }
+.task-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 0.35rem; }
+.task-row .active-count { color: var(--yellow); }
+.progress { width: 100%; height: 3px; background: var(--progress-bg); border-radius: 2px; overflow: hidden; margin-bottom: 0.6rem; }
+.progress-fill { height: 100%; border-radius: 2px; }
+.progress-fill.blue { background: var(--accent); }
+.progress-fill.green { background: var(--green); }
+.progress-fill.yellow { background: var(--yellow); }
+.links { display: flex; gap: 0.75rem; }
+.links a, .links button.email-btn { font-size: 0.8rem; color: var(--accent); text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
+.links a:hover, .links button.email-btn:hover { text-decoration: underline; }
+
+.section-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 2.5rem 0 1rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+.upload-zone { border: 2px dashed var(--border); border-radius: 6px; padding: 2rem; text-align: center; color: var(--text-secondary); margin-bottom: 1.25rem; transition: border-color 0.3s; cursor: pointer; }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(37,99,235,0.03); color: var(--text); }
+.upload-zone .icon { font-size: 1.5rem; margin-bottom: 0.25rem; color: var(--text-muted); }
+.upload-zone input[type="file"] { display: none; }
+
+.book-form {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin-bottom: 1.5rem; display: none;
+}
+.book-form.active { display: grid; }
+.book-form .full { grid-column: 1 / -1; }
+.book-form label {
+  display: block; font-size: 0.78rem; color: var(--text-secondary);
+  margin-bottom: 0.3rem;
+}
+.book-form input, .book-form select {
+  width: 100%; padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: var(--text); font-size: 0.9rem;
+  font-family: inherit;
+}
+.book-form input:focus, .book-form select:focus {
+  outline: none; border-color: var(--accent);
+}
+.book-form .actions {
+  display: flex; gap: 0.75rem; align-items: center;
+}
+.btn {
+  padding: 0.45rem 1rem; border-radius: 4px;
+  border: 1px solid var(--accent); background: var(--accent);
+  color: #fff; font-size: 0.85rem; cursor: pointer;
+  transition: opacity 0.15s; font-family: inherit;
+}
+.btn:hover { opacity: 0.9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  background: transparent; color: var(--text); border-color: var(--border);
+}
+.btn-secondary:hover { background: var(--progress-bg); }
+
+.book { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.book:last-child { border-bottom: none; }
+.book-info { flex: 1; }
+.book-title { font-size: 0.95rem; color: var(--text); }
+.book-author { font-size: 0.8rem; color: var(--text-secondary); }
+.book-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+.book-actions { display: flex; gap: 0.4rem; }
+.book-actions a, .book-actions button { font-size: 0.78rem; padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
+.book-actions a:hover, .book-actions button:hover { background: var(--progress-bg); }
+.book-actions .dl-pdf { color: var(--green); border-color: var(--green); }
+.book-actions .dl-epub { color: var(--accent); border-color: var(--accent); }
+.book-actions .del { color: var(--red); border-color: transparent; }
+.book-actions .del:hover { border-color: var(--red); }
+.book-project-link { flex-shrink: 0; }
+.book-project-sel { font-size: 0.72rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; max-width: 140px; cursor: pointer; }
+.book-project-sel:focus { outline: none; border-color: var(--accent); }
+
+#loading, .empty {
+  text-align: center; padding: 4rem; color: var(--text-muted); font-size: 0.9rem;
+}
+
+.modal-backdrop {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3); display: flex;
+  align-items: center; justify-content: center; z-index: 1000;
+}
+html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
+.modal-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 24px; max-width: 460px; width: 90%; max-height: 80vh; overflow-y: auto;
+}
+.modal-card h2 {
+  margin: 0 0 6px; font-size: 1.05rem;
+}
+.modal-card p.subtitle {
+  color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 16px;
+}
+.modal-card .recipient-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.modal-card .recipient-row input[type="email"] {
+  flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg); color: var(--text);
+  font-size: 0.85rem; font-family: inherit;
+}
+.modal-card .recipient-row input[type="email"]:focus {
+  outline: none; border-color: var(--accent);
+}
+.modal-card .msg-ok {
+  background: rgba(22,163,74,0.06); border: 1px solid rgba(22,163,74,0.15);
+  border-radius: 4px; padding: 10px 12px; margin-bottom: 16px;
+  font-size: 0.82rem; color: var(--green);
+}
+.modal-card .msg-err {
+  background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.15);
+  border-radius: 4px; padding: 10px 12px; margin-bottom: 16px;
+  font-size: 0.82rem; color: var(--red);
+}
+.modal-actions {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;
+}
+.modal-actions button {
+  padding: 7px 14px; border-radius: 4px; border: 1px solid var(--border);
+  background: transparent; color: var(--text); font-size: 0.85rem;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.modal-actions button:hover { background: var(--progress-bg); }
+.modal-actions button.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.modal-actions button.primary:hover { opacity: 0.9; }
+.modal-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── Typesetting Tab ─── */
+.ts-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.ts-toolbar-left, .ts-toolbar-right { display: flex; align-items: center; gap: 0.5rem; }
+.ts-select { padding: 0.4rem 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 0.85rem; font-family: inherit; min-width: 200px; }
+.ts-select:focus { outline: none; border-color: var(--accent); }
+.ts-status { font-size: 0.78rem; color: var(--text-muted); }
+.ts-empty { text-align: center; padding: 4rem 2rem; color: var(--text-muted); font-size: 0.95rem; }
+
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btn-sm:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn-sm:disabled { opacity: 0.4; cursor: default; }
+
+.ts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+@media (max-width: 800px) { .ts-grid { grid-template-columns: 1fr; } }
+.ts-col { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.ts-section { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.25rem; }
+.ts-section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+.ts-origin-note { margin: 0 0 1rem; padding: 0.65rem 0.8rem; border: 1px dashed var(--border); border-radius: 6px; background: var(--surface); color: var(--text-secondary); font-size: 0.76rem; line-height: 1.45; }
+.ts-origin-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 999px; padding: 0.15rem 0.45rem; background: var(--bg); }
+.ts-subsection-title .ts-origin-badge { margin-left: 0.45rem; vertical-align: middle; }
+.ts-field-from-tx input,
+.ts-field-from-tx textarea,
+.ts-field-from-tx select,
+.ts-origin-panel { border-style: dashed !important; }
+.ts-origin-panel { border: 1px dashed var(--border); border-radius: 6px; padding: 0.75rem; background: color-mix(in srgb, var(--surface) 84%, var(--bg) 16%); }
+
+.ts-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
+.ts-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.ts-field.full { grid-column: 1 / -1; }
+.ts-field label { font-size: 0.72rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.2rem; }
+.ts-field input, .ts-field select { padding: 0.35rem 0.55rem; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); font-size: 0.82rem; font-family: inherit; }
+.ts-field input:focus, .ts-field select:focus { outline: none; border-color: var(--accent); }
+.ts-field input[type="number"] { max-width: 100px; }
+
+.ts-page-layout { display: flex; gap: 1.25rem; align-items: flex-start; }
+.ts-page-layout .ts-fields { flex: 1; }
+.ts-page-preview { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ts-page-rect { position: relative; background: var(--bg); border: 1.5px solid var(--text-secondary); border-radius: 1px; width: 88px; height: 136px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+.ts-page-text-area { border: 1px dashed var(--accent); opacity: 0.4; border-radius: 1px; position: absolute; transition: all 0.3s; }
+.ts-page-dims { position: absolute; bottom: -1.2rem; left: 0; right: 0; text-align: center; font-size: 0.62rem; color: var(--text-muted); }
+
+.ts-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem 1rem; }
+.ts-check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; }
+.ts-check input[type="checkbox"] { accent-color: var(--accent); }
+
+.ts-output-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 2rem 0 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.ts-output-card { border-left: 3px solid var(--accent); }
+.ts-output-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.04em; background: rgba(37,99,235,0.1); color: var(--accent); margin-right: 0.3rem; vertical-align: middle; }
+html.dark .ts-output-badge { background: rgba(91,154,255,0.15); }
+.ts-output-badge-epub { background: rgba(22,163,74,0.1); color: var(--green); }
+html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
+.ts-output-card.ts-output-card { border-left-color: var(--accent); }
+.ts-col:last-child .ts-output-card { border-left-color: var(--green); }
+.ts-subsection-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1rem 0 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+.ts-subsection-title:first-of-type { border-top: none; margin-top: 0.25rem; padding-top: 0; }
+
+.ts-cover-upload { display: flex; align-items: center; gap: 0.75rem; }
+.ts-cover-preview { width: 60px; height: 90px; border: 1px dashed var(--border); border-radius: 3px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--text-muted); overflow: hidden; flex-shrink: 0; }
+.ts-cover-preview img { width: 100%; height: 100%; object-fit: cover; }
+.ts-cover-actions { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.ts-custom-styles { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* Corrections */
+.corr-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.corr-table th { text-align: left; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); font-weight: 400; }
+.corr-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+.corr-table tr:last-child td { border-bottom: none; }
+.corr-find { font-family: 'JetBrains Mono','Menlo',monospace; font-size: 0.72rem; background: var(--badge-red-bg); color: var(--red); padding: 0.1rem 0.3rem; border-radius: 2px; word-break: break-all; }
+.corr-replace { font-family: 'JetBrains Mono','Menlo',monospace; font-size: 0.72rem; background: var(--badge-green-bg); color: var(--green); padding: 0.1rem 0.3rem; border-radius: 2px; word-break: break-all; }
+.corr-status { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 9999px; font-size: 0.65rem; cursor: pointer; }
+.corr-status-pending { background: var(--badge-yellow-bg); color: var(--yellow); }
+.corr-status-applied { background: var(--badge-green-bg); color: var(--green); }
+.corr-status-skipped { background: var(--badge-dim-bg); color: var(--text-muted); }
+.corr-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.85rem; padding: 0.1rem 0.3rem; opacity: 0.5; }
+.corr-del:hover { opacity: 1; }
+.corr-add-row { display: grid; grid-template-columns: 1fr 1fr 0.6fr 1fr auto; gap: 0.5rem; align-items: end; margin-top: 0.75rem; }
+.corr-add-row input { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); font-size: 0.78rem; font-family: inherit; }
+.corr-add-row input:focus { outline: none; border-color: var(--accent); }
+@media (max-width: 700px) { .corr-add-row { grid-template-columns: 1fr 1fr; } }
+.ts-style-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.5rem; align-items: start; padding: 0.5rem; background: var(--bg); border-radius: 3px; border: 1px solid var(--border); }
+.ts-style-row input, .ts-style-row textarea { padding: 0.3rem 0.45rem; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--text); font-size: 0.78rem; font-family: inherit; }
+.ts-style-row textarea { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 0.72rem; resize: vertical; min-height: 2.5rem; }
+.ts-style-remove { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.9rem; padding: 0.2rem; opacity: 0.6; }
+.ts-style-remove:hover { opacity: 1; }
+.btn-link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.72rem; font-family: inherit; padding: 0; }
+.btn-link:hover { text-decoration: underline; }
+
+.colophon {
+  margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+  font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;
+}
+.colophon a {
+  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
+}
+.colophon a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="grid-lines"><div class="grid-lines-inner">
+  <div class="grid-line"></div><div class="grid-line"></div>
+</div></div>
+
+<div class="theme-bar" id="theme-bar">
+  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
+  <div class="font-options" id="font-options">
+    <button class="theme-opt" data-font="literata">Literata</button>
+    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
+    <button class="theme-opt" data-font="menlo">Menlo</button>
+    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
+  </div>
+  <div class="theme-sep"></div>
+  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
+</div>
+
+<div class="content">
+  <div class="header">
+    <h1><a href="https://jdbbs.exe.xyz/" style="color:inherit;text-decoration:none">Production</a></h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-sm" id="new-project-btn">New Project</button>
+      <button class="btn btn-sm btn-secondary" id="new-client-btn">New Client</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="projects">Projects</div>
+    <div class="tab" data-tab="typesetting">Typesetting</div>
+    <div class="tab" data-tab="files">Files</div>
+    <div class="tab" data-tab="archived">Archived</div>
+    <div class="status" id="status-indicator">
+      <span class="dot"></span> <span id="status-label">checking…</span>
+      <div class="tip" id="status-tip">Checking system health…</div>
+    </div>
+  </div>
+
+  <div id="tab-projects" class="tab-panel active">
+    <div class="stats" id="stats"></div>
+    <div id="loading">Loading…</div>
+    <div id="projects"></div>
+  </div>
+
+  <div id="tab-archived" class="tab-panel">
+    <div class="section-label" style="margin-top:0;padding-top:0;border-top:none;display:flex;justify-content:space-between;align-items:center">Archived Projects <button class="btn btn-sm btn-secondary" onclick="showProjectsTab()">Back to Projects</button></div>
+    <div id="archived-loading">Loading…</div>
+    <div id="archived-projects"></div>
+  </div>
+
+  <div id="tab-files" class="tab-panel">
+    <div class="upload-zone" id="upload-zone">
+      <div class="icon">△</div>
+      <div>Drop a Word file here or <strong>click to upload</strong></div>
+      <div style="font-size:0.78rem;margin-top:0.35rem">.docx files only</div>
+      <input type="file" id="book-file" accept=".docx,.doc">
+    </div>
+    <div class="book-form" id="book-form">
+      <div>
+        <label>Title
+        <input type="text" id="book-title" placeholder="Ghosts in Machines"></label>
+      </div>
+      <div>
+        <label>Author *
+        <input type="text" id="book-author" placeholder="Author Name"></label>
+      </div>
+      <div>
+        <label>Series
+        <select id="book-series">
+          <option value="">None</option>
+          <option value="A Protocolized Anthology">Protocolized Anthology</option>
+        </select></label>
+      </div>
+      <div>
+        <label>Link to Project
+        <select id="book-project"><option value="">None</option></select></label>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btn-upload" disabled>Upload</button>
+        <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
+        <span id="upload-status" style="font-size:0.82rem;color:var(--text-muted)"></span>
+      </div>
+    </div>
+    <div id="book-list-loading" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.9rem">Loading books…</div>
+    <div id="book-list"></div>
+  </div>
+
+  <div id="tab-typesetting" class="tab-panel">
+    <div class="ts-toolbar">
+      <div class="ts-toolbar-left">
+        <select id="ts-project" class="ts-select"><option value="">Select project…</option></select>
+        <button class="btn btn-sm" id="ts-pull-tx" disabled>Pull from Transmittal</button>
+      </div>
+      <div class="ts-toolbar-right">
+        <span id="ts-save-status" class="ts-status"></span>
+        <button class="btn btn-sm" id="ts-save" disabled>Save Spec</button>
+        <button class="btn btn-sm btn-secondary" id="ts-export" disabled>Export JSON</button>
+        <button class="btn btn-sm btn-secondary" id="ts-preview-config" disabled>Preview Config</button>
+        <button class="btn btn-sm btn-secondary" id="ts-download-template" disabled title="Download styled Word template">Word Template</button>
+      </div>
+    </div>
+
+    <div id="ts-empty" class="ts-empty">Select a project to configure its typesetting spec.</div>
+
+    <div id="ts-form" style="display:none">
+      <div class="ts-origin-note">Dotted fields and panels are seeded from Transmittal. They stay editable here so Typesetting can refine them without losing the handoff context.</div>
+
+      <div class="ts-origin-note"><strong>Auth labels:</strong> <span class="ts-origin-badge">Open access</span> means no project password is set. <span class="ts-origin-badge">Project password</span> means this project has a project-level password enabled.</div>
+
+      <!-- ═══ SHARED: Book Info ═══ -->
+      <div class="ts-section">
+        <div class="ts-section-title"><span>Book Info</span><span class="ts-origin-badge">Pulled from Transmittal · editable</span></div>
+        <div class="ts-fields">
+          <div class="ts-field ts-field-from-tx full"><label>Title<input type="text" data-path="metadata.title"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Subtitle<input type="text" data-path="metadata.subtitle"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Author<input type="text" data-path="metadata.author"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Series<input type="text" data-path="metadata.series"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Publisher<input type="text" data-path="metadata.publisher"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>ISBN (Paper)<input type="text" data-path="metadata.isbn_paper"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>ISBN (EPUB)<input type="text" data-path="metadata.isbn_epub"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>ISBN (Cloth)<input type="text" data-path="metadata.isbn_cloth"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>© Year<input type="text" data-path="metadata.copyright_year"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>© Holder<input type="text" data-path="metadata.copyright_holder"></label></div>
+        </div>
+      </div>
+
+      <!-- ═══ SHARED: TYPESETTING NOTES ═══ -->
+      <div class="ts-section" style="margin-top:1rem">
+        <div class="ts-section-title"><span>Typesetting</span><span class="ts-origin-badge">Pulled from Transmittal · editable</span></div>
+        <div class="ts-fields">
+          <div class="ts-field ts-field-from-tx full"><label>Instructions for Developmental Editor</label><textarea data-path="typesetting.developmental_instructions" rows="3" placeholder="Any guidance for developmental edit focus, scope, or priorities..." style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+          <div class="ts-field ts-field-from-tx full"><label>Instructions for Copyeditor</label><textarea data-path="typesetting.copyeditor_instructions" rows="4" placeholder="Any guidance for copyediting priorities, style, or exceptions..." style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+          <div class="ts-field ts-field-from-tx full"><label>Trim Guidance</label><textarea data-path="typesetting.trim_guidance" rows="3" placeholder="e.g. coffee table, pocket book size, gift format" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+          <div class="ts-field ts-field-from-tx"><label>Trim Size<input type="text" data-path="typesetting.trim_size" placeholder="5.5 x 8.5"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Est. Book pp<input type="text" data-path="typesetting.est_pages"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>PPI<input type="text" data-path="typesetting.ppi"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Spine Width<input type="text" data-path="typesetting.spine_width"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Text Complexity<input type="text" data-path="typesetting.complexity"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Outside Designer<input type="text" data-path="typesetting.outside_designer"></label></div>
+          <div class="ts-field ts-field-from-tx"><label>Reuse Previous Book<input type="text" data-path="typesetting.reuse_previous"></label></div>
+          <div class="ts-field ts-field-from-tx full"><label>Additional Design Notes</label><textarea data-path="typesetting.design_notes" rows="3" placeholder="Any free-form direction for format, feel, or production constraints..." style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+        </div>
+      </div>
+
+      <!-- ═══ EPUB / DIGITAL ═══ -->
+      <div class="ts-output-label">EPUB / Digital</div>
+      <div class="ts-grid">
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
+            <div class="ts-section-title"><span class="ts-output-badge ts-output-badge-epub">EPUB</span> Digital</div>
+
+            <div class="ts-subsection-title">Cover</div>
+            <div class="ts-fields">
+              <div class="ts-field full"><label>Cover Image</label>
+                <div class="ts-cover-upload" id="ts-cover-upload">
+                  <div id="ts-cover-preview" class="ts-cover-preview"></div>
+                  <div class="ts-cover-actions">
+                    <span style="font-size:0.78rem;color:var(--text-muted)">JPG or PNG, recommended 1600×2400</span>
+                    <button class="btn-link" id="ts-cover-select">Choose file…</button>
+                    <input type="file" id="ts-cover-file" accept="image/jpeg,image/png" style="display:none">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ts-subsection-title">Navigation</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>TOC Depth
+                <select data-path="epub.toc_depth">
+                  <option value="1">1 — Chapters only</option>
+                  <option value="2">2 — Chapters + sections</option>
+                  <option value="3">3 — Chapters + sections + subsections</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Landmark Nav<select data-path="epub.landmarks"><option value="true">Yes</option><option value="false">No</option></select></label></div>
+            </div>
+
+            <div class="ts-subsection-title">Layout</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Chapter Break
+                <select data-path="epub.chapter_break">
+                  <option value="page">Page break</option>
+                  <option value="rule">Horizontal rule</option>
+                  <option value="ornament">Ornament</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Section Break
+                <select data-path="epub.section_break">
+                  <option value="breve">Breve (˘)</option>
+                  <option value="asterism">Asterism (⁂)</option>
+                  <option value="dinkus">Dinkus (* * *)</option>
+                  <option value="blank">Blank line</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Body Font Size
+                <select data-path="epub.body_font_size">
+                  <option value="inherit">Reader default</option>
+                  <option value="0.9em">Small (0.9em)</option>
+                  <option value="1em">Medium (1em)</option>
+                  <option value="1.1em">Large (1.1em)</option>
+                </select></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
+            <div class="ts-subsection-title">CSS Overrides</div>
+            <div class="ts-field full" style="margin-bottom:0.5rem">
+              <textarea data-path="epub.custom_css" id="ts-epub-css" rows="6" placeholder="/* Custom CSS for EPUB body, headings, etc. */" style="width:100%;font-family:'JetBrains Mono','Menlo',monospace;font-size:0.72rem;padding:0.5rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);resize:vertical"></textarea>
+            </div>
+
+            <div class="ts-subsection-title">Metadata</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Language<input type="text" data-path="epub.language" placeholder="en"></label></div>
+              <div class="ts-field"><label>Subject / Tags<input type="text" data-path="epub.subject" placeholder="Fiction, Anthology"></label></div>
+              <div class="ts-field full"><label>Description</label><textarea data-path="epub.description" rows="2" placeholder="A brief book description for EPUB metadata" style="width:100%;padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-size:0.82rem;font-family:inherit;resize:vertical"></textarea></div>
+            </div>
+
+            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
+              <select id="ts-epub-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <button class="btn btn-sm" id="ts-generate-epub" disabled style="border-color:var(--green);color:var(--green)">Generate EPUB</button>
+              <span id="ts-epub-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PDF / PRINT ═══ -->
+      <div class="ts-output-label">PDF / Print</div>
+      <div class="ts-grid">
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
+            <div class="ts-section-title"><span class="ts-output-badge">PDF</span> Print</div>
+
+            <div class="ts-subsection-title">Typography</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Body Font<select data-path="typography.body_font" class="ts-font-select" data-font-category="serif,sans-serif,other"><option value="">Loading…</option></select></label></div>
+              <div class="ts-field"><label>Heading Font<select data-path="typography.heading_font" class="ts-font-select" data-font-category="sans-serif,serif,other"><option value="">Loading…</option></select></label></div>
+              <div class="ts-field"><label>Code Font<select data-path="typography.code_font" class="ts-font-select" data-font-category="monospace"><option value="">Loading…</option></select></label></div>
+              <div class="ts-field"><label>Base Size (pt)<input type="number" step="0.5" min="6" max="16" data-path="typography.base_size_pt" id="ts-base-size"></label></div>
+              <div class="ts-field"><label>Leading (pt) <span id="ts-leading-hint" style="font-weight:normal;color:var(--text-muted)"></span> <input type="number" step="0.5" min="0" max="30" data-path="typography.leading_pt" id="ts-leading-pt"></label></div>
+              <div class="ts-field"><label>Paragraph Indent (em)<input type="number" step="0.05" min="0" max="3" data-path="typography.paragraph_indent_em"></label></div>
+              <div class="ts-field"><label>Justify<select data-path="typography.justify"><option value="true">Yes</option><option value="false">No</option></select></label></div>
+              <div class="ts-field"><label>Hyphenate<select data-path="typography.hyphenate"><option value="true">Yes</option><option value="false">No</option></select></label></div>
+            </div>
+
+            <div class="ts-subsection-title">Headings</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>H1 Size (pt)<input type="number" step="0.5" data-path="headings.h1_size_pt"></label></div>
+              <div class="ts-field"><label>H1 Weight<input type="text" data-path="headings.h1_weight"></label></div>
+              <div class="ts-field"><label>H2 Size (pt)<input type="number" step="0.5" data-path="headings.h2_size_pt"></label></div>
+              <div class="ts-field"><label>H2 Weight<input type="text" data-path="headings.h2_weight"></label></div>
+              <div class="ts-field"><label>H3 Size (pt)<input type="number" step="0.5" data-path="headings.h3_size_pt"></label></div>
+              <div class="ts-field"><label>H3 Weight<input type="text" data-path="headings.h3_weight"></label></div>
+            </div>
+
+            <div class="ts-subsection-title">Page Geometry</div>
+            <div id="ts-trim-compare" style="margin-bottom:0.75rem;overflow-x:auto"></div>
+            <div class="ts-page-layout">
+              <div class="ts-fields">
+                <div class="ts-field full">
+                  <label>Trim Size
+                  <select data-path="page.trim" id="ts-trim-select">
+                    <optgroup label="Book Sizes">
+                      <option value="uk-book-a">UK A-format (4.37×7.01 in / 111×178 mm)</option>
+                      <option value="jis-b6">JIS B6 (5.04×7.17 in / 128×182 mm)</option>
+                      <option value="uk-book-b">UK B-format (5.08×7.80 in / 129×198 mm)</option>
+                      <option value="us-digest">US Digest (5.5×8.5 in / 140×216 mm)</option>
+                      <option value="a5">A5 (5.83×8.27 in / 148×210 mm)</option>
+                      <option value="us-trade">US Trade (6×9 in / 152×229 mm)</option>
+                      <option value="jis-b5">JIS B5 (7.17×10.12 in / 182×257 mm)</option>
+                    </optgroup>
+                    <optgroup label="Standard">
+                      <option value="us-executive">US Executive (7.25×10.5 in / 184×267 mm)</option>
+                      <option value="a4">A4 (8.27×11.69 in / 210×297 mm)</option>
+                      <option value="us-letter">US Letter (8.5×11 in / 216×279 mm)</option>
+                      <option value="us-legal">US Legal (8.5×14 in / 216×356 mm)</option>
+                    </optgroup>
+                    <optgroup label="Custom">
+                      <option value="custom">Custom</option>
+                    </optgroup>
+                  </select></label>
+                </div>
+                <div class="ts-field"><label>Width (in)<input type="number" step="0.01" data-path="page.width_in" id="ts-page-w"></label></div>
+                <div class="ts-field"><label>Height (in)<input type="number" step="0.01" data-path="page.height_in" id="ts-page-h"></label></div>
+                <div class="ts-field"><label>Top margin<input type="text" data-path="page.margin_top"></label></div>
+                <div class="ts-field"><label>Bottom margin<input type="text" data-path="page.margin_bottom"></label></div>
+                <div class="ts-field"><label>Inside margin<input type="text" data-path="page.margin_inside"></label></div>
+                <div class="ts-field"><label>Outside margin<input type="text" data-path="page.margin_outside"></label></div>
+              </div>
+              <div class="ts-page-preview" id="ts-page-preview">
+                <div class="ts-page-rect" id="ts-page-rect">
+                  <div class="ts-page-text-area" id="ts-text-area"></div>
+                  <div class="ts-page-dims" id="ts-page-dims">5.5 × 8.5</div>
+                </div>
+                <div style="margin-top:1rem;text-align:center">
+                  <a href="https://typst.app/docs/reference/layout/page/#parameters-paper" target="_blank" rel="noopener" style="font-size:0.6rem;color:var(--text-muted);text-decoration:none;border-bottom:1px dotted var(--text-muted)">All Typst paper sizes ↗</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="ts-subsection-title">Running Heads</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Enabled<select data-path="running_heads.enabled"><option value="true">Yes</option><option value="false">No</option></select></label></div>
+              <div class="ts-field"><label>Head Size (pt)<input type="number" step="0.5" data-path="running_heads.head_size_pt"></label></div>
+              <div class="ts-field"><label>Verso (left)
+                <select data-path="running_heads.verso">
+                  <option value="author">Author</option>
+                  <option value="title">Title</option>
+                  <option value="chapter">Chapter</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Recto (right)
+                <select data-path="running_heads.recto">
+                  <option value="title">Title</option>
+                  <option value="author">Author</option>
+                  <option value="chapter">Chapter</option>
+                </select></label>
+              </div>
+            </div>
+
+            <div class="ts-subsection-title">Elements</div>
+            <div class="ts-fields">
+              <div class="ts-field"><label>Section Break
+                <select data-path="elements.section_break">
+                  <option value="breve">Breve (˘)</option>
+                  <option value="asterism">Asterism (⁂)</option>
+                  <option value="dinkus">Dinkus (* * *)</option>
+                  <option value="fleuron">Fleuron (❧)</option>
+                  <option value="blank">Blank line</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Blockquote Style
+                <select data-path="elements.blockquote_style">
+                  <option value="italic">Italic</option>
+                  <option value="indent">Indented</option>
+                  <option value="bar">Left bar</option>
+                </select></label>
+              </div>
+              <div class="ts-field"><label>Poem Size (pt)<input type="number" step="0.5" data-path="elements.poem_size_pt"></label></div>
+              <div class="ts-field"><label>Code Block Size (pt)<input type="number" step="0.5" data-path="elements.code_block_size_pt"></label></div>
+              <div class="ts-field"><label>Footnote Size (pt)<input type="number" step="0.5" data-path="elements.footnote_size_pt"></label></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ts-col">
+          <div class="ts-section ts-output-card">
+            <div class="ts-subsection-title">Front Matter <span class="ts-origin-badge">Pulled</span></div>
+            <div class="ts-checks ts-origin-panel" id="ts-front-matter">
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.half_title"> Half title</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.series_title"> Series title</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.title_page"> Title page</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.copyright_page"> Copyright page</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.dedication"> Dedication</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.epigraph"> Epigraph</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.toc"> Table of contents</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.foreword"> Foreword</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.preface"> Preface</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.acknowledgments"> Acknowledgments</label>
+              <label class="ts-check"><input type="checkbox" data-path="front_matter.introduction"> Introduction</label>
+            </div>
+
+            <div class="ts-subsection-title">Back Matter <span class="ts-origin-badge">Pulled</span></div>
+            <div class="ts-checks ts-origin-panel" id="ts-back-matter">
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.notes"> Notes</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.appendix"> Appendix</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.glossary"> Glossary</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.bibliography"> Bibliography</label>
+              <label class="ts-check"><input type="checkbox" data-path="back_matter.index"> Index</label>
+            </div>
+
+            <div class="ts-subsection-title">Custom Styles <span class="ts-origin-badge">Pulled</span> <button class="btn-link" id="ts-add-style">+ Add</button></div>
+            <div id="ts-custom-styles" class="ts-custom-styles ts-origin-panel"></div>
+
+            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center">
+              <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <button class="btn btn-sm" id="ts-compile-pdf" disabled style="border-color:var(--accent);color:var(--accent)">Compile PDF</button>
+              <span id="ts-compile-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ CORRECTIONS ═══ -->
+      <div class="ts-output-label">Corrections</div>
+      <div class="ts-section" id="ts-corrections-section">
+        <div class="ts-section-title">
+          <span>Corrections Ledger</span>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <button class="btn-link" id="corr-export-yaml">Export YAML</button>
+            <button class="btn-link" id="corr-add-btn">+ Add Correction</button>
+          </div>
+        </div>
+        <div id="corr-list">
+          <div style="font-size:0.78rem;color:var(--text-muted);padding:0.5rem 0">No corrections yet.</div>
+        </div>
+        <div id="corr-add-form" style="display:none">
+          <div class="corr-add-row">
+            <input type="text" id="corr-find" placeholder="Find text…">
+            <input type="text" id="corr-replace" placeholder="Replace with…">
+            <input type="text" id="corr-chapter" placeholder="Chapter (opt)">
+            <input type="text" id="corr-note" placeholder="Note (opt)">
+            <div style="display:flex;gap:0.3rem">
+              <button class="btn btn-sm" id="corr-save">Save</button>
+              <button class="btn btn-sm btn-secondary" id="corr-cancel">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ts-config-preview" style="display:none;margin-top:1.5rem">
+        <div class="ts-section">
+          <div class="ts-section-title">Generated Typst Config</div>
+          <pre id="ts-config-code" style="font-family:'JetBrains Mono','Menlo',monospace;font-size:0.75rem;line-height:1.5;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.75rem 1rem;overflow-x:auto;color:var(--text);white-space:pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="colophon">
+    <p>Set in a randomized selection from <a href="https://github.com/googlefonts/literata" target="_blank">Literata</a> by TypeTogether, <a href="https://github.com/IBM/plex" target="_blank">IBM Plex</a> by Mike Abbink & Bold Monday, and <a href="https://en.wikipedia.org/wiki/Menlo_(typeface)" target="_blank">Menlo</a>. Font preference resets on each visit; only dark mode persists.</p>
+  </footer>
+
+</div>
+
+<script>
+// ─── Font System ───
+var fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
+  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
+  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
+  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
+};
+var fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
+var state = { font: fontKeys[Math.floor(Math.random() * fontKeys.length)], dark: false };
+try {
+  var saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (saved) state.dark = saved.dark;
+} catch(e) {}
+
+function applyState() {
+  var f = fonts[state.font];
+  if (f) {
+    document.body.style.fontFamily = f.family;
+    document.getElementById('font-name').textContent = f.label;
+  }
+  document.documentElement.classList.toggle('dark', state.dark);
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.font === state.font);
+  });
+  document.getElementById('dark-btn').textContent = state.dark ? '\u2600' : '\u263e';
+}
+
+function saveState() {
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: state.dark })); } catch(e) {}
+}
+
+function setFont(key) { state.font = key; applyState(); saveState(); }
+function toggleDark() { state.dark = !state.dark; applyState(); saveState(); }
+
+var bar = document.getElementById('theme-bar');
+var nameEl = document.getElementById('font-name');
+var expanded = false;
+
+nameEl.addEventListener('click', function() {
+  expanded = !expanded;
+  bar.classList.toggle('expanded', expanded);
+});
+
+document.addEventListener('click', function(e) {
+  if (expanded && !bar.contains(e.target)) {
+    expanded = false;
+    bar.classList.remove('expanded');
+  }
+});
+
+document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    setFont(this.dataset.font);
+    expanded = false;
+    bar.classList.remove('expanded');
+  });
+});
+
+document.getElementById('dark-btn').addEventListener('click', toggleDark);
+
+applyState();
+
+// ─── Health Check ───
+var statusMessages = {
+  healthy:  'All systems operational',
+  degraded: 'Some services are slow \u2014 we\u2019re looking into it',
+  unhealthy: 'System is experiencing issues — contact j@djinna.com'
+};
+
+async function checkHealth() {
+  try {
+    const r = await fetch('/healthz');
+    const d = await r.json();
+    if (d.status === 'ok') {
+      setStatus('healthy');
+    } else {
+      setStatus('degraded');
+    }
+  } catch(e) {
+    setStatus('unhealthy');
+  }
+}
+
+function setStatus(level) {
+  var el = document.getElementById('status-indicator');
+  var dot = el.querySelector('.dot');
+  var label = document.getElementById('status-label');
+  var tip = document.getElementById('status-tip');
+  var colors = { healthy: 'var(--green)', degraded: 'var(--yellow)', unhealthy: 'var(--red)' };
+  var labels = { healthy: 'Healthy', degraded: 'Degraded', unhealthy: 'Unhealthy' };
+  dot.style.background = colors[level];
+  label.textContent = labels[level];
+  tip.textContent = statusMessages[level];
+}
+
+// ─── Projects ───
+const $stats = document.getElementById('stats');
+const $projects = document.getElementById('projects');
+const $loading = document.getElementById('loading');
+const $archivedProjects = document.getElementById('archived-projects');
+const $archivedLoading = document.getElementById('archived-loading');
+
+let cachedProjects = [];
+let cachedClients = [];
+async function loadProjects() {
+  $loading.style.display = 'block';
+  $loading.textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/admin/projects');
+    if (r.status === 403) {
+      $loading.innerHTML = `Forbidden — exe.dev login required. <a href="${adminBaseURL()}" style="color:var(--accent)">Go to home</a>`;
+      return;
+    }
+    const projects = await r.json();
+    cachedProjects = projects;
+    $loading.style.display = 'none';
+    renderStats(projects);
+    renderProjects(projects);
+    tsPopulateProjects(projects);
+    populateBookProjectSelector(projects);
+  } catch(e) {
+    $loading.style.display = 'block';
+    $loading.textContent = 'Error loading projects: ' + e.message;
+  }
+}
+
+async function loadArchivedProjects() {
+  try {
+    const r = await fetch('/api/admin/projects?archived=1');
+    if (!r.ok) throw new Error('Failed to load archived projects');
+    const projects = await r.json();
+    $archivedLoading.style.display = 'none';
+    renderArchivedProjects(projects);
+  } catch (e) {
+    $archivedLoading.textContent = 'Error loading archived projects: ' + e.message;
+  }
+}
+
+async function loadClients() {
+  try {
+    const r = await fetch('/api/admin/clients');
+    if (!r.ok) return;
+    cachedClients = await r.json();
+  } catch (e) {
+    console.warn('Error loading clients:', e);
+  }
+}
+
+function renderStats(projects) {
+  const totalTasks = projects.reduce((s, p) => s + p.task_count, 0);
+  const totalDone = projects.reduce((s, p) => s + p.done_count, 0);
+  const totalActive = projects.reduce((s, p) => s + p.active_count, 0);
+  const withTransmittal = projects.filter(p => p.has_transmittal).length;
+
+  $stats.innerHTML = `
+    <div class="stat"><div class="label">Projects</div><div class="value">${projects.length}</div></div>
+    <div class="stat"><div class="label">Total Tasks</div><div class="value">${totalTasks}</div></div>
+    <div class="stat"><div class="label">Completed</div><div class="value">${totalDone}</div></div>
+    <div class="stat"><div class="label">In Progress</div><div class="value">${totalActive}</div></div>
+    <div class="stat"><div class="label">Transmittals</div><div class="value">${withTransmittal}</div></div>
+  `;
+}
+
+function adminBaseURL() {
+  return window.location.origin + '/';
+}
+
+function absoluteURL(path) {
+  return new URL(path, adminBaseURL()).toString();
+}
+
+function renderProjects(projects) {
+  if (!projects.length) {
+    $projects.innerHTML = '<div class="empty">No projects yet.</div>';
+    return;
+  }
+
+  $projects.innerHTML = projects.map(p => {
+    const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
+    const barClass = pct === 100 ? 'green' : pct > 50 ? 'blue' : 'yellow';
+    const authBadge = p.has_auth
+      ? '<span class="badge badge-green"><span class="status-dot green"></span> Project password</span>'
+      : '<span class="badge badge-red"><span class="status-dot red"></span> Open access</span>';
+    const transmittalBadge = p.has_transmittal
+      ? `<span class="badge badge-dim"><span class="status-dot dim"></span> ${esc(p.transmittal_status || 'draft')}</span>`
+      : '';
+
+    const created = p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : 'N/A';
+    const start = p.start_date || 'N/A';
+    const updated = p.updated_at ? new Date(p.updated_at).toISOString().split('T')[0] : 'N/A';
+
+    const projectURL = absoluteURL(p.path);
+    const transmittalURL = absoluteURL(p.path + 'transmittal/');
+
+    return `
+      <div class="project">
+        <div class="project-top">
+          <div>
+            <div class="project-title">${esc(p.name)}</div>
+            <div class="project-path">${esc(projectURL)}</div>
+          </div>
+          <div style="display:flex;gap:0.4rem">
+            ${authBadge}
+            ${transmittalBadge}
+          </div>
+        </div>
+        <div class="project-meta">Created: ${created} &nbsp; Start: ${start} &nbsp; Updated: ${updated}</div>
+        <div class="task-row">
+          <span>${p.done_count}/${p.task_count} tasks done${p.active_count > 0 ? ` &middot; <span class="active-count">${p.active_count} active</span>` : ''}</span>
+          <span${pct===100?' style="color:var(--green)"':''}>${pct}%</span>
+        </div>
+        <div class="progress"><div class="progress-fill ${barClass}" style="width:${pct}%"></div></div>
+        <div class="links">
+          <a href="${esc(projectURL)}" target="_blank">Calendar</a>
+          <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
+          ${p.has_auth ? `<!-- Remove password --> <button class="email-btn" style="color:var(--red)" onclick="removeProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Remove password</button>` : `<!-- Set password --> <button class="email-btn" style="color:var(--green)" onclick="setProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Set password</button>`}
+          <button class="email-btn" style="color:var(--yellow)" onclick="archiveProject(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Archive</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderArchivedProjects(projects) {
+  if (!projects.length) {
+    $archivedProjects.innerHTML = '<div class="empty">No archived projects.</div>';
+    return;
+  }
+  $archivedProjects.innerHTML = projects.map(p => {
+    const projectURL = absoluteURL(p.path);
+    const transmittalURL = absoluteURL(p.path + 'transmittal/');
+    const archived = p.archived_at ? p.archived_at.split('T')[0].split(' ')[0] : '—';
+    return `
+      <div class="project">
+        <div class="project-top">
+          <div>
+            <div class="project-title">${esc(p.name)}</div>
+            <div class="project-path">${esc(projectURL)}</div>
+          </div>
+          <span class="badge badge-dim"><span class="status-dot dim"></span> Archived ${esc(archived)}</span>
+        </div>
+        <div class="project-meta">Created: ${esc(p.created_at || '—')} &nbsp; Start: ${esc(p.start_date || '—')} &nbsp; Updated: ${esc(p.updated_at || '—')}</div>
+        <div class="links">
+          <a href="${esc(projectURL)}" target="_blank">Calendar</a>
+          <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
+          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
+          <button class="email-btn" style="color:var(--green)" onclick="restoreProject(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Restore</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openNewProjectModal() {
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+  const modal = document.createElement('div');
+  modal.className = 'modal-card';
+  modal.innerHTML = `
+    <h2>New Project</h2>
+    <p class="subtitle">Create a new seeded production calendar.</p>
+    <div class="book-form active" style="margin-bottom:0">
+      <div class="full"><label>Project name<input type="text" id="np-name" placeholder="The New Book"></label></div>
+      <div><label>Client slug<input type="text" id="np-client" list="np-client-list" placeholder="vgr"></label><datalist id="np-client-list">${cachedClients.map(c => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('')}</datalist></div>
+      <div><label>Project slug<input type="text" id="np-slug" placeholder="new-book"></label></div>
+      <div><label>Start date<input type="date" id="np-start"></label></div>
+      <div class="full" style="font-size:0.78rem;color:var(--text-secondary)">Type an existing client slug or enter a new one.</div>
+      <div class="full" id="np-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="np-cancel">Cancel</button>
+      <button class="primary" id="np-create">Create Project</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('#np-cancel').addEventListener('click', () => backdrop.remove());
+  modal.querySelector('#np-create').addEventListener('click', async () => {
+    const name = modal.querySelector('#np-name').value.trim();
+    const clientSlug = modal.querySelector('#np-client').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const projectSlug = modal.querySelector('#np-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const startDate = modal.querySelector('#np-start').value;
+    const errorEl = modal.querySelector('#np-error');
+    if (!name || !clientSlug || !projectSlug) {
+      errorEl.textContent = 'Project name, client slug, and project slug are required.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    try {
+      const r = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, client_slug: clientSlug, project_slug: projectSlug, start_date: startDate })
+      });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || r.statusText);
+      backdrop.remove();
+      await loadProjects();
+    } catch (e) {
+      errorEl.textContent = e.message;
+      errorEl.style.display = 'block';
+    }
+  });
+}
+
+function openNewClientModal() {
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+  const modal = document.createElement('div');
+  modal.className = 'modal-card';
+  modal.innerHTML = `
+    <h2>New Client</h2>
+    <p class="subtitle">Create a client record for project grouping. Optional password adds an extra portal password if access is not already handled elsewhere.</p>
+    <div class="book-form active" style="margin-bottom:0">
+      <div class="full"><label>Client name<input type="text" id="nc-name" placeholder="Client Name"></label></div>
+      <div><label>Client slug<input type="text" id="nc-slug" placeholder="client-slug"></label></div>
+      <div><label>Client password (optional)<input type="text" id="nc-password" placeholder="leave blank if handled elsewhere"></label></div>
+      <div class="full" id="nc-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="nc-cancel">Cancel</button>
+      <button class="primary" id="nc-create">Create Client</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('#nc-cancel').addEventListener('click', () => backdrop.remove());
+  modal.querySelector('#nc-create').addEventListener('click', async () => {
+    const name = modal.querySelector('#nc-name').value.trim();
+    const slug = modal.querySelector('#nc-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const password = modal.querySelector('#nc-password').value;
+    const errorEl = modal.querySelector('#nc-error');
+    if (!name || !slug) {
+      errorEl.textContent = 'Client name and client slug are required.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    try {
+      const r = await fetch('/api/admin/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slug, password })
+      });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || r.statusText);
+      backdrop.remove();
+      await loadClients();
+      await loadProjects();
+    } catch (e) {
+      errorEl.textContent = e.message;
+      errorEl.style.display = 'block';
+    }
+  });
+}
+
+// ─── Email Modal ───
+const EMAIL_RECIPIENTS = [
+  { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+  { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
+];
+
+let emailModalRecipients = null;
+let emailModalState = { projectId: null, projectName: '', type: '', sending: false, result: null };
+
+function initEmailRecipients() {
+  emailModalRecipients = EMAIL_RECIPIENTS.map(r => ({ ...r }));
+  emailModalRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+}
+
+function openEmailModal(projectId, projectName, type) {
+  initEmailRecipients();
+  emailModalState = { projectId, projectName, type, sending: false, result: null };
+  renderEmailModal();
+}
+
+function closeEmailModal() {
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+  emailModalState = { projectId: null, projectName: '', type: '', sending: false, result: null };
+}
+
+function renderEmailModal() {
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+
+  const { projectId, projectName, type, sending, result } = emailModalState;
+  const typeLabel = type === 'snapshot' ? 'Snapshot' : 'Activity Digest';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeEmailModal(); });
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-card';
+
+  let html = `<h2>Email ${esc(typeLabel)}</h2>`;
+  html += `<p class="subtitle">Project: <strong>${esc(projectName)}</strong></p>`;
+
+  html += '<div style="margin-bottom:16px"><label style="display:block;margin-bottom:8px">Send to:</label>';
+  emailModalRecipients.forEach((r, i) => {
+    html += '<div class="recipient-row">';
+    html += `<input type="checkbox" data-idx="${i}" ${r.checked ? 'checked' : ''}>`;
+    if (r.editable) {
+      html += `<input type="email" placeholder="email@example.com" value="${esc(r.email)}" data-edit-idx="${i}">`;
+    } else {
+      html += `<span style="font-size:14px">${esc(r.email)}</span>`;
+    }
+    html += `<span style="font-size:12px;color:var(--text-secondary)">${esc(r.label)}</span>`;
+    html += '</div>';
+  });
+  html += '</div>';
+
+  if (result?.ok) {
+    html += `<div class="msg-ok">Sent to: ${result.sent_to.join(', ')}</div>`;
+  }
+  if (result?.error) {
+    html += `<div class="msg-err">${esc(result.error)}</div>`;
+  }
+
+  html += '<div class="modal-actions">';
+  if (result?.ok) {
+    html += '<button class="primary" id="em-done">Done</button>';
+  } else {
+    html += '<button id="em-cancel">Cancel</button>';
+    const disabled = sending ? ' disabled' : '';
+    html += `<button class="primary" id="em-send"${disabled}>${sending ? 'Sending…' : 'Send ' + esc(typeLabel)}</button>`;
+  }
+  html += '</div>';
+
+  modal.innerHTML = html;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+
+  modal.querySelectorAll('input[data-idx]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      emailModalRecipients[parseInt(cb.dataset.idx)].checked = cb.checked;
+    });
+  });
+  modal.querySelectorAll('input[data-edit-idx]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.editIdx);
+      emailModalRecipients[idx].email = inp.value;
+      emailModalRecipients[idx].checked = inp.value.trim().length > 0;
+      const cb = modal.querySelector(`input[data-idx="${idx}"]`);
+      if (cb) cb.checked = emailModalRecipients[idx].checked;
+    });
+  });
+  const doneBtn = modal.querySelector('#em-done');
+  if (doneBtn) doneBtn.addEventListener('click', closeEmailModal);
+  const cancelBtn = modal.querySelector('#em-cancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeEmailModal);
+  const sendBtn = modal.querySelector('#em-send');
+  if (sendBtn) sendBtn.addEventListener('click', sendEmailFromModal);
+}
+
+async function sendEmailFromModal() {
+  const recipients = emailModalRecipients
+    .filter(r => r.checked && r.email.trim())
+    .map(r => r.email.trim());
+  if (recipients.length === 0) {
+    emailModalState.result = { error: 'Select at least one recipient' };
+    renderEmailModal();
+    return;
+  }
+  emailModalState.sending = true;
+  renderEmailModal();
+  try {
+    const { projectId, type } = emailModalState;
+    const url = `/api/projects/${projectId}/${type}/email`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipients }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: r.statusText }));
+      throw new Error(err.detail || err.error || 'Send failed');
+    }
+    const data = await r.json();
+    emailModalState.sending = false;
+    emailModalState.result = { ok: true, sent_to: data.sent_to || recipients };
+    renderEmailModal();
+  } catch(e) {
+    emailModalState.sending = false;
+    emailModalState.result = { error: e.message };
+    renderEmailModal();
+  }
+}
+
+document.getElementById('new-project-btn').addEventListener('click', openNewProjectModal);
+document.getElementById('new-client-btn').addEventListener('click', openNewClientModal);
+
+// ─── Tabs ───
+function normalizeAdminTab(tabName) {
+  return ['projects', 'typesetting', 'files', 'archived'].includes(tabName) ? tabName : 'projects';
+}
+
+function showTab(tabName, opts = {}) {
+  const normalized = normalizeAdminTab(tabName);
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector(`.tab[data-tab="${normalized}"]`);
+  if (tab) tab.classList.add('active');
+  const panel = document.getElementById('tab-' + normalized);
+  if (panel) panel.classList.add('active');
+  if (opts.updateHash !== false && window.location.hash !== `#${normalized}`) {
+    window.location.hash = normalized;
+  }
+  if (normalized === 'projects') loadProjects();
+  if (normalized === 'files') loadBooks();
+  if (normalized === 'archived') loadArchivedProjects();
+  if (normalized === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
+}
+
+function showProjectsTab() {
+  showTab('projects');
+}
+
+document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+  tab.addEventListener('click', () => showTab(tab.dataset.tab));
+});
+
+window.addEventListener('hashchange', () => {
+  showTab(window.location.hash.replace(/^#/, ''), { updateHash: false });
+});
+showTab(window.location.hash.replace(/^#/, '') || 'projects', { updateHash: false });
+
+// ─── Books ───
+const $uploadZone = document.getElementById('upload-zone');
+const $bookFile = document.getElementById('book-file');
+const $bookForm = document.getElementById('book-form');
+const $bookTitle = document.getElementById('book-title');
+const $bookAuthor = document.getElementById('book-author');
+const $bookSeries = document.getElementById('book-series');
+const $btnUpload = document.getElementById('btn-upload');
+const $btnCancel = document.getElementById('btn-cancel');
+const $uploadStatus = document.getElementById('upload-status');
+const $bookList = document.getElementById('book-list');
+const $bookListLoading = document.getElementById('book-list-loading');
+
+let selectedFile = null;
+
+$uploadZone.addEventListener('click', () => $bookFile.click());
+$uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  $uploadZone.classList.add('dragover');
+});
+$uploadZone.addEventListener('dragleave', () => $uploadZone.classList.remove('dragover'));
+$uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  $uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
+});
+$bookFile.addEventListener('change', () => {
+  if ($bookFile.files.length) handleFileSelect($bookFile.files[0]);
+});
+
+function handleFileSelect(file) {
+  if (!file.name.match(/\.docx?$/i)) {
+    alert('Please select a .docx file');
+    return;
+  }
+  selectedFile = file;
+  $bookForm.classList.add('active');
+  $uploadZone.innerHTML = `<div class="icon">\u2713</div><div><strong>${esc(file.name)}</strong> (${(file.size/1024).toFixed(0)} KB)</div>`;
+  const name = file.name.replace(/\.docx?$/i, '').replace(/[-_]/g, ' ');
+  if (!$bookTitle.value) $bookTitle.value = name;
+  checkUploadReady();
+}
+
+$bookTitle.addEventListener('input', checkUploadReady);
+$bookAuthor.addEventListener('input', checkUploadReady);
+
+function checkUploadReady() {
+  $btnUpload.disabled = !selectedFile || !$bookTitle.value.trim() || !$bookAuthor.value.trim();
+}
+
+$btnCancel.addEventListener('click', resetUploadForm);
+
+function resetUploadForm() {
+  selectedFile = null;
+  $bookFile.value = '';
+  $bookForm.classList.remove('active');
+  $bookTitle.value = '';
+  $bookAuthor.value = '';
+  $uploadStatus.textContent = '';
+  $btnUpload.disabled = true;
+  $uploadZone.innerHTML = `<div class="icon">\u25B3</div><div>Drop a Word file here or <strong>click to upload</strong></div><div style="font-size:0.78rem;margin-top:0.35rem">.docx files only</div><input type="file" id="book-file" accept=".docx,.doc">`;
+  document.getElementById('book-file').addEventListener('change', function() {
+    if (this.files.length) handleFileSelect(this.files[0]);
+  });
+}
+
+$btnUpload.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  $btnUpload.disabled = true;
+  $uploadStatus.textContent = 'Uploading…';
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  fd.append('title', $bookTitle.value.trim());
+  fd.append('author', $bookAuthor.value.trim());
+  fd.append('series', $bookSeries.value);
+  const bookProjectId = document.getElementById('book-project').value;
+  if (bookProjectId) fd.append('project_id', bookProjectId);
+
+  try {
+    const r = await fetch('/api/books/upload', { method: 'POST', body: fd });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: r.statusText }));
+      throw new Error(err.error || 'Upload failed');
+    }
+    await r.json();
+    $uploadStatus.textContent = 'Uploaded!';
+    resetUploadForm();
+    loadBooks();
+  } catch(e) {
+    $uploadStatus.textContent = 'Error: ' + e.message;
+    $btnUpload.disabled = false;
+  }
+});
+
+function pollBookStatus(bookId) {
+  const iv = setInterval(async () => {
+    try {
+      const r = await fetch('/api/books');
+      const books = await r.json();
+      const book = books.find(b => b.ID === bookId);
+      if (!book || book.Status === 'ready' || book.Status === 'error') {
+        clearInterval(iv);
+        loadBooks();
+      }
+    } catch(e) {
+      clearInterval(iv);
+    }
+  }, 2000);
+}
+
+async function loadBooks() {
+  try {
+    const r = await fetch('/api/books');
+    const books = await r.json();
+    $bookListLoading.style.display = 'none';
+    renderBooks(books);
+  } catch(e) {
+    $bookListLoading.textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderBooks(books) {
+  if (!books || !books.length) {
+    $bookList.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">No books yet. Upload a Word file to get started.</div>';
+    return;
+  }
+  $bookList.innerHTML = books.map(b => {
+    const statusBadge = {
+      'uploaded': '<span class="badge badge-dim"><span class="status-dot dim"></span> Uploaded</span>',
+      'converting': '<span class="badge badge-yellow"><span class="status-dot yellow"></span> Converting…</span>',
+      'ready': '<span class="badge badge-green"><span class="status-dot green"></span> Ready</span>',
+      'error': `<span class="badge badge-red" title="${esc(b.ErrorMsg || '')}"><span class="status-dot red"></span> Error</span>`,
+    }[b.Status] || `<span class="badge badge-dim">${esc(b.Status)}</span>`;
+
+    const ago = timeAgo(b.UpdatedAt);
+    const linkedPid = b.ProjectID && b.ProjectID.Valid ? b.ProjectID.Int64 : '';
+    const linkedProject = linkedPid ? cachedProjects.find(p => p.id == linkedPid) : null;
+    const projectName = linkedProject ? linkedProject.name : '';
+
+    // Build project dropdown options
+    let projectOpts = `<option value="">No project</option>`;
+    cachedProjects.forEach(p => {
+      projectOpts += `<option value="${p.id}"${p.id == linkedPid ? ' selected' : ''}>${esc(p.name)}</option>`;
+    });
+
+    let actions = '';
+    if (b.Status === 'ready') {
+      actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/pdf`)}" class="dl-pdf">PDF</a>`;
+      actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/epub`)}" class="dl-epub" title="Download EPUB (generate first if needed)" onclick="event.preventDefault(); downloadOrGenerateEPUB(${b.ID})">EPUB</a>`;
+    }
+    actions += `<button class="del" onclick="deleteBook(${b.ID})">Delete</button>`;
+
+    return `<div class="book">
+      <div class="book-info">
+        <div class="book-title">${esc(b.Title)}</div>
+        <div class="book-author">${esc(b.Author)}${b.Series ? ' \u00b7 ' + esc(b.Series) : ''}</div>
+        <div class="book-meta">${esc(b.SourceFilename)} \u00b7 ${ago}</div>
+      </div>
+      <div class="book-project-link">
+        <select class="book-project-sel" data-book-id="${b.ID}" onchange="linkBookToProject(${b.ID}, this.value)" title="Link to project">${projectOpts}</select>
+      </div>
+      ${statusBadge}
+      <div class="book-actions">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+async function linkBookToProject(bookId, projectId) {
+  try {
+    const pid = projectId ? parseInt(projectId) : null;
+    const r = await fetch(`/api/books/${bookId}/project`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: pid }),
+    });
+    if (!r.ok) throw new Error('Link failed');
+  } catch(e) {
+    alert('Failed to link book: ' + e.message);
+    loadBooks();
+  }
+}
+
+function timeAgo(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+async function startConvert(id) {
+  await fetch(`/api/books/${id}/convert`, { method: 'POST' });
+  loadBooks();
+  pollBookStatus(id);
+}
+
+async function retryConvert(id) {
+  await fetch(`/api/books/${id}/convert`, { method: 'POST' });
+  loadBooks();
+  pollBookStatus(id);
+}
+
+async function deleteBook(id) {
+  if (!confirm('Delete this book?')) return;
+  await fetch(`/api/books/${id}`, { method: 'DELETE' });
+  loadBooks();
+}
+
+async function setProjectPassword(id, name) {
+  const password = prompt(`Set a project password for "${name}"`);
+  if (!password) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Set password failed');
+    await loadProjects();
+  } catch (e) {
+    alert('Failed to set project password: ' + e.message);
+  }
+}
+
+async function removeProjectPassword(id, name) {
+  if (!confirm(`Remove the project password for "${name}"? This will make the project open access.`)) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/auth`, { method: 'DELETE' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Remove password failed');
+    await loadProjects();
+  } catch (e) {
+    alert('Failed to remove project password: ' + e.message);
+  }
+}
+
+async function archiveProject(id, name) {
+  if (!confirm(`Archive project "${name}"?\n\nThis hides it from the main Projects list and moves it to Archived. Nothing is deleted.`)) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/archive`, { method: 'POST' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Archive failed');
+    if (tsProject.value == String(id)) {
+      tsProject.value = '';
+      tsForm.style.display = 'none';
+      tsEmpty.style.display = 'block';
+      tsPullTx.disabled = true;
+      tsSave.disabled = true;
+      tsExport.disabled = true;
+      document.getElementById('ts-preview-config').disabled = true;
+      document.getElementById('ts-download-template').disabled = true;
+      tsSpec = null;
+    }
+    await loadProjects();
+    await loadArchivedProjects();
+    await loadBooks();
+  } catch (e) {
+    alert('Failed to archive project: ' + e.message);
+  }
+}
+
+async function restoreProject(id, name) {
+  if (!confirm(`Restore project "${name}" to the active Projects list?`)) return;
+  try {
+    const res = await fetch(`/api/projects/${id}/restore`, { method: 'POST' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || 'Restore failed');
+    await loadProjects();
+    await loadArchivedProjects();
+    await loadBooks();
+  } catch (e) {
+    alert('Failed to restore project: ' + e.message);
+  }
+}
+
+async function downloadOrGenerateEPUB(id) {
+  // Try downloading first
+  try {
+    const epubURL = absoluteURL(`/api/books/${id}/download/epub`);
+    const check = await fetch(epubURL, { method: 'HEAD' });
+    if (check.ok) {
+      window.location.href = epubURL;
+      return;
+    }
+  } catch(e) {}
+  // Generate then download
+  if (!confirm('No EPUB yet. Generate one now?')) return;
+  try {
+    const r = await fetch(`/api/books/${id}/generate-epub`, { method: 'POST' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: r.statusText }));
+      alert('EPUB error: ' + (err.error || 'failed'));
+      return;
+    }
+    // Poll for availability
+    let attempts = 0;
+    const iv = setInterval(async () => {
+      attempts++;
+      if (attempts > 30) { clearInterval(iv); alert('EPUB generation timed out'); return; }
+      const epubURL = absoluteURL(`/api/books/${id}/download/epub`);
+      const check = await fetch(epubURL, { method: 'HEAD' });
+      if (check.ok) {
+        clearInterval(iv);
+        window.location.href = epubURL;
+      }
+    }, 2000);
+  } catch(e) {
+    alert('EPUB error: ' + e.message);
+  }
+}
+
+// Populate book-project selector
+function populateBookProjectSelector(projects) {
+  const sel = document.getElementById('book-project');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">None</option>';
+  (projects || []).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    sel.appendChild(o);
+  });
+  if (prev) sel.value = prev;
+}
+
+// ─── Typesetting Tab ───
+const tsProject = document.getElementById('ts-project');
+const tsPullTx = document.getElementById('ts-pull-tx');
+const tsSave = document.getElementById('ts-save');
+const tsExport = document.getElementById('ts-export');
+const tsSaveStatus = document.getElementById('ts-save-status');
+const tsForm = document.getElementById('ts-form');
+const tsEmpty = document.getElementById('ts-empty');
+let tsSpec = null;
+let tsDirty = false;
+let tsAutoSaveTimer = null;
+
+// Populate project selector from existing loaded projects
+function tsPopulateProjects(projects) {
+  const prev = tsProject.value;
+  tsProject.innerHTML = '<option value="">Select project…</option>';
+  (projects || []).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    tsProject.appendChild(o);
+  });
+  if (prev) tsProject.value = prev;
+}
+
+tsProject.addEventListener('change', () => {
+  const pid = tsProject.value;
+  if (!pid) {
+    tsForm.style.display = 'none';
+    tsEmpty.style.display = 'block';
+    tsPullTx.disabled = true;
+    tsSave.disabled = true;
+    tsExport.disabled = true;
+    document.getElementById('ts-preview-config').disabled = true;
+    document.getElementById('ts-download-template').disabled = true;
+    tsSpec = null;
+    return;
+  }
+  tsLoadSpec(pid);
+});
+
+async function tsLoadSpec(pid) {
+  try {
+    await tsLoadFonts();
+    const res = await fetch(`/api/projects/${pid}/book-spec`);
+    const json = await res.json();
+    tsSpec = json.data;
+    tsEmpty.style.display = 'none';
+    tsForm.style.display = 'block';
+    tsPullTx.disabled = false;
+    tsSave.disabled = false;
+    tsExport.disabled = false;
+    document.getElementById('ts-preview-config').disabled = false;
+    document.getElementById('ts-download-template').disabled = false;
+    tsPopulateForm();
+    // Show cover preview from server if available
+    if (json.has_cover) {
+      document.getElementById('ts-cover-preview').innerHTML = `<img src="/api/projects/${pid}/book-spec/cover?t=${Date.now()}">`;
+    } else {
+      document.getElementById('ts-cover-preview').innerHTML = '';
+    }
+    tsDirty = false;
+    tsSaveStatus.textContent = '';
+    tsLoadLinkedBooks();
+    corrLoad();
+  } catch(e) {
+    tsSaveStatus.textContent = 'Error loading spec';
+  }
+}
+
+// ─── Font Loading ───
+let tsFontsLoaded = false;
+let tsFontList = [];
+
+async function tsLoadFonts() {
+  if (tsFontsLoaded) return;
+  try {
+    const r = await fetch('/api/fonts');
+    tsFontList = await r.json();
+    tsFontsLoaded = true;
+    tsPopulateFontSelects();
+  } catch(e) {
+    console.error('Failed to load fonts:', e);
+  }
+}
+
+function tsPopulateFontSelects() {
+  document.querySelectorAll('.ts-font-select').forEach(sel => {
+    const preferred = (sel.dataset.fontCategory || '').split(',');
+    const currentVal = sel.value;
+    sel.innerHTML = '';
+
+    // Group fonts by category, preferred categories first
+    const groups = {};
+    tsFontList.forEach(f => {
+      const cat = f.category || 'other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(f.family);
+    });
+
+    // Sort: preferred categories first, then alphabetical
+    const catOrder = [...preferred.filter(c => groups[c]), ...Object.keys(groups).filter(c => !preferred.includes(c)).sort()];
+    const catLabels = { serif: 'Serif', 'sans-serif': 'Sans-Serif', monospace: 'Monospace', other: 'Other' };
+
+    catOrder.forEach(cat => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = catLabels[cat] || cat;
+      (groups[cat] || []).sort().forEach(family => {
+        const o = document.createElement('option');
+        o.value = family;
+        o.textContent = family;
+        optgroup.appendChild(o);
+      });
+      sel.appendChild(optgroup);
+    });
+
+    // Restore value
+    if (currentVal) sel.value = currentVal;
+  });
+}
+
+function tsPopulateForm() {
+  if (!tsSpec) return;
+  // Migrate old leading_em → leading_pt
+  const typo = tsSpec.typography;
+  if (typo && typo.leading_em != null && typo.leading_pt == null) {
+    // Old format: leading_em was inter-line gap in em. Convert: em * base_size = pt
+    const base = typo.base_size_pt || 10;
+    typo.leading_pt = Math.round(typo.leading_em * base * 10) / 10;
+    delete typo.leading_em;
+  }
+  // Ensure epub section exists
+  if (!tsSpec.epub) tsSpec.epub = { toc_depth: 2, landmarks: true, chapter_break: 'page', section_break: 'breve', body_font_size: 'inherit', embed_fonts: false, custom_css: '', language: 'en', subject: '', description: '' };
+  // Ensure shared typesetting section exists
+  if (!tsSpec.typesetting) tsSpec.typesetting = { developmental_instructions: '', copyeditor_instructions: '', trim_guidance: '', trim_size: '', est_pages: '', ppi: '', spine_width: '', complexity: '', outside_designer: '', reuse_previous: '', design_notes: '' };
+  // Migrate old "W x H" trim values to Typst paper names
+  if (tsSpec.page && tsSpec.page.trim) {
+    const oldTrim = tsSpec.page.trim;
+    if (trimAliases[oldTrim]) {
+      const mapped = trimAliases[oldTrim];
+      if (mapped !== 'custom') {
+        tsSpec.page.trim = mapped;
+      } else if (trimLegacyDims[oldTrim]) {
+        // Keep as custom but set dimensions
+        const ld = trimLegacyDims[oldTrim];
+        tsSpec.page.trim = 'custom';
+        tsSpec.page.width_in = ld[0];
+        tsSpec.page.height_in = ld[1];
+      }
+    }
+  }
+  // Text/number/select inputs
+  tsForm.querySelectorAll('[data-path]').forEach(el => {
+    const val = tsGetPath(tsSpec, el.dataset.path);
+    if (el.type === 'checkbox') {
+      el.checked = !!val;
+    } else if (el.tagName === 'SELECT') {
+      el.value = String(val);
+    } else {
+      el.value = val != null ? val : '';
+    }
+  });
+  tsUpdatePagePreview();
+  tsUpdateLeadingHint();
+  tsRenderCustomStyles();
+}
+
+function tsGetPath(obj, path) {
+  return path.split('.').reduce((o, k) => o && o[k], obj);
+}
+
+function tsSetPath(obj, path, val) {
+  const keys = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (!cur[keys[i]]) cur[keys[i]] = {};
+    cur = cur[keys[i]];
+  }
+  cur[keys[keys.length - 1]] = val;
+}
+
+// Wire up change events (auto-save with debounce)
+tsForm.addEventListener('input', (e) => {
+  if (!e.target.dataset || !e.target.dataset.path) return;
+  const el = e.target;
+  let val = el.value;
+  if (el.type === 'number') val = parseFloat(val) || 0;
+  else if (el.tagName === 'SELECT' && (val === 'true' || val === 'false')) val = val === 'true';
+  tsSetPath(tsSpec, el.dataset.path, val);
+  tsMarkDirty();
+  if (el.dataset.path.startsWith('page.')) tsUpdatePagePreview();
+  // When user manually edits width or height, switch trim dropdown to Custom
+  if (el.dataset.path === 'page.width_in' || el.dataset.path === 'page.height_in') {
+    const trimSel = document.getElementById('ts-trim-select');
+    if (trimSel && trimSel.value !== 'custom') {
+      trimSel.value = 'custom';
+      tsSetPath(tsSpec, 'page.trim', 'custom');
+    }
+  }
+  if (el.dataset.path === 'typography.base_size_pt' || el.dataset.path === 'typography.leading_pt') tsUpdateLeadingHint();
+});
+tsForm.addEventListener('change', (e) => {
+  if (!e.target.dataset || !e.target.dataset.path) return;
+  const el = e.target;
+  if (el.type === 'checkbox') {
+    tsSetPath(tsSpec, el.dataset.path, el.checked);
+    tsMarkDirty();
+  } else if (el.tagName === 'SELECT') {
+    let val = el.value;
+    if (val === 'true' || val === 'false') val = val === 'true';
+    tsSetPath(tsSpec, el.dataset.path, val);
+    tsMarkDirty();
+    if (el.dataset.path === 'page.trim') tsHandleTrimChange(el.value);
+  }
+});
+
+function tsMarkDirty() {
+  tsDirty = true;
+  tsSaveStatus.textContent = 'Unsaved changes';
+  tsSaveStatus.style.color = 'var(--yellow)';
+  clearTimeout(tsAutoSaveTimer);
+  tsAutoSaveTimer = setTimeout(tsSaveSpec, 2000);
+}
+
+async function tsSaveSpec() {
+  const pid = tsProject.value;
+  if (!pid || !tsSpec) return;
+  tsSaveStatus.textContent = 'Saving…';
+  tsSaveStatus.style.color = 'var(--text-muted)';
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: tsSpec }),
+    });
+    if (res.ok) {
+      tsDirty = false;
+      tsSaveStatus.textContent = 'Saved';
+      tsSaveStatus.style.color = 'var(--green)';
+      setTimeout(() => { if (!tsDirty) tsSaveStatus.textContent = ''; }, 2000);
+    } else {
+      tsSaveStatus.textContent = 'Save failed';
+      tsSaveStatus.style.color = 'var(--red)';
+    }
+  } catch(e) {
+    tsSaveStatus.textContent = 'Save error';
+    tsSaveStatus.style.color = 'var(--red)';
+  }
+}
+tsSave.addEventListener('click', tsSaveSpec);
+
+// Pull from transmittal
+tsPullTx.addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  tsPullTx.disabled = true;
+  tsPullTx.textContent = 'Pulling…';
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec/pull-transmittal`, { method: 'POST' });
+    const json = await res.json();
+    if (json.data) {
+      tsSpec = json.data;
+      tsPopulateForm();
+      tsSaveStatus.textContent = 'Pulled from transmittal';
+      tsSaveStatus.style.color = 'var(--green)';
+      tsDirty = false;
+    } else {
+      tsSaveStatus.textContent = json.error || 'Pull failed';
+      tsSaveStatus.style.color = 'var(--red)';
+    }
+  } catch(e) {
+    tsSaveStatus.textContent = 'Pull error';
+    tsSaveStatus.style.color = 'var(--red)';
+  }
+  tsPullTx.disabled = false;
+  tsPullTx.textContent = 'Pull from Transmittal';
+});
+
+// Export JSON
+tsExport.addEventListener('click', () => {
+  if (!tsSpec) return;
+  const blob = new Blob([JSON.stringify(tsSpec, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (tsSpec.metadata?.title || 'spec').replace(/[^a-zA-Z0-9-_ ]/g, '') + '-spec.json';
+  a.click();
+});
+
+// Trim presets — Typst paper names → [width_in, height_in]
+// All mm values converted via mm/25.4, rounded to 4 decimal places
+const trimPresets = {
+  'us-digest':    [+(139.7/25.4).toFixed(4), +(215.9/25.4).toFixed(4)],   // 5.5 × 8.5
+  'us-trade':     [+(152.4/25.4).toFixed(4), +(228.6/25.4).toFixed(4)],   // 6 × 9
+  'uk-book-a':    [+(111/25.4).toFixed(4),   +(178/25.4).toFixed(4)],     // 4.3701 × 7.0079
+  'uk-book-b':    [+(129/25.4).toFixed(4),   +(198/25.4).toFixed(4)],     // 5.0787 × 7.7953
+  'a5':           [+(148/25.4).toFixed(4),   +(210/25.4).toFixed(4)],     // 5.8268 × 8.2677
+  'a4':           [+(210/25.4).toFixed(4),   +(297/25.4).toFixed(4)],     // 8.2677 × 11.6929
+  'a6':           [+(105/25.4).toFixed(4),   +(148/25.4).toFixed(4)],     // 4.1339 × 5.8268
+  'jis-b5':       [+(182/25.4).toFixed(4),   +(257/25.4).toFixed(4)],     // 7.1654 × 10.1181
+  'jis-b6':       [+(128/25.4).toFixed(4),   +(182/25.4).toFixed(4)],     // 5.0394 × 7.1654
+  'us-letter':    [8.5, 11],
+  'us-legal':     [8.5, 14],
+  'us-executive': [+(184.15/25.4).toFixed(4), +(266.7/25.4).toFixed(4)],  // 7.25 × 10.5
+  'us-statement': [+(139.7/25.4).toFixed(4), +(215.9/25.4).toFixed(4)],   // same as digest
+};
+// Backward-compat aliases for old "W x H" format values
+const trimAliases = {
+  '5.5 x 8.5': 'us-digest',
+  '6 x 9':     'us-trade',
+  '5 x 8':     'custom',   // no Typst equivalent; treat as custom 5×8
+  '8.5 x 11':  'us-letter',
+};
+// Old W×H values that need explicit dims when they don't map to a Typst name
+const trimLegacyDims = {
+  '5 x 8': [5, 8],
+};
+function tsHandleTrimChange(trim) {
+  const dims = trimPresets[trim];
+  if (dims) {
+    const w = +dims[0], h = +dims[1];
+    tsSetPath(tsSpec, 'page.width_in', w);
+    tsSetPath(tsSpec, 'page.height_in', h);
+    const wEl = tsForm.querySelector('[data-path="page.width_in"]');
+    const hEl = tsForm.querySelector('[data-path="page.height_in"]');
+    if (wEl) wEl.value = w;
+    if (hEl) hEl.value = h;
+  }
+  tsUpdatePagePreview();
+}
+
+// Leading hint (10/12 notation)
+function tsUpdateLeadingHint() {
+  const base = tsGetPath(tsSpec, 'typography.base_size_pt') || 10;
+  const lead = tsGetPath(tsSpec, 'typography.leading_pt');
+  const hint = document.getElementById('ts-leading-hint');
+  if (hint && lead != null) {
+    const total = base + lead;
+    hint.textContent = '(' + base + '/' + total + ')';
+  }
+}
+
+// Page preview
+// Trim size comparison strip — 7 book sizes drawn to relative scale
+const trimCompareData = [
+  { id: 'uk-book-a', label: 'UK A',     w: 4.37, h: 7.01 },
+  { id: 'jis-b6',    label: 'JIS B6',   w: 5.04, h: 7.17 },
+  { id: 'uk-book-b', label: 'UK B',     w: 5.08, h: 7.80 },
+  { id: 'us-digest', label: 'Digest',   w: 5.5,  h: 8.5  },
+  { id: 'a5',        label: 'A5',       w: 5.83, h: 8.27 },
+  { id: 'us-trade',  label: 'Trade',    w: 6,    h: 9    },
+  { id: 'jis-b5',    label: 'JIS B5',   w: 7.17, h: 10.12 },
+];
+function tsRenderTrimCompare() {
+  const container = document.getElementById('ts-trim-compare');
+  if (!container) return;
+  const trim = tsGetPath(tsSpec, 'page.trim') || 'us-digest';
+  const maxH = 10.12; // tallest book
+  const stripH = 48;  // px height of strip
+  const scale = stripH / maxH;
+  const gap = 6;
+  let totalW = 0;
+  trimCompareData.forEach(t => { totalW += Math.round(t.w * scale) + gap; });
+  totalW -= gap;
+  let svg = `<svg width="${totalW}" height="${stripH + 16}" viewBox="0 0 ${totalW} ${stripH + 16}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">`;
+  let x = 0;
+  trimCompareData.forEach(t => {
+    const rw = Math.round(t.w * scale);
+    const rh = Math.round(t.h * scale);
+    const ry = stripH - rh;
+    const active = (t.id === trim);
+    const fill = active ? 'var(--accent)' : 'var(--border)';
+    const opacity = active ? '0.25' : '0.5';
+    const stroke = active ? 'var(--accent)' : 'var(--text-muted)';
+    const strokeW = active ? '1.5' : '0.5';
+    const textFill = active ? 'var(--accent)' : 'var(--text-muted)';
+    const fontW = active ? '600' : '400';
+    svg += `<rect x="${x}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="${strokeW}" rx="1"/>`;
+    svg += `<text x="${x + rw/2}" y="${stripH + 11}" text-anchor="middle" fill="${textFill}" font-size="7" font-weight="${fontW}" font-family="inherit">${t.label}</text>`;
+    x += rw + gap;
+  });
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
+function tsUpdatePagePreview() {
+  tsRenderTrimCompare();
+  const w = tsGetPath(tsSpec, 'page.width_in') || 5.5;
+  const h = tsGetPath(tsSpec, 'page.height_in') || 8.5;
+  const rect = document.getElementById('ts-page-rect');
+  const textArea = document.getElementById('ts-text-area');
+  const dims = document.getElementById('ts-page-dims');
+  // Scale: max 136px height
+  const scale = 136 / h;
+  rect.style.width = Math.round(w * scale) + 'px';
+  rect.style.height = Math.round(h * scale) + 'px';
+  dims.textContent = w + ' × ' + h;
+
+  // Parse margins (strip 'in' suffix)
+  const mt = parseFloat(String(tsGetPath(tsSpec, 'page.margin_top')).replace('in', '')) || 0.75;
+  const mb = parseFloat(String(tsGetPath(tsSpec, 'page.margin_bottom')).replace('in', '')) || 0.75;
+  const mi = parseFloat(String(tsGetPath(tsSpec, 'page.margin_inside')).replace('in', '')) || 0.7;
+  const mo = parseFloat(String(tsGetPath(tsSpec, 'page.margin_outside')).replace('in', '')) || 0.6;
+  textArea.style.top = Math.round(mt * scale) + 'px';
+  textArea.style.bottom = Math.round(mb * scale) + 'px';
+  textArea.style.left = Math.round(mi * scale) + 'px';
+  textArea.style.right = Math.round(mo * scale) + 'px';
+}
+
+// Custom styles
+function tsRenderCustomStyles() {
+  const container = document.getElementById('ts-custom-styles');
+  const styles = tsSpec.custom_styles || [];
+  container.innerHTML = '';
+  if (styles.length === 0) {
+    container.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted);padding:0.5rem 0">No custom styles. Click + Add to create one.</div>';
+    return;
+  }
+  styles.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'ts-style-row';
+    row.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.3rem">
+        <input type="text" value="${esc(s.name || '')}" placeholder="Name" data-idx="${i}" data-field="name">
+        <input type="text" value="${esc(s.word_style || '')}" placeholder="Word style" data-idx="${i}" data-field="word_style">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.3rem">
+        <select data-idx="${i}" data-field="type">
+          <option value="paragraph" ${(s.type || 'paragraph') === 'paragraph' ? 'selected' : ''}>Paragraph</option>
+          <option value="character" ${(s.type || 'paragraph') === 'character' ? 'selected' : ''}>Character</option>
+        </select>
+        <input type="text" value="${esc(s.description || '')}" placeholder="Description" data-idx="${i}" data-field="description">
+      </div>
+      <textarea data-idx="${i}" data-field="typst" placeholder="#let myStyle(content) = text(content)">${esc(s.typst || '')}</textarea>
+      <button class="ts-style-remove" data-idx="${i}">×</button>
+    `;
+    container.appendChild(row);
+  });
+  // Events
+  container.querySelectorAll('input, textarea, select').forEach(el => {
+    const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(eventName, () => {
+      const idx = parseInt(el.dataset.idx);
+      tsSpec.custom_styles[idx][el.dataset.field] = el.value;
+      tsMarkDirty();
+    });
+  });
+  container.querySelectorAll('.ts-style-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      tsSpec.custom_styles.splice(parseInt(btn.dataset.idx), 1);
+      tsRenderCustomStyles();
+      tsMarkDirty();
+    });
+  });
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const tsPreviewConfig = document.getElementById('ts-preview-config');
+document.getElementById('ts-preview-config').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  // Save first if dirty
+  if (tsDirty) await tsSaveSpec();
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec/generate-config`, { method: 'POST' });
+    const json = await res.json();
+    const preview = document.getElementById('ts-config-preview');
+    const code = document.getElementById('ts-config-code');
+    if (json.config) {
+      code.textContent = json.config;
+      preview.style.display = 'block';
+      preview.scrollIntoView({ behavior: 'smooth' });
+    }
+  } catch(e) {
+    tsSaveStatus.textContent = 'Config preview error';
+    tsSaveStatus.style.color = 'var(--red)';
+  }
+});
+
+// Word template download
+document.getElementById('ts-download-template').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  if (tsDirty) await tsSaveSpec();
+  const btn = document.getElementById('ts-download-template');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  try {
+    const res = await fetch(`/api/projects/${pid}/book-spec/word-template`, { method: 'POST' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'generation failed');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const disp = res.headers.get('Content-Disposition') || '';
+    const m = disp.match(/filename="([^"]+)"/);
+    a.download = m ? m[1] : 'template.docx';
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Word template error: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Word Template';
+});
+
+// Cover image — upload to server, not base64
+document.getElementById('ts-cover-select').addEventListener('click', () => document.getElementById('ts-cover-file').click());
+document.getElementById('ts-cover-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const pid = tsProject.value;
+  if (!pid) { alert('Select a project first'); return; }
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  try {
+    const r = await fetch(`/api/projects/${pid}/book-spec/cover`, { method: 'POST', body: fd });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: 'upload failed' }));
+      alert('Cover upload error: ' + (err.error || 'failed'));
+      return;
+    }
+    // Show preview from server URL
+    const preview = document.getElementById('ts-cover-preview');
+    preview.innerHTML = `<img src="/api/projects/${pid}/book-spec/cover?t=${Date.now()}">`;
+    // Remove any old base64 from spec
+    if (tsSpec.epub) delete tsSpec.epub.cover_image;
+    tsSaveStatus.textContent = 'Cover uploaded';
+    tsSaveStatus.style.color = 'var(--green)';
+    setTimeout(() => { if (!tsDirty) tsSaveStatus.textContent = ''; }, 2000);
+  } catch(e) {
+    alert('Cover upload error: ' + e.message);
+  }
+});
+
+document.getElementById('ts-add-style').addEventListener('click', () => {
+  if (!tsSpec) return;
+  if (!tsSpec.custom_styles) tsSpec.custom_styles = [];
+  tsSpec.custom_styles.push({ name: '', type: 'paragraph', typst: '', word_style: '', description: '' });
+  tsRenderCustomStyles();
+  tsMarkDirty();
+});
+
+// ─── Compile / Generate from Typesetting tab ───
+const tsPdfBook = document.getElementById('ts-pdf-book');
+const tsEpubBook = document.getElementById('ts-epub-book');
+const tsCompilePdf = document.getElementById('ts-compile-pdf');
+const tsGenerateEpub = document.getElementById('ts-generate-epub');
+const tsCompileStatus = document.getElementById('ts-compile-status');
+const tsEpubStatus = document.getElementById('ts-epub-status');
+
+async function tsLoadLinkedBooks() {
+  const pid = tsProject.value;
+  if (!pid) return;
+  try {
+    const r = await fetch('/api/books');
+    const books = await r.json();
+    // Filter to books linked to this project, or show all if none linked
+    const linked = books.filter(b => b.ProjectID && b.ProjectID.Valid && b.ProjectID.Int64 == pid);
+    const pool = linked.length > 0 ? linked : books;
+    [tsPdfBook, tsEpubBook].forEach(sel => {
+      sel.innerHTML = '<option value="">Select book\u2026</option>';
+      pool.forEach(b => {
+        const o = document.createElement('option');
+        o.value = b.ID;
+        o.textContent = b.Title + (b.Status !== 'ready' && b.Status !== 'uploaded' ? ` (${b.Status})` : '');
+        sel.appendChild(o);
+      });
+    });
+  } catch(e) {}
+}
+
+tsPdfBook.addEventListener('change', () => tsCompilePdf.disabled = !tsPdfBook.value);
+tsEpubBook.addEventListener('change', () => tsGenerateEpub.disabled = !tsEpubBook.value);
+
+tsCompilePdf.addEventListener('click', async () => {
+  const bid = tsPdfBook.value;
+  if (!bid) return;
+  // Save spec first
+  if (tsDirty) await tsSaveSpec();
+  tsCompileStatus.textContent = 'Compiling\u2026';
+  tsCompileStatus.style.color = 'var(--yellow)';
+  tsCompilePdf.disabled = true;
+  try {
+    const r = await fetch(`/api/books/${bid}/convert`, { method: 'POST' });
+    if (!r.ok) throw new Error('Convert failed');
+    // Poll for completion
+    let attempts = 0;
+    const iv = setInterval(async () => {
+      attempts++;
+      if (attempts > 60) { clearInterval(iv); tsCompileStatus.textContent = 'Timed out'; tsCompileStatus.style.color = 'var(--red)'; return; }
+      const r2 = await fetch('/api/books');
+      const books = await r2.json();
+      const book = books.find(b => b.ID == bid);
+      if (book && book.Status === 'ready') {
+        clearInterval(iv);
+        tsCompileStatus.textContent = 'Done! ';
+        tsCompileStatus.style.color = 'var(--green)';
+        tsCompileStatus.innerHTML += `<a href="${absoluteURL(`/api/books/${bid}/download/pdf`)}" style="color:var(--accent);font-size:0.72rem">Download PDF</a>`;
+        tsCompilePdf.disabled = false;
+      } else if (book && book.Status === 'error') {
+        clearInterval(iv);
+        tsCompileStatus.textContent = 'Error: ' + (book.ErrorMsg || 'unknown');
+        tsCompileStatus.style.color = 'var(--red)';
+        tsCompilePdf.disabled = false;
+      }
+    }, 2000);
+  } catch(e) {
+    tsCompileStatus.textContent = 'Error: ' + e.message;
+    tsCompileStatus.style.color = 'var(--red)';
+    tsCompilePdf.disabled = false;
+  }
+});
+
+tsGenerateEpub.addEventListener('click', async () => {
+  const bid = tsEpubBook.value;
+  if (!bid) return;
+  if (tsDirty) await tsSaveSpec();
+  tsEpubStatus.textContent = 'Generating\u2026';
+  tsEpubStatus.style.color = 'var(--yellow)';
+  tsGenerateEpub.disabled = true;
+  try {
+    const r = await fetch(`/api/books/${bid}/generate-epub`, { method: 'POST' });
+    if (!r.ok) throw new Error('EPUB generation failed');
+    // Poll
+    let attempts = 0;
+    const iv = setInterval(async () => {
+      attempts++;
+      if (attempts > 30) { clearInterval(iv); tsEpubStatus.textContent = 'Timed out'; tsEpubStatus.style.color = 'var(--red)'; return; }
+      const epubURL = absoluteURL(`/api/books/${bid}/download/epub`);
+      const check = await fetch(epubURL, { method: 'HEAD' });
+      if (check.ok) {
+        clearInterval(iv);
+        tsEpubStatus.textContent = 'Done! ';
+        tsEpubStatus.style.color = 'var(--green)';
+        tsEpubStatus.innerHTML += `<a href="${epubURL}" style="color:var(--accent);font-size:0.72rem">Download EPUB</a>`;
+        tsGenerateEpub.disabled = false;
+      }
+    }, 2000);
+  } catch(e) {
+    tsEpubStatus.textContent = 'Error: ' + e.message;
+    tsEpubStatus.style.color = 'var(--red)';
+    tsGenerateEpub.disabled = false;
+  }
+});
+
+// ─── Corrections ───
+let corrData = [];
+
+async function corrLoad() {
+  const pid = tsProject.value;
+  if (!pid) return;
+  try {
+    const r = await fetch(`/api/projects/${pid}/corrections`);
+    corrData = await r.json();
+    corrRender();
+  } catch(e) {
+    console.error('Failed to load corrections:', e);
+  }
+}
+
+function corrRender() {
+  const container = document.getElementById('corr-list');
+  if (corrData.length === 0) {
+    container.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted);padding:0.5rem 0">No corrections yet.</div>';
+    return;
+  }
+  let html = '<table class="corr-table"><thead><tr><th>Find</th><th>Replace</th><th>Chapter</th><th>Note</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>';
+  corrData.forEach(c => {
+    const statusClass = 'corr-status-' + c.status;
+    const date = c.created_at ? c.created_at.substring(0, 10) : '';
+    html += `<tr>
+      <td><span class="corr-find">${esc(c.find_text)}</span></td>
+      <td><span class="corr-replace">${esc(c.replace_text)}</span></td>
+      <td>${esc(c.chapter || '')}</td>
+      <td>${esc(c.note || '')}</td>
+      <td><span class="corr-status ${statusClass}" data-id="${c.id}" title="Click to cycle status">${c.status}</span></td>
+      <td style="white-space:nowrap;font-size:0.72rem;color:var(--text-muted)">${date}</td>
+      <td><button class="corr-del" data-id="${c.id}" title="Delete">&times;</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  // Status click to cycle
+  container.querySelectorAll('.corr-status').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id = el.dataset.id;
+      const current = el.textContent.trim();
+      const next = current === 'pending' ? 'applied' : current === 'applied' ? 'skipped' : 'pending';
+      try {
+        await fetch(`/api/corrections/${id}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: next }),
+        });
+        corrLoad();
+      } catch(e) { console.error(e); }
+    });
+  });
+
+  // Delete buttons
+  container.querySelectorAll('.corr-del').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id = el.dataset.id;
+      const pid = tsProject.value;
+      if (!pid || !confirm('Delete this correction?')) return;
+      try {
+        await fetch(`/api/projects/${pid}/corrections/${id}`, { method: 'DELETE' });
+        corrLoad();
+      } catch(e) { console.error(e); }
+    });
+  });
+}
+
+// Add correction form
+document.getElementById('corr-add-btn').addEventListener('click', () => {
+  document.getElementById('corr-add-form').style.display = 'block';
+  document.getElementById('corr-find').focus();
+});
+
+document.getElementById('corr-cancel').addEventListener('click', () => {
+  document.getElementById('corr-add-form').style.display = 'none';
+  document.getElementById('corr-find').value = '';
+  document.getElementById('corr-replace').value = '';
+  document.getElementById('corr-chapter').value = '';
+  document.getElementById('corr-note').value = '';
+});
+
+document.getElementById('corr-save').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  const find = document.getElementById('corr-find').value.trim();
+  const replace = document.getElementById('corr-replace').value;
+  const chapter = document.getElementById('corr-chapter').value.trim();
+  const note = document.getElementById('corr-note').value.trim();
+  if (!find) { alert('Find text is required'); return; }
+  try {
+    await fetch(`/api/projects/${pid}/corrections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ find_text: find, replace_text: replace, chapter: chapter || undefined, note: note || undefined }),
+    });
+    document.getElementById('corr-add-form').style.display = 'none';
+    document.getElementById('corr-find').value = '';
+    document.getElementById('corr-replace').value = '';
+    document.getElementById('corr-chapter').value = '';
+    document.getElementById('corr-note').value = '';
+    corrLoad();
+  } catch(e) {
+    alert('Error saving correction: ' + e.message);
+  }
+});
+
+// Export YAML
+document.getElementById('corr-export-yaml').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  try {
+    const r = await fetch(`/api/projects/${pid}/corrections/export`, { method: 'POST' });
+    if (!r.ok) throw new Error('Export failed');
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const disp = r.headers.get('Content-Disposition') || '';
+    const m = disp.match(/filename="([^"]+)"/);
+    a.download = m ? m[1] : `corrections-project-${pid}.yaml`;
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Export error: ' + e.message);
+  }
+});
+
+// ─── Init ───
+checkHealth();
+loadClients();
+loadProjects();
+setInterval(() => { checkHealth(); loadClients(); loadProjects(); }, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+prodcal
+db.sqlite3*
+*.db
+seed_data.json
+.env
+*.sqlite3

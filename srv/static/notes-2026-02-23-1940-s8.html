@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Notes — 2026-02-23 (Session 7)</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+  h1 { color: #a78bfa; font-size: 20px; margin-bottom: 4px; }
+  .date { color: #888; font-size: 13px; margin-bottom: 24px; }
+  h2 { color: #f472b6; font-size: 16px; margin-top: 32px; }
+  h3 { color: #60a5fa; font-size: 14px; margin-top: 20px; margin-bottom: 8px; }
+  .card { background: #16213e; border-radius: 12px; padding: 16px; margin: 12px 0; position: relative; }
+  pre { white-space: pre-wrap; word-wrap: break-word; font-size: 13px; line-height: 1.6; margin: 0; font-family: Menlo, monospace; }
+  .copy-btn { display: block; width: 100%; padding: 14px; margin-top: 12px; background: #6c63ff; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .copy-btn:active { background: #5a52d5; }
+  .copy-btn.copied { background: #10b981; }
+  .toc { background: #16213e; border-radius: 12px; padding: 16px 20px; margin: 16px 0; }
+  .toc a { color: #a78bfa; text-decoration: none; font-size: 13px; display: block; padding: 3px 0; }
+  .toc a:hover { color: #c4b5fd; }
+</style>
+</head>
+<body>
+<h1>📋 JDBB Production Tools — Project Notes</h1>
+<p class="date">Updated 2026-02-23 • Session 7 &nbsp;|&nbsp; <a href="notes.html" style="color:#a78bfa;">← Notes Archive</a></p>
+
+<div class="toc">
+  <a href="#overview">1. Project Overview</a>
+  <a href="#calendar">2. Production Calendar</a>
+  <a href="#transmittal">3. Manuscript Transmittal</a>
+  <a href="#infra">4. Infrastructure & Backend</a>
+  <a href="#migration">5. Migration Path off exe.dev</a>
+  <a href="#email">6. Team Email</a>
+  <a href="#next">7. What's Next</a>
+</div>
+
+<h2 id="overview">1. Project Overview</h2>
+<div class="card">
+  <pre id="overview-text"></pre>
+</div>
+
+<h2 id="calendar">2. Production Calendar</h2>
+<div class="card">
+  <pre id="calendar-text"></pre>
+</div>
+
+<h2 id="transmittal">3. Manuscript Transmittal</h2>
+<div class="card">
+  <pre id="transmittal-text"></pre>
+</div>
+
+<h2 id="infra">4. Infrastructure & Backend</h2>
+<div class="card">
+  <pre id="infra-text"></pre>
+</div>
+
+<h2 id="migration">5. Migration Path off exe.dev</h2>
+<div class="card">
+  <pre id="migration-text"></pre>
+</div>
+
+<h2 id="email">6. Team Email</h2>
+<div class="card">
+  <pre id="email-text"></pre>
+</div>
+<button class="copy-btn" onclick="copyText('email-text', this)">Copy Email to Clipboard</button>
+
+<h2 id="next">7. What's Next</h2>
+<div class="card">
+  <pre id="next-text"></pre>
+</div>
+<button class="copy-btn" onclick="copyText('next-text', this)">Copy Build List to Clipboard</button>
+
+<script>
+const sections = {
+  'overview-text': `Two companion tools for book production, sharing one Go\nbinary, one SQLite database, and one URL structure:\n\n  Production Calendar  — Gantt/Table/Budget schedule tracker\n  Manuscript Transmittal — Digital version of the InDesign handoff form\n\nBoth live under /{client}/{project}/ URL paths.\nArt of Gig reference project: /vgr/aog/\n\nRepo: /home/exedev/prodcal\nLive:  https://jdbbs.exe.xyz/vgr/aog/\nPass:  artofgig2026\n\nStack:\n  • Go 1.22 backend (~1,200 lines)\n  • Vanilla JS SPA frontends (~1,400 lines total)\n  • SQLite with 4 migrations\n  • systemd service (auto-restarts, survives reboots)\n  • exe.dev HTTPS proxy → public at jdbbs.exe.xyz\n\nSession 8 adds:\n  • Email notifications via AgentMail (jdbb@agentmail.to)\n  • Timestamped notes archive at /static/notes.html`,
+
+  'calendar-text': `URL: https://jdbbs.exe.xyz/vgr/aog/\n\nBuilt from original Prepr_ArtofGig.xls spreadsheet.\n31 tasks imported with assignees, dates, hours, rates.\n\nThree views:\n  Timeline — Gantt bars, month headers, week ticks\n  Table    — full spreadsheet with all schedule fields\n  Budget   — hours, rates, orig/curr/actual with totals\n\nFeatures:\n  • Click any task row → edit modal (all fields)\n  • \u201cMake New\u201d → duplicate project with date shift,\n    zeroed budgets, reset statuses\n  • Client/project slug routing: /{client}/{project}/\n  • Password protection per project\n  • Light/dark mode toggle (persists in localStorage)\n  • Readable month-label timeline (pxPerDay=5)\n\nKey files:\n  srv/server.go         — routing + all calendar handlers\n  srv/static/app.js     — calendar SPA (701 lines)\n  srv/static/style.css  — shared theme styles\n  db/migrations/001-base.sql, 002-slugs.sql`,
+
+  'transmittal-text': `URL: https://jdbbs.exe.xyz/vgr/aog/transmittal/\n\nDigitizes the classic InDesign \u201cExhibit B\u201d manuscript\ntransmittal — the handoff doc from acquisitions to production.\n\nTwo-column layout, 13 sections matching original form:\n  Left column:\n    Book Info, Production, Manuscript Checklist\n    (15 front-matter + 6 back-matter items), Illustrations\n  Right column:\n    Permissions & Consents, Page IV (Copyright),\n    Subrights (with n/a strikethrough toggle), Editing,\n    Book Design (trim radios), Cover (JDBB/Publisher\n    front/spine/back), Files & Delivery, Page Proofs\n    (dynamic reviewer list), Other Instructions\n\nFeatures:\n  • Auto-save every keystroke (debounced 600ms)\n  • Progress bar showing form completion %\n  • Draft/Final status toggle\n  • Print button with @media print styles\n  • Calendar \u2194 Transmittal cross-link buttons\n  • Version history (004-transmittal-versions.sql)\n    — snapshots throttled to 1 per 5 minutes\n  • Duplicate transmittal endpoint for new books\n  • Seeded with \u201cMore Than a Woodlot\u201d sample data\n\nKey files:\n  srv/transmittal.go              — API handlers (460 lines)\n  srv/static/transmittal.js       — form SPA (661 lines)\n  srv/static/transmittal.css      — form styles\n  srv/static/transmittal.html     — shell HTML\n  db/migrations/003-transmittal.sql\n  db/migrations/004-transmittal-versions.sql`,
+
+  'infra-text': `Current setup:\n  Host:     exe.dev VM \u201cjdbb-prod\u201d\n  OS:       Ubuntu, 4GB RAM, persistent disk\n  Binary:   Go static binary (\u201cprodcal\u201d), ~15MB\n  Database: SQLite file (db.sqlite3), currently < 1MB\n  Service:  systemd unit (srv.service), auto-restart\n  Proxy:    exe.dev HTTPS → port 8000, publicly accessible\n  Domain:   jdbbs.exe.xyz (TLS handled by exe.dev)\n\nWhat exe.dev gives us right now:\n  ✓ Free HTTPS with valid certs\n  ✓ Public/private toggle (ssh exe.dev share set-public)\n  ✓ Zero-config deployment (build + systemctl restart)\n  ✓ Persistent VM with systemd\n  ✓ Good enough for internal team use + prototyping\n  ✓ Additional ports 3000-9999 for dev/staging\n\nLimitations of exe.dev for production use:\n  ✗ Single VM, no redundancy or failover\n  ✗ No custom domain (stuck on *.exe.xyz)\n  ✗ No automated backups (manual sqlite3 .backup only)\n  ✗ No CDN or edge caching\n  ✗ Proxy adds latency; no control over TLS config\n  ✗ Scaling = bigger VM (vertical only)\n  ✗ Auth is exe.dev-native (fine for admin, not for clients)\n  ✗ No SLA — it\u2019s a dev platform, not a hosting provider`,
+
+  'migration-text': `WHEN to migrate:\n  Stay on exe.dev while:\n    • User count is < 20 concurrent\n    • Data fits comfortably in SQLite (< 100MB)\n    • You\u2019re still iterating on features weekly\n    • You don\u2019t need a custom domain for client-facing use\n  \n  Migrate when ANY of these become true:\n    • You want a real domain (e.g. tools.jdbb.com)\n    • A client needs an SLA or uptime guarantee\n    • You need automated backups / disaster recovery\n    • Team grows beyond \u201cpeople Jenna trusts with a password\u201d\n    • SQLite write contention becomes noticeable\n\nWHERE to migrate (ranked by simplicity):\n\n  1. Fly.io (recommended first move)\n     • Deploy the same Go binary + SQLite as-is\n     • Fly supports persistent volumes for SQLite\n     • Custom domains with automatic TLS\n     • $5/mo for a small VM, free tier available\n     • LiteFS for SQLite replication if needed later\n     • Closest to current architecture — minimal changes\n     • Migration effort: ~2 hours (Dockerfile + fly.toml)\n\n  2. Hetzner VPS + Caddy\n     • Cheapest raw compute (\u20ac4/mo for 2 vCPU, 4GB)\n     • Caddy reverse proxy handles TLS automatically\n     • Same systemd setup you already have\n     • Full control, but you own the ops\n     • Migration effort: ~3 hours (provision + deploy)\n\n  3. Railway / Render\n     • Git-push deploy, zero ops\n     • SQLite works on Railway with volumes\n     • Render needs Postgres (schema rewrite required)\n     • $5-7/mo\n     • Migration effort: 2 hours (Railway) or 1-2 days (Render/PG)\n\n  4. AWS/GCP (overkill for now)\n     • Only if you need multi-region or enterprise compliance\n     • EC2/Cloud Run + RDS is \u2265 $20/mo\n     • Migration effort: 1-2 days\n\nWHAT to do before migrating:\n  □ Add a \u201csqlite3 .backup\u201d cron job NOW (even on exe.dev)\n  □ Pin your Go version in go.mod\n  □ Write a Dockerfile (useful for any target)\n  □ Set up a simple health check endpoint (/healthz)\n  □ Document the seed/migration process\n\nRECOMMENDATION:\n  Stay on exe.dev for the next 4-8 weeks while you\u2019re\n  actively building. It\u2019s free and the deploy cycle is\n  instant. When you\u2019re ready to share with clients or\n  want a real domain, move to Fly.io — it\u2019s the smallest\n  leap from your current SQLite + Go + systemd setup.\n  Budget ~$5/mo and ~2 hours of migration work.`,
+
+  'email-text': `Hi team,\n\nUPDATE: Email notifications are now live.\nWhen a transmittal is marked Final, the system can\nemail a summary to selected recipients.\n\n--- Original message below ---\n\n\nTwo production tools are up and ready for testing —\nboth at the same URL, password-protected.\n\n1) PRODUCTION CALENDAR\n   https://jdbbs.exe.xyz/vgr/aog/\n   Password: artofgig2026\n\n   Built from the original .xls production schedule.\n   Three views: Timeline (Gantt bars), Table (spreadsheet),\n   Budget (hours/rates/totals). Click any task to edit.\n   \u201cMake New\u201d creates a fresh project from template.\n\n2) MANUSCRIPT TRANSMITTAL\n   https://jdbbs.exe.xyz/vgr/aog/transmittal/\n   (same password)\n\n   Digital version of the InDesign transmittal form.\n   All 13 sections from the original: book info, checklist,\n   illustrations, permissions, copyright, subrights, design,\n   cover, files, proofs, etc. Auto-saves as you type.\n   Version history tracks changes automatically.\n\nThe Art of Gig project is loaded as a reference.\n\u201cMore Than a Woodlot\u201d sample data is in the transmittal.\n\nThings to try:\n   \u2022 Switch between Timeline / Table / Budget views\n   \u2022 Click a task → edit dates, assignees, budget\n   \u2022 \u201cMake New\u201d → duplicate with new start date\n   \u2022 \ud83d\udccb Transmittal button → opens the transmittal form\n   \u2022 Fill in transmittal fields → watch the progress bar\n   \u2022 \u2600\ufe0f/\ud83c\udf19 toggle for light/dark mode\n\nLooking for feedback on what\u2019s missing or confusing\nbefore we start using these on a real project.\n\n\u2014Jenna`,
+
+  'next-text': `BUILD LIST (prioritized)\n========================\n\nJust completed (session 8):\n  ✓ Email notifications via AgentMail\n  ✓ Timestamped notes archive\n  ✓ "Mark Final" → auto-prompts email\n\nShort-term (this week):\n  □ SQLite backup cron job (even before migration)\n  □ Print view / PDF export for transmittal\n  □ Seed blank transmittal on \u201cMake New\u201d\n  □ Form validation / required-field highlighting\n  □ Health check endpoint (/healthz)\n  □ Dockerfile (prep for future migration)\n\nCalendar polish:\n  □ Mobile-responsive (modals, gantt on small screens)\n  □ Bar tooltips on timeline hover\n  □ Status toggle shortcut (click badge to cycle)\n  □ Task reordering / drag-and-drop\n  □ Today marker on timeline\n  □ Export/print view\n\nTransmittal polish:\n  □ Section collapse/expand\n  □ Custom checklist items (add/remove/reorder)\n  □ Coauthors field\n  □ Better mobile layout (single column)\n  □ YAML export/import\n  □ Version history browser in UI\n  □ Duplicate transmittal from UI\n\nInfra prep (before real client use):\n  □ Automated daily SQLite backup\n  □ Dockerfile for portable deployment\n  □ /healthz endpoint\n  □ Pin Go version in go.mod\n  □ Document seed + migration process\n  □ When ready: migrate to Fly.io ($5/mo)\n\nLonger-term:\n  □ Custom domain (tools.jdbb.com or similar)\n  □ Activity log / change history\n  □ Email alerts for upcoming due dates\n  □ Multi-user auth (beyond shared passwords)\n  □ Connect calendar tasks ↔ transmittal fields`
+};
+
+for (const [id, text] of Object.entries(sections)) {
+  document.getElementById(id).textContent = text;
+}
+
+async function copyText(id, btn) {
+  const text = document.getElementById(id).textContent;
+  const origLabel = btn.textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '\u2705 Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = origLabel; btn.classList.remove('copied'); }, 2000);
+  } catch {
+    const range = document.createRange();
+    range.selectNodeContents(document.getElementById(id));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    btn.textContent = 'Text selected \u2014 tap Copy';
+    setTimeout(() => { btn.textContent = origLabel; }, 3000);
+  }
+}
+</script>
+</body>
+</html>
