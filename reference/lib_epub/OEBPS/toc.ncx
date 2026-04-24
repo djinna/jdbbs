@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+	<head>
+		<meta name="dtb:uid" content="urn:uuid:D7A2631E-B952-485A-A09A-379194D943B6" />
+		<meta name="dtb:depth" content="1" />
+		<meta name="dtb:totalPageCount" content="0" />
+		<meta name="dtb:maxPageNumber" content="0" />
+	</head>
+	<docTitle>
+		<text>The Librarians</text>
+	</docTitle>
+	<navMap>
+		<navPoint id="navpoint1" playOrder="1"><navLabel><text>Introduction</text></navLabel><content src="LIBRARIANS_2026-01-19_EPUB.xhtml#_idParaDest-1" /></navPoint>
+		<navPoint id="navpoint2" playOrder="2"><navLabel><text>Genesis of Memory</text></navLabel><content src="LIBRARIANS_2026-01-19_EPUB.xhtml#_idParaDest-2" /></navPoint>
+		<navPoint id="navpoint3" playOrder="3"><navLabel><text>The Curse of Wolves</text></navLabel><content src="LIBRARIANS_2026-01-19_EPUB.xhtml#_idParaDest-3" /></navPoint>
+		<navPoint id="navpoint4" playOrder="4"><navLabel><text>The Whimsy Index</text></navLabel><content src="LIBRARIANS_2026-01-19_EPUB.xhtml#_idParaDest-4" /></navPoint>
+		<navPoint id="navpoint5" playOrder="5"><navLabel><text>Phantom in Eden</text></navLabel><content src="LIBRARIANS_2026-01-19_EPUB.xhtml#_idParaDest-5" /></navPoint>
+		<navPoint id="navpoint6" playOrder="6"><navLabel><text>Songs of Hydropolia</text></navLabel><content src="LIBRARIANS_2026-01-19_EPUB.xhtml#_idParaDest-6" /></navPoint>
+		<navPoint id="navpoint7" playOrder="7"><navLabel><text>The Last Archive</text></navLabel><content src="LIBRARIANS_2026-01-19_EPUB.xhtml#_idParaDest-7" /></navPoint>
+	</navMap>
+</ncx>

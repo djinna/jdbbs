@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" xml:lang="en-US" prefix="ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/">
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+		<meta name="generator" content="Adobe InDesign 21.1" />
+		<meta name="cover" content="ghosts_in_machines_ebook_cover.jpg" />
+		<meta property="ibooks:specified-fonts">true</meta>
+		<dc:title>Ghosts in Machines</dc:title>
+		<dc:creator>A Protocolized Anthology</dc:creator>
+		<dc:description>Ghosts in Machines is woven from stories of Protocolized, a digital magazine of science fiction and science fact. The magazine’s writers have a simple assign­ment: tell amazing stories about strange rules. You’ll notice that people are not the only protagonists. Technologies, laws of physics, bureau­cratic machines, and rules of nature take center stage just as often—just like they do in real life. Protocolized’s editors, contributors, and early readers call this subgenre protocol fiction. We have so much fun writing and reading it that we think protocol fiction will catalyze a new age of sci-fi like the Golden Age of nearly a century ago. Call this successor the Welded Age: a time where writers fuse together visions for the future. A time where science fiction both entertains us and explores the all-too-real traffic jams that new technologies and rules create. Find more glimpses of the future:  protocolized.summerofprotocols.com Protocolized is proudly supported by the Ethereum Foundation</dc:description>
+		<dc:date>2026-01-16T23:08:17Z</dc:date>
+		<dc:rights>©️ 2025 Ethereum Foundation. All contributions are the property of their respective authors and are used by Ethereum Foundation under license. All contributions are licensed by their respective authors under CC BY-NC 4.0. After 2028-12-13, all contributions will be licensed by their respective authors under CC BY 4.0. Learn more at summerofprotocols.com/ccplus-license-2023</dc:rights>
+		<dc:language>en-US</dc:language>
+		<dc:language>th-TH</dc:language>
+		<meta property="dcterms:modified">2026-01-16T23:08:17Z</meta>
+		<dc:identifier id="bookid">urn:uuid:37937E5A-1B14-4815-9C33-22B6DF388787</dc:identifier>
+		<!--accessibility options-->
+	</metadata>
+	<manifest>
+		<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" />
+		<item id="GHOSTS_2026-01-12_FOR_EPUB" href="GHOSTS_2026-01-12_FOR_EPUB.xhtml" media-type="application/xhtml+xml" />
+		<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+		<item id="toc" href="toc.xhtml" media-type="application/xhtml+xml" properties="nav" />
+		<item id="idGeneratedStyles.css" href="css/idGeneratedStyles.css" media-type="text/css" />
+		<item id="HiraKakuPro-W3.ttc" href="font/HiraKakuPro-W3.ttc" media-type="font/ttf" />
+		<item id="Menlo-Regular.ttc" href="font/Menlo-Regular.ttc" media-type="font/ttf" />
+		<item id="PlantinMTPro-Italic.otf" href="font/PlantinMTPro-Italic.otf" media-type="application/vnd.ms-opentype" />
+		<item id="PlantinMTPro-Regular.otf" href="font/PlantinMTPro-Regular.otf" media-type="application/vnd.ms-opentype" />
+		<item id="ProximaNova-Bold.ttc" href="font/ProximaNova-Bold.ttc" media-type="font/ttf" />
+		<item id="ProximaNova-Medium.ttc" href="font/ProximaNova-Medium.ttc" media-type="font/ttf" />
+		<item id="ProximaNova-Semibold.ttc" href="font/ProximaNova-Semibold.ttc" media-type="font/ttf" />
+		<item id="Thonburi.ttc" href="font/Thonburi.ttc" media-type="font/ttf" />
+		<item id="x1.jpg" href="image/1.jpg" media-type="image/jpeg" />
+		<item id="x2.png" href="image/2.png" media-type="image/png" />
+		<item id="ghosts_00_SBAcover.png" href="image/ghosts_00_SBAcover.png" media-type="image/png" />
+		<item id="ghosts_01_SODA.jpg" href="image/ghosts_01_SODA.jpg" media-type="image/jpeg" />
+		<item id="ghosts_02_EVERY_LIFETIME.jpg" href="image/ghosts_02_EVERY_LIFETIME.jpg" media-type="image/jpeg" />
+		<item id="ghosts_03_GARDEN.jpg" href="image/ghosts_03_GARDEN.jpg" media-type="image/jpeg" />
+		<item id="ghosts_04_WE_SHAPE.jpg" href="image/ghosts_04_WE_SHAPE.jpg" media-type="image/jpeg" />
+		<item id="ghosts_05_HOUSE.jpg" href="image/ghosts_05_HOUSE.jpg" media-type="image/jpeg" />
+		<item id="ghosts_06_LATENCY.jpg" href="image/ghosts_06_LATENCY.jpg" media-type="image/jpeg" />
+		<item id="ghosts_07_GENIUS.jpg" href="image/ghosts_07_GENIUS.jpg" media-type="image/jpeg" />
+		<item id="ghosts_in_machines_ebook_cover.jpg" href="image/ghosts_in_machines_ebook_cover.jpg" media-type="image/jpeg" properties="cover-image" />
+		<item id="ghostts_08_LOYALTY.jpg" href="image/ghostts_08_LOYALTY.jpg" media-type="image/jpeg" />
+	</manifest>
+	<spine toc="ncx">
+		<itemref idref="cover" linear="no" />
+		<itemref idref="GHOSTS_2026-01-12_FOR_EPUB" />
+	</spine>
+	<guide>
+		<reference type="cover" href="cover.xhtml" title="Cover" />
+		<reference type="toc" href="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idContainer004" title="Table of Contents" />
+	</guide>
+</package>

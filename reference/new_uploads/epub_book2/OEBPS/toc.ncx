@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+	<head>
+		<meta name="dtb:uid" content="urn:uuid:37937E5A-1B14-4815-9C33-22B6DF388787" />
+		<meta name="dtb:depth" content="2" />
+		<meta name="dtb:totalPageCount" content="0" />
+		<meta name="dtb:maxPageNumber" content="0" />
+	</head>
+	<docTitle>
+		<text>Ghosts in Machines</text>
+	</docTitle>
+	<docAuthor>
+		<text>A Protocolized Anthology</text>
+	</docAuthor>
+	<navMap>
+		<navPoint id="navpoint1" playOrder="1"><navLabel><text>Khlongs, Subaks, Beaings: From Ancient Agriculture To Artificial Ghosts</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-1" />
+			<navPoint id="navpoint2" playOrder="2"><navLabel><text>Sam Chua</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-2" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint3" playOrder="3"><navLabel><text>Soda Sweet as Blood</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-3" />
+			<navPoint id="navpoint4" playOrder="4"><navLabel><text>Spencer Nitkey</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-4" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint5" playOrder="5"><navLabel><text>In Every Lifetime</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-5" />
+			<navPoint id="navpoint6" playOrder="6"><navLabel><text>Lara Dal Molin</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-6" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint7" playOrder="7"><navLabel><text>In the Garden of Eden, Baby</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-7" />
+			<navPoint id="navpoint8" playOrder="8"><navLabel><text>Sisyphus</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-8" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint9" playOrder="9"><navLabel><text>We Shape Our Tools and Then Our Tools Shape Us</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-9" />
+			<navPoint id="navpoint10" playOrder="10"><navLabel><text>Tongzhou Yu</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-10" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint11" playOrder="11"><navLabel><text>The House That Paid Its Own Bills</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-11" />
+			<navPoint id="navpoint12" playOrder="12"><navLabel><text>Elizabeth Maher</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-12" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint13" playOrder="13"><navLabel><text>Latency</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-13" />
+			<navPoint id="navpoint14" playOrder="14"><navLabel><text>Rafael Fernández</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-14" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint15" playOrder="15"><navLabel><text>Genius in the bottle</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-15" />
+			<navPoint id="navpoint16" playOrder="16"><navLabel><text>Claire Pichelin</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-16" /></navPoint>
+		</navPoint>
+		<navPoint id="navpoint17" playOrder="17"><navLabel><text>Loyalty</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-17" />
+			<navPoint id="navpoint18" playOrder="18"><navLabel><text>Zach Hyman</text></navLabel><content src="GHOSTS_2026-01-12_FOR_EPUB.xhtml#_idParaDest-18" /></navPoint>
+		</navPoint>
+	</navMap>
+</ncx>

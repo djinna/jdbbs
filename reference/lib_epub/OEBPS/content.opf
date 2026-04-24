@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" xml:lang="en-US" prefix="ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/">
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+		<meta name="generator" content="Adobe InDesign 21.1" />
+		<meta name="cover" content="the_librarians_ebook_cover.jpg" />
+		<meta property="ibooks:specified-fonts">true</meta>
+		<dc:title>The Librarians</dc:title>
+		<dc:date>2026-01-19T21:24:00Z</dc:date>
+		<dc:language>en-US</dc:language>
+		<meta property="dcterms:modified">2026-01-19T21:24:00Z</meta>
+		<dc:identifier id="bookid">urn:uuid:D7A2631E-B952-485A-A09A-379194D943B6</dc:identifier>
+		<!--accessibility options-->
+	</metadata>
+	<manifest>
+		<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" />
+		<item id="LIBRARIANS_2026-01-19_EPUB" href="LIBRARIANS_2026-01-19_EPUB.xhtml" media-type="application/xhtml+xml" />
+		<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+		<item id="toc" href="toc.xhtml" media-type="application/xhtml+xml" properties="nav" />
+		<item id="idGeneratedStyles.css" href="css/idGeneratedStyles.css" media-type="text/css" />
+		<item id="Menlo-Regular.ttc" href="font/Menlo-Regular.ttc" media-type="font/ttf" />
+		<item id="PlantinMTPro-Italic.otf" href="font/PlantinMTPro-Italic.otf" media-type="application/vnd.ms-opentype" />
+		<item id="PlantinMTPro-Regular.otf" href="font/PlantinMTPro-Regular.otf" media-type="application/vnd.ms-opentype" />
+		<item id="ProximaNova-Bold.ttc" href="font/ProximaNova-Bold.ttc" media-type="font/ttf" />
+		<item id="ProximaNova-Medium.ttc" href="font/ProximaNova-Medium.ttc" media-type="font/ttf" />
+		<item id="ProximaNova-Semibold.ttc" href="font/ProximaNova-Semibold.ttc" media-type="font/ttf" />
+		<item id="x1.jpg" href="image/1.jpg" media-type="image/jpeg" />
+		<item id="x2.png" href="image/2.png" media-type="image/png" />
+		<item id="lib_01_GENESIS.jpg" href="image/lib_01_GENESIS.jpg" media-type="image/jpeg" />
+		<item id="lib_02_WOLVES.jpg" href="image/lib_02_WOLVES.jpg" media-type="image/jpeg" />
+		<item id="lib_03_WHIMSY.jpg" href="image/lib_03_WHIMSY.jpg" media-type="image/jpeg" />
+		<item id="lib_04_PHANTOM.jpg" href="image/lib_04_PHANTOM.jpg" media-type="image/jpeg" />
+		<item id="lib_05_SONGS.jpg" href="image/lib_05_SONGS.jpg" media-type="image/jpeg" />
+		<item id="lib_06_LAST_ARCHIVE.jpg" href="image/lib_06_LAST_ARCHIVE.jpg" media-type="image/jpeg" />
+		<item id="the_librarians_ebook_cover.jpg" href="image/the_librarians_ebook_cover.jpg" media-type="image/jpeg" properties="cover-image" />
+	</manifest>
+	<spine toc="ncx">
+		<itemref idref="cover" linear="no" />
+		<itemref idref="LIBRARIANS_2026-01-19_EPUB" />
+	</spine>
+	<guide>
+		<reference type="cover" href="cover.xhtml" title="Cover" />
+		<reference type="toc" href="LIBRARIANS_2026-01-19_EPUB.xhtml#_idContainer004" title="Table of Contents" />
+	</guide>
+</package>
