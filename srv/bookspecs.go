@@ -24,8 +24,8 @@ func defaultSpecData() string {
     "copyright_year": "", "copyright_holder": "", "credit_lines": ""
   },
   "page": {
-    "trim": "us-digest",
-    "width_in": 5.5, "height_in": 8.5,
+    "trim": "protocolized",
+    "width_in": 4.9140, "height_in": 7.5912,
     "margin_top": "0.75in", "margin_bottom": "0.75in",
     "margin_inside": "0.7in", "margin_outside": "0.6in"
   },
@@ -507,16 +507,25 @@ func specToTypstConfig(data map[string]any) string {
 	}
 
 	if page, ok := data["page"].(map[string]any); ok {
-		// Emit page-paper for named Typst sizes (informational)
+		// Resolve named trims through the registry so width/height are
+		// always authoritative. The trim name (Typst built-in or publisher
+		// preset like "protocolized") is emitted as a comment for humans
+		// reading the generated config.typ.
 		trim, _ := page["trim"].(string)
-		if trim != "" && trim != "custom" {
-			lines = append(lines, fmt.Sprintf("  // Paper: %s", trim))
+		w, _ := page["width_in"].(float64)
+		h, _ := page["height_in"].(float64)
+		if p, ok := trimRegistry[trim]; ok {
+			// Registry value wins over possibly-stale spec fields so the
+			// Typst name and dimensions never disagree.
+			w, h = p.WidthIn, p.HeightIn
 		}
-		// Always emit explicit dimensions (template uses width/height)
-		if w, ok := page["width_in"].(float64); ok && w > 0 {
+		if trim != "" {
+			lines = append(lines, fmt.Sprintf("  // Trim: %s (%.3fin × %.3fin = %.1fmm × %.1fmm)", trim, w, h, w*25.4, h*25.4))
+		}
+		if w > 0 {
 			lines = append(lines, fmt.Sprintf("  page-width: %gin,", w))
 		}
-		if h, ok := page["height_in"].(float64); ok && h > 0 {
+		if h > 0 {
 			lines = append(lines, fmt.Sprintf("  page-height: %gin,", h))
 		}
 		if v, ok := page["margin_top"].(string); ok && v != "" {
@@ -767,32 +776,51 @@ func mapField(src map[string]any, srcKey string, dst map[string]any, dstKey stri
 	}
 }
 
+// trimPreset describes a named trim. If TypstPaper is non-empty the preset
+// corresponds to a built-in Typst `page(paper: ...)` size and we can emit a
+// paper keyword; otherwise it's a publisher preset (or legacy alias) and we
+// must emit explicit width/height.
+type trimPreset struct {
+	TypstPaper string  // "" if not a Typst built-in
+	WidthIn    float64 // display / fallback width
+	HeightIn   float64 // display / fallback height
+}
+
+// trimRegistry is the single source of truth for named trims across the Go
+// backend, the Typst template, and the admin UI. Keep the admin.html
+// trimPresets map + the JS trimCompareData array in sync with this.
+var trimRegistry = map[string]trimPreset{
+	// Typst built-in paper sizes (passed through as page(paper: ...))
+	"us-digest":    {"us-digest", 5.5, 8.5},                         // 139.7×215.9 mm
+	"us-trade":     {"us-trade", 6.0, 9.0},                          // 152.4×228.6 mm
+	"uk-book-a":    {"uk-book-a", 111.0 / 25.4, 178.0 / 25.4},       // 111×178 mm
+	"uk-book-b":    {"uk-book-b", 129.0 / 25.4, 198.0 / 25.4},       // 129×198 mm
+	"a5":           {"a5", 148.0 / 25.4, 210.0 / 25.4},              // 148×210 mm
+	"a4":           {"a4", 210.0 / 25.4, 297.0 / 25.4},              // 210×297 mm
+	"a6":           {"a6", 105.0 / 25.4, 148.0 / 25.4},              // 105×148 mm
+	"jis-b5":       {"jis-b5", 182.0 / 25.4, 257.0 / 25.4},          // 182×257 mm
+	"jis-b6":       {"jis-b6", 128.0 / 25.4, 182.0 / 25.4},          // 128×182 mm
+	"us-letter":    {"us-letter", 8.5, 11.0},
+	"us-legal":     {"us-legal", 8.5, 14.0},
+	"us-executive": {"us-executive", 7.25, 10.5},                    // 184.15×266.7 mm
+	"us-statement": {"us-statement", 5.5, 8.5},                      // same as digest
+
+	// Publisher presets (no Typst built-in — emit explicit width/height)
+	// protocolized: Protocolized Anthology series trim (Ghosts, TT, Librarians).
+	// Measured from reference PDFs at 353.81×546.57 pt = 124.8×192.8 mm.
+	"protocolized": {"", 353.811 / 72.0, 546.567 / 72.0}, // 124.8×192.8 mm
+
+	// Legacy "W x H" format aliases (preserved for backward compatibility)
+	"5.5 x 8.5": {"us-digest", 5.5, 8.5},
+	"6 x 9":     {"us-trade", 6.0, 9.0},
+	"5 x 8":     {"", 5.0, 8.0},
+	"8.5 x 11":  {"us-letter", 8.5, 11.0},
+}
+
 func parseTrim(trim string, page map[string]any) {
-	// Typst paper names and legacy "W x H" formats → width/height in inches
-	trimPresets := map[string][2]float64{
-		// Typst paper names
-		"us-digest":    {5.5, 8.5},                         // 139.7×215.9mm
-		"us-trade":     {6.0, 9.0},                         // 152.4×228.6mm
-		"uk-book-a":    {111.0 / 25.4, 178.0 / 25.4},       // 4.3701×7.0079
-		"uk-book-b":    {129.0 / 25.4, 198.0 / 25.4},       // 5.0787×7.7953
-		"a5":           {148.0 / 25.4, 210.0 / 25.4},       // 5.8268×8.2677
-		"a4":           {210.0 / 25.4, 297.0 / 25.4},       // 8.2677×11.6929
-		"a6":           {105.0 / 25.4, 148.0 / 25.4},       // 4.1339×5.8268
-		"jis-b5":       {182.0 / 25.4, 257.0 / 25.4},       // 7.1654×10.1181
-		"jis-b6":       {128.0 / 25.4, 182.0 / 25.4},       // 5.0394×7.1654
-		"us-letter":    {8.5, 11.0},
-		"us-legal":     {8.5, 14.0},
-		"us-executive": {7.25, 10.5},                        // 184.15×266.7mm
-		"us-statement": {5.5, 8.5},                          // same as digest
-		// Legacy "W x H" format aliases
-		"5.5 x 8.5": {5.5, 8.5},
-		"6 x 9":     {6.0, 9.0},
-		"5 x 8":     {5.0, 8.0},
-		"8.5 x 11":  {8.5, 11.0},
-	}
-	if dims, ok := trimPresets[trim]; ok {
-		page["width_in"] = dims[0]
-		page["height_in"] = dims[1]
+	if p, ok := trimRegistry[trim]; ok {
+		page["width_in"] = p.WidthIn
+		page["height_in"] = p.HeightIn
 	}
 }
 

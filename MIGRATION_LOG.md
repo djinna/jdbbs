@@ -118,17 +118,31 @@ directory and binary path are gone.
 
 These need a deliberate decision before being resolved.
 
-### 1. Page-width drift (`spec.page.width_in` vs Typst `page-width`)
+### 1. ~~Page-width drift~~ — RESOLVED (Phase 3.1)
 
-`srv/bookspecs.go::defaultSpecData()` declares `page.width_in: 5.5` (= 396pt).
-`typesetting/templates/series-template.typ::default-config` declares
-`page-width: 353.811pt` (≈ 4.91in, the trade-paperback trim).
+Measured the reference PDFs (GHOSTS, LIBRARIANS, TT) and they all report
+MediaBox = 353.811 × 546.567 pt = 124.8 × 192.8 mm (= 4.914 × 7.591 in).
+No Typst built-in paper size matches this trim, so it's added as a named
+publisher preset `protocolized` in the new trim registry
+(`srv/bookspecs.go::trimRegistry`).
 
-These do not match. The Go → Typst config generator in `buildTypstConfig()`
-will overwrite the Typst default with whatever the spec says, so in practice
-the spec value wins — but the spec default is wrong. Decide which is canonical
-and align both. Likely the 4.91" trim is correct (it's the Protocolized
-Anthology design).
+Changes:
+
+- New trim registry is the single source of truth for named trims. Each
+  entry records an optional Typst-built-in name + width/height in inches.
+  Keep the admin-side JS mirror (`srv/static/admin.html` `trimPresets` /
+  `trimDisplayNames` / `trimCompareData`) in sync with the Go map.
+- `defaultSpecData` now ships with `trim: "protocolized"` and the correct
+  dimensions.
+- `specToTypstConfig` always resolves dimensions through the registry, so a
+  stale `width_in`/`height_in` in a saved spec can never disagree with the
+  trim name.
+- `series-template.typ` keeps width/height as the authoritative fields
+  (simpler set-page scoping). The `page-paper` config key remains for
+  future use but isn't currently consumed.
+- Admin UI exposes the full named list (Typst built-ins + publisher
+  presets), shows in/mm in `<option>` labels, and renders in/mm/picas as a
+  hover tooltip over the trim-comparison strip and the page preview.
 
 ### 2. EPUB generation strategy
 
