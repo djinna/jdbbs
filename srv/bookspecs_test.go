@@ -1,6 +1,71 @@
 package srv
 
-import "testing"
+import (
+	"math"
+	"strings"
+	"testing"
+)
+
+// TestTrimRegistryProtocolized ensures the Protocolized publisher preset stays
+// pinned to the measured reference-PDF dimensions (124.8×192.8mm). If someone
+// accidentally edits the numbers this test fails loudly.
+func TestTrimRegistryProtocolized(t *testing.T) {
+	p, ok := trimRegistry["protocolized"]
+	if !ok {
+		t.Fatal("protocolized trim preset missing from registry")
+	}
+	if p.TypstPaper != "" {
+		t.Errorf("protocolized should not map to a Typst built-in paper; got %q", p.TypstPaper)
+	}
+	// Expect 353.811pt × 546.567pt (= 124.8mm × 192.8mm).
+	if math.Abs(p.WidthIn-353.811/72) > 1e-6 || math.Abs(p.HeightIn-546.567/72) > 1e-6 {
+		t.Errorf("protocolized dims drifted: got %.6fin × %.6fin, want %.6fin × %.6fin",
+			p.WidthIn, p.HeightIn, 353.811/72, 546.567/72)
+	}
+}
+
+// TestSpecToTypstConfigEmitsTrimCommentAndDims verifies that the generated
+// Typst config includes a human-readable trim comment and derives dimensions
+// from the registry (width_in/height_in in the spec can be stale).
+func TestSpecToTypstConfigEmitsTrimCommentAndDims(t *testing.T) {
+	// Intentionally supply wrong width/height — registry should override.
+	spec := map[string]any{
+		"page": map[string]any{
+			"trim":      "us-digest",
+			"width_in":  float64(99),
+			"height_in": float64(99),
+		},
+	}
+	out := specToTypstConfig(spec)
+	if !strings.Contains(out, "// Trim: us-digest") {
+		t.Errorf("expected trim comment in config:\n%s", out)
+	}
+	if !strings.Contains(out, "page-width: 5.5in,") {
+		t.Errorf("expected registry-resolved page-width (5.5in) in config, got:\n%s", out)
+	}
+	if !strings.Contains(out, "page-height: 8.5in,") {
+		t.Errorf("expected registry-resolved page-height (8.5in) in config, got:\n%s", out)
+	}
+	if strings.Contains(out, "page-width: 99") {
+		t.Errorf("registry should have overridden stale width_in=99; got:\n%s", out)
+	}
+}
+
+// TestSpecToTypstConfigPublisherPresetDims verifies publisher presets (no
+// Typst built-in name) also route through the registry for dims.
+func TestSpecToTypstConfigPublisherPresetDims(t *testing.T) {
+	spec := map[string]any{
+		"page": map[string]any{"trim": "protocolized"},
+	}
+	out := specToTypstConfig(spec)
+	if !strings.Contains(out, "// Trim: protocolized") {
+		t.Errorf("expected protocolized trim comment:\n%s", out)
+	}
+	// 353.811/72 = 4.91404...
+	if !strings.Contains(out, "page-width: 4.914") && !strings.Contains(out, "page-width: 4.9140") {
+		t.Errorf("expected protocolized width (~4.914in), got:\n%s", out)
+	}
+}
 
 func TestPullTransmittalMapsCustomStyles(t *testing.T) {
 	_, ts, cleanup := testServer(t)

@@ -646,6 +646,9 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
                 <div class="ts-field full">
                   <label>Trim Size
                   <select data-path="page.trim" id="ts-trim-select">
+                    <optgroup label="Publisher Presets">
+                      <option value="protocolized">Protocolized (4.91×7.59 in / 124.8×192.8 mm)</option>
+                    </optgroup>
                     <optgroup label="Book Sizes">
                       <option value="uk-book-a">UK A-format (4.37×7.01 in / 111×178 mm)</option>
                       <option value="jis-b6">JIS B6 (5.04×7.17 in / 128×182 mm)</option>
@@ -1970,9 +1973,13 @@ tsExport.addEventListener('click', () => {
   a.click();
 });
 
-// Trim presets — Typst paper names → [width_in, height_in]
-// All mm values converted via mm/25.4, rounded to 4 decimal places
+// Trim presets — name → [width_in, height_in]
+// Keep in sync with the Go trimRegistry in srv/bookspecs.go.
+// All mm values converted via mm/25.4, rounded to 4 decimal places.
 const trimPresets = {
+  // Publisher presets (non-Typst)
+  'protocolized': [+(353.811/72).toFixed(4), +(546.567/72).toFixed(4)],   // 124.8 × 192.8 mm
+  // Typst built-in paper sizes
   'us-digest':    [+(139.7/25.4).toFixed(4), +(215.9/25.4).toFixed(4)],   // 5.5 × 8.5
   'us-trade':     [+(152.4/25.4).toFixed(4), +(228.6/25.4).toFixed(4)],   // 6 × 9
   'uk-book-a':    [+(111/25.4).toFixed(4),   +(178/25.4).toFixed(4)],     // 4.3701 × 7.0079
@@ -1987,6 +1994,40 @@ const trimPresets = {
   'us-executive': [+(184.15/25.4).toFixed(4), +(266.7/25.4).toFixed(4)],  // 7.25 × 10.5
   'us-statement': [+(139.7/25.4).toFixed(4), +(215.9/25.4).toFixed(4)],   // same as digest
 };
+// Human-readable trim display names (parallel to the <optgroup> labels).
+const trimDisplayNames = {
+  'protocolized': 'Protocolized',
+  'us-digest':    'US Digest',
+  'us-trade':     'US Trade',
+  'uk-book-a':    'UK A-format',
+  'uk-book-b':    'UK B-format',
+  'a5':           'A5',
+  'a4':           'A4',
+  'a6':           'A6',
+  'jis-b5':       'JIS B5',
+  'jis-b6':       'JIS B6',
+  'us-letter':    'US Letter',
+  'us-legal':     'US Legal',
+  'us-executive': 'US Executive',
+  'us-statement': 'US Statement',
+};
+// Format points as the traditional Np{pts} pica notation (1 pica = 12 pt).
+function fmtPicas(pt) {
+  const p = Math.floor(pt / 12);
+  const rem = pt - p * 12;
+  if (Math.abs(rem) < 0.01) return p + 'p00';
+  return p + 'p' + rem.toFixed(1).padStart(4, '0');
+}
+// Multiline tooltip: in / mm / picas. Used in the comparison strip and preview.
+function trimTooltip(widthIn, heightIn) {
+  const wmm = (widthIn * 25.4).toFixed(1);
+  const hmm = (heightIn * 25.4).toFixed(1);
+  const wpt = widthIn * 72;
+  const hpt = heightIn * 72;
+  return widthIn.toFixed(2) + ' × ' + heightIn.toFixed(2) + ' in' +
+         '\n' + wmm + ' × ' + hmm + ' mm' +
+         '\n' + fmtPicas(wpt) + ' × ' + fmtPicas(hpt) + ' (picas)';
+}
 // Backward-compat aliases for old "W x H" format values
 const trimAliases = {
   '5.5 x 8.5': 'us-digest',
@@ -2024,15 +2065,17 @@ function tsUpdateLeadingHint() {
 }
 
 // Page preview
-// Trim size comparison strip — 7 book sizes drawn to relative scale
+// Trim size comparison strip — book sizes drawn to relative scale.
+// Order ascending by width. Protocolized slots between UK A and JIS B6.
 const trimCompareData = [
-  { id: 'uk-book-a', label: 'UK A',     w: 4.37, h: 7.01 },
-  { id: 'jis-b6',    label: 'JIS B6',   w: 5.04, h: 7.17 },
-  { id: 'uk-book-b', label: 'UK B',     w: 5.08, h: 7.80 },
-  { id: 'us-digest', label: 'Digest',   w: 5.5,  h: 8.5  },
-  { id: 'a5',        label: 'A5',       w: 5.83, h: 8.27 },
-  { id: 'us-trade',  label: 'Trade',    w: 6,    h: 9    },
-  { id: 'jis-b5',    label: 'JIS B5',   w: 7.17, h: 10.12 },
+  { id: 'uk-book-a',   label: 'UK A',     w: 4.37, h: 7.01 },
+  { id: 'protocolized', label: 'Protoc.', w: 4.91, h: 7.59 },
+  { id: 'jis-b6',      label: 'JIS B6',   w: 5.04, h: 7.17 },
+  { id: 'uk-book-b',   label: 'UK B',     w: 5.08, h: 7.80 },
+  { id: 'us-digest',   label: 'Digest',   w: 5.5,  h: 8.5  },
+  { id: 'a5',          label: 'A5',       w: 5.83, h: 8.27 },
+  { id: 'us-trade',    label: 'Trade',    w: 6,    h: 9    },
+  { id: 'jis-b5',      label: 'JIS B5',   w: 7.17, h: 10.12 },
 ];
 function tsRenderTrimCompare() {
   const container = document.getElementById('ts-trim-compare');
@@ -2058,8 +2101,13 @@ function tsRenderTrimCompare() {
     const strokeW = active ? '1.5' : '0.5';
     const textFill = active ? 'var(--accent)' : 'var(--text-muted)';
     const fontW = active ? '600' : '400';
+    const tipTitle = (trimDisplayNames[t.id] || t.label) + ' (' + t.id + ')';
+    const tip = esc(tipTitle + '\n' + trimTooltip(t.w, t.h));
+    // Group wraps rect + text so the SVG <title> tooltip covers both.
+    svg += `<g><title>${tip}</title>`;
     svg += `<rect x="${x}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="${strokeW}" rx="1"/>`;
     svg += `<text x="${x + rw/2}" y="${stripH + 11}" text-anchor="middle" fill="${textFill}" font-size="7" font-weight="${fontW}" font-family="inherit">${t.label}</text>`;
+    svg += `</g>`;
     x += rw + gap;
   });
   svg += '</svg>';
@@ -2077,7 +2125,11 @@ function tsUpdatePagePreview() {
   const scale = 136 / h;
   rect.style.width = Math.round(w * scale) + 'px';
   rect.style.height = Math.round(h * scale) + 'px';
-  dims.textContent = w + ' × ' + h;
+  const wmm = (w * 25.4).toFixed(1);
+  const hmm = (h * 25.4).toFixed(1);
+  dims.textContent = (+w).toFixed(2) + ' × ' + (+h).toFixed(2) + ' in · ' + wmm + ' × ' + hmm + ' mm';
+  // Full in/mm/picas on hover.
+  rect.title = trimTooltip(+w, +h);
 
   // Parse margins (strip 'in' suffix)
   const mt = parseFloat(String(tsGetPath(tsSpec, 'page.margin_top')).replace('in', '')) || 0.75;

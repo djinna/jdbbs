@@ -11,8 +11,13 @@
 // =============================================================================
 
 #let default-config = (
-  // Page: named paper or explicit dimensions
-  // If page-paper is set (e.g. "us-trade"), width/height are ignored.
+  // Page: either a Typst built-in paper name (e.g. "us-digest") OR explicit
+  // width/height. If page-paper is non-none, it takes precedence and the
+  // width/height fields are ignored.
+  //
+  // Defaults are the Protocolized Anthology trim (Ghosts, TT, Librarians):
+  // 353.811 × 546.567 pt = 124.8 × 192.8 mm (= 4.914 × 7.591 in). No Typst
+  // built-in matches this trim, so page-paper stays `none` by default.
   page-paper: none,
   page-width: 353.811pt,
   page-height: 546.567pt,
@@ -77,6 +82,11 @@
 // PAGE SETUP
 // =============================================================================
 
+// Page dimensions. We use explicit width/height so a Typst `set page(...)`
+// stays a single set-rule and its scope isn't split across an if/else.
+// Callers (e.g. the Go server's specToTypstConfig) resolve Typst named paper
+// sizes like "us-digest" into width/height via the trim registry before
+// emitting config, so width/height here is always authoritative.
 #let book-page = page.with(
   width: config.page-width,
   height: config.page-height,
