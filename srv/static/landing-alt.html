@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>jdbb studio</title>
+<title>jdbb studio — alt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
@@ -123,14 +123,23 @@ html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
 }
 .dark-btn:hover { color: var(--text); background: var(--progress-bg); }
 
-/* Main content */
-body { align-items: flex-start; padding-top: 6vh; }
+/* Main content — ALT: left-aligned, two-column */
+body { align-items: stretch; justify-content: stretch; padding: 0; }
 
 .container {
   position: relative; z-index: 1;
-  text-align: center;
-  max-width: 760px;
-  padding: 48px 24px 64px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 6.5vh 56px 80px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 64px;
+  align-items: start;
+  text-align: left;
+}
+@media (max-width: 880px) {
+  .container { grid-template-columns: 1fr; gap: 40px; padding: 5vh 24px 60px; }
 }
 
 .eyebrow {
@@ -139,7 +148,8 @@ body { align-items: flex-start; padding-top: 6vh; }
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  display: inline-flex; align-items: center;
 }
 .eyebrow .dot {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -150,30 +160,31 @@ body { align-items: flex-start; padding-top: 6vh; }
 
 h1 {
   font-family: inherit;
-  font-size: 2.4rem;
+  font-size: 3rem;
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   color: var(--text);
-  margin-bottom: 0.85rem;
-  line-height: 1.1;
+  margin-bottom: 1.1rem;
+  line-height: 1.05;
+  max-width: 14ch;
 }
 h1 .amp { font-style: italic; font-weight: 400; color: var(--text-secondary); }
 
 .subtitle {
-  font-size: 1rem;
+  font-size: 1.05rem;
   color: var(--text-secondary);
   line-height: 1.65;
-  margin: 0 auto 2.5rem;
-  max-width: 520px;
+  margin: 0 0 2.25rem;
+  max-width: 46ch;
 }
 
 .portal-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 1.6rem 1.6rem 1.4rem;
-  margin: 0 auto 2.75rem;
-  max-width: 480px;
+  padding: 1.5rem 1.6rem 1.3rem;
+  margin: 0 0 2.25rem;
+  max-width: 460px;
   text-align: left;
   box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
@@ -219,41 +230,100 @@ html.dark .portal-card .err { color: #fca5a5; }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
 
-/* Feature grid */
+/* Feature list (left col) — numbered rows */
 .features {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.85rem;
-  margin: 0 auto 2.5rem;
-  text-align: left;
+  display: flex; flex-direction: column;
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
 }
 .feat {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem 1.05rem;
-  transition: border-color 0.18s, transform 0.18s;
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.18s;
 }
-.feat:hover { border-color: var(--accent); transform: translateY(-1px); }
+.feat:hover { background: var(--hover-tint); }
 .feat .icon {
   font-family: 'IBM Plex Sans', -apple-system, sans-serif;
-  font-size: 0.7rem; letter-spacing: 0.1em;
-  color: var(--accent); margin-bottom: 0.45rem;
+  font-size: 0.72rem; letter-spacing: 0.1em;
+  color: var(--accent); padding-top: 0.18rem;
 }
+.feat .body { display: flex; flex-direction: column; }
 .feat .name {
-  font-weight: 600; font-size: 0.92rem; margin-bottom: 0.2rem;
+  font-weight: 600; font-size: 1rem; margin-bottom: 0.15rem;
   letter-spacing: -0.01em;
 }
 .feat .desc {
-  font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45;
+  font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;
+}
+
+/* Right column: stacked specimen cards */
+.specimen {
+  position: relative;
+  height: 100%;
+  min-height: 460px;
+}
+.spec-card {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: transform 0.25s ease;
+}
+html.dark .spec-card { box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3); }
+.spec-card .tag {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 0.55rem;
+}
+.spec-card h3 {
+  font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em;
+  margin-bottom: 0.25rem;
+}
+.spec-card .meta {
+  font-size: 0.78rem; color: var(--text-secondary);
+}
+
+.spec-1 { top: 0; left: 8%; width: 78%; transform: rotate(-1.6deg); z-index: 3; }
+.spec-2 { top: 36%; left: 22%; width: 78%; transform: rotate(1.2deg); z-index: 2; }
+.spec-3 { top: 70%; left: 0%; width: 76%; transform: rotate(-0.4deg); z-index: 1; }
+.spec-card:hover { transform: rotate(0deg) translateY(-3px); z-index: 5; }
+
+.spec-progress {
+  margin-top: 0.7rem;
+  height: 5px; background: var(--progress-bg); border-radius: 3px; overflow: hidden;
+}
+.spec-progress > div { height: 100%; background: var(--accent); border-radius: 3px; }
+
+.spec-rows { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.spec-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.75rem; color: var(--text-secondary);
+}
+.spec-row .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green, #16a34a); margin-right: 0.5rem;
+}
+.spec-row .dot.y { background: var(--yellow, #ca8a04); }
+.spec-row .dot.b { background: var(--accent); }
+
+@media (max-width: 880px) {
+  .specimen { display: none; }
 }
 
 .footer {
-  margin-top: 1rem;
+  margin-top: 2.5rem;
   font-size: 0.72rem;
   color: var(--text-muted);
   letter-spacing: 0.04em;
-  display: flex; gap: 0.9rem; justify-content: center; align-items: center;
+  display: flex; gap: 0.9rem; justify-content: flex-start; align-items: center;
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
 }
 .footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
 .footer a:hover { color: var(--accent); }
@@ -288,43 +358,76 @@ html.dark .portal-card .err { color: #fca5a5; }
 </div>
 
 <div class="container">
-  <div class="eyebrow"><span class="dot"></span>jdbb studio</div>
-  <h1>Book production, <span class="amp">end&#8209;to&#8209;end</span>.</h1>
-  <p class="subtitle">
-    A working studio for trade-paperback typesetting, manuscript transmittals,
-    and shared production calendars — for authors, editors, and small presses.
-  </p>
+  <div class="left-col">
+    <div class="eyebrow"><span class="dot"></span>jdbb studio</div>
+    <h1>Book production, <span class="amp">end&#8209;to&#8209;end</span>.</h1>
+    <p class="subtitle">
+      A working studio for trade-paperback typesetting, manuscript transmittals,
+      and shared production calendars — for authors, editors, and small presses.
+    </p>
 
-  <form id="portal-form" class="portal-card">
-    <div class="label">Client portal</div>
-    <div class="portal-row">
-      <input id="client-slug" type="text" placeholder="Your client code" autocomplete="off" spellcheck="false">
-      <button type="submit" class="btn btn-primary">Open &rarr;</button>
-    </div>
-    <div class="hint">Enter your client code to view your projects, schedules, and proofs.</div>
-    <div id="portal-error" class="err"></div>
-  </form>
+    <form id="portal-form" class="portal-card">
+      <div class="label">Client portal</div>
+      <div class="portal-row">
+        <input id="client-slug" type="text" placeholder="Your client code" autocomplete="off" spellcheck="false">
+        <button type="submit" class="btn btn-primary">Open &rarr;</button>
+      </div>
+      <div class="hint">Enter your client code to view your projects, schedules, and proofs.</div>
+      <div id="portal-error" class="err"></div>
+    </form>
 
-  <div class="features">
-    <div class="feat">
-      <div class="icon">01</div>
-      <div class="name">Projects</div>
-      <div class="desc">Multi-stage tracking from manuscript to printed book.</div>
+    <div class="features">
+      <div class="feat">
+        <div class="icon">01</div>
+        <div class="body">
+          <div class="name">Projects</div>
+          <div class="desc">Multi-stage tracking from manuscript to printed book.</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="icon">02</div>
+        <div class="body">
+          <div class="name">Typesetting</div>
+          <div class="desc">Typst pipeline producing print-ready PDFs &amp; EPUBs.</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="icon">03</div>
+        <div class="body">
+          <div class="name">Transmittals</div>
+          <div class="desc">Structured manuscript handoffs with preflight checks.</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="icon">04</div>
+        <div class="body">
+          <div class="name">Calendars</div>
+          <div class="desc">Shared production schedules with email digests.</div>
+        </div>
+      </div>
     </div>
-    <div class="feat">
-      <div class="icon">02</div>
-      <div class="name">Typesetting</div>
-      <div class="desc">Typst pipeline producing print-ready PDFs &amp; EPUBs.</div>
+  </div>
+
+  <div class="specimen" aria-hidden="true">
+    <div class="spec-card spec-1">
+      <div class="tag">Project · Typesetting</div>
+      <h3>The Twitter Years</h3>
+      <div class="meta">Trade paper · 4.91″ × 7.59″ · 248 pp</div>
+      <div class="spec-progress"><div style="width:72%"></div></div>
     </div>
-    <div class="feat">
-      <div class="icon">03</div>
-      <div class="name">Transmittals</div>
-      <div class="desc">Structured manuscript handoffs with preflight checks.</div>
+    <div class="spec-card spec-2">
+      <div class="tag">Transmittal</div>
+      <h3>Manuscript handoff</h3>
+      <div class="spec-rows">
+        <div class="spec-row"><span><span class="dot"></span>Preflight passed</span><span>OK</span></div>
+        <div class="spec-row"><span><span class="dot y"></span>Front matter</span><span>review</span></div>
+        <div class="spec-row"><span><span class="dot b"></span>EPUB build</span><span>queued</span></div>
+      </div>
     </div>
-    <div class="feat">
-      <div class="icon">04</div>
-      <div class="name">Calendars</div>
-      <div class="desc">Shared production schedules with email digests.</div>
+    <div class="spec-card spec-3">
+      <div class="tag">Calendar</div>
+      <h3>Production schedule</h3>
+      <div class="meta">Next milestone · First proofs — Apr 22</div>
     </div>
   </div>
 
