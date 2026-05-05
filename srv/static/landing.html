@@ -124,92 +124,148 @@ html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
 .dark-btn:hover { color: var(--text); background: var(--progress-bg); }
 
 /* Main content */
+body { align-items: flex-start; padding-top: 6vh; }
+
 .container {
   position: relative; z-index: 1;
   text-align: center;
-  max-width: 520px;
-  padding: 40px 24px;
+  max-width: 760px;
+  padding: 48px 24px 64px;
 }
 
-.logo {
-  font-size: 48px;
+.eyebrow {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   margin-bottom: 1.5rem;
-  line-height: 1;
 }
+.eyebrow .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); vertical-align: middle; margin-right: 0.55rem;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 h1 {
   font-family: inherit;
-  font-size: 1.75rem;
+  font-size: 2.4rem;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   color: var(--text);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
+  line-height: 1.1;
 }
+h1 .amp { font-style: italic; font-weight: 400; color: var(--text-secondary); }
 
 .subtitle {
-  font-size: 0.92rem;
+  font-size: 1rem;
   color: var(--text-secondary);
   line-height: 1.65;
-  margin-bottom: 2.5rem;
+  margin: 0 auto 2.5rem;
+  max-width: 520px;
 }
 
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  align-items: center;
+.portal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.6rem 1.6rem 1.4rem;
+  margin: 0 auto 2.75rem;
+  max-width: 480px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
+.portal-card .label {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-secondary); margin-bottom: 0.7rem;
+}
+.portal-row {
+  display: flex; gap: 0.5rem; align-items: stretch;
+}
+.portal-row input {
+  flex: 1; padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text);
+  font: inherit; font-size: 0.95rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.portal-row input:focus {
+  outline: none; border-color: var(--accent); background: var(--surface);
+}
+.portal-card .hint {
+  font-size: 0.75rem; color: var(--text-muted); margin-top: 0.65rem;
+}
+.portal-card .err {
+  display: none; color: #b91c1c; font-size: 0.8rem; margin-top: 0.55rem;
+}
+html.dark .portal-card .err { color: #fca5a5; }
 
 .btn {
-  display: inline-block;
-  padding: 0.65rem 2rem;
-  border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.7rem 1.25rem;
+  border-radius: 8px;
   font-family: inherit;
   font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
   transition: all 0.15s;
-  width: 260px;
-  text-align: center;
   cursor: pointer;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
 
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+/* Feature grid */
+.features {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+  margin: 0 auto 2.5rem;
+  text-align: left;
 }
-.btn-primary:hover { opacity: 0.9; }
-
-.btn-secondary {
-  background: transparent;
-  color: var(--text);
-  border-color: var(--border);
+.feat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.05rem;
+  transition: border-color 0.18s, transform 0.18s;
 }
-.btn-secondary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+.feat:hover { border-color: var(--accent); transform: translateY(-1px); }
+.feat .icon {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.7rem; letter-spacing: 0.1em;
+  color: var(--accent); margin-bottom: 0.45rem;
 }
-
-.btn-note {
-  display: block;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 0.35rem;
-  font-style: italic;
+.feat .name {
+  font-weight: 600; font-size: 0.92rem; margin-bottom: 0.2rem;
+  letter-spacing: -0.01em;
+}
+.feat .desc {
+  font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45;
 }
 
 .footer {
-  margin-top: 3.5rem;
+  margin-top: 1rem;
   font-size: 0.72rem;
   color: var(--text-muted);
   letter-spacing: 0.04em;
+  display: flex; gap: 0.9rem; justify-content: center; align-items: center;
 }
+.footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
+.footer a:hover { color: var(--accent); }
+.footer .sep { opacity: 0.5; }
 
+@media (max-width: 720px) {
+  .features { grid-template-columns: repeat(2, 1fr); }
+  h1 { font-size: 1.95rem; }
+}
 @media (max-width: 480px) {
-  .btn { width: 100%; }
-  .container { padding: 32px 20px; }
+  .portal-row { flex-direction: column; }
+  .container { padding: 32px 18px 48px; }
 }
 </style>
 </head>
@@ -232,25 +288,50 @@ h1 {
 </div>
 
 <div class="container">
-  <div class="logo">📚</div>
-  <h1>jdbb studio</h1>
+  <div class="eyebrow"><span class="dot"></span>jdbb studio</div>
+  <h1>Book production, <span class="amp">end&#8209;to&#8209;end</span>.</h1>
   <p class="subtitle">
-    Book production calendars &amp; manuscript transmittals.<br>
-    Shared project tracking for authors, editors, and production teams.
+    A working studio for trade-paperback typesetting, manuscript transmittals,
+    and shared production calendars — for authors, editors, and small presses.
   </p>
-  <div class="actions">
-    <form id="portal-form" style="display:flex;flex-direction:column;gap:0.7rem;align-items:center;width:min(100%, 420px)">
-      <div style="display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:center;width:100%">
-        <input id="client-slug" type="text" placeholder="Client code (e.g. vgr)" autocomplete="off" spellcheck="false" style="flex:1 1 180px;min-width:180px;padding:0.95rem 1rem;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--text);font:inherit">
-        <button type="submit" class="btn btn-primary">Client Portal &rarr;</button>
-      </div>
-      <span class="btn-note">Enter your client code to open your portal, then select your project.</span>
-      <div id="portal-error" style="display:none;color:#b91c1c;font-size:0.82rem"></div>
-    </form>
+
+  <form id="portal-form" class="portal-card">
+    <div class="label">Client portal</div>
+    <div class="portal-row">
+      <input id="client-slug" type="text" placeholder="Client code (e.g. vgr)" autocomplete="off" spellcheck="false">
+      <button type="submit" class="btn btn-primary">Open &rarr;</button>
+    </div>
+    <div class="hint">Enter your client code to view your projects, schedules, and proofs.</div>
+    <div id="portal-error" class="err"></div>
+  </form>
+
+  <div class="features">
+    <div class="feat">
+      <div class="icon">01</div>
+      <div class="name">Projects</div>
+      <div class="desc">Multi-stage tracking from manuscript to printed book.</div>
+    </div>
+    <div class="feat">
+      <div class="icon">02</div>
+      <div class="name">Typesetting</div>
+      <div class="desc">Typst pipeline producing print-ready PDFs &amp; EPUBs.</div>
+    </div>
+    <div class="feat">
+      <div class="icon">03</div>
+      <div class="name">Transmittals</div>
+      <div class="desc">Structured manuscript handoffs with preflight checks.</div>
+    </div>
+    <div class="feat">
+      <div class="icon">04</div>
+      <div class="name">Calendars</div>
+      <div class="desc">Shared production schedules with email digests.</div>
+    </div>
   </div>
+
   <div class="footer">
-    <a href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/" style="color:var(--text-muted);text-decoration:none;font-size:0.72rem">Admin</a>
-    &nbsp;&middot;&nbsp; &copy; 2025 JDBB
+    <a href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/">Admin</a>
+    <span class="sep">&middot;</span>
+    <span>&copy; 2026 JDBB</span>
   </div>
 </div>
 
