@@ -190,14 +190,20 @@ body { align-items: stretch; justify-content: stretch; padding: 0; display: bloc
 /* Hide the inline portal card (now lives in topbar) */
 .portal-card { display: none !important; }
 
+/* Eyebrow uses former navbar-brand sizing */
 .eyebrow {
   font-family: 'IBM Plex Sans', -apple-system, sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 1.75rem;
+  color: var(--text);
+  margin-bottom: 2rem;
   display: inline-flex; align-items: center;
+}
+.eyebrow .dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); margin-right: 0.6rem;
+  animation: none;
 }
 .eyebrow .dot {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -208,14 +214,16 @@ body { align-items: stretch; justify-content: stretch; padding: 0; display: bloc
 
 h1 {
   font-family: inherit;
-  font-size: 3rem;
+  font-size: 2.55rem;
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.035em;
   color: var(--text);
   margin-bottom: 1.1rem;
   line-height: 1.05;
-  max-width: 14ch;
+  max-width: none;
+  white-space: normal;
 }
+h1 .nb { white-space: nowrap; }
 h1 .amp { font-style: italic; font-weight: 400; color: var(--text-secondary); }
 
 .subtitle {
@@ -371,8 +379,10 @@ html.dark .spec-card { box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 1px 2px rgba(0
   display: flex; gap: 0.9rem; justify-content: flex-start; align-items: center;
   grid-column: 1 / -1;
   border-top: 1px solid var(--border);
-  padding-top: 1.25rem;
+  padding-top: 1rem;
 }
+.footer-spacer { flex: 1; }
+.footer .theme-bar { margin-right: auto; }
 .footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
 .footer a:hover { color: var(--accent); }
 .footer .sep { opacity: 0.5; }
@@ -395,32 +405,19 @@ html.dark .spec-card { box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 1px 2px rgba(0
 
 <nav class="topbar">
   <div class="topbar-inner">
-    <a href="/" class="brand"><span class="mark"></span>jdbb studio</a>
     <div class="nav-spacer"></div>
     <a class="nav-link" href="#features">What we do</a>
-    <a class="nav-link" href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/">Admin</a>
     <form id="portal-form-nav" class="nav-portal">
       <input id="client-slug-nav" type="text" placeholder="Client code" autocomplete="off" spellcheck="false">
       <button type="submit" class="btn btn-primary">Open</button>
     </form>
-    <div class="theme-bar" id="theme-bar" style="box-shadow:none;background:transparent;border:none;padding:0;margin-left:0.5rem">
-  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
-  <div class="font-options" id="font-options">
-    <button class="theme-opt" data-font="literata">Literata</button>
-    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
-    <button class="theme-opt" data-font="menlo">Menlo</button>
-    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
-  </div>
-  <div class="theme-sep"></div>
-  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
-    </div>
   </div>
 </nav>
 
 <div class="container">
   <div class="left-col" id="features">
     <div class="eyebrow"><span class="dot"></span>jdbb studio</div>
-    <h1>Book production, <span class="amp">end&#8209;to&#8209;end</span>.</h1>
+    <h1><span class="nb">Book production,</span> <span class="amp">end&#8209;to&#8209;end</span>.</h1>
     <p class="subtitle">
       A working studio for trade-paperback typesetting, manuscript transmittals,
       and shared production calendars — for authors, editors, and small presses.
@@ -486,6 +483,18 @@ html.dark .spec-card { box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 1px 2px rgba(0
   </div>
 
   <div class="footer">
+    <div class="theme-bar" id="theme-bar">
+      <div class="font-name" id="font-name" title="Click to change typeface">Menlo</div>
+      <div class="font-options" id="font-options">
+        <button class="theme-opt" data-font="literata">Literata</button>
+        <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
+        <button class="theme-opt" data-font="menlo">Menlo</button>
+        <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
+      </div>
+      <div class="theme-sep"></div>
+      <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
+    </div>
+    <div class="footer-spacer"></div>
     <a href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/">Admin</a>
     <span class="sep">&middot;</span>
     <span>&copy; 2026 JDBB</span>
@@ -501,7 +510,7 @@ var fonts = {
   menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
 };
 var fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
-var state = { font: fontKeys[Math.floor(Math.random() * fontKeys.length)], dark: false };
+var state = { font: 'menlo', dark: false };
 try {
   var saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
   if (saved) state.dark = saved.dark;
