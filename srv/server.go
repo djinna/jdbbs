@@ -76,6 +76,9 @@ func (s *Server) Handler() http.Handler {
 	// Health check
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
 
+	// Public landing summary (non-sensitive aggregate counts)
+	mux.HandleFunc("GET /api/public/summary", s.handlePublicSummary)
+
 	// Admin dashboard
 	mux.HandleFunc("GET /admin/", s.handleAdminDashboard)
 	mux.HandleFunc("GET /api/admin/projects", s.handleAdminProjectList)
@@ -272,6 +275,22 @@ func (s *Server) serveIndex(w http.ResponseWriter) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(data)
+}
+
+// handlePublicSummary returns harmless aggregate counts for the landing page.
+// No identifying info is exposed.
+func (s *Server) handlePublicSummary(w http.ResponseWriter, r *http.Request) {
+	var projectsActive, projectsTotal, clients int
+	_ = s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM projects WHERE COALESCE(archived,0)=0`).Scan(&projectsActive)
+	_ = s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM projects`).Scan(&projectsTotal)
+	_ = s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM clients`).Scan(&clients)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=60")
+	json.NewEncoder(w).Encode(map[string]int{
+		"projects_active": projectsActive,
+		"projects_total":  projectsTotal,
+		"clients":         clients,
+	})
 }
 
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {

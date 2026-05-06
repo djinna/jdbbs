@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>jdbb studio — navbar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<script>
+(function() {
+  try {
+    var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+    if (t && t.dark) document.documentElement.classList.add('dark');
+  } catch(e) {}
+})();
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f8f9fa; --surface: #ffffff; --border: #e0e2e6;
+  --text: #111827; --text-secondary: #6b7280; --text-muted: #9ca3af;
+  --accent: #2563eb;
+  --noise-opacity: 0.035; --grid-color: rgba(160,168,180,0.6);
+  --gradient-wash: linear-gradient(to bottom, rgba(230,233,240,0.3) 0%, transparent 60%);
+  --progress-bg: #f1f3f5;
+  --theme-bg: rgba(255,255,255,0.92);
+}
+
+html.dark {
+  --bg: #0f1115; --surface: #1a1d24; --border: #2a2d35;
+  --text: #e4e5e7; --text-secondary: #9ca0a8; --text-muted: #6b7074;
+  --accent: #5b9aff;
+  --noise-opacity: 0.012; --grid-color: rgba(90,96,110,0.7);
+  --gradient-wash: linear-gradient(to bottom, rgba(20,22,28,0.4) 0%, transparent 60%);
+  --progress-bg: #23262e;
+  --theme-bg: rgba(26,29,36,0.92);
+}
+
+body {
+  background: var(--bg);
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 0.3s, color 0.3s;
+}
+body, body * { font-weight: 400; }
+
+/* Noise texture overlay */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px; opacity: var(--noise-opacity);
+}
+
+/* Gradient wash at top */
+body::after {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 50vh; z-index: 0;
+  pointer-events: none; background: var(--gradient-wash);
+}
+
+/* Dashed grid lines */
+.grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: flex; justify-content: center; }
+.grid-lines-inner { width: 1120px; max-width: 100vw; display: flex; justify-content: space-between; padding: 0; }
+.grid-line {
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, var(--grid-color) 0px, var(--grid-color) 4px, transparent 4px, transparent 10px);
+}
+
+/* Theme bar — matches dashboard exactly */
+.theme-bar {
+  position: fixed; top: 1rem; right: 2rem; z-index: 200;
+  display: flex; align-items: center; gap: 0.25rem;
+  background: var(--theme-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 0.2rem 0.3rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.theme-bar .font-options {
+  display: flex; gap: 0.15rem; overflow: hidden;
+  max-width: 0; opacity: 0;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+}
+.theme-bar.expanded .font-options {
+  max-width: 400px; opacity: 1;
+}
+
+.theme-bar .font-name {
+  padding: 0.25rem 0.5rem; font-size: 0.65rem; color: var(--text-secondary);
+  cursor: pointer; white-space: nowrap; transition: color 0.15s;
+  border-radius: 10px;
+}
+.theme-bar .font-name:hover { color: var(--text); }
+.theme-bar.expanded .font-name { display: none; }
+
+.theme-opt {
+  padding: 0.25rem 0.5rem; border-radius: 10px; border: none;
+  background: transparent; color: var(--text-secondary); font-size: 0.65rem;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  font-family: inherit;
+}
+.theme-opt:hover { color: var(--text); background: var(--progress-bg); }
+.theme-opt.active { color: var(--accent); background: rgba(37,99,235,0.08); }
+html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
+
+.theme-sep {
+  width: 1px; height: 13px; background: var(--border);
+  margin: 0 0.1rem; flex-shrink: 0; align-self: center;
+}
+
+.dark-btn {
+  width: 20px; height: 20px; padding: 0; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.dark-btn:hover { color: var(--text); background: var(--progress-bg); }
+
+/* Navbar layout */
+body { align-items: stretch; justify-content: stretch; padding: 0; display: block; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--theme-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-inner {
+  max-width: 1120px; margin: 0 auto;
+  padding: 0.7rem 32px;
+  display: flex; align-items: center; gap: 1.25rem;
+}
+.brand {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text); text-decoration: none;
+}
+.brand .mark { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.nav-spacer { flex: 1; }
+.nav-link {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.78rem; color: var(--text-secondary);
+  text-decoration: none; padding: 0.4rem 0.6rem;
+  border-radius: 6px; transition: color 0.15s, background 0.15s;
+}
+.nav-link:hover { color: var(--text); background: var(--progress-bg); }
+.nav-portal { display: flex; align-items: stretch; gap: 0.4rem; }
+.nav-portal input {
+  width: 180px; padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text);
+  font: inherit; font-size: 0.85rem;
+  transition: border-color 0.15s, width 0.2s;
+}
+.nav-portal input:focus { outline: none; border-color: var(--accent); width: 220px; }
+.nav-portal .btn { padding: 0.45rem 0.9rem; font-size: 0.82rem; border-radius: 8px; }
+
+.container {
+  position: relative; z-index: 1;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 9vh 32px 80px;
+  text-align: left;
+  display: block;
+}
+.specimen { display: none; }
+.portal-card { display: none; }
+.eyebrow { display: none; }
+
+h1 { font-size: 3.2rem; max-width: 16ch; line-height: 1.04; margin-bottom: 1.1rem; }
+.subtitle { max-width: 52ch; margin-bottom: 3.5rem; }
+
+.features {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+.feat {
+  display: block;
+  padding: 1.5rem 1.25rem 1.5rem 0;
+  border-right: 1px solid var(--border);
+  border-bottom: none;
+}
+.feat:last-child { border-right: none; }
+.feat .icon { margin-bottom: 0.5rem; }
+
+@media (max-width: 880px) {
+  .nav-portal input { width: 130px; }
+  .nav-portal input:focus { width: 160px; }
+  .nav-link { display: none; }
+  .features { grid-template-columns: repeat(2, 1fr); }
+  .feat:nth-child(2) { border-right: none; }
+}
+@media (max-width: 600px) {
+  .nav-portal { display: none; }
+  .topbar-inner { padding: 0.7rem 18px; }
+  .container { padding: 6vh 24px 60px; }
+}
+
+.eyebrow {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 1.75rem;
+  display: inline-flex; align-items: center;
+}
+.eyebrow .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); vertical-align: middle; margin-right: 0.55rem;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+h1 {
+  font-family: inherit;
+  font-size: 3rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  margin-bottom: 1.1rem;
+  line-height: 1.05;
+  max-width: 14ch;
+}
+h1 .amp { font-style: italic; font-weight: 400; color: var(--text-secondary); }
+
+.subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0 0 2.25rem;
+  max-width: 46ch;
+}
+
+.portal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem 1.6rem 1.3rem;
+  margin: 0 0 2.25rem;
+  max-width: 460px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.portal-card .label {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-secondary); margin-bottom: 0.7rem;
+}
+.portal-row {
+  display: flex; gap: 0.5rem; align-items: stretch;
+}
+.portal-row input {
+  flex: 1; padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text);
+  font: inherit; font-size: 0.95rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.portal-row input:focus {
+  outline: none; border-color: var(--accent); background: var(--surface);
+}
+.portal-card .hint {
+  font-size: 0.75rem; color: var(--text-muted); margin-top: 0.65rem;
+}
+.portal-card .err {
+  display: none; color: #b91c1c; font-size: 0.8rem; margin-top: 0.55rem;
+}
+html.dark .portal-card .err { color: #fca5a5; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.7rem 1.25rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+
+/* (overridden by navbar fork rules above) */
+.feat:hover { background: var(--hover-tint); }
+.feat .icon {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.72rem; letter-spacing: 0.1em;
+  color: var(--accent); padding-top: 0.18rem;
+}
+.feat .body { display: flex; flex-direction: column; }
+.feat .name {
+  font-weight: 600; font-size: 1rem; margin-bottom: 0.15rem;
+  letter-spacing: -0.01em;
+}
+.feat .desc {
+  font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;
+}
+
+/* Right column: stacked specimen cards */
+.specimen {
+  position: relative;
+  height: 100%;
+  min-height: 460px;
+}
+.spec-card {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: transform 0.25s ease;
+}
+html.dark .spec-card { box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3); }
+.spec-card .tag {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 0.55rem;
+}
+.spec-card h3 {
+  font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em;
+  margin-bottom: 0.25rem;
+}
+.spec-card .meta {
+  font-size: 0.78rem; color: var(--text-secondary);
+}
+
+.spec-1 { top: 0; left: 8%; width: 78%; transform: rotate(-1.6deg); z-index: 3; }
+.spec-2 { top: 36%; left: 22%; width: 78%; transform: rotate(1.2deg); z-index: 2; }
+.spec-3 { top: 70%; left: 0%; width: 76%; transform: rotate(-0.4deg); z-index: 1; }
+.spec-card:hover { transform: rotate(0deg) translateY(-3px); z-index: 5; }
+
+.spec-progress {
+  margin-top: 0.7rem;
+  height: 5px; background: var(--progress-bg); border-radius: 3px; overflow: hidden;
+}
+.spec-progress > div { height: 100%; background: var(--accent); border-radius: 3px; }
+
+.spec-rows { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.spec-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.75rem; color: var(--text-secondary);
+}
+.spec-row .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green, #16a34a); margin-right: 0.5rem;
+}
+.spec-row .dot.y { background: var(--yellow, #ca8a04); }
+.spec-row .dot.b { background: var(--accent); }
+
+@media (max-width: 880px) {
+  .specimen { display: none; }
+}
+
+.footer {
+  margin-top: 2.5rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  display: flex; gap: 0.9rem; justify-content: flex-start; align-items: center;
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+}
+.footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
+.footer a:hover { color: var(--accent); }
+.footer .sep { opacity: 0.5; }
+
+@media (max-width: 720px) {
+  .features { grid-template-columns: repeat(2, 1fr); }
+  h1 { font-size: 1.95rem; }
+}
+@media (max-width: 480px) {
+  .portal-row { flex-direction: column; }
+  .container { padding: 32px 18px 48px; }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-lines"><div class="grid-lines-inner">
+  <div class="grid-line"></div><div class="grid-line"></div>
+</div></div>
+
+<nav class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><span class="mark"></span>jdbb studio</a>
+    <div class="nav-spacer"></div>
+    <a class="nav-link" href="#features">What we do</a>
+    <a class="nav-link" href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/">Admin</a>
+    <form id="portal-form-nav" class="nav-portal">
+      <input id="client-slug-nav" type="text" placeholder="Client code" autocomplete="off" spellcheck="false">
+      <button type="submit" class="btn btn-primary">Open</button>
+    </form>
+  </div>
+</nav>
+
+<div class="theme-bar" id="theme-bar">
+  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
+  <div class="font-options" id="font-options">
+    <button class="theme-opt" data-font="literata">Literata</button>
+    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
+    <button class="theme-opt" data-font="menlo">Menlo</button>
+    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
+  </div>
+  <div class="theme-sep"></div>
+  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
+</div>
+
+<div class="container">
+  <div class="left-col" id="features">
+    <h1>Book production, <span class="amp">end&#8209;to&#8209;end</span>.</h1>
+    <p class="subtitle">
+      A working studio for trade-paperback typesetting, manuscript transmittals,
+      and shared production calendars — for authors, editors, and small presses.
+    </p>
+
+    <form id="portal-form" class="portal-card">
+      <div class="label">Client portal</div>
+      <div class="portal-row">
+        <input id="client-slug" type="text" placeholder="Your client code" autocomplete="off" spellcheck="false">
+        <button type="submit" class="btn btn-primary">Open &rarr;</button>
+      </div>
+      <div class="hint">Enter your client code to view your projects, schedules, and proofs.</div>
+      <div id="portal-error" class="err"></div>
+    </form>
+
+    <div class="features">
+      <div class="feat">
+        <div class="icon">01</div>
+        <div class="body">
+          <div class="name">Projects</div>
+          <div class="desc">Multi-stage tracking from manuscript to printed book.</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="icon">02</div>
+        <div class="body">
+          <div class="name">Typesetting</div>
+          <div class="desc">Typst pipeline producing print-ready PDFs &amp; EPUBs.</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="icon">03</div>
+        <div class="body">
+          <div class="name">Transmittals</div>
+          <div class="desc">Structured manuscript handoffs with preflight checks.</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="icon">04</div>
+        <div class="body">
+          <div class="name">Calendars</div>
+          <div class="desc">Shared production schedules with email digests.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="specimen" aria-hidden="true">
+    <div class="spec-card spec-1">
+      <div class="tag">Project · Typesetting</div>
+      <h3>The Twitter Years</h3>
+      <div class="meta">Trade paper · 4.91″ × 7.59″ · 248 pp</div>
+      <div class="spec-progress"><div style="width:72%"></div></div>
+    </div>
+    <div class="spec-card spec-2">
+      <div class="tag">Transmittal</div>
+      <h3>Manuscript handoff</h3>
+      <div class="spec-rows">
+        <div class="spec-row"><span><span class="dot"></span>Preflight passed</span><span>OK</span></div>
+        <div class="spec-row"><span><span class="dot y"></span>Front matter</span><span>review</span></div>
+        <div class="spec-row"><span><span class="dot b"></span>EPUB build</span><span>queued</span></div>
+      </div>
+    </div>
+    <div class="spec-card spec-3">
+      <div class="tag">Calendar</div>
+      <h3>Production schedule</h3>
+      <div class="meta">Next milestone · First proofs — Apr 22</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/">Admin</a>
+    <span class="sep">&middot;</span>
+    <span>&copy; 2026 JDBB</span>
+  </div>
+</div>
+
+<script>
+// ─── Font System (matches dashboard) ───
+var fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
+  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
+  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
+  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
+};
+var fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
+var state = { font: fontKeys[Math.floor(Math.random() * fontKeys.length)], dark: false };
+try {
+  var saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (saved) state.dark = saved.dark;
+} catch(e) {}
+
+function applyState() {
+  var f = fonts[state.font];
+  if (f) {
+    document.body.style.fontFamily = f.family;
+    document.getElementById('font-name').textContent = f.label;
+  }
+  document.documentElement.classList.toggle('dark', state.dark);
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.font === state.font);
+  });
+  document.getElementById('dark-btn').textContent = state.dark ? '\u2600' : '\u263e';
+}
+
+function saveState() {
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: state.dark })); } catch(e) {}
+}
+
+function setFont(key) { state.font = key; applyState(); saveState(); }
+function toggleDark() { state.dark = !state.dark; applyState(); saveState(); }
+
+var bar = document.getElementById('theme-bar');
+var nameEl = document.getElementById('font-name');
+var expanded = false;
+
+nameEl.addEventListener('click', function() {
+  expanded = !expanded;
+  bar.classList.toggle('expanded', expanded);
+});
+
+document.addEventListener('click', function(e) {
+  if (expanded && !bar.contains(e.target)) {
+    expanded = false;
+    bar.classList.remove('expanded');
+  }
+});
+
+document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    setFont(this.dataset.font);
+    expanded = false;
+    bar.classList.remove('expanded');
+  });
+});
+
+document.getElementById('dark-btn').addEventListener('click', toggleDark);
+
+var portalForm = document.getElementById('portal-form');
+var clientSlugInput = document.getElementById('client-slug');
+var portalError = document.getElementById('portal-error');
+
+portalForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+  var raw = (clientSlugInput.value || '').trim().toLowerCase();
+  var slug = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (!slug) {
+    portalError.textContent = 'Enter your client code.';
+    portalError.style.display = 'block';
+    clientSlugInput.focus();
+    return;
+  }
+  portalError.style.display = 'none';
+  window.location.href = absoluteURL('/' + slug + '/');
+});
+
+function absoluteURL(path) {
+  return new URL(path, window.location.origin + '/').toString();
+}
+
+applyState();
+
+// Wire up navbar portal
+(function() {
+  var nf = document.getElementById('portal-form-nav');
+  var ni = document.getElementById('client-slug-nav');
+  if (!nf) return;
+  nf.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var raw = (ni.value || '').trim().toLowerCase();
+    var slug = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!slug) { ni.focus(); return; }
+    window.location.href = new URL('/' + slug + '/', window.location.origin + '/').toString();
+  });
+})();
+</script>
+</body>
+</html>

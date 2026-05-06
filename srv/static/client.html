@@ -92,7 +92,10 @@
     border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px;
   }
   .auth-box .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
-  .auth-box .back-link { margin-top: 16px; }
+  .auth-box .forgot-link { margin-top: 14px; }
+  .auth-box .forgot-link a { color: var(--accent); font-size: 13px; text-decoration: none; }
+  .auth-box .forgot-link a:hover { text-decoration: underline; }
+  .auth-box .back-link { margin-top: 8px; }
   .auth-box .back-link a { color: var(--text-secondary); font-size: 13px; text-decoration: none; }
 
   .theme-toggle {
@@ -286,6 +289,7 @@ function render() {
       <input type="password" id="pw" placeholder="Enter password" autofocus>
       <div><button class="btn btn-primary" id="loginBtn" style="width:100%">Unlock</button></div>
       ${state.error ? '<div class="error">' + esc(state.error) + '</div>' : ''}
+      <div class="forgot-link"><a href="#" id="forgotLink">Forgot or need a reset?</a></div>
       <div class="back-link"><a href="https://jdbbs.exe.xyz/">← Back</a></div>
     `;
     app.appendChild(box);
@@ -301,6 +305,20 @@ function render() {
     };
     btn.addEventListener('click', doLogin);
     pw.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    const forgotLink = box.querySelector('#forgotLink');
+    if (forgotLink) {
+      forgotLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const subject = encodeURIComponent('Portal access — ' + clientSlug);
+        const body = encodeURIComponent(
+          'Hi,\n\nI’d like a password reset (or password) for the JDBB client portal.\n\n' +
+          'Client code: ' + clientSlug + '\n' +
+          'Portal URL: ' + window.location.href + '\n\n' +
+          'Thanks.\n'
+        );
+        window.location.href = 'mailto:j@djinna.com?subject=' + subject + '&body=' + body;
+      });
+    }
   } else if (state.view === 'portal') {
     app.innerHTML = '';
     const div = document.createElement('div');
