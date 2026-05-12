@@ -337,31 +337,30 @@ Small `.env` file on disk. Mode 600 is correct; **action:** read contents during
 ### TRK-SEC-008 — Resolve 6 Dependabot vulnerabilities on `djinna/prodcal`
 
 - area: SEC
-- status: open
+- status: done
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-12
-- refs: https://github.com/djinna/prodcal/security/dependabot
+- refs: prodcal `7176e9a9` (go.mod/go.sum bump); GitHub auto-closed all 6 alerts at 2026-05-12T16:56:30Z
+- pr/commit: https://github.com/djinna/prodcal/commit/7176e9a9
 
-Surfaced during the TRK-MIG-001 push. Six open alerts on prodcal default branch:
+**Done 2026-05-12.** Patched, pushed, GitHub auto-detected fixes from go.mod, alerts state=fixed across the board. Patched binary deployed to VM (PID 3268939 active running).
 
-| # | Severity | Package | Summary |
-|---|---|---|---|
-| #4 | **critical** | `google.golang.org/grpc` | Authorization bypass via missing leading slash in `:path` |
-| #5 | **critical** | `github.com/jackc/pgx/v5` | Memory-safety vulnerability |
-| #1 | medium | `golang.org/x/crypto` | `ssh` unbounded memory consumption |
-| #2 | medium | `golang.org/x/crypto` | `ssh/agent` panic on malformed message |
-| #3 | low | `filippo.io/edwards25519` | `MultiScalarMult` invalid result when receiver is not identity |
-| #6 | low | `github.com/jackc/pgx/v5` | SQL injection via dollar-quoted placeholder confusion |
+| # | Severity | Package | Bump | GHSA |
+|---|---|---|---|---|
+| #4 | **critical** | `google.golang.org/grpc` | v1.75.0 → **v1.79.3** | GHSA-p77j-4mvh-x3m3 (authz bypass via missing leading slash in `:path`) |
+| #5 | **critical** | `github.com/jackc/pgx/v5` | v5.7.5 → **v5.9.2** | GHSA-9jj7-4m8r-rfcm (memory-safety) |
+| #1 | medium | `golang.org/x/crypto` | v0.39.0 → **v0.46.0** | GHSA-j5w8-q4qc-rx2x (ssh unbounded mem) |
+| #2 | medium | `golang.org/x/crypto` | v0.39.0 → **v0.46.0** | GHSA-f6x5-jh6r-wrfv (ssh/agent OOB read panic) |
+| #3 | low | `filippo.io/edwards25519` | v1.1.0 → **v1.1.1** | GHSA-fw7p-63qq-7hpr (MultiScalarMult identity-receiver) |
+| #6 | low | `github.com/jackc/pgx/v5` | v5.7.5 → **v5.9.2** | GHSA-j88v-2chj-qfwx (SQL-injection via $-quoted placeholder) |
 
-**Triage notes:**
-
-- pgx is likely a transitive dep (prodcal uses SQLite). Verify in `go.sum`; if unused, removing the transitive chain is the cleanest fix.
-- grpc auth-bypass: also probably transitive (no obvious gRPC server). Verify and remove if unused; otherwise bump.
-- `golang.org/x/crypto` — used by Go std-lib-adjacent code and possibly directly. Bump to a clean release.
-- `edwards25519` — verify; likely transitive.
-
-**Action:** `go list -m all | grep -E "pgx|grpc|crypto|edwards25519"` to identify reachable paths. Bump or remove. Run `go test ./...`. Confirm Dependabot closes alerts after push.
+**Notes from the bump:**
+- `x/crypto` was always a direct import (`srv/server.go` uses `golang.org/x/crypto/bcrypt`) but had been recorded as indirect; `go mod tidy` now promotes it to the direct require block, which is the correct shape.
+- The grpc bump tripped a transient downgrade to `v1.79.0-dev` because `sqlc` transitively pinned that pre-release when x/crypto was bumped first. Re-asserting `grpc@v1.79.3` after the x/crypto bump resolves cleanly. Verified via `go list -m google.golang.org/grpc`.
+- Knock-on: `x/net` v0.41.0→v0.48.0, `x/sync` v0.16.0→v0.19.0, `x/sys` v0.34.0→v0.39.0, `x/text` v0.26.0→v0.32.0, `protobuf` v1.36.8→v1.36.10, `genproto/{api,rpc}` 2025-07-07→2025-12-02, `cel.dev/expr` v0.24.0→v0.25.1. All from `go mod tidy`; no source code changes needed.
+- Verified: `go vet ./...` clean, `go build ./...` clean, `go test ./srv/...` ok (3.7s local, 4.3s VM).
+- Deploy: VM rebuilt, systemd restarted, HTTP 200 in 738µs post-restart.
 
 ### TRK-SEC-006 — Port bcrypt + auth hardening from prodcal `3c2256d`
 
