@@ -10,6 +10,47 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
+## 🟢 Resume here — next session (2026-05-13)
+
+**Last touched:** 2026-05-12 18:51 UTC.
+
+**Live state (assumed healthy until verified):**
+- `prodcal` active on `jdbbs.exe.xyz`, MainPID==listener (Type=notify), DB at `/home/exedev/prodcal/db.sqlite3` (117 MB, projects=12, books=6, Twitter Years is project 7)
+- Backup pipeline 3-2-1 satisfied; first unattended daily cron runs tonight at 03:00 UTC
+- All four sentinels green; `~/backups/.HEALTH-OK` < 1h old
+
+**Run before doing anything else** (full block in `NEXT_SESSION_PROMPT_2026-05-13.md`):
+
+```bash
+ssh exedev@jdbbs.exe.xyz '\
+  systemctl is-active prodcal && \
+  cat ~/backups/.HEALTH-OK && \
+  echo "--- crontab ---" && crontab -l | grep -v ^# && \
+  echo "--- DB rowcounts ---" && \
+  sqlite3 -readonly /home/exedev/prodcal/db.sqlite3 \
+    "SELECT '"'"'projects='"'"' || COUNT(*) FROM projects UNION ALL SELECT '"'"'books='"'"' || COUNT(*) FROM books" && \
+  echo "--- R2 ---" && rclone size r2:jdbbs-backups'
+curl -sI https://jdbbs.exe.xyz | head -1
+jbackup-pull
+```
+
+**Next priorities (pick one and start):**
+
+1. **TRK-OPS-006** — drop the 12 test/dummy projects so production reflects only Twitter Years (~5-10 min, mechanical). Has 4 backup copies of pre-state, low risk.
+2. **TRK-DESIGN-001 Ghosts parity** — compile `manuscripts/ghosts/` on the VM, diff vs `reference/GHOSTS.pdf`. The actual "does Typst work" milestone — first creative-leverage win.
+3. **Phase 1 review** — bottom-up walkthrough of `typesetting/templates/series-template.typ` and the rest of the typesetting subsystem. Educational; lower urgency.
+
+**Open questions for the user:**
+
+- Want a real alert channel (Discord webhook, ntfy.sh, exe.dev email forward) for backup-health failures? Currently observable only via `jbackup-pull`.
+- Are the 12 test projects 100% disposable, or should any be exported / kept for reference before delete? (Earlier confirmed: only Twitter Years is real.)
+
+**Do NOT touch without re-reading the relevant TRK entry:**
+- prodcal systemd unit — restart pattern is documented in TRK-OPS-005, depends on `Type=notify` + `sd_notify` ready signal
+- `backup-db.sh` env vars — `MIN_GZ_BYTES`/`MIN_PROJECTS` thresholds are baseline-tuned, see TRK-OPS-007 phase 1
+
+---
+
 ## Conventions
 
 - **IDs** are `TRK-AREA-NNN`. Areas:
