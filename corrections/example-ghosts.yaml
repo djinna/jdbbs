@@ -1,0 +1,46 @@
+# Corrections ledger for: Ghosts in Machines
+# Source EPUB: GHOSTS_IN_MACHINES_ALT.epub
+# Date: 2026-03-17
+#
+# ╔═══════════════════════════════════════════════════════════════╗
+# ║  CORRECTIONS TIER — typo-level text fixes only               ║
+# ║                                                               ║
+# ║  This tool handles:                                           ║
+# ║    ✓ Spelling fixes        "accomodate" → "accommodate"      ║
+# ║    ✓ Duplicate words       "the the" → "the"                 ║
+# ║    ✓ Punctuation           "said ," → "said,"                ║
+# ║    ✓ Case / proper nouns   "Etherium" → "Ethereum"           ║
+# ║    ✓ Minor word tweaks     "very unique" → "unique"          ║
+# ║    ✓ Whitespace cleanup    "word  word" → "word word"        ║
+# ║                                                               ║
+# ║  This tool DOES NOT handle:                                   ║
+# ║    ✗ Adding/removing sentences or paragraphs                  ║
+# ║    ✗ Reordering content                                       ║
+# ║    ✗ Changing formatting (bold, italic, styles)               ║
+# ║    ✗ Modifying images, captions, or figures                   ║
+# ║    ✗ Structural changes (chapters, headings, TOC)             ║
+# ║    ✗ Any change touching HTML tags or attributes              ║
+# ║    ✗ Any replacement longer than ~200 characters              ║
+# ║                                                               ║
+# ║  For anything else → edit the Word doc, rebuild via pipeline  ║
+# ╚═══════════════════════════════════════════════════════════════╝
+
+corrections:
+  # ── Copyright page ───────────────────────────────────
+  - find: "Interior design.layout"
+    replace: "Interior design/layout"
+    note: "period should be slash — copyright page"
+
+  # ── Spelling ─────────────────────────────────────────
+  - find: "Etherium Foundation"
+    replace: "Ethereum Foundation"
+    note: "org name misspelling (if present)"
+
+  # ── Punctuation / spacing ────────────────────────────
+  - find: "said ,"
+    replace: "said,"
+    note: "extra space before comma"
+
+  - find: "  "
+    replace: " "
+    note: "double space → single (global)"

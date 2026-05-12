@@ -1,16 +1,21 @@
 [Unit]
-Description=Production Calendar
+Description=ProdCal (Production Calendar + Book Production Pipeline)
+After=network.target
 
 [Service]
 Type=simple
 User=exedev
 Group=exedev
-WorkingDirectory=/home/exedev
+WorkingDirectory=/home/exedev/prodcal
 ExecStart=/home/exedev/prodcal/prodcal -listen :8000
 Restart=always
 RestartSec=5
 Environment=HOME=/home/exedev
 Environment=USER=exedev
+# typesettingRoot() in srv/books.go resolves typesetting/ relative to
+# WorkingDirectory by default; set JDBBS_TYPESETTING_DIR here if the
+# binary is ever run from a different location.
+Environment=JDBBS_TYPESETTING_DIR=/home/exedev/prodcal/typesetting
 EnvironmentFile=-/home/exedev/prodcal/.env
 StandardOutput=journal
 StandardError=journal

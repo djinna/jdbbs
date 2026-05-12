@@ -99,7 +99,7 @@ func (s *Server) defaultPreflightRunner(docxPath string, declaredStylesPath stri
 
 	htmlPath := filepath.Join(tmpDir, "report.html")
 	jsonPath := filepath.Join(tmpDir, "report.json")
-	args := []string{filepath.Join(bookProdRoot, "scripts", "detect-edge-cases.py"), docxPath, "-o", htmlPath, "--json"}
+	args := []string{filepath.Join(typesettingRoot(), "scripts", "detect-edge-cases.py"), docxPath, "-o", htmlPath, "--json"}
 	if declaredStylesPath != "" {
 		args = append(args, "--declared-styles", declaredStylesPath)
 	}
