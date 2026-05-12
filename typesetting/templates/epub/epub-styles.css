@@ -1,0 +1,419 @@
+/* Protocolized Anthology Series - EPUB Stylesheet
+ * Matches InDesign-produced books (GHOSTS, TT, LIBRARIANS)
+ * Using open-source font alternatives:
+ *   - Plantin MT Pro → Libertinus Serif
+ *   - Proxima Nova → Source Sans 3
+ *   - Menlo → JetBrains Mono
+ */
+
+/* === Reset === */
+body, div, dl, dt, dd, h1, h2, h3, h4, h5, h6, p, pre, code, blockquote, figure {
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+}
+
+/* === Base Typography === */
+body {
+  font-family: "Libertinus Serif", Georgia, serif;
+  font-size: 1em;
+  line-height: 1.2;
+  text-align: justify;
+  -webkit-hyphens: auto;
+  -epub-hyphens: auto;
+  hyphens: auto;
+}
+
+/* === Paragraphs (Basic-para) === */
+p {
+  font-family: "Libertinus Serif", Georgia, serif;
+  font-size: 0.833em;
+  line-height: 1.2;
+  text-align: justify;
+  text-indent: 0.75em;
+  orphans: 2;
+  widows: 2;
+  margin: 0;
+}
+
+/* First paragraph - no indent (Basic-para-1st) */
+h1 + p,
+h2 + p,
+h3 + p,
+.chapter-title + p,
+.chapter-author + p,
+.section-break + p,
+blockquote + p,
+.epigraph + p,
+.first-para,
+p.first {
+  text-indent: 0;
+  orphans: 99;
+  widows: 1;
+}
+
+/* === Headings === */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Source Sans 3", "Source Sans Pro", Helvetica, Arial, sans-serif;
+  font-weight: bold;
+  text-align: left;
+  -webkit-hyphens: none;
+  -epub-hyphens: none;
+  hyphens: none;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 1.667em;
+  line-height: 1.1;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+h2 {
+  font-size: 1.333em;
+  line-height: 1.2;
+  margin-top: 1.5em;
+  margin-bottom: 0.4em;
+}
+
+h3 {
+  font-size: 1em;
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+}
+
+/* === Chapter Title (Chap-title-epub) === */
+.chapter-title,
+p.Chap-title-epub {
+  font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  font-size: 1.667em;
+  font-weight: bold;
+  line-height: 1.1;
+  text-align: left;
+  -webkit-hyphens: none;
+  -epub-hyphens: none;
+  hyphens: none;
+  margin-bottom: 0;
+  page-break-after: avoid;
+}
+
+/* === Chapter Author (Chap-author-epub) === */
+.chapter-author,
+p.Chap-author-epub {
+  font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  font-size: 1.333em;
+  font-weight: 500;
+  line-height: 1.125;
+  margin-bottom: 2em;
+  text-align: left;
+  text-indent: 0;
+}
+
+/* === Section Breaks (Break) === */
+.section-break,
+p.Break {
+  font-family: "Libertinus Serif", Georgia, serif;
+  font-size: 0.833em;
+  line-height: 1.2;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  text-align: center;
+  text-indent: 0;
+}
+
+.section-break::before,
+p.Break::before {
+  content: "˘ \00a0\00a0 ˘ \00a0\00a0 ˘";
+}
+
+hr {
+  border: none;
+  text-align: center;
+  margin: 0.5em 0;
+}
+
+hr::after {
+  content: "˘ \00a0\00a0 ˘ \00a0\00a0 ˘";
+  font-size: 0.833em;
+  color: #000;
+}
+
+/* === Terminal/Code (Ok-computer) === */
+pre, code {
+  font-family: "JetBrains Mono", "Menlo", "Consolas", monospace;
+  -webkit-hyphens: none;
+  -epub-hyphens: none;
+  hyphens: none;
+}
+
+pre {
+  font-size: 0.667em;
+  line-height: 1.5;
+  margin-left: 0.75em;
+  margin-top: 0.333em;
+  margin-bottom: 0.333em;
+  text-indent: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+code {
+  font-size: 0.85em;
+}
+
+pre code {
+  font-size: inherit;
+}
+
+.ok-computer,
+.terminal,
+p.Ok-computer {
+  font-family: "JetBrains Mono", "Menlo", monospace;
+  font-size: 0.667em;
+  line-height: 1.5;
+  margin-left: 0.75em;
+  margin-top: 0.333em;
+  margin-bottom: 0.333em;
+  -webkit-hyphens: none;
+  -epub-hyphens: none;
+  hyphens: none;
+  text-indent: 0;
+}
+
+/* === Block Quotes === */
+blockquote {
+  margin: 1em 1.5em;
+  font-style: italic;
+}
+
+blockquote p {
+  text-indent: 0;
+}
+
+/* === Poetry/Verse === */
+.poem, .verse {
+  font-family: "JetBrains Mono", "Menlo", monospace;
+  font-size: 0.75em;
+  line-height: 1.4;
+  margin: 0.5em 0 0.5em 0.75em;
+}
+
+.poem p, .verse p {
+  text-indent: 0;
+  text-align: left;
+}
+
+/* === Epigraph (Epi) === */
+.epigraph,
+p.Epi {
+  font-family: "Libertinus Serif", Georgia, serif;
+  font-size: 0.833em;
+  font-style: italic;
+  line-height: 1.2;
+  text-indent: 0;
+  page-break-before: always;
+}
+
+/* === Epigraph Attribution (Epi-sig) === */
+.epigraph-attribution,
+p.Epi-sig {
+  text-indent: 4.083em;
+  margin-bottom: 1.333em;
+  font-style: normal;
+}
+
+/* === Front Matter === */
+.half-title {
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 30%;
+  page-break-after: always;
+}
+
+.title-page {
+  text-align: center;
+  page-break-after: always;
+}
+
+.title-page h1 {
+  font-size: 2em;
+  margin-top: 25%;
+  margin-bottom: 0.5em;
+}
+
+.title-page .subtitle {
+  font-size: 1.167em;
+  font-weight: normal;
+  font-style: italic;
+  margin-bottom: 2em;
+}
+
+.copyright-page {
+  font-size: 0.667em;
+  line-height: 1.4;
+  margin-top: 60%;
+  text-align: left;
+}
+
+.copyright-page p {
+  text-indent: 0;
+  margin-bottom: 0.5em;
+  font-size: inherit;
+}
+
+/* === Table of Contents (TOC) === */
+.toc-heading,
+p.TOC-Contents {
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 1.333em;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 3em;
+  page-break-before: always;
+}
+
+.toc-entry {
+  margin-bottom: 0.5em;
+}
+
+.toc-title,
+p.TOC-title {
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 0.833em;
+  font-weight: bold;
+  line-height: 1.1;
+  -webkit-hyphens: none;
+  -epub-hyphens: none;
+  hyphens: none;
+  margin: 0;
+}
+
+.toc-title a,
+p.TOC-title a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.toc-author,
+p.TOC-author {
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 0.833em;
+  font-weight: 500;
+  line-height: 1.2;
+  margin-bottom: 0.5em;
+  text-indent: 0.75em;
+}
+
+/* === Character Styles === */
+
+/* Italic (Ital) */
+em,
+span.Ital,
+.italic {
+  font-style: italic;
+}
+
+/* Small Caps (Stonehand) - for acronyms: AI, USB, IRL, DHCP */
+span.Stonehand,
+.small-caps,
+.sc,
+abbr {
+  font-variant: small-caps;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+}
+
+/* Ellipsis with proper spacing */
+span.Ellipsis-60,
+.ellipsis {
+  letter-spacing: 0.2em;
+}
+
+/* Strong/Bold */
+strong,
+span.Bold,
+.bold {
+  font-weight: bold;
+}
+
+/* === Multilingual (CJK, Thai) === */
+.chinese {
+  font-family: "Hiragino Kaku Gothic Pro", "PingFang SC", "Microsoft YaHei", sans-serif;
+  text-align: center;
+}
+
+.thai {
+  font-family: "Thonburi", "Leelawadee", sans-serif;
+  font-size: 0.75em;
+  line-height: 1.111;
+  text-align: center;
+}
+
+.multilingual-block {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+.multilingual-block p {
+  text-indent: 0;
+  margin-bottom: 0.5em;
+}
+
+/* === Images === */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+figure {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+figcaption {
+  font-size: 0.833em;
+  font-style: italic;
+  margin-top: 0.5em;
+  color: #555;
+}
+
+/* === Lists === */
+ul, ol {
+  margin: 1em 0 1em 1.5em;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 0.25em;
+}
+
+/* === Links === */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* === Page Breaks === */
+.page-break {
+  page-break-before: always;
+}
+
+.no-break {
+  page-break-inside: avoid;
+}
+
+/* === Running Headers (for PDF-like e-readers) === */
+.running-header {
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 0.75em;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
