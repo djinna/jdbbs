@@ -3,12 +3,21 @@ Description=ProdCal (Production Calendar + Book Production Pipeline)
 After=network.target
 
 [Service]
-Type=simple
+# Type=notify pairs with the binary's daemon.SdNotify(SdNotifyReady) call
+# in srv.Server.Serve(), which fires after the TCP listener is bound.
+# This gives systemd a positive readiness signal and prevents the MainPID
+# race we saw under Type=simple where systemd could spawn a second start
+# attempt before recognising the first one had succeeded.
+Type=notify
+NotifyAccess=main
 User=exedev
 Group=exedev
 WorkingDirectory=/home/exedev/prodcal
 ExecStart=/home/exedev/prodcal/prodcal -listen :8000
-Restart=always
+# Restart on failure (non-zero exit) only — Restart=always combined with
+# main.go's previous error-swallowing exit-0 path was the trigger for the
+# orphan storm we hit during cutover. main.go now exits 1 on errors.
+Restart=on-failure
 RestartSec=5
 Environment=HOME=/home/exedev
 Environment=USER=exedev

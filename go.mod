@@ -3,6 +3,7 @@ module srv.exe.dev
 go 1.26.0
 
 require (
+	github.com/coreos/go-systemd/v22 v22.7.0
 	golang.org/x/crypto v0.46.0
 	modernc.org/sqlite v1.39.0
 )

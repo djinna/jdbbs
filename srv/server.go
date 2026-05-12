@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/coreos/go-systemd/v22/daemon"
 	"golang.org/x/crypto/bcrypt"
 
 	"srv.exe.dev/db"
@@ -233,8 +235,22 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) Serve(addr string) error {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", addr, err)
+	}
+	slog.Info("listener bound", "addr", addr, "pid", os.Getpid())
+
+	// Tell systemd we're ready. This is a no-op outside systemd (returns
+	// false, nil) so it's safe to call unconditionally.
+	if sent, err := daemon.SdNotify(false, daemon.SdNotifyReady); err != nil {
+		slog.Warn("sd_notify ready failed", "err", err)
+	} else if sent {
+		slog.Info("sd_notify ready sent to systemd")
+	}
+
 	slog.Info("starting server", "addr", addr)
-	return http.ListenAndServe(addr, s.Handler())
+	return http.Serve(listener, s.Handler())
 }
 
 func (s *Server) serveTransmittal(w http.ResponseWriter) {
