@@ -311,13 +311,108 @@ nginx on the VM has only a generic `_` server block — it doesn't terminate TLS
 ### TRK-OPS-003 — SQLite WAL hygiene + backup verification
 
 - area: OPS
-- status: open
+- status: done
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-12
-- refs: VM `~/db.sqlite3` 122 MB, `~/db.sqlite3-wal` 31 MB, `~/backups/`
+- refs: live DB `/home/exedev/prodcal/db.sqlite3` (117 MB), backup `/home/exedev/backups/prodcal-20260512-171252.sqlite3.gz`, archive `/home/exedev/.archive-old-db-pre-recovery/`, defensive copy `/home/exedev/db-recovery-20260512T171017Z/`
 
-WAL has not been checkpointed for a while (31 MB unmerged). Check: `~/backups/` exists but content unknown — verify nightly backup is running, copies are recent and restorable. Define RPO/RTO. Consider `litestream` for continuous replication.
+**Done 2026-05-12.** What started as a WAL/backup hygiene task surfaced a critical recovery situation that had to be resolved end-to-end.
+
+**Pre-state (root-cause discovery):**
+- Live DB lived at `/home/exedev/db.sqlite3` (117 MB main + 30 MB WAL — uncheckpointed since at least May 5).
+- The May 12 cutover (TRK-MIG-004) changed systemd `WorkingDirectory` from `/home/exedev` to `/home/exedev/prodcal`. The binary opens `db.sqlite3` relative-path, so it transparently switched to `/home/exedev/prodcal/db.sqlite3` — an 80 KB **empty Feb-25 test DB** that happened to be sitting in the prodcal repo dir.
+- Live service ran against an empty DB for ~30 minutes (16:39 → 17:10). Users hitting `https://jdbbs.exe.xyz` saw an empty book list.
+- The daily backup script (`scripts/backup-db.sh`) had hardcoded `DB_PATH="/home/exedev/prodcal/db.sqlite3"` from a prior layout assumption. So **every backup in `~/backups/` from May 5 onward was 3.5 KB** — the script had been backing up an empty DB silently for a week.
+
+**Recovery executed:**
+1. Defensive copies of BOTH DBs (`/home/exedev/db.sqlite3*` and the empty `/home/exedev/prodcal/db.sqlite3*`) into `/home/exedev/db-recovery-20260512T171017Z/`.
+2. `sudo systemctl stop prodcal`.
+3. `mv /home/exedev/prodcal/db.sqlite3{,.feb25-empty.bak}` (set the empty DB aside).
+4. `sqlite3 /home/exedev/db.sqlite3 ".backup '/home/exedev/prodcal/db.sqlite3'"` — atomic, consolidates the 30 MB WAL into a single 117 MB file at the new location.
+5. `PRAGMA integrity_check;` → `ok`.
+6. `sudo systemctl start prodcal` — service active, MainPID 3270316.
+   - **Orphan-process pattern recurred** during this restart (see new TRK-OPS-005 below); resolved inline by killing the orphan PID so systemd's MainPID could take over cleanly.
+7. Verified counts: projects=12, books=6, book_specs=5, corrections=1, book_outputs=6, manuscript_preflights=12, transmittals=9.
+8. HTTP smoke: GET / → 200 in ~400 µs. Twitter Years (project #7) data fully restored.
+9. Backup script: no edit needed (its hardcoded path now happens to be correct for the new layout). Manual run produced `prodcal-20260512-171252.sqlite3.gz` with verified real data inside (projects=12, books=6 inside the gzipped backup).
+10. Old DB archived to `/home/exedev/.archive-old-db-pre-recovery/` so future operators can't get confused.
+
+**Follow-ups still open:**
+- TRK-OPS-005 — systemd orphan-process race during restart (see below).
+- TRK-OPS-006 — DB cleanup: 12 of 13 projects are tests/dummies; only #7 "The Twitter Years: 2007–22" is canonical.
+- TRK-OPS-007 — Hardening: backup integrity verification (size threshold, rowcount probe), off-VM replication. Consider `litestream` for continuous replication.
+
+### TRK-OPS-005 — systemd orphan-process race during restart
+
+- area: OPS
+- status: open
+- priority: P2
+- created: 2026-05-12
+- updated: 2026-05-12
+- refs: TRK-MIG-004 and TRK-OPS-003 both surfaced this; `/etc/systemd/system/prodcal.service`
+
+**Pattern:** every time `systemctl start prodcal` (or restart) runs, a child process binds `:8000` successfully but systemd reports `MainPID=0` and `Active: activating (auto-restart)`. The journal then shows a second spawn that fails with `bind: address already in use`. The first PID becomes a true orphan, not tracked under the unit's cgroup.
+
+Observed three times so far:
+1. 2026-05-12 16:39 (initial cutover) — PID 2597479-equivalent orphan
+2. 2026-05-12 16:55 (post-build deploy) — handled cleanly that time
+3. 2026-05-12 17:10 (post-DB-recovery restart) — PID 3270156 orphan; resolved by killing it so systemd's auto-restart took the port
+
+**Suspicions:** the binary may be doing something non-trivial early in startup that confuses systemd's `Type=simple` model — perhaps a brief fork, a signal handling issue, or the Go runtime's PID tracking colliding with systemd's. Or there's a race between systemd's `notify` ready signal and the bind syscall.
+
+**Investigation steps:**
+1. Add temporary verbose logging at the top of `cmd/srv/main.go` (just before `server.Run`) to print `os.Getpid()` and `os.Getppid()`.
+2. Try `Type=notify` with `sdnotify`-style readiness ping after the listener is up.
+3. Try `Type=exec` (systemd 240+) which is stricter than simple.
+4. Add `Restart=on-failure` (instead of `always`) so a successful start that systemd misreads as exit won't trigger an aggressive auto-restart.
+5. Verify there's no daemonization in any vendored library.
+
+**Workaround in the meantime:** after each `systemctl restart`, check `ss -ltnp 'sport = :8000'` against `systemctl show -p MainPID --value`. If they don't match, kill the listener and systemd's auto-restart will take over cleanly.
+
+### TRK-OPS-006 — Clean up 12 test/dummy projects in production DB
+
+- area: OPS
+- status: open
+- priority: P2
+- created: 2026-05-12
+- updated: 2026-05-12
+- refs: live DB `/home/exedev/prodcal/db.sqlite3`
+
+Only project #7 "The Twitter Years: 2007–22" is canonical (per user 2026-05-12). The other 12 — Art of Gig, tweetbook, The Digital Garden, test, Smoke Test, 9apr26 test, test (again), Admin 9 Apr Seed Check, test 3, test 01, test 02 — are leftover test/dummy projects.
+
+**Action:**
+1. Pre-cleanup snapshot: `sqlite3 db.sqlite3 ".backup 'backups/pre-cleanup-$(date +%Y%m%dT%H%M%SZ).sqlite3'"`.
+2. In one transaction: `DELETE FROM projects WHERE id != 7`. Verify any cascading deletes (book_specs.project_id, books.project_id, manuscript_preflights.project_id, transmittals.project_id) are wired correctly via FK ON DELETE or need explicit DELETEs.
+3. Verify project #7's books survive (should — only that project has books) and that the SPA renders correctly with one project visible.
+4. Reclaim space with `VACUUM` if the deletion freed substantial DB rows.
+
+Risk: low. Reversible from backups if needed.
+
+### TRK-OPS-007 — Backup hygiene: integrity probes + off-VM replication
+
+- area: OPS / SEC
+- status: open
+- priority: P2
+- created: 2026-05-12
+- updated: 2026-05-12
+- refs: `scripts/backup-db.sh`, `~/backups/`
+
+The TRK-OPS-003 incident exposed that **a silently misconfigured backup script can produce 3.5 KB "successful" backups for a week without anyone noticing.**
+
+**Add to `scripts/backup-db.sh`:**
+1. **Size sanity:** fail loudly if the backup is < 100 KB or > 2× the previous backup. Both directions catch trouble (empty DB or runaway growth).
+2. **Rowcount probe:** open the freshly-gzipped backup, query `SELECT COUNT(*) FROM projects` and `FROM books`, fail if either is < expected lower bound (e.g., 1).
+3. **Notification on failure:** on any non-zero exit, write a sentinel file or post to an exe.dev email/webhook.
+4. **Restore drill:** monthly cron that decompresses the latest backup into `/tmp/restore-test.sqlite3`, runs a battery of read queries, and reports the result.
+
+**Add off-VM replication:**
+- `litestream` continuous replication to S3-compatible object storage (e.g., Hetzner Object Storage or Tigris) — gives near-zero RPO and survives VM loss.
+- Or a simple `rclone`-to-remote cron after each daily backup, with retention rules.
+
+**Define RPO/RTO targets:**
+- RPO (recovery point): for Twitter Years primary data, suggest ≤ 1 hour with litestream, ≤ 24 hours with daily backups only.
+- RTO (recovery time): ≤ 30 minutes for a fresh VM (spin up + pull repo + restore latest backup + start systemd unit).
 
 ### TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/
 
