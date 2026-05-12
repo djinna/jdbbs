@@ -393,27 +393,42 @@ Risk: low. Reversible from backups if needed.
 ### TRK-OPS-007 — Backup hygiene: integrity probes + off-VM replication
 
 - area: OPS / SEC
-- status: open
+- status: in-progress
 - priority: P2
 - created: 2026-05-12
 - updated: 2026-05-12
-- refs: `scripts/backup-db.sh`, `~/backups/`
+- refs: prodcal `07b7f910` (script hardened), `scripts/backup-db.sh`, `~/backups/{.LAST-SUCCESS,.LAST-FAILURE}`
 
-The TRK-OPS-003 incident exposed that **a silently misconfigured backup script can produce 3.5 KB "successful" backups for a week without anyone noticing.**
+**Phase 1 — in-script probes (done 2026-05-12).** Local hardening complete; off-VM replication still open.
 
-**Add to `scripts/backup-db.sh`:**
-1. **Size sanity:** fail loudly if the backup is < 100 KB or > 2× the previous backup. Both directions catch trouble (empty DB or runaway growth).
-2. **Rowcount probe:** open the freshly-gzipped backup, query `SELECT COUNT(*) FROM projects` and `FROM books`, fail if either is < expected lower bound (e.g., 1).
-3. **Notification on failure:** on any non-zero exit, write a sentinel file or post to an exe.dev email/webhook.
-4. **Restore drill:** monthly cron that decompresses the latest backup into `/tmp/restore-test.sqlite3`, runs a battery of read queries, and reports the result.
+**Script (`scripts/backup-db.sh`) now does:**
+- single-instance lock via `flock`; concurrent run aborts with a clear message
+- preflight on source DB (exists, non-empty)
+- post-gzip **size probe** — fail if backup < `$MIN_GZ_BYTES` (default 1 MB); catches the exact bug we hit on 2026-05-12 where 3.5 KB "backups" landed for a week
+- decompress to a tmp file, **rowcount probe** on `projects` + `books`; fail if either below `$MIN_PROJECTS` / `$MIN_BOOKS`
+- `PRAGMA integrity_check`; fail if not `ok`
+- **drift comparison** vs previous backup; warn (not fail) if size delta > `$DRIFT_WARN_PCT` (default 50%)
+- **retention tiers**: daily backups for `$RETAIN_DAILY_DAYS` (default 30 days), plus the first-of-month for each calendar month kept indefinitely
+- **success sentinel**: `~/backups/.LAST-SUCCESS` with size + rowcounts + timestamp; cleared `.LAST-FAILURE` on success
+- **failure sentinel**: `~/backups/.LAST-FAILURE` with reason, timestamp, paths
 
-**Add off-VM replication:**
-- `litestream` continuous replication to S3-compatible object storage (e.g., Hetzner Object Storage or Tigris) — gives near-zero RPO and survives VM loss.
-- Or a simple `rclone`-to-remote cron after each daily backup, with retention rules.
+**Verified 2026-05-12 17:21 UTC** with 4 tests on VM:
+| # | Scenario | Result |
+|---|---|---|
+| 1 | Real 117 MB DB → 109 MB gz; expect OK | OK; projects=12, books=6, integrity=ok, `.LAST-SUCCESS` written |
+| 2 | Point at empty Feb-25 backup (80 KB → 3.5 KB gz); expect size fail | FAIL: `3522B < 1048576B`; `.LAST-FAILURE` written |
+| 3 | Real DB but `MIN_PROJECTS=99999`; expect rowcount fail | FAIL: `12 < 99999`; `.LAST-FAILURE` written |
+| 4 | Run while another instance holds the lock; expect concurrent abort | FAIL: `another backup is already running (lock: …)` |
 
-**Define RPO/RTO targets:**
-- RPO (recovery point): for Twitter Years primary data, suggest ≤ 1 hour with litestream, ≤ 24 hours with daily backups only.
-- RTO (recovery time): ≤ 30 minutes for a fresh VM (spin up + pull repo + restore latest backup + start systemd unit).
+**Phase 2 — open (off-VM replication + monitoring):**
+- `litestream` continuous replication to S3-compatible object storage (Hetzner Object Storage or Tigris). Near-zero RPO; survives VM loss.
+- Or simpler: cron-driven `rclone copy` of `~/backups/` to remote after each daily run, with retention rules.
+- Monitoring: cron job (or exe.dev observability) that checks for `~/backups/.LAST-FAILURE` and posts to email / pager if present, or checks `.LAST-SUCCESS` age > 26 hours (catches silent missed runs).
+- Monthly restore drill: a separate cron that decompresses the latest backup into `/tmp/restore-test.sqlite3`, runs a battery of read queries, asserts row counts, writes the result.
+
+**RPO/RTO targets to formalize:**
+- RPO: ≤ 1 hour with litestream, ≤ 24 hours with daily backups only.
+- RTO: ≤ 30 minutes for a fresh VM (spin up + pull repo + restore latest backup + start systemd).
 
 ### TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/
 
