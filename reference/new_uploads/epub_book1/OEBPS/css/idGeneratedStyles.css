@@ -1,0 +1,913 @@
+@font-face {
+	font-family:Menlo;
+	font-style:normal;
+	font-weight:normal;
+	src : url("../font/Menlo-Regular.ttc");
+}
+@font-face {
+	font-family:"Plantin MT Pro";
+	font-style:italic;
+	font-weight:normal;
+	src : url("../font/PlantinMTPro-Italic.otf");
+}
+@font-face {
+	font-family:"Plantin MT Pro";
+	font-style:oblique;
+	font-weight:normal;
+	src : url("../font/PlantinMTPro-Italic.otf");
+}
+@font-face {
+	font-family:"Plantin MT Pro";
+	font-style:normal;
+	font-weight:normal;
+	src : url("../font/PlantinMTPro-Regular.otf");
+}
+@font-face {
+	font-family:"Proxima Nova";
+	font-style:normal;
+	font-weight:bold;
+	src : url("../font/ProximaNova-Bold.ttc");
+}
+@font-face {
+	font-family:"Proxima Nova Medium";
+	font-style:normal;
+	font-weight:500;
+	src : url("../font/ProximaNova-Medium.ttc");
+}
+@font-face {
+	font-family:"Proxima Nova";
+	font-style:normal;
+	font-weight:normal;
+	src : url("../font/ProximaNova-Regular.ttc");
+}
+@font-face {
+	font-family:"Proxima Nova";
+	font-style:italic;
+	font-weight:normal;
+	src : url("../font/ProximaNova-RegularIt.ttc");
+}
+@font-face {
+	font-family:"Proxima Nova";
+	font-style:oblique;
+	font-weight:normal;
+	src : url("../font/ProximaNova-RegularIt.ttc");
+}
+@font-face {
+	font-family:"Proxima Nova Semibold";
+	font-style:normal;
+	font-weight:600;
+	src : url("../font/ProximaNova-Semibold.ttc");
+}
+body, div, dl, dt, dd, h1, h2, h3, h4, h5, h6, p, pre, code, blockquote, figure {
+	margin:0;
+	padding:0;
+	border-width:0;
+}
+body {
+	-epub-hyphens:auto;
+}
+@page {
+	margin : 0px 0px 0px 0px;
+}
+img.Image-100 {
+	border-style:solid;
+}
+img.Image-80 {
+	border-style:solid;
+}
+div.Basic-Text-Frame {
+	border-style:solid;
+}
+div.text-frame {
+	border-style:solid;
+}
+p.About-Prot-ctr {
+	color:#000000;
+	font-family:"Proxima Nova Semibold", sans-serif;
+	font-size:0.75em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:600;
+	line-height:1.222;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:center;
+	text-decoration:none;
+	text-indent:0.75em;
+	text-transform:none;
+	widows:2;
+}
+p.About-Prot-text {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova Semibold", sans-serif;
+	font-size:0.75em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:600;
+	line-height:1.222;
+	margin-bottom:0.5em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.About-Proto-1st {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova Semibold", sans-serif;
+	font-size:0.896em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:600;
+	line-height:1.209;
+	margin-bottom:0.5em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.About-Proto-title {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:1.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.1;
+	margin-bottom:2em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:avoid;
+	page-break-before:always;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Basic-para {
+	color:#000000;
+	font-family:"Plantin MT Pro", serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.2;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0.75em;
+	text-transform:none;
+	widows:2;
+}
+p.Basic-para-1st {
+	color:#000000;
+	font-family:"Plantin MT Pro", serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.2;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Basic-para-1st-epub {
+	color:#000000;
+	font-family:"Plantin MT Pro", serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.2;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+li.Basic-para-AI-BL-1 {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.708em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.176;
+	list-style-position:outside;
+	list-style-type:disc;
+	margin-bottom:0;
+	margin-left:0.75em;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+li.Basic-para-AI-BL-2 {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.708em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.176;
+	list-style-position:outside;
+	list-style-type:disc;
+	margin-bottom:0;
+	margin-left:1.5em;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+li.Basic-para-AI-NL-1 {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.708em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.176;
+	list-style-position:outside;
+	list-style-type:decimal;
+	margin-bottom:0;
+	margin-left:0.75em;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+li.Basic-para-AI-NL-2 {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.708em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.176;
+	list-style-position:outside;
+	list-style-type:decimal;
+	margin-bottom:0;
+	margin-left:1.5em;
+	margin-right:0;
+	margin-top:0;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.Basic-para-AI-NP {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.708em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.176;
+	margin-bottom:0.25em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0.25em;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.Break {
+	color:#000000;
+	font-family:"Plantin MT Pro", serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.2;
+	margin-bottom:0.5em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0.5em;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:center;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.Break-Benny {
+	color:#000000;
+	font-family:"Plantin MT Pro", serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.2;
+	margin-bottom:0.25em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0.25em;
+	orphans:2;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:center;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.Chap-author-epub {
+	color:#000000;
+	font-family:"Proxima Nova Medium", sans-serif;
+	font-size:1.333em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:500;
+	line-height:1.125;
+	margin-bottom:2em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Chap-figure-epub {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:1.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.1;
+	margin-bottom:1em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:avoid;
+	page-break-before:always;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Chap-title-epub {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:1.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.1;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.H--alt-2 {
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.2;
+	margin-bottom:0.25em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:1.667em;
+	orphans:2;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.H1 {
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.2;
+	margin-bottom:0.25em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:1.5em;
+	orphans:2;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:2;
+}
+p.H1-AI {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:2.333em;
+	orphans:1;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.H1-AI-alt {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:2.333em;
+	orphans:1;
+	page-break-after:avoid;
+	page-break-before:always;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.H1-alt {
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.2;
+	margin-bottom:0.25em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.H2-AI {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.75em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.111;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0.5em;
+	orphans:1;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Ok-computer {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:Menlo, serif;
+	font-size:0.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.5;
+	margin-bottom:0.333em;
+	margin-left:0.75em;
+	margin-right:0;
+	margin-top:0.333em;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Ok-computer-2-line {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:Menlo, serif;
+	font-size:0.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.188;
+	margin-bottom:0.333em;
+	margin-left:0.75em;
+	margin-right:0;
+	margin-top:0.417em;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Ok-computer-alt {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:Menlo, serif;
+	font-size:0.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.5;
+	margin-bottom:0.5em;
+	margin-left:0.75em;
+	margin-right:0;
+	margin-top:0.5em;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Ok-computer-alt-2 {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:Menlo, serif;
+	font-size:0.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.5;
+	margin-bottom:0;
+	margin-left:0.75em;
+	margin-right:0;
+	margin-top:0;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Pub-info {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Plantin MT Pro", serif;
+	font-size:0.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.188;
+	margin-bottom:0.333em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0.25em;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Pub-info-1st {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Plantin MT Pro", serif;
+	font-size:0.667em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.188;
+	margin-bottom:0.333em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0.25em;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:always;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.TOC-Contents {
+	color:#000000;
+	font-family:"Proxima Nova Semibold", sans-serif;
+	font-size:1.333em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:600;
+	line-height:1.25;
+	margin-bottom:3em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:always;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.TOC-author {
+	color:#000000;
+	font-family:"Proxima Nova Medium", sans-serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:500;
+	line-height:1.2;
+	margin-bottom:0.5em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:1;
+	page-break-after:auto;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0.75em;
+	text-transform:none;
+	widows:1;
+}
+p.TOC-title {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:0.833em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1.1;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:left;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+p.Title-page-logo-epub {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:1em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1;
+	margin-bottom:0;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:center;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:uppercase;
+	widows:1;
+}
+p.Title-page-publisher-epub {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:1em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:1;
+	margin-bottom:1em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:avoid;
+	page-break-before:auto;
+	text-align:center;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:uppercase;
+	widows:1;
+}
+p.Title-page-epub {
+	-epub-hyphens:none;
+	color:#000000;
+	font-family:"Proxima Nova", sans-serif;
+	font-size:1.917em;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:bold;
+	line-height:0.957;
+	margin-bottom:6em;
+	margin-left:0;
+	margin-right:0;
+	margin-top:0;
+	orphans:99;
+	page-break-after:avoid;
+	page-break-before:always;
+	text-align:center;
+	text-decoration:none;
+	text-indent:0;
+	text-transform:none;
+	widows:1;
+}
+span.Computer {
+	color:#000000;
+	font-family:Menlo, serif;
+	font-size:0.667em;
+	font-style:normal;
+	font-weight:normal;
+}
+span.Ital {
+	font-style:italic;
+	font-weight:normal;
+}
+span.Stonehand {
+	font-size:0.729em;
+}
+p.ParaOverride-1 {
+	page-break-before:always;
+}
+li._idGenParaOverride-1 {
+	font-size:1em;
+	margin-left:0.750em;
+}
+span._idGenCharOverride-1 {
+	font-family:"Plantin MT Pro";
+}
+span._idGenCharOverride-2 {
+	font-size:0.875em;
+}
+span._idGenCharOverride-3 {
+	font-family:Menlo;
+	font-size:0.8em;
+}
+span._idGenCharOverride-4 {
+	font-family:Menlo;
+	font-size:1em;
+}
+span._idGenCharOverride-5 {
+	font-family:"Proxima Nova";
+}
+#_idContainer000 {
+	display:inline-block;
+	width:73.10%;
+}
+#_idContainer013, #_idContainer014 {
+	display:inline-block;
+	padding:132.95% 0% 0% 0%;
+	position:relative;
+	width:75.95%;
+}
+img._idGenObjectAttribute-1 {
+	min-width:100%;
+	width:100.00%;
+}
+img._idGenObjectAttribute-2 {
+	width:78.09%;
+}
+img._idGenObjectAttribute-3 {
+	width:100.00%;
+}
+div._idGenObjectStyleOverride-1 {
+	border-width:0px;
+}
+div._idGenObjectLayout-1 {
+	text-align:center;
+}

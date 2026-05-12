@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" xml:lang="en-US" prefix="ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/">
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+		<meta name="generator" content="Adobe InDesign 21.1" />
+		<meta name="cover" content="terminological_twists_ebook_cover.png" />
+		<meta property="ibooks:specified-fonts">true</meta>
+		<dc:title>Terminological Twists</dc:title>
+		<dc:creator>Summer of Protocols</dc:creator>
+		<dc:description>What&#39;s in a word? A world, unseen, waiting for a reader to crack it open.  Each story inside uncovers a possible world hidden behind everyday jargon.  These are tales of hyperstition, where just using a phrase might make the thing you&#39;re talking about come to life . . . in unexpected ways.</dc:description>
+		<dc:publisher>Protocolized</dc:publisher>
+		<dc:date>October 2025</dc:date>
+		<dc:rights>©️ 2025 Ethereum Foundation. All contributions are the property of their respective authors and are used by Ethereum Foundation under license. All contributions are licensed by their respective authors under CC BY-NC 4.0. After 2028-12-13, all contributions will be licensed by their respective authors under CC BY 4.0. Learn more at summerofprotocols.com/ccplus-license-2023</dc:rights>
+		<dc:language>en-US</dc:language>
+		<meta property="dcterms:modified">2026-01-19T21:19:50Z</meta>
+		<dc:identifier id="bookid">urn:uuid:38423D99-90F9-4259-860F-07E10E1FACA8</dc:identifier>
+		<!--accessibility options-->
+	</metadata>
+	<manifest>
+		<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" />
+		<item id="TT_2026-01-17_EPUB" href="TT_2026-01-17_EPUB.xhtml" media-type="application/xhtml+xml" />
+		<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+		<item id="toc" href="toc.xhtml" media-type="application/xhtml+xml" properties="nav" />
+		<item id="idGeneratedStyles.css" href="css/idGeneratedStyles.css" media-type="text/css" />
+		<item id="Menlo-Regular.ttc" href="font/Menlo-Regular.ttc" media-type="application/x-font-ttf" />
+		<item id="PlantinMTPro-Italic.otf" href="font/PlantinMTPro-Italic.otf" media-type="application/vnd.ms-opentype" />
+		<item id="PlantinMTPro-Regular.otf" href="font/PlantinMTPro-Regular.otf" media-type="application/vnd.ms-opentype" />
+		<item id="ProximaNova-Bold.ttc" href="font/ProximaNova-Bold.ttc" media-type="application/x-font-ttf" />
+		<item id="ProximaNova-Medium.ttc" href="font/ProximaNova-Medium.ttc" media-type="application/x-font-ttf" />
+		<item id="ProximaNova-Regular.ttc" href="font/ProximaNova-Regular.ttc" media-type="application/x-font-ttf" />
+		<item id="ProximaNova-RegularIt.ttc" href="font/ProximaNova-RegularIt.ttc" media-type="application/x-font-ttf" />
+		<item id="ProximaNova-Semibold.ttc" href="font/ProximaNova-Semibold.ttc" media-type="application/x-font-ttf" />
+		<item id="x1.png" href="image/1.png" media-type="image/png" />
+		<item id="x2.png" href="image/2.png" media-type="image/png" />
+		<item id="x3.jpg" href="image/3.jpg" media-type="image/jpeg" />
+		<item id="edition010blank2.jpg" href="image/edition010blank2.jpg" media-type="image/jpeg" />
+		<item id="edition013blank.jpg" href="image/edition013blank.jpg" media-type="image/jpeg" />
+		<item id="edition019blank.jpg" href="image/edition019blank.jpg" media-type="image/jpeg" />
+		<item id="edition022blank.png" href="image/edition022blank.png" media-type="image/png" />
+		<item id="edition024blank.jpg" href="image/edition024blank.jpg" media-type="image/jpeg" />
+		<item id="terminological_twists_ebook_cover.png" href="image/terminological_twists_ebook_cover.png" media-type="image/png" properties="cover-image" />
+		<item id="tt1_nu.png" href="image/tt1_nu.png" media-type="image/png" />
+	</manifest>
+	<spine toc="ncx">
+		<itemref idref="cover" linear="no" />
+		<itemref idref="TT_2026-01-17_EPUB" />
+	</spine>
+	<guide>
+		<reference type="cover" href="cover.xhtml" title="Cover" />
+		<reference type="toc" href="TT_2026-01-17_EPUB.xhtml#_idContainer004" title="Table of Contents" />
+	</guide>
+</package>
