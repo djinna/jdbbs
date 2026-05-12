@@ -471,8 +471,12 @@ Three additions to close the "silent backup rot" gap:
 0 4 1 * * /home/exedev/prodcal/scripts/restore-drill.sh >> /home/exedev/backups/backup.log 2>&1
 ```
 
+**Cleanup completed 2026-05-12 18:51 UTC:**
+- 8 pre-fix 3.5 KB artifacts (`prodcal-20260505-030001.sqlite3.gz` through `prodcal-20260512-030001.sqlite3.gz`) deleted from VM `~/backups/`, R2 `r2:jdbbs-backups/db/`, and Mac `~/backups-jdbbs/`.
+- Each of the three locations now holds the same 3 real 109 MB backups from today's recovery + verification runs (171252, 172054, 183831).
+- check-backups.sh after cull: `HEALTH OK`.
+
 **Still open (small follow-ups, low priority):**
-- 8 small (3.5 KB) artifact backups from the pre-fix era now live in R2 indefinitely; cull them via `rclone deletefile` once we're sure they're not needed.
 - check-backups.sh writes to a log; no actual alarm channel (email/pager/webhook) is wired up. With `jbackup-pull` on the Mac surfacing the sentinels, this is observable but not push-notified. Could add a Discord/ntfy.sh webhook later if/when usage justifies it.
 
 **RPO/RTO targets:**
