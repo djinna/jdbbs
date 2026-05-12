@@ -19,13 +19,58 @@ import (
 	"srv.exe.dev/db/dbgen"
 )
 
-const (
-	maxUploadSize   = 50 << 20 // 50 MB
-	bookProdRoot    = "/home/exedev/book-production"
-	typstFilter     = bookProdRoot + "/scripts/docx-to-typst-enhanced.lua"
-	seriesTemplate  = bookProdRoot + "/templates/series-template.typ"
-	fontsDir        = bookProdRoot + "/fonts"
-)
+const maxUploadSize = 50 << 20 // 50 MB
+
+// typesettingRoot returns the absolute path to the bundled typesetting/
+// directory (Typst templates, conversion scripts, lua filters, fonts).
+//
+// Resolution order:
+//  1. JDBBS_TYPESETTING_DIR env var (if set), resolved to absolute.
+//  2. ./typesetting relative to the working directory (production layout).
+//  3. Walk up parent directories looking for a sibling `typesetting/`
+//     (handles `go test ./srv/...` running with CWD = repo/srv).
+//  4. Fall back to "typesetting" as a last resort.
+func typesettingRoot() string {
+	if env := os.Getenv("JDBBS_TYPESETTING_DIR"); env != "" {
+		if abs, err := filepath.Abs(env); err == nil {
+			return abs
+		}
+		return env
+	}
+	if abs, err := filepath.Abs("typesetting"); err == nil {
+		if _, err := os.Stat(abs); err == nil {
+			return abs
+		}
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		dir := cwd
+		for i := 0; i < 6; i++ {
+			candidate := filepath.Join(dir, "typesetting")
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+	abs, err := filepath.Abs("typesetting")
+	if err != nil {
+		return "typesetting"
+	}
+	return abs
+}
+
+// Helpers for paths inside the typesetting tree.
+func typstFilterPath() string {
+	return filepath.Join(typesettingRoot(), "filters", "docx-to-typst-enhanced.lua")
+}
+func seriesTemplatePath() string {
+	return filepath.Join(typesettingRoot(), "templates", "series-template.typ")
+}
+func fontsDirPath() string { return filepath.Join(typesettingRoot(), "fonts") }
 
 // handleListBooks returns all books (without blob data).
 func (s *Server) handleListBooks(w http.ResponseWriter, r *http.Request) {
@@ -162,12 +207,12 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 	slog.Info("book conversion starting", "id", bid, "title", book.Title)
 
-	// Step 1: direct pandoc docx -> typst using the working book-production filter.
+	// Step 1: direct pandoc docx -> typst using the bundled lua filter.
 	typPath := filepath.Join(tmpDir, "book.typ")
 	pandocCmd := exec.Command("pandoc",
 		"--from=docx+styles",
 		docxPath,
-		"--lua-filter="+typstFilter,
+		"--lua-filter="+typstFilterPath(),
 		"--extract-media="+filepath.Join(tmpDir, "media"),
 		"-t", "typst",
 		"-o", typPath,
@@ -191,7 +236,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
   title: "%s",
   author: "%s",
 `,
-		seriesTemplate,
+		seriesTemplatePath(),
 		configOverride,
 		escapeTypstString(book.Title),
 		escapeTypstString(book.Author),
@@ -234,7 +279,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	pdfPath := filepath.Join(tmpDir, "output.pdf")
 	typstCmd := exec.Command("typst", "compile",
 		"--root", "/",
-		"--font-path", fontsDir,
+		"--font-path", fontsDirPath(),
 		typPath,
 		pdfPath,
 	)
