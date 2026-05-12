@@ -393,7 +393,7 @@ Risk: low. Reversible from backups if needed.
 ### TRK-OPS-007 — Backup hygiene: integrity probes + off-VM replication
 
 - area: OPS / SEC
-- status: in-progress
+- status: done (phase 1 + 2); phase 3 (monitoring + restore drill) open
 - priority: P2
 - created: 2026-05-12
 - updated: 2026-05-12
@@ -420,15 +420,43 @@ Risk: low. Reversible from backups if needed.
 | 3 | Real DB but `MIN_PROJECTS=99999`; expect rowcount fail | FAIL: `12 < 99999`; `.LAST-FAILURE` written |
 | 4 | Run while another instance holds the lock; expect concurrent abort | FAIL: `another backup is already running (lock: …)` |
 
-**Phase 2 — open (off-VM replication + monitoring):**
-- `litestream` continuous replication to S3-compatible object storage (Hetzner Object Storage or Tigris). Near-zero RPO; survives VM loss.
-- Or simpler: cron-driven `rclone copy` of `~/backups/` to remote after each daily run, with retention rules.
-- Monitoring: cron job (or exe.dev observability) that checks for `~/backups/.LAST-FAILURE` and posts to email / pager if present, or checks `.LAST-SUCCESS` age > 26 hours (catches silent missed runs).
-- Monthly restore drill: a separate cron that decompresses the latest backup into `/tmp/restore-test.sqlite3`, runs a battery of read queries, asserts row counts, writes the result.
+**Phase 2 — off-VM replication (done 2026-05-12).**
 
-**RPO/RTO targets to formalize:**
-- RPO: ≤ 1 hour with litestream, ≤ 24 hours with daily backups only.
-- RTO: ≤ 30 minutes for a fresh VM (spin up + pull repo + restore latest backup + start systemd).
+Approach: **rclone copy to Cloudflare R2** for daily off-VM, plus a Mac-side `rsync` alias for an air-gapped on-demand mirror. Together with the VM-local backup, this hits the 3-2-1 rule:
+
+| Copy | Location | Cadence |
+|---|---|---|
+| 1 (live) | `/home/exedev/prodcal/db.sqlite3` on jdbbs.exe.xyz | continuous |
+| 2 (local backup) | `~/backups/prodcal-*.sqlite3.gz` on jdbbs.exe.xyz | daily 03:00 UTC + on-demand |
+| 3a (off-VM) | `r2:jdbbs-backups/db/` on Cloudflare R2 | daily 03:00 UTC + on-demand |
+| 3b (off-VM) | `~/backups-jdbbs/` on your Mac | on-demand via `jbackup-pull` |
+
+**Cloudflare R2 setup:**
+- bucket: `jdbbs-backups` (created via R2 dashboard)
+- prefix: `db/`
+- API token: `Object Read & Write` scoped to `jdbbs-backups`, configured locally as rclone remote `r2`
+- script: prodcal `scripts/sync-to-r2.sh` — flock, rclone copy (not sync, so deletes aren't propagated), post-copy size verification, separate `.LAST-R2-SUCCESS` / `.LAST-R2-FAILURE` sentinels (so a partial — local OK + R2 push failed — is visible)
+- cron: same line as backup-db.sh, joined with `;` so a failed local backup still attempts to push the most recent file off-VM (better to ship yesterday's backup than nothing)
+
+**Mac-side mirror (`~/.zshrc::jbackup-pull`):**
+- rsync with `--delete --delete-excluded` and a filter for `prodcal-*.sqlite3.gz` + sentinels
+- automatically runs a local sqlite probe (projects + books + integrity_check) on the newest pulled backup using `file:?immutable=1` URI so the WAL/shm sidecar dance doesn't error
+- usage: `jbackup-pull` (defaults to `~/backups-jdbbs/`)
+
+**Verified end-to-end 2026-05-12 18:38 UTC:**
+- backup-db.sh produced a fresh 109 MB local backup with sentinel
+- sync-to-r2.sh pushed it; remote size matched local size (113,752,384 B)
+- 3 newest backups confirmed in `r2:jdbbs-backups/db/`
+- All four sentinels in the expected state (.LAST-SUCCESS present, .LAST-R2-SUCCESS present, both .LAST-FAILURE absent)
+
+**Still open (phase 3):**
+- Monitoring: cron job (or exe.dev observability) that checks `~/backups/.LAST-FAILURE` and `.LAST-R2-FAILURE`, plus age of the `.LAST-SUCCESS` sentinels (alarm if > 26 hours old).
+- Monthly restore drill: separate cron that decompresses the latest backup into `/tmp/restore-test.sqlite3`, runs a battery of read queries, asserts row counts.
+- 8 small (3.5 KB) artifact backups from the pre-fix era now live in R2 indefinitely; cull them via `rclone deletefile` once we're sure they're not needed.
+
+**RPO/RTO targets:**
+- RPO: ≤ 24 hours (daily backups); upgrade to ≤ 1 hour later with litestream if we go heavier on usage.
+- RTO: ≤ 30 minutes for a fresh VM (spin up + pull repo + `rclone copy r2:jdbbs-backups/db/<latest> .` + gunzip + start systemd).
 
 ### TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/
 
