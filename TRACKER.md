@@ -393,7 +393,7 @@ Risk: low. Reversible from backups if needed.
 ### TRK-OPS-007 — Backup hygiene: integrity probes + off-VM replication
 
 - area: OPS / SEC
-- status: done (phase 1 + 2); phase 3 (monitoring + restore drill) open
+- status: done (phase 1 + 2 + 3)
 - priority: P2
 - created: 2026-05-12
 - updated: 2026-05-12
@@ -449,10 +449,31 @@ Approach: **rclone copy to Cloudflare R2** for daily off-VM, plus a Mac-side `rs
 - 3 newest backups confirmed in `r2:jdbbs-backups/db/`
 - All four sentinels in the expected state (.LAST-SUCCESS present, .LAST-R2-SUCCESS present, both .LAST-FAILURE absent)
 
-**Still open (phase 3):**
-- Monitoring: cron job (or exe.dev observability) that checks `~/backups/.LAST-FAILURE` and `.LAST-R2-FAILURE`, plus age of the `.LAST-SUCCESS` sentinels (alarm if > 26 hours old).
-- Monthly restore drill: separate cron that decompresses the latest backup into `/tmp/restore-test.sqlite3`, runs a battery of read queries, asserts row counts.
+**Phase 3 — observability (done 2026-05-12).**
+
+Three additions to close the "silent backup rot" gap:
+
+- **`scripts/check-backups.sh`** (cron hourly at minute 17). Examines the four sentinels. FAILS if any `.LAST-FAILURE` or `.LAST-R2-FAILURE` is present, OR if `.LAST-SUCCESS` / `.LAST-R2-SUCCESS` is missing or older than `$MAX_AGE_HOURS` (default 26h). On success writes `.HEALTH-OK` with the timestamps of the most recent backup + R2 push. On failure writes `.HEALTH-FAIL` with details. Verified 2026-05-12 18:41 with 4 scenarios:
+  - positive (everything fresh) → `HEALTH OK`
+  - .LAST-SUCCESS touched to 48h ago → `STALE — last updated 48h 00m ago (max 26h)`
+  - synthetic .LAST-FAILURE present → reports the reason
+  - back to clean state → `HEALTH OK`
+- **`scripts/restore-drill.sh`** (cron monthly at 04:00 UTC on the 1st). Picks the newest local backup, decompresses to a tmp file, asserts (a) all six expected tables present, (b) projects + books rowcounts ≥ thresholds, (c) `PRAGMA integrity_check` returns `ok`, (d) logs a sample of the first 5 projects. Verified 2026-05-12 18:41: all checks passed against `prodcal-20260512-183831.sqlite3.gz`.
+- **Mac-side `jbackup-pull` extended** to (a) rsync all eight sentinel files, not just `.LAST-SUCCESS` / `.LAST-FAILURE`, and (b) compute human-readable ages of each (e.g. `.HEALTH-OK (0h 1m ago)`) by parsing the embedded `time:` field as UTC.
+
+**Cron now installed on VM:**
+```cron
+# Daily backup + R2 push at 03:00 UTC.
+0 3 * * * /home/exedev/prodcal/scripts/backup-db.sh >> /home/exedev/backups/backup.log 2>&1; /home/exedev/prodcal/scripts/sync-to-r2.sh >> /home/exedev/backups/backup.log 2>&1
+# Hourly health probe.
+17 * * * * /home/exedev/prodcal/scripts/check-backups.sh >> /home/exedev/backups/backup-health.log 2>&1
+# Monthly restore drill on the 1st at 04:00 UTC.
+0 4 1 * * /home/exedev/prodcal/scripts/restore-drill.sh >> /home/exedev/backups/backup.log 2>&1
+```
+
+**Still open (small follow-ups, low priority):**
 - 8 small (3.5 KB) artifact backups from the pre-fix era now live in R2 indefinitely; cull them via `rclone deletefile` once we're sure they're not needed.
+- check-backups.sh writes to a log; no actual alarm channel (email/pager/webhook) is wired up. With `jbackup-pull` on the Mac surfacing the sentinels, this is observable but not push-notified. Could add a Discord/ntfy.sh webhook later if/when usage justifies it.
 
 **RPO/RTO targets:**
 - RPO: ≤ 24 hours (daily backups); upgrade to ≤ 1 hour later with litestream if we go heavier on usage.
