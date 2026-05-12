@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProdCal — Deep Technical Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#101020;--surface:#181830;--card:#1e1e38;
+  --text:#e8e8f0;--text-muted:#8888aa;--accent:#4488ff;
+  --green:#22cc66;--red:#ff4466;--yellow:#ffaa22;--orange:#ff7744;
+  --mono:'JetBrains Mono',monospace;--serif:'IBM Plex Serif',Georgia,serif;
+  --radius:8px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--mono)}
+.deck{position:relative;width:100%;height:100%}
+.slide{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  justify-content:center;padding:60px 80px;
+  opacity:0;transform:translateX(40px);pointer-events:none;
+  transition:opacity .4s ease,transform .4s ease;
+}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+.slide.prev{opacity:0;transform:translateX(-40px)}
+h1{font-size:42px;font-weight:700;color:var(--accent);margin-bottom:16px;line-height:1.2}
+h2{font-size:28px;font-weight:600;color:var(--accent);margin-bottom:24px;letter-spacing:-.5px}
+h3{font-size:20px;font-weight:600;color:var(--yellow);margin:20px 0 10px}
+p,li{font-size:17px;line-height:1.65;color:var(--text)}
+li{margin-bottom:6px}
+ul,ol{padding-left:24px}
+.subtitle{font-size:18px;color:var(--text-muted);margin-bottom:8px;font-family:var(--serif);font-style:italic}
+.date{font-size:14px;color:var(--text-muted);margin-top:16px}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+.grid-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.card{background:var(--card);border:1px solid #2a2a4a;border-radius:var(--radius);padding:16px}
+.card .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:6px}
+.card .value{font-size:24px;font-weight:600;color:var(--accent)}
+.card .value.sm{font-size:16px}
+pre{
+  background:#12122a;border:1px solid #2a2a4a;border-radius:var(--radius);
+  padding:16px;font-size:14px;line-height:1.6;overflow-x:auto;
+  color:#c8c8e0;margin:12px 0;
+}
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;margin:2px}
+.tag.green{background:#22cc6622;color:var(--green)}
+.tag.red{background:#ff446622;color:var(--red)}
+.tag.yellow{background:#ffaa2222;color:var(--yellow)}
+.tag.blue{background:#4488ff22;color:var(--accent)}
+.tag.dim{background:#44446622;color:var(--text-muted)}
+table{width:100%;border-collapse:collapse;font-size:15px;margin:8px 0}
+th{text-align:left;color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:1px;padding:8px 12px;border-bottom:1px solid #2a2a4a}
+td{padding:8px 12px;border-bottom:1px solid #1a1a3a}
+.progress{
+  position:fixed;bottom:0;left:0;height:3px;background:var(--accent);
+  transition:width .4s ease;z-index:100;
+}
+.nav{
+  position:fixed;bottom:16px;right:24px;font-size:13px;color:var(--text-muted);z-index:100;
+  display:flex;align-items:center;gap:12px;
+}
+.nav button{
+  background:none;border:1px solid #3a3a5a;color:var(--text-muted);
+  padding:4px 12px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:12px;
+}
+.nav button:hover{border-color:var(--accent);color:var(--accent)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.severity-section{margin-bottom:16px}
+.severity-section h3{margin-bottom:8px}
+.compact li{margin-bottom:3px;font-size:15px}
+.stars{color:var(--yellow)}
+.check{color:var(--green)}
+.cross{color:var(--red)}
+.small{font-size:14px;color:var(--text-muted)}
+.pipeline-step{
+  background:var(--card);border:1px solid #2a2a4a;border-radius:var(--radius);
+  padding:12px 16px;margin:6px 0;position:relative;
+}
+.pipeline-step::before{content:'→';position:absolute;left:-20px;color:var(--accent);font-size:18px;top:12px}
+.pipeline-step:first-child::before{content:''}
+.scroll-area{max-height:calc(100vh - 180px);overflow-y:auto;padding-right:12px}
+.scroll-area::-webkit-scrollbar{width:4px}
+.scroll-area::-webkit-scrollbar-track{background:transparent}
+.scroll-area::-webkit-scrollbar-thumb{background:#3a3a5a;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- SLIDE 1: Title -->
+<div class="slide active" data-slide="0">
+  <div>
+    <h1>ProdCal</h1>
+    <p class="subtitle">Deep Technical Analysis</p>
+    <div style="width:60px;height:3px;background:var(--accent);margin:24px 0"></div>
+    <p style="font-size:16px;color:var(--text-muted);max-width:600px">Current state, architecture, strengths, risks, and recommended next steps for the book production management tool.</p>
+    <p class="date">April 14, 2026 · jdbb studio · exe.dev VM</p>
+  </div>
+</div>
+
+<!-- SLIDE 2: What ProdCal Is -->
+<div class="slide" data-slide="1">
+  <h2>What ProdCal Is</h2>
+  <div class="scroll-area">
+  <p style="margin-bottom:20px;font-family:var(--serif)">A Go web application for <strong>book production management</strong>, branded as "jdbb studio".</p>
+  <div class="grid grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="label">Core Functions</div>
+      <ul class="compact" style="padding-left:16px;margin-top:8px">
+        <li>Production calendars with Gantt timelines</li>
+        <li>Manuscript transmittal forms</li>
+        <li>Word → PDF/EPUB typesetting pipeline</li>
+        <li>Email notifications (5 types)</li>
+        <li>File tracking &amp; project journals</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="label">Tech Stack</div>
+      <ul class="compact" style="padding-left:16px;margin-top:8px">
+        <li>Go 1.26 + net/http stdlib router</li>
+        <li>SQLite (pure-Go, WAL mode)</li>
+        <li>Embedded static files (single binary)</li>
+        <li>Pandoc + Typst + Python3 for pipeline</li>
+        <li>AgentMail API for email</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Three-Tier User Model</h3>
+  <div class="grid grid-3">
+    <div class="card"><div class="label">Admin</div><div class="value sm">exe.dev auth header</div><p class="small" style="margin-top:6px">Full access. Dashboard at /admin/</p></div>
+    <div class="card"><div class="label">Client</div><div class="value sm">Password + cookie</div><p class="small" style="margin-top:6px">Portal at /{client}/ — multi-project</p></div>
+    <div class="card"><div class="label">Project</div><div class="value sm">Token + cookie</div><p class="small" style="margin-top:6px">Calendar at /{client}/{project}/</p></div>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Codebase Stats -->
+<div class="slide" data-slide="2">
+  <h2>Codebase by the Numbers</h2>
+  <div class="grid grid-4" style="margin-bottom:24px">
+    <div class="card"><div class="label">Go Source</div><div class="value">8,562</div><p class="small">lines · 18 files</p></div>
+    <div class="card"><div class="label">Go Tests</div><div class="value">2,549</div><p class="small">lines · 48 tests · 13 files</p></div>
+    <div class="card"><div class="label">Frontend</div><div class="value">~6,400</div><p class="small">lines · HTML/CSS/JS</p></div>
+    <div class="card"><div class="label">Database</div><div class="value">14</div><p class="small">migrations · 14 tables</p></div>
+  </div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="label">Biggest Files (Go)</div>
+      <table>
+        <tr><td>server.go</td><td style="text-align:right">1,059 lines</td></tr>
+        <tr><td>bookspecs.go</td><td style="text-align:right">990 lines</td></tr>
+        <tr><td>snapshot_email.go</td><td style="text-align:right">814 lines</td></tr>
+        <tr><td>preflight.go</td><td style="text-align:right">530 lines</td></tr>
+        <tr><td>transmittal.go</td><td style="text-align:right">470 lines</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="label">Biggest Files (Frontend)</div>
+      <table>
+        <tr><td>admin.html</td><td style="text-align:right">2,780 lines</td></tr>
+        <tr><td>app.js</td><td style="text-align:right">1,295 lines</td></tr>
+        <tr><td>transmittal.js</td><td style="text-align:right">1,295 lines</td></tr>
+        <tr><td>style.css</td><td style="text-align:right">1,156 lines</td></tr>
+        <tr><td>client.html</td><td style="text-align:right">919 lines</td></tr>
+      </table>
+    </div>
+  </div>
+  <p style="margin-top:16px;text-align:center"><span class="tag green">All tests pass ✅</span> <span class="tag blue">Total: ~17,500 lines</span></p>
+</div>
+
+<!-- SLIDE 4: Architecture -->
+<div class="slide" data-slide="3">
+  <h2>Architecture</h2>
+  <div class="scroll-area">
+  <pre style="font-size:13px;line-height:1.7">
+Browser
+ ├── GET /                           → Landing Page (client code entry)
+ ├── GET /admin/                     → Admin Dashboard (exe.dev auth)
+ ├── GET /{client}/                  → Client Portal (password auth)
+ ├── GET /{client}/{project}/        → Calendar SPA (app.js)
+ └── GET /{client}/{project}/transmittal/ → Transmittal SPA
+
+Go Backend  ─  74 registered routes  ─  srv package
+ ├── Auth cascade: project cookie → token header → client cookie → admin
+ ├── server.go      routing + project/task CRUD + auth + seed
+ ├── books.go       upload → convert → download
+ ├── bookspecs.go   spec management + config generation
+ ├── transmittal.go form CRUD + versioning + duplicate
+ ├── preflight.go   manuscript quality checks (Python)
+ ├── epub.go        EPUB generation
+ ├── 5× email.go    transmittal/snapshot/activity/digest/notify
+ └── corrections.go + filelog.go + journal.go + client.go + admin.go
+
+SQLite  ─  WAL mode  ─  113 MB  ─  pure-Go driver
+ ├── 14 tables (projects, tasks, books, specs, transmittals, ...)
+ ├── BLOB storage: DOCX sources, PDFs, EPUBs, covers
+ └── 12 projects · 4 books · 3 clients · 166 tasks
+
+External Tools: pandoc 3.1+  ·  typst 0.12+  ·  python3  ·  AgentMail API</pre>
+  </div>
+</div>
+
+<!-- SLIDE 5: Features -->
+<div class="slide" data-slide="4">
+  <h2>What Works</h2>
+  <div class="scroll-area">
+  <div class="two-col">
+    <div>
+      <h3>Project Management</h3>
+      <ul class="compact">
+        <li><span class="check">✅</span> Project lifecycle: create → seed → track → archive</li>
+        <li><span class="check">✅</span> 31-task standard workflow auto-seeded</li>
+        <li><span class="check">✅</span> Gantt timeline + table + budget views</li>
+        <li><span class="check">✅</span> File transfer log &amp; project journal</li>
+        <li><span class="check">✅</span> Project duplication with date shifting</li>
+        <li><span class="check">✅</span> Multi-client portal with password auth</li>
+      </ul>
+      <h3>Transmittal System</h3>
+      <ul class="compact">
+        <li><span class="check">✅</span> Rich transmittal form (15+ sections)</li>
+        <li><span class="check">✅</span> Auto-versioning (5-min throttled snapshots)</li>
+        <li><span class="check">✅</span> Version restore + transmittal duplicate</li>
+        <li><span class="check">✅</span> Custom styles declaration</li>
+        <li><span class="check">✅</span> Pull transmittal → book spec</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Book Pipeline</h3>
+      <ul class="compact">
+        <li><span class="check">✅</span> DOCX → Typst → PDF conversion</li>
+        <li><span class="check">✅</span> EPUB generation with spec-driven CSS</li>
+        <li><span class="check">✅</span> Manuscript preflight (edge case detection)</li>
+        <li><span class="check">✅</span> Book spec editor + Typst config generation</li>
+        <li><span class="check">✅</span> Cover image upload + preview</li>
+        <li><span class="check">✅</span> Output history tracking (PDF/EPUB)</li>
+      </ul>
+      <h3>Communication</h3>
+      <ul class="compact">
+        <li><span class="check">✅</span> Transmittal summary email</li>
+        <li><span class="check">✅</span> Project snapshot email (schedule + budget)</li>
+        <li><span class="check">✅</span> Activity digest email</li>
+        <li><span class="check">✅</span> Client weekly digest (cross-project)</li>
+        <li><span class="check">✅</span> Auto-notify on client transmittal edits</li>
+        <li><span class="check">✅</span> Light/dark mode, 3 typeface options</li>
+      </ul>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: Pipeline -->
+<div class="slide" data-slide="5">
+  <h2>Book Production Pipeline</h2>
+  <div class="scroll-area">
+  <div style="max-width:700px">
+    <div class="pipeline-step" style="border-left:3px solid var(--accent)">
+      <strong>1. Upload</strong> — <code>POST /api/books/upload</code>
+      <p class="small">Multipart form, ≤50MB. DOCX stored as SQLite BLOB.</p>
+    </div>
+    <div class="pipeline-step" style="border-left:3px solid var(--yellow)">
+      <strong>2. Preflight</strong> (optional) — <code>POST /api/projects/{id}/preflight</code>
+      <p class="small">Python script <code>detect-edge-cases.py</code> runs synchronously.<br>
+      Produces HTML report with severity levels. Cross-references declared custom styles.</p>
+    </div>
+    <div class="pipeline-step" style="border-left:3px solid var(--green)">
+      <strong>3. PDF Conversion</strong> — <code>POST /api/books/{id}/convert</code>
+      <p class="small">Background goroutine (fire-and-forget):</p>
+      <pre style="font-size:12px;padding:8px;margin:4px 0">pandoc --from=docx+styles  →  Lua filter  →  .typ source
+  → Header patched with spec-driven config
+  → typst compile --root / --font-path fonts/
+  → PDF stored in DB + book_outputs history table</pre>
+    </div>
+    <div class="pipeline-step" style="border-left:3px solid var(--orange)">
+      <strong>4. EPUB Generation</strong> — <code>POST /api/books/{id}/generate-epub</code>
+      <p class="small">pandoc docx → epub3 with metadata, TOC, custom CSS from spec.</p>
+    </div>
+    <div class="pipeline-step" style="border-left:3px solid var(--accent)">
+      <strong>5. Download</strong> — <code>GET /api/books/{id}/download/{pdf|epub}</code>
+      <p class="small">Serves generated files from DB BLOBs. ⚠️ No auth check.</p>
+    </div>
+  </div>
+  <p style="margin-top:16px" class="small">Real output: "The Twitter Years" DOCX → 8.3MB PDF (most recent: April 14, 2026 01:01 UTC)</p>
+  </div>
+</div>
+
+<!-- SLIDE 7: Database -->
+<div class="slide" data-slide="6">
+  <h2>Database Schema</h2>
+  <div class="scroll-area">
+  <pre style="font-size:13px;line-height:1.8">
+  clients (3 rows)                     ← slug PK, password_hash
+     │
+     └── projects (12 rows)            ← client_slug (NO FK ⚠️), project_slug
+            │
+            ├── tasks (166)            ← sort_order, assignee, budget fields
+            ├── auth_tokens (3)        ← SHA-256 hashed passwords
+            ├── transmittals (9)       ← JSON blob, 1:1 with project
+            │     └── versions (25)    ← auto-snapshot every 5+ min
+            ├── file_log (4)           ← direction, filename, sent_by
+            ├── journal (4)            ← entry_type: call/decision/approval/note
+            ├── book_specs (5)         ← JSON config, cover BLOB, 1:1
+            ├── corrections (1)        ← find/replace pairs
+            ├── books (4)              ← source BLOB, PDF BLOB, EPUB BLOB
+            │     ├── book_outputs (6) ← output history with BLOBs
+            │     └── preflights (12)  ← summary JSON, report HTML
+            └── archived_at            ← soft delete</pre>
+  <div class="grid grid-3" style="margin-top:16px">
+    <div class="card"><div class="label">DB Size</div><div class="value">113 MB</div><p class="small">WAL mode, pure-Go driver</p></div>
+    <div class="card"><div class="label">Data Access</div><div class="value sm">Mixed</div><p class="small">7 tables sqlc, 7 tables raw SQL</p></div>
+    <div class="card"><div class="label">⚠️ Missing FK</div><div class="value sm">projects → clients</div><p class="small">Relationship is app-level only</p></div>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 8: Security -->
+<div class="slide" data-slide="7">
+  <h2>Security Assessment</h2>
+  <div class="scroll-area">
+  <div class="severity-section">
+    <h3 style="color:var(--red)">🔴 HIGH — Fix Immediately</h3>
+    <ul class="compact">
+      <li><strong>SHA-256 password hashing</strong> — not using bcrypt/scrypt. Vulnerable to rainbow table attacks.</li>
+      <li><strong>/api/books/{id}/download/pdf</strong> — NO auth check. Anyone with an ID can download PDFs.</li>
+      <li><strong>/api/projects</strong> list — NO auth check. Full project enumeration by unauthenticated users.</li>
+      <li><strong>API key + passwords in git history</strong> — SESSION-SUMMARY.txt contains AgentMail key and client passwords.</li>
+    </ul>
+  </div>
+  <div class="severity-section">
+    <h3 style="color:var(--yellow)">🟡 MEDIUM — Address Soon</h3>
+    <ul class="compact">
+      <li><strong>Fire-and-forget goroutines</strong> for conversion — no timeout, no cancellation, no worker pool.</li>
+      <li><strong>50MB BLOBs in SQLite</strong> — DB will grow fast with book production use.</li>
+      <li><strong>Potential panic</strong> in transmittal duplicate — string slice on short key names.</li>
+      <li><strong>EPUB failures</strong> not written to DB status — only logged, user sees no error.</li>
+      <li><strong>Preflight runs synchronously</strong> — blocks HTTP request for large manuscripts.</li>
+    </ul>
+  </div>
+  <div class="severity-section">
+    <h3 style="color:var(--green)">🟢 LOW — Note for Later</h3>
+    <ul class="compact">
+      <li>Hardcoded notification recipient (j@djinna.com)</li>
+      <li>Cover images publicly accessible without auth</li>
+      <li>main() doesn't os.Exit(1) on error</li>
+      <li>N+1 query pattern in client digest email</li>
+    </ul>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 9: Code Quality -->
+<div class="slide" data-slide="8">
+  <h2>Code Quality</h2>
+  <div class="scroll-area">
+  <div class="two-col">
+    <div>
+      <h3 style="color:var(--green)">Strengths</h3>
+      <ul class="compact">
+        <li>Clean Go idioms, standard library router</li>
+        <li>sqlc for type-safe DB access (where used)</li>
+        <li>Embedded static files → single binary deploy</li>
+        <li>Good test infrastructure — integration tests against real HTTP endpoints + real DB</li>
+        <li>Injectable behavior (<code>preflightRunnerFunc</code>) for testability</li>
+        <li>Comprehensive email system with HTML + plain text</li>
+        <li>Thoughtful version history for transmittals</li>
+        <li>WAL mode + busy timeout for SQLite concurrency</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--red)">Weaknesses</h3>
+      <ul class="compact">
+        <li><strong>server.go</strong> is a 1,059-line god file</li>
+        <li><strong>Mixed data access</strong> — sqlc vs raw SQL, inconsistent patterns</li>
+        <li><strong>HTML emails via string concatenation</strong> — 800+ lines in snapshot_email.go</li>
+        <li><strong>admin.html</strong> is 2,780 lines — all CSS/JS inline</li>
+        <li><strong>CSS duplication</strong> across 4 files (admin, landing, client, style.css)</li>
+        <li>Hardcoded paths: <code>bookProdRoot = "/home/exedev/book-production"</code></li>
+        <li>No structured logging (just <code>log.Printf</code>)</li>
+        <li>No graceful shutdown handler</li>
+      </ul>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 10: Test Coverage -->
+<div class="slide" data-slide="9">
+  <h2>Test Coverage</h2>
+  <div class="scroll-area">
+  <div class="two-col">
+    <div>
+      <h3 style="color:var(--green)">Tested (48 tests) ✅</h3>
+      <ul class="compact">
+        <li>Auth cascade (5 tests)</li>
+        <li>Project CRUD + archive (4 tests)</li>
+        <li>Admin dashboard + clients (5 tests)</li>
+        <li>Client portal + project creation (3 tests)</li>
+        <li>Task CRUD + milestones (3 tests)</li>
+        <li>Transmittal defaults + duplicate (2 tests)</li>
+        <li>File log CRUD (3 tests)</li>
+        <li>Journal CRUD (4 tests)</li>
+        <li>Email builders + validation (8 tests)</li>
+        <li>Book specs + transmittal pull (2 tests)</li>
+        <li>Custom styles round-trip (1 test)</li>
+        <li>Preflight system (5 tests)</li>
+        <li>Word template generation (3 tests)</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--red)">Not Tested ❌</h3>
+      <ul class="compact">
+        <li>Book upload/download/convert endpoints</li>
+        <li>EPUB generation</li>
+        <li>Corrections CRUD</li>
+        <li>Transmittal version history API</li>
+        <li>Client digest email</li>
+        <li>Notification throttling</li>
+        <li>Frontend / browser tests</li>
+        <li>Concurrent access / race conditions</li>
+        <li>Error paths in conversion pipeline</li>
+        <li>File size limits / large uploads</li>
+        <li>Graceful degradation (missing pandoc/typst)</li>
+      </ul>
+      <p style="margin-top:16px" class="small">Test ratio: <strong>2,549 / 8,562 = 30%</strong> of source lines have corresponding test lines. Decent for an early product but gaps in the most critical path (book conversion).</p>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 11: Infrastructure -->
+<div class="slide" data-slide="10">
+  <h2>Infrastructure State</h2>
+  <div class="scroll-area">
+  <div class="grid grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="label">Deployment</div>
+      <ul class="compact" style="padding-left:16px;margin-top:8px">
+        <li>systemd service: <code>srv.service</code></li>
+        <li>Binary: <code>/home/exedev/prodcal/prodcal</code></li>
+        <li>DB: <code>/home/exedev/db.sqlite3</code> (113MB)</li>
+        <li>Port 8000, exe.dev HTTPS proxy</li>
+        <li>Daily backup: sqlite3 .backup + gzip, 7-day retention</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="label">Issues Found Today</div>
+      <ul class="compact" style="padding-left:16px;margin-top:8px">
+        <li><span class="tag red">798 restart attempts</span> before fix</li>
+        <li>Stale process holding port 8000</li>
+        <li>Service was <code>disabled</code> preset (now enabled)</li>
+        <li>Two DB copies: <code>~/prodcal/db.sqlite3</code> (stale 82KB) vs <code>~/db.sqlite3</code> (active 113MB)</li>
+        <li>WorkingDirectory mismatch in service file</li>
+      </ul>
+    </div>
+  </div>
+  <div class="grid grid-3">
+    <div class="card">
+      <div class="label">What Exists</div>
+      <p class="small" style="margin-top:6px">Dockerfile (multi-stage, not used in prod)<br>Backup script (cron daily)<br>DEPLOY.md (comprehensive)<br>4 checkpoint tags</p>
+    </div>
+    <div class="card">
+      <div class="label">What's Missing</div>
+      <p class="small" style="margin-top:6px">No CI/CD pipeline<br>No monitoring/alerting<br>No graceful shutdown<br>Not on GitHub<br>No health check in service file</p>
+    </div>
+    <div class="card">
+      <div class="label">External Dependencies</div>
+      <p class="small" style="margin-top:6px">pandoc 3.1+ (system pkg)<br>typst 0.12+ (binary)<br>python3 + python-docx<br>AgentMail API (email)</p>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 12: Documentation -->
+<div class="slide" data-slide="11">
+  <h2>Documentation Quality</h2>
+  <div class="scroll-area">
+  <table>
+    <thead><tr><th>Document</th><th>Rating</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>DEPLOY.md</td><td><span class="stars">★★★★★</span></td><td>Architecture, build, backup, restore, Docker — production ready</td></tr>
+      <tr><td>EMAIL_SYSTEM.md</td><td><span class="stars">★★★★★</span></td><td>All 6 email pathways, how to add new ones — excellent reference</td></tr>
+      <tr><td>Session notes (7 files)</td><td><span class="stars">★★★★</span>☆</td><td>Thorough session memory with decision context</td></tr>
+      <tr><td>CHECKPOINTS.md</td><td><span class="stars">★★★</span>☆☆</td><td>Git tag convention, 4 checkpoints tagged</td></tr>
+      <tr><td>docs/notes/ (5 files)</td><td><span class="stars">★★★★</span>☆</td><td>Good decision records — capture <em>why</em>, not just <em>what</em></td></tr>
+      <tr><td>API reference</td><td><span class="stars">★</span>☆☆☆☆</td><td style="color:var(--red)">Missing — 74 routes undocumented; scattered across notes</td></tr>
+      <tr><td>README.md</td><td><span class="stars">★★</span>☆☆☆</td><td style="color:var(--yellow)">Generic Go template text, not project-specific</td></tr>
+      <tr><td>Inline code comments</td><td><span class="stars">★★</span>☆☆☆</td><td>Most functions undocumented</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:16px;font-family:var(--serif);font-style:italic;color:var(--text-muted)">
+    Operational docs are excellent. Reference docs are missing. The project relies on session-prompt files for institutional memory — effective but fragile.
+  </p>
+  </div>
+</div>
+
+<!-- SLIDE 13: Roadmap -->
+<div class="slide" data-slide="12">
+  <h2>Planned but Not Done</h2>
+  <div class="scroll-area">
+  <div class="two-col">
+    <div>
+      <h3>From Session Notes</h3>
+      <ul class="compact">
+        <li><span class="tag dim">🔲</span> Bowker ISBN integration (plan exists, no code)</li>
+        <li><span class="tag dim">🔲</span> Push prodcal to GitHub</li>
+        <li><span class="tag dim">🔲</span> Permahosting outside exe.dev</li>
+        <li><span class="tag dim">🔲</span> Front matter pagination (roman numerals)</li>
+        <li><span class="tag dim">🔲</span> Multi-chapter anthology support</li>
+        <li><span class="tag dim">🔲</span> Auto-generate TOC with Typst locate()</li>
+        <li><span class="tag dim">🔲</span> Upload progress bar</li>
+        <li><span class="tag dim">🔲</span> Show conversion log on error</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Explicitly Parked</h3>
+      <ul class="compact">
+        <li><span class="tag yellow">⏸</span> Preflight redesign (parked 2026-04-14)</li>
+        <li><span class="tag yellow">⏸</span> Typography fidelity vs InDesign (gap acknowledged)</li>
+        <li><span class="tag yellow">⏸</span> Manual list nesting (flattened, deferred)</li>
+      </ul>
+      <h3>Infrastructure Needs</h3>
+      <ul class="compact">
+        <li><span class="tag dim">🔲</span> CI/CD pipeline</li>
+        <li><span class="tag dim">🔲</span> Monitoring / alerting</li>
+        <li><span class="tag dim">🔲</span> API documentation</li>
+        <li><span class="tag dim">🔲</span> Graceful shutdown</li>
+        <li><span class="tag dim">🔲</span> Process supervisor / port cleanup</li>
+      </ul>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- SLIDE 14: Recommendations -->
+<div class="slide" data-slide="13">
+  <h2>Recommendations</h2>
+  <div class="scroll-area">
+  <h3 style="color:var(--red)">Do Now — Safety</h3>
+  <ol class="compact">
+    <li><strong>Add bcrypt password hashing</strong> — replace SHA-256</li>
+    <li><strong>Add auth to book download + project list</strong> endpoints</li>
+    <li><strong>Rotate the AgentMail API key</strong> — it's in git history</li>
+    <li><strong>Fix service stability</strong> — add graceful shutdown, ExecStop, restart backoff</li>
+  </ol>
+  <h3 style="color:var(--yellow)">Do Soon — Quality</h3>
+  <ol class="compact" start="5">
+    <li><strong>Extract admin.html CSS/JS</strong> into shared files (eliminate 4-way duplication)</li>
+    <li><strong>Split server.go</strong> into focused handler files (routing, projects, tasks, auth)</li>
+    <li><strong>Add conversion timeout + worker pool</strong> for book builds</li>
+    <li><strong>Move BLOBs to filesystem</strong> — keep metadata in SQLite, files on disk</li>
+    <li><strong>Add sqlc queries</strong> for remaining 7 raw-SQL tables</li>
+  </ol>
+  <h3 style="color:var(--accent)">Do Later — Growth</h3>
+  <ol class="compact" start="10">
+    <li><strong>Push to GitHub</strong> with CI pipeline</li>
+    <li><strong>Write API reference doc</strong> (74 routes need documenting)</li>
+    <li><strong>Add E2E tests</strong> for conversion pipeline</li>
+    <li><strong>Evaluate hosting</strong> — Fly.io, Railway, or VPS for permanence</li>
+    <li><strong>Clean up stale DB copy</strong> in <code>~/prodcal/db.sqlite3</code></li>
+  </ol>
+  </div>
+</div>
+
+<!-- SLIDE 15: Summary -->
+<div class="slide" data-slide="14">
+  <h2>TL;DR</h2>
+  <div class="scroll-area">
+  <div style="max-width:800px">
+    <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:16px">
+      <span class="tag green" style="font-size:14px">Working Product</span>
+      <p>Real books are being produced through ProdCal. 4 books uploaded, 6 PDFs generated.</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:16px">
+      <span class="tag green" style="font-size:14px">Sound Architecture</span>
+      <p>Go + SQLite + embedded assets = simple, deployable. Good handler structure.</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:16px">
+      <span class="tag red" style="font-size:14px">Security Gaps</span>
+      <p>Auth missing on download/list endpoints. SHA-256 passwords. Key in git history.</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:16px">
+      <span class="tag yellow" style="font-size:14px">Growing Pains</span>
+      <p>God files, CSS duplication, mixed data access. Normal for this stage.</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:16px">
+      <span class="tag green" style="font-size:14px">Strong Docs</span>
+      <p>DEPLOY.md and EMAIL_SYSTEM.md are excellent. Session notes provide great continuity.</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:16px">
+      <span class="tag yellow" style="font-size:14px">Fragile Infra</span>
+      <p>Single VM, no CI, stale processes. Dockerfile exists but unused.</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:baseline;margin-bottom:16px">
+      <span class="tag blue" style="font-size:14px">Clear Vision</span>
+      <p>The transmittal → spec → typesetting pipeline is well-designed and mostly works.</p>
+    </div>
+    <div style="margin-top:24px;padding:16px;background:var(--card);border-radius:var(--radius);border-left:3px solid var(--accent)">
+      <p style="font-family:var(--serif);font-style:italic;font-size:18px">
+        ~17,500 lines of code representing roughly 3 months of focused work. The core pipeline is sound. Harden security, stabilize infrastructure, then iterate on features.
+      </p>
+    </div>
+  </div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<div class="progress" id="progress"></div>
+<div class="nav">
+  <button onclick="prev()">← Prev</button>
+  <span id="counter">1 / 15</span>
+  <button onclick="next()">Next →</button>
+</div>
+
+<script>
+const slides=document.querySelectorAll('.slide');
+const total=slides.length;
+let current=0;
+
+function show(n){
+  if(n<0||n>=total)return;
+  slides.forEach((s,i)=>{s.classList.remove('active','prev')});
+  current=n;
+  slides[current].classList.add('active');
+  document.getElementById('counter').textContent=`${current+1} / ${total}`;
+  document.getElementById('progress').style.width=`${((current+1)/total)*100}%`;
+}
+function next(){show(current+1)}
+function prev(){show(current-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')next();
+  if(e.key==='ArrowLeft')prev();
+});
+show(0);
+</script>
+</body>
+</html>
