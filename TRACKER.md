@@ -346,29 +346,30 @@ nginx on the VM has only a generic `_` server block — it doesn't terminate TLS
 ### TRK-OPS-005 — systemd orphan-process race during restart
 
 - area: OPS
-- status: open
+- status: done
 - priority: P2
 - created: 2026-05-12
 - updated: 2026-05-12
-- refs: TRK-MIG-004 and TRK-OPS-003 both surfaced this; `/etc/systemd/system/prodcal.service`
+- refs: prodcal `6ff2c7e9` (fix), TRK-MIG-004 / TRK-OPS-003 (triggers)
 
-**Pattern:** every time `systemctl start prodcal` (or restart) runs, a child process binds `:8000` successfully but systemd reports `MainPID=0` and `Active: activating (auto-restart)`. The journal then shows a second spawn that fails with `bind: address already in use`. The first PID becomes a true orphan, not tracked under the unit's cgroup.
+**Root cause (found 2026-05-12):**
+- `cmd/srv/main.go` printed errors to stderr and **returned normally — exit 0**. A `bind: address already in use` looked to systemd like `status=0/SUCCESS`.
+- Combined with `Restart=always`, every "successful exit" triggered a 5-second-later restart. If the previous instance's listener was still alive, the new instance would fail to bind, exit 0 again — looking healthy from systemd's perspective.
+- `Type=simple` had no positive ready signal, so when the binary DID bind successfully, there was a brief window where systemd could misregister MainPID as 0 and trigger an unnecessary auto-restart anyway.
 
-Observed three times so far:
-1. 2026-05-12 16:39 (initial cutover) — PID 2597479-equivalent orphan
-2. 2026-05-12 16:55 (post-build deploy) — handled cleanly that time
-3. 2026-05-12 17:10 (post-DB-recovery restart) — PID 3270156 orphan; resolved by killing it so systemd's auto-restart took the port
+**Fix (commit 6ff2c7e9):**
+1. `cmd/srv/main.go`: `run()` error → `os.Exit(1)` (was: print and exit 0).
+2. `srv.Server.Serve()`: split `http.ListenAndServe` into explicit `net.Listen` first, then `daemon.SdNotify(SdNotifyReady)`, then `http.Serve(listener, handler)`. Adds `github.com/coreos/go-systemd/v22 v22.7.0` (pure Go, MIT).
+3. `srv.service`: `Type=simple` → `Type=notify` with `NotifyAccess=main`; `Restart=always` → `Restart=on-failure`.
 
-**Suspicions:** the binary may be doing something non-trivial early in startup that confuses systemd's `Type=simple` model — perhaps a brief fork, a signal handling issue, or the Go runtime's PID tracking colliding with systemd's. Or there's a race between systemd's `notify` ready signal and the bind syscall.
-
-**Investigation steps:**
-1. Add temporary verbose logging at the top of `cmd/srv/main.go` (just before `server.Run`) to print `os.Getpid()` and `os.Getppid()`.
-2. Try `Type=notify` with `sdnotify`-style readiness ping after the listener is up.
-3. Try `Type=exec` (systemd 240+) which is stricter than simple.
-4. Add `Restart=on-failure` (instead of `always`) so a successful start that systemd misreads as exit won't trigger an aggressive auto-restart.
-5. Verify there's no daemonization in any vendored library.
-
-**Workaround in the meantime:** after each `systemctl restart`, check `ss -ltnp 'sport = :8000'` against `systemctl show -p MainPID --value`. If they don't match, kill the listener and systemd's auto-restart will take over cleanly.
+**Verification (2026-05-12 17:18 UTC):**
+- 5 rapid `sudo systemctl restart prodcal.service` cycles in a row. Every cycle:
+  - service active
+  - `MainPID == listener PID` (no orphans)
+  - HTTP 200
+- Journal on every restart: `INFO listener bound addr=:8000 pid=…` → `INFO sd_notify ready sent to systemd` → `INFO starting server`.
+- Zero `bind: address already in use` after the fix landed.
+- Data integrity preserved across all 5 cycles (projects=12, books=6 — Twitter Years).
 
 ### TRK-OPS-006 — Clean up 12 test/dummy projects in production DB
 
