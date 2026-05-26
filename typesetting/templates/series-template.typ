@@ -241,9 +241,9 @@
 // =============================================================================
 
 #let poem(content) = {
-  set text(font: config.code-font, size: config.poem-size)
-  set par(first-line-indent: 0em, leading: 0.6em, justify: false)
-  pad(left: 0.75em, top: 0.5em, bottom: 0.5em, content)
+  set text(font: config.body-font, size: config.poem-size, style: "italic")
+  set par(first-line-indent: 0em, leading: 0.8em, justify: false)
+  align(center, pad(top: 0.5em, bottom: 0.5em, content))
 }
 
 // =============================================================================

@@ -81,13 +81,12 @@ bank\'s chat bot that I was his grandson and he had passed.
 
 The text shifted suddenly.
 
-_Where have I gone? High waves sighing,_
-
-_erasing, placing life on... who?_
-
-_It is Thursday and I miss you._
-
-_Without true light, hues grow so dull._
+#poem[
+  Where have I gone? High waves sighing, \
+  erasing, placing life on... who? \
+  It is Thursday and I miss you. \
+  Without true light, hues grow so dull.
+]
 
 The chatbot had written a klon, or at least the start of one. In the
 process of cleaning out my grandfather's physical and digital life, I'd
