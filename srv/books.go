@@ -230,9 +230,14 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	}
 
 	configOverride := s.buildTypstConfig(bid, book)
+	// Pass config explicitly to book.with so the caller's merged config (above)
+	// reaches the template's body styling. Without this, book()'s `config: config`
+	// parameter default captures the template module's default-config rather than
+	// the local override — overrides on body-font, base-size, etc. silently no-op.
 	headerReplacement := fmt.Sprintf(`#import "%s": *
 %s
 #show: book.with(
+  config: config,
   title: "%s",
   author: "%s",
 `,
@@ -373,6 +378,7 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/pdf")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		w.Header().Set("Content-Length", strconv.Itoa(len(row.PdfData)))
+		w.Header().Set("Cache-Control", "no-store")
 		w.Write(row.PdfData)
 
 	case "epub":
