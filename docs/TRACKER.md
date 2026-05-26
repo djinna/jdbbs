@@ -10,15 +10,16 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (2026-05-27)
+## 🟢 Resume here — next session (2026-05-28)
 
 **Last touched:** 2026-05-26.
 
-**Just shipped this session — TRK-DEV-003 (closed-by-audit), TRK-DEV-005, TRK-DEV-006:**
-- TRK-DEV-003 audited and closed with documented call trace (EPUB spec wiring was already complete; same recurring pattern as TRK-DEV-002's closure).
-- TRK-DEV-005: backend `ListBookOutputs` (metadata + size, no bytes) + `GetBookOutput` ownership-checked, two new routes `GET /api/books/{id}/outputs` and `…/outputs/{output_id}/download`, admin SPA history panel under PDF + EPUB Compile buttons (refresh on book select + after compile).
-- TRK-DEV-006: migration 015 adds `book_outputs.spec_snapshot TEXT NULL`; both writers persist raw spec JSON; `?include=spec` returns it. `buildTypstConfig` refactored to return `(config, rawJSON)` so the compile and the snapshot share one DB read.
-- Commit `56e8256`. Live on jdbbs.exe.xyz; migration 015 confirmed applied; HTTP/2 200; service active.
+**Just shipped this session — TRK-MIG-006 (CP-3) done; TRK-DEV-008 filed:**
+- TRK-MIG-006: corrections pipeline round-trip live on both PDF and EPUB. Pending corrections (`status='pending'`) materialize as YAML in-process, patch the source docx via `apply-corrections-docx.py` before pandoc runs. Patcher extended from body-only to body + tables + headers/footers + footnotes + endnotes (footnotes/endnotes go through a `.blob` round-trip since python-docx models them as plain `Part`, not `XmlPart`). In-memory metadata also patched so the EPUB/PDF title pages reflect corrections (pandoc/typst receive author/title via flags, not from docx content). Migration 016 adds `book_outputs.corrections_snapshot TEXT NULL`; `?include=spec,corrections` returns both per row.
+- Status flips stay manual on purpose: every compile re-applies pending from the original docx, so auto-flipping would silently drop the fix on the next compile. The user marks applied when the canonical Word doc subsumes the fix.
+- Verified live with `Venkatesh → Venkat` (body byline, footnote citation, pandoc metadata) and `alchemy → al-TEST` (body-local). Matching is case-sensitive by design (matches the `iphone → iPhone` example); `Alchemy` needs its own row.
+- TRK-DEV-008 filed (P3) with eight candidate ergonomics improvements — case-insensitive flag, whole-word matching, per-scope filters, surfaced patcher warnings, dry-run preview, snapshot diff in history panel, and two notes on auto-marking-applied that need data-model thought first.
+- Commits `9af05ad`, `d69b4e3`, `3918527`, `10a07c7`. Live on jdbbs.exe.xyz; migration 016 confirmed applied; HTTP/2 200; service active.
 
 **Pre-existing live state (unchanged):**
 - `prodcal` service active on `jdbbs.exe.xyz`, MainPID==listener (Type=notify), DB at `/home/exedev/prodcal/db.sqlite3`, projects=12, books=6 (Twitter Years is #7).
@@ -36,15 +37,17 @@ ssh exedev@jdbbs.exe.xyz '\
 curl -sI https://jdbbs.exe.xyz | head -1
 ```
 
+Expect: `prodcal active`, `OK`, `16/15/14`, `HTTP/2 200`.
+
 **Next priorities (see `docs/PRODUCTION_ROADMAP_2026-05-25.md` for the full v1→v2 path):**
 
-1. **Live smoke of TRK-DEV-005/006 panel** (~10 min) — recompile Twitter Years once or twice, confirm the history panel renders entries with timestamp/size/format and per-row downloads work. Open in browser, click Compile PDF, watch the panel auto-refresh. If the older row's PDF actually differs from the latest, end-to-end is proven.
-2. **TRK-MIG-006 (CP-3)** — Corrections pipeline round-trip. ~3 hours.
-3. **TRK-DESIGN-001 (CP-5)** — Ghosts parity matrix. ~2-3 hours.
-4. **TRK-OPS-006** — drop 12 test/dummy projects from prod DB. ~5-10 min, mechanical.
-5. **TRK-DEV-004** — Special-typography preservation class (data model + preflight + pipeline). ~3 sessions; Phase A first.
+1. **TRK-DESIGN-001 (CP-5)** — Ghosts parity matrix. The release-confidence check after CP-1..CP-4. ~2-3 hours.
+2. **TRK-OPS-006** — drop 12 test/dummy projects from prod DB. ~5-10 min, mechanical (backup → `DELETE FROM projects WHERE id != 7` → verify cascades).
+3. **TRK-DEV-004** — Special-typography preservation class (data model + preflight + pipeline). ~3 sessions; Phase A first.
+4. **TRK-DEV-007** (small) — diff-vs-latest UI for the compile-history panel. The `?include=spec,corrections` API exists; only the renderer is missing.
+5. **TRK-DEV-008** (any single item) — corrections patcher ergonomics; item 1 (case-insensitive flag) is the cheapest unlock if a real correction set surfaces case-mismatch pain.
 
-After CP-3..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TRK-TRANS-001..009** — see `docs/PRODUCTION_ROADMAP_2026-05-25.md`.
+After CP-5 ships, v1 workflow is "complete." Translation layer (v2) is **TRK-TRANS-001..009** — see `docs/PRODUCTION_ROADMAP_2026-05-25.md`.
 
 **Open questions for the user:**
 
@@ -202,6 +205,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)](#trk-dev-003--wire-spec--epub-compile-pipeline-cp-2)
   - [TRK-DEV-005 — Compile-history panel in admin SPA](#trk-dev-005--compile-history-panel-in-admin-spa)
   - [TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile](#trk-dev-006--snapshot-spec-json-into-book_outputs-per-compile)
+  - [TRK-DEV-008 — Corrections patcher ergonomics](#trk-dev-008--corrections-patcher-ergonomics)
 - [Translation (TRANS) — v2](#translation-trans--v2)
   - [TRK-TRANS-001..009 — see PRODUCTION_ROADMAP_2026-05-25.md](#translation-trans--v2)
 - [Test (TEST)](#test-test)
@@ -373,13 +377,21 @@ Two divergent EPUB paths produce different CSS / font handling. **Action:** pick
 ### TRK-MIG-006 — Wire corrections pipeline (SQLite → YAML → patchers)
 
 - area: MIG
-- status: open
+- status: done
 - priority: P2
 - created: 2026-05-12
-- updated: 2026-05-12
-- refs: jdbbs/srv/corrections.go, jdbbs/typesetting/scripts/apply-corrections{,-docx}.py; MIGRATION_LOG.md §"Open Phase 3" item 3
+- updated: 2026-05-26
+- refs: commits 9af05ad, d69b4e3, 3918527, 10a07c7; db/migrations/016-book-output-corrections-snapshot.sql; srv/corrections_apply.go; srv/books.go::runConversion + srv/epub.go::runEPUBGeneration; typesetting/scripts/apply-corrections-docx.py
 
-Currently: corrections stored in SQLite + manually exported as YAML + manually fed to `apply-corrections.py`. **Action:** after EPUB/DOCX generation in `srv/`, materialize YAML in-memory and invoke the corresponding patcher.
+**Done 2026-05-26.** Both compile pipelines materialize pending corrections (`status='pending'`) as YAML in-process and patch the source docx via `apply-corrections-docx.py` before pandoc runs. Migration 016 adds `book_outputs.corrections_snapshot TEXT NULL` pairing with the spec_snapshot from DEV-006; `GET /api/books/{id}/outputs?include=spec,corrections` returns both per row.
+
+**Hardening that happened in the loop:**
+- Patcher originally walked only `doc.paragraphs` — extended to body + tables + headers/footers + footnotes + endnotes. Footnotes/endnotes are plain `Part` instances in python-docx (no `.element`), so they're parsed from `.blob` with lxml, mutated, and written back via `part.blob =` before `doc.save`. Each non-body scope is wrapped in its own try/except so a single edge case can't take out the body pass.
+- In-memory metadata patch: pandoc receives author/title via `--metadata` flags pulled from the `books` table (not docx content). Without patching `book.Title`/`book.Author` (and `spec.Title/Author/Subject/Description`) before they reach pandoc, the EPUB title page rendered unpatched values. Same patch applied in the PDF pipeline since the typst template reads `book.Title`/`Author` too.
+- Status flips (pending → applied) stay manual: every compile starts from the original docx and re-applies all pending entries, so auto-flipping would silently drop the fix on the next compile. The user marks applied when the canonical Word doc subsumes the fix.
+- Failure to patch (python deps missing, malformed correction, etc.) logs a warn and continues with the unpatched source — a typo ledger shouldn't block a build.
+
+**Verified live** with `Venkatesh → Venkat` (exercises body byline, footnote citation, pandoc metadata, typst metadata) and `alchemy → al-TEST` (body-local sanity check). Case-sensitive matching is intentional (matches the `iphone → iPhone` example in the script docstring) — capitalized variants like `Alchemy` need their own correction row. Future ergonomics filed as **TRK-DEV-008**.
 
 ### TRK-MIG-007 — Verify Libertinus Serif on VM (or bundle)
 
@@ -1102,6 +1114,32 @@ Follow-ups filed: TRK-DEV-005 (compile-history panel — `book_outputs` already 
 **Acceptance:** new compiles persist spec; API returns it; legacy rows still listable with `spec_snapshot: null`.
 
 **Effort:** ~1.5 hours. **Blocked by:** TRK-DEV-005 (no panel = nowhere to expose snapshot diff). **Related:** TRK-MIG-006 (corrections round-trip) — both want artifact lineage; consider whether `book_outputs` should also reference the correction_set_id that was active at compile time.
+
+### TRK-DEV-008 — Corrections patcher ergonomics
+
+- area: DEV
+- status: open
+- priority: P3
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: typesetting/scripts/apply-corrections-docx.py; srv/corrections_apply.go; srv/corrections.go (CRUD + status); admin SPA corrections ledger
+
+Follow-ups surfaced by the TRK-MIG-006 round-trip. None is blocking — the patcher is correct and propagates pending corrections to PDF + EPUB. These are usability gaps that show up the moment a real correction set has any variety in it.
+
+**Candidate improvements (pick when warranted, not as a batch):**
+
+1. **Case-insensitive flag per correction.** Today matching is pure `str.find()` — `alchemy` won't catch `Alchemy` and you need a second row. Add an optional `case_insensitive: true` to the YAML schema + a `case_insensitive INTEGER NOT NULL DEFAULT 0` column to the `corrections` table. The script keeps the default behavior (the `iphone → iPhone` example in the docstring relies on case-sensitivity) and only loosens when the flag is set.
+2. **Whole-word matching flag.** Same shape — `whole_word: true` so `alchemy → al-TEST` doesn't accidentally rewrite a substring like `alchemystudio`. Regex with `\b…\b`.
+3. **Per-scope filters.** Some fixes are footnote-only ("citation typo"), some metadata-only. Optional `scope:` field (`body | footnote | metadata | all`) on each correction row. Default `all` preserves today's behavior.
+4. **Surface patcher warnings in the SPA.** Today `WARN corrections: patcher failed; compiling from unpatched source` only shows in `journalctl`. Stash the last patcher stderr (or a count of corrections that returned NOT FOUND) on the compile's `book_outputs` row and render a yellow badge in the history panel. Pairs with TRK-DEV-007 (diff-vs-latest UI).
+5. **Dry-run preview in the ledger UI.** Add a "preview" button per correction row that invokes the patcher with `--dry-run` against the latest docx and shows match count + first 3 contexts. Catches typos in the `find:` field before they ship a no-op into the next compile.
+6. **`corrections_snapshot` diff in the history panel.** API already returns `corrections_snapshot` via `?include=corrections` (DEV-006 shape). UI side only: show which corrections were active for each compile.
+7. **Reconsider auto-marking applied.** Current contract: status flips stay manual because every compile re-applies all pending entries from the original docx, so auto-flipping would silently drop the fix on the next compile. *If* the data model later captures "version of source docx that already includes this fix" (e.g. a `applied_to_source_revision` field), auto-flip becomes safe — but only then.
+8. **Patch the source docx in DB once the canonical Word doc is re-uploaded.** Adjacent to (7): when a new manuscript is uploaded that already contains the fix, allow batch-marking applied via a UI affordance ("This upload includes corrections #3, #7, #12 — mark applied?").
+
+**Acceptance per item:** each lands as its own small change — case-insensitive is ~20 lines of script + a migration; the SPA additions are larger and probably wait for a real production correction set.
+
+**Effort:** items 1–2 are ~30 min each; items 3–6 are 1–2 hours each; items 7–8 need data-model thought first.
 
 ---
 
