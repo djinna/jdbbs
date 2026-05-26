@@ -10,9 +10,55 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (2026-05-25)
+## 🟢 Resume here — next session (2026-05-27)
 
-**Last touched:** 2026-05-25.
+**Last touched:** 2026-05-26.
+
+**Just shipped this session — TRK-DEV-003 (closed-by-audit), TRK-DEV-005, TRK-DEV-006:**
+- TRK-DEV-003 audited and closed with documented call trace (EPUB spec wiring was already complete; same recurring pattern as TRK-DEV-002's closure).
+- TRK-DEV-005: backend `ListBookOutputs` (metadata + size, no bytes) + `GetBookOutput` ownership-checked, two new routes `GET /api/books/{id}/outputs` and `…/outputs/{output_id}/download`, admin SPA history panel under PDF + EPUB Compile buttons (refresh on book select + after compile).
+- TRK-DEV-006: migration 015 adds `book_outputs.spec_snapshot TEXT NULL`; both writers persist raw spec JSON; `?include=spec` returns it. `buildTypstConfig` refactored to return `(config, rawJSON)` so the compile and the snapshot share one DB read.
+- Commit `56e8256`. Live on jdbbs.exe.xyz; migration 015 confirmed applied; HTTP/2 200; service active.
+
+**Pre-existing live state (unchanged):**
+- `prodcal` service active on `jdbbs.exe.xyz`, MainPID==listener (Type=notify), DB at `/home/exedev/prodcal/db.sqlite3`, projects=12, books=6 (Twitter Years is #7).
+- Backup pipeline 3-2-1 satisfied; sentinels green.
+
+**Run before doing anything else** (use `jpull` on the Mac first):
+
+```bash
+jpull
+ssh exedev@jdbbs.exe.xyz '\
+  systemctl is-active prodcal && \
+  cat ~/backups/.HEALTH-OK && \
+  sqlite3 -readonly /home/exedev/prodcal/db.sqlite3 \
+    "SELECT migration_number FROM migrations ORDER BY migration_number DESC LIMIT 3"'
+curl -sI https://jdbbs.exe.xyz | head -1
+```
+
+**Next priorities (see `docs/PRODUCTION_ROADMAP_2026-05-25.md` for the full v1→v2 path):**
+
+1. **Live smoke of TRK-DEV-005/006 panel** (~10 min) — recompile Twitter Years once or twice, confirm the history panel renders entries with timestamp/size/format and per-row downloads work. Open in browser, click Compile PDF, watch the panel auto-refresh. If the older row's PDF actually differs from the latest, end-to-end is proven.
+2. **TRK-MIG-006 (CP-3)** — Corrections pipeline round-trip. ~3 hours.
+3. **TRK-DESIGN-001 (CP-5)** — Ghosts parity matrix. ~2-3 hours.
+4. **TRK-OPS-006** — drop 12 test/dummy projects from prod DB. ~5-10 min, mechanical.
+5. **TRK-DEV-004** — Special-typography preservation class (data model + preflight + pipeline). ~3 sessions; Phase A first.
+
+After CP-3..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TRK-TRANS-001..009** — see `docs/PRODUCTION_ROADMAP_2026-05-25.md`.
+
+**Open questions for the user:**
+
+- 12 test projects in prod DB — disposable or any worth exporting before delete? (Earlier confirmed only Twitter Years is real.)
+- Want a real alert channel (Discord webhook / ntfy.sh / email) for backup-health failures?
+- VM-side rename (`/home/exedev/prodcal/` → `/home/exedev/jdbbs/`, plus systemd unit) — defer indefinitely or schedule?
+
+**Do NOT touch without re-reading the relevant TRK entry:**
+- prodcal systemd unit (TRK-OPS-005, `Type=notify` + sd_notify).
+- `backup-db.sh` env vars (TRK-OPS-007 phase 1 baseline-tuned).
+
+---
+
+## 🗂 Earlier resume block — 2026-05-25 (TRK-MIG-009 cutover)
 
 **Just shipped — TRK-MIG-009 (canonical repo cutover):**
 - `djinna/prodcal` HEAD force-pushed into `djinna/jdbbs:main` (commit `83e21f2` absorbs TRACKER.md, MIGRATION_LOG.md, NEXT_SESSION_PROMPT_2026-05-13.md, CLAUDE.md; gitignores `.claude/`).
@@ -968,33 +1014,33 @@ Follow-ups filed: TRK-DEV-005 (compile-history panel — `book_outputs` already 
 ### TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)
 
 - area: DEV
-- status: open
+- status: done
 - priority: P1
 - created: 2026-05-25
-- updated: 2026-05-25
-- refs: typesetting/scripts/docx2epub.sh, md2epub.sh; srv/server.go (generate-epub endpoint exists but spec-unaware); PRODUCTION_ROADMAP_2026-05-25.md (CP-2)
+- updated: 2026-05-26
+- refs: srv/epub.go::handleGenerateEPUB (line 20), runEPUBGeneration (line 47); srv/static/admin.html:2637 (Generate EPUB handler); commit 56e8256
 
-Same shape as TRK-DEV-002, for EPUB. `docx2epub.sh` and `md2epub.sh` currently produce a generic EPUB; need to consume the project's book_spec.
+**Closed 2026-05-26.** Fresh-session audit (same pattern as TRK-DEV-002 closure) showed the seam was already wired end-to-end in a prior session, just not closed. Verified call trace:
 
-**Approach (resolves TRK-MIG-005):** keep shell scripts; have Go render a CSS overlay from the spec and pass it as a Pandoc `--css` arg. Alternative: render a full epub-styles.css from spec and pass directly.
+- `srv/epub.go::handleGenerateEPUB` (line 20) → `runEPUBGeneration` (line 47).
+- Line 75-93: when `book.ProjectID.Valid`, calls `q.GetBookSpec(ctx, book.ProjectID.Int64)` → `parseEPUBSpec(dbSpec.Data, book)` → `q.GetBookSpecCover` writes cover.{jpg,png} → `spec.CoverImage`.
+- Line 97-101: `spec.buildCSS()` renders custom.css; passed as Pandoc `--css=` (overlay approach, resolves TRK-MIG-005).
+- Line 108-127: spec values populate pandoc args — title / author / language / toc-depth / subject / description + `--epub-cover-image`.
+- admin.html:2637-2667: "Generate EPUB" button calls `tsSaveSpec()` first then `POST /api/books/{id}/generate-epub`.
+- admin.html:585-634: all `epub.*` spec fields (toc_depth, chapter_break, section_break, body_font_size, custom_css, language, subject, description) persist into `book_specs.data` via tsSaveSpec.
 
-**Action:**
-
-1. Decide overlay vs full-CSS approach (overlay is less invasive but harder to debug).
-2. Implement spec→CSS renderer in Go (similar shape to handleGenerateConfig for Typst).
-3. New endpoint `POST /api/projects/{id}/book-spec/compile-epub` (or extend existing generate-epub endpoint).
-4. Wire admin SPA "Compile EPUB" button.
-5. Smoke test end-to-end.
-
-**Effort:** 2-3 hours. **Fold in:** TRK-DESIGN-003 (audit CSS drift while we're touching CSS rendering).
+**Minor follow-up gaps (non-blocking, file if needed):** `epub.embed_fonts` is parsed but not acted on; `epub.landmarks` UI field has no spec-side consumer. Both surface in TRK-DESIGN-003 territory (CSS drift audit) — fold there.
 
 ### TRK-DEV-005 — Compile-history panel in admin SPA
 
 - area: DEV
-- status: open
+- status: done
 - priority: P2
 - created: 2026-05-26
 - updated: 2026-05-26
+- refs: commit 56e8256; db/queries/book_outputs.sql (ListBookOutputs, GetBookOutput); srv/books.go (bookAuth, handleListBookOutputs, handleDownloadBookOutput); srv/static/admin.html (ts-pdf-history, ts-epub-history panels)
+
+**Done 2026-05-26.** Backend: `ListBookOutputs(book_id, limit=20)` returns metadata + `length(output_data) AS size_bytes` (no bytes on the list path); `GetBookOutput(id, book_id)` enforces ownership before streaming. New routes `GET /api/books/{id}/outputs` (?include=spec to fold in TRK-DEV-006 snapshot) and `GET /api/books/{id}/outputs/{output_id}/download` (per-output Content-Disposition uses the row's `created_at` so older artifacts download with their actual compile timestamp, not the latest). Auth via new `bookAuth` helper (project auth if linked, admin if unlinked) — mirrors `handleDownloadBook`. Admin SPA: small history panel under each Compile button; auto-refreshes on book select change + after each successful compile via existing polling loop.
 - refs: db/migrations/014-book-output-history.sql, db/dbgen/book_outputs.sql.go (CreateBookOutput already populated per compile), srv/books.go:301 + srv/epub.go:146 (writers), srv/static/admin.html (Typesetting tab consumer)
 
 **Context.** Every PDF/EPUB compile already inserts a `book_outputs` row with the artifact bytes, format, source_filename, and created_at — verified live 2026-05-25 against project 7. The archive exists; nothing surfaces it. Result: users (a) can't compare across compiles, (b) only ever see the latest artifact via `GET /api/books/{id}/download/{format}` (which returns whatever's in `books.pdf_data`/`epub_data`), and (c) have no way to retrieve a previous compile if a spec edit makes things worse.
@@ -1014,10 +1060,15 @@ Same shape as TRK-DEV-002, for EPUB. `docx2epub.sh` and `md2epub.sh` currently p
 ### TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile
 
 - area: DEV
-- status: open
+- status: done
 - priority: P3
 - created: 2026-05-26
 - updated: 2026-05-26
+- refs: commit 56e8256; db/migrations/015-book-output-spec-snapshot.sql; srv/books.go::buildTypstConfig (now returns (config, rawJSON)); srv/epub.go (captures dbSpec.Data → specSnapshot)
+
+**Done 2026-05-26.** Migration 015 adds `book_outputs.spec_snapshot TEXT NULL` (legacy rows stay NULL). Both write sites (`runConversion` for PDF, `runEPUBGeneration` for EPUB) pass the raw `book_specs.data` JSON to `CreateBookOutput` via `nullStringFrom`. `buildTypstConfig` was refactored to return `(configString, rawJSON)` so the snapshot is captured from the same fetch the compile already uses — no double-read. `GET /api/books/{id}/outputs?include=spec` returns `spec_snapshot` per row for future diff-vs-latest UI (TRK-DEV-007 when warranted).
+
+**Follow-up (defer):** **TRK-DEV-007** — diff-vs-latest UI rendering a minimal field-by-field spec comparison between consecutive compiles (e.g. `base_size_pt: 10 → 13, body_font unchanged`). API already returns the data; UI side only. File when it becomes the bottleneck.
 - refs: db/migrations/014-book-output-history.sql (will need migration 015), srv/books.go::runConversion (write site), srv/bookspecs.go::specToTypstConfig
 
 **Context.** TRK-DEV-005 surfaces the artifact archive. This ticket makes each archived artifact self-documenting: what spec values produced this PDF? Without it, when a user compiles 10 times across spec edits and one PDF looks right, they can't recover the spec that produced it.
