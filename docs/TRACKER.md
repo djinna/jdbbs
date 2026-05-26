@@ -154,6 +154,8 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-DEV-002 — Wire spec → Typst compile pipeline (CP-1, KEYSTONE)](#trk-dev-002--wire-spec--typst-compile-pipeline-cp-1-keystone)
   - [TRK-DEV-004 — Special-typography preservation class](#trk-dev-004--special-typography-preservation-class-data-model--preflight--pipeline)
   - [TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)](#trk-dev-003--wire-spec--epub-compile-pipeline-cp-2)
+  - [TRK-DEV-005 — Compile-history panel in admin SPA](#trk-dev-005--compile-history-panel-in-admin-spa)
+  - [TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile](#trk-dev-006--snapshot-spec-json-into-book_outputs-per-compile)
 - [Translation (TRANS) — v2](#translation-trans--v2)
   - [TRK-TRANS-001..009 — see PRODUCTION_ROADMAP_2026-05-25.md](#translation-trans--v2)
 - [Test (TEST)](#test-test)
@@ -851,11 +853,18 @@ Three plausible patterns for spec → template config override (param to `#book(
 ### TRK-DEV-002 — Wire spec → Typst compile pipeline (CP-1, KEYSTONE)
 
 - area: DEV
-- status: done (pending live smoke)
+- status: done
 - priority: P1
 - created: 2026-05-25
-- updated: 2026-05-25
-- refs: srv/books.go:189-321 (runConversion), srv/books.go:455 (buildTypstConfig), srv/bookspecs.go:514 (specToTypstConfig), srv/static/admin.html:2598 (Compile PDF handler)
+- updated: 2026-05-26
+- refs: srv/books.go:189-321 (runConversion), srv/books.go:455 (buildTypstConfig), srv/bookspecs.go:514 (specToTypstConfig), srv/static/admin.html:2598 (Compile PDF handler), commits 688195a (config plumbing fix), 792c76d (timestamped filenames)
+
+**Closed 2026-05-26.** Live smoke against The Twitter Years (book 8, project 7): base_size_pt 10→13 produced visibly larger body text (page count 533→570) AND the tweet block restyled per custom-style override. Two bugs surfaced and fixed during smoke:
+
+1. **`book.with()` wasn't receiving caller's merged config** — only the template module's default-config — so body-font/base-size/margin overrides silently no-opped. Custom styles (e.g. tweet-p) worked because they close over `config` in the caller scope. Fix (688195a): pass `config: config,` to `book.with(...)`. This was THE bug that made it look like the pipeline wasn't wired even after the per-book convert path was confirmed end-to-end.
+2. **PDF download cached in the browser** — same URL between compiles, no Cache-Control header, so back-to-back compiles served identical bytes from cache. Fix (792c76d): `Cache-Control: no-store` + timestamp-suffixed `Content-Disposition` filename (`{title}-{YYYYMMDD-HHMMSS}.pdf` from `books.updated_at`).
+
+Follow-ups filed: TRK-DEV-005 (compile-history panel — `book_outputs` already populated, no UI), TRK-DEV-006 (snapshot spec JSON per output row for diffable lineage).
 
 **Resolution 2026-05-25.** Fresh-session audit showed the 2026-05-25 "current state" section below was stale — the seam was already wired in a prior session and not closed out in the tracker. Verified end-to-end trace:
 
@@ -978,6 +987,51 @@ Same shape as TRK-DEV-002, for EPUB. `docx2epub.sh` and `md2epub.sh` currently p
 5. Smoke test end-to-end.
 
 **Effort:** 2-3 hours. **Fold in:** TRK-DESIGN-003 (audit CSS drift while we're touching CSS rendering).
+
+### TRK-DEV-005 — Compile-history panel in admin SPA
+
+- area: DEV
+- status: open
+- priority: P2
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: db/migrations/014-book-output-history.sql, db/dbgen/book_outputs.sql.go (CreateBookOutput already populated per compile), srv/books.go:301 + srv/epub.go:146 (writers), srv/static/admin.html (Typesetting tab consumer)
+
+**Context.** Every PDF/EPUB compile already inserts a `book_outputs` row with the artifact bytes, format, source_filename, and created_at — verified live 2026-05-25 against project 7. The archive exists; nothing surfaces it. Result: users (a) can't compare across compiles, (b) only ever see the latest artifact via `GET /api/books/{id}/download/{format}` (which returns whatever's in `books.pdf_data`/`epub_data`), and (c) have no way to retrieve a previous compile if a spec edit makes things worse.
+
+**Scope.**
+
+1. **Query:** add `ListBookOutputs(book_id, limit)` to db/queries/book_outputs.sql + regenerate dbgen. Returns id, format, source_filename, created_at, length(output_data). Index already exists (idx_book_outputs_book_format_created).
+2. **Endpoint:** `GET /api/books/{id}/outputs` → JSON array of the above (no bytes). Same auth as the existing download.
+3. **Per-output download:** `GET /api/books/{id}/outputs/{output_id}/download` → streams `book_outputs.output_data` for that row with the same Content-Disposition timestamp suffix the latest-download endpoint now uses (commit 792c76d). Confirm output_id belongs to the book before serving (path traversal hygiene).
+4. **UI:** small panel under each Compile button in the Typesetting tab. Renders the last ~20 outputs as a list: timestamp · format · size · download link. Live-refresh after a successful compile completes (the existing polling loop already knows when status flips to ready).
+5. **Retention:** for now, keep everything (the DB is 117 MB total — output bytes are the bulk of it but not yet a problem). When it does become a problem, add a TRK-OPS retention ticket (e.g. keep latest N per book + all marked-archived).
+
+**Acceptance:** compile twice with different spec values; both PDFs appear in the panel; downloading the older row produces a PDF that matches the earlier spec, not the latest.
+
+**Effort:** ~1 hour. **Pairs well with:** TRK-DEV-006 (spec snapshot per row makes the history actually diagnostic — without it you see two PDFs but can't tell what produced them).
+
+### TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile
+
+- area: DEV
+- status: open
+- priority: P3
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: db/migrations/014-book-output-history.sql (will need migration 015), srv/books.go::runConversion (write site), srv/bookspecs.go::specToTypstConfig
+
+**Context.** TRK-DEV-005 surfaces the artifact archive. This ticket makes each archived artifact self-documenting: what spec values produced this PDF? Without it, when a user compiles 10 times across spec edits and one PDF looks right, they can't recover the spec that produced it.
+
+**Scope.**
+
+1. **Migration 015:** add `book_outputs.spec_snapshot TEXT NULL` (JSON blob copied from `book_specs.data` at compile time). NULL for legacy rows; new compiles populate it.
+2. **Write site:** in `runConversion` (srv/books.go) and the EPUB equivalent (srv/epub.go), after the buildTypstConfig lookup, pass the raw spec JSON through to CreateBookOutput. May want a small helper that returns both `(configString, rawJSON)` to avoid double-fetching.
+3. **API:** extend `GET /api/books/{id}/outputs` (TRK-DEV-005) to optionally include `spec_snapshot` when `?include=spec` is passed, so the UI can show a diff between consecutive compiles.
+4. **UI (later):** "diff vs latest" link on each history row, rendering a minimal field-by-field diff (e.g. "base_size_pt: 10 → 13, body_font unchanged"). Out of scope for this ticket — file as TRK-DEV-007 when the basic snapshot lands.
+
+**Acceptance:** new compiles persist spec; API returns it; legacy rows still listable with `spec_snapshot: null`.
+
+**Effort:** ~1.5 hours. **Blocked by:** TRK-DEV-005 (no panel = nowhere to expose snapshot diff). **Related:** TRK-MIG-006 (corrections round-trip) — both want artifact lineage; consider whether `book_outputs` should also reference the correction_set_id that was active at compile time.
 
 ---
 
