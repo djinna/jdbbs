@@ -231,6 +231,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-DEV-005 — Compile-history panel in admin SPA](#trk-dev-005--compile-history-panel-in-admin-spa)
   - [TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile](#trk-dev-006--snapshot-spec-json-into-book_outputs-per-compile)
   - [TRK-DEV-010 — Wire `--epub-embed-font` into pandoc invocation for Noto CJK/Thai bundle](#trk-dev-010--wire---epub-embed-font-into-pandoc-invocation-for-noto-cjkthai-bundle)
+  - [TRK-DEV-012 — Anthology chapters as top-level spec + PDF pipeline integration + auto-detection](#trk-dev-012--anthology-chapters-as-top-level-spec--pdf-pipeline-integration--auto-detection)
   - [TRK-DEV-011 — Admin SPA UX polish (project workflow gaps)](#trk-dev-011--admin-spa-ux-polish-project-workflow-gaps)
   - [TRK-DEV-008 — Corrections patcher ergonomics](#trk-dev-008--corrections-patcher-ergonomics)
 - [Translation (TRANS) — v2](#translation-trans--v2)
@@ -1385,6 +1386,41 @@ args = append(args,
 Verify path resolution — pandoc resolves relative to `cmd.Dir` (currently `tmpDir`). May need absolute paths via `filepath.Join(repoRoot, ...)` or chdir to repo root. Smoke: compile any book to EPUB, unzip and confirm `EPUB/fonts/*.otf` are present and CSS resolves.
 
 **Effort:** ~15 min including smoke. **Pickup:** as soon as TRK-DEV-009 lands (concurrent file). **Closes:** the "Deferred" item in TRK-DESIGN-004.
+
+### TRK-DEV-012 — Anthology chapters as top-level spec + PDF pipeline integration + auto-detection
+
+- area: DEV
+- status: open
+- priority: P1
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: TRK-DEV-009 (filed the EPUB side as `spec.epub.chapters`); `srv/static/admin.html` line ~594 (current Chapters editor inside EPUB card); `srv/epub.go::injectChapterAuthors`; `typesetting/filters/docx-to-typst-enhanced.lua`; `manuscripts/ghosts/main.typ` (reference: per-chapter `set-story-info(title:, author:)` calls — what the SPA pipeline currently doesn't emit)
+
+**Three concerns surfaced during TRK-TEST-002 setup (2026-05-26):**
+
+1. **Schema location.** TRK-DEV-009 put per-chapter authors at `spec.epub.chapters[]` because the EPUB pipeline was the immediate need. But anthology authorship is a property of the **book**, not of the EPUB output. The PDF and EPUB pipelines should share the same chapter data. Move to `spec.chapters[]` (top-level), or `spec.anthology.chapters[]` if it grows. EPUB pipeline (`injectChapterAuthors`) reads from new location with back-compat fallback to `spec.epub.chapters[]` for old saved specs.
+
+2. **PDF pipeline integration (the bigger gap).** The Typst PDF path doesn't consume chapter info today. The Lua filter (`docx-to-typst-enhanced.lua`) emits no `set-story-info(title:, author:)` per chapter, so the SPA-driven Typst output has one book-level author throughout. Running headers and per-chapter bylines on PDF are stuck. Per-chapter `set-story-info()` works in `manuscripts/ghosts/main.typ` because that's a hand-authored Typst file — direct compile via `typst compile`, not SPA-driven.
+
+   **Fix:** extend `docx-to-typst-enhanced.lua` (or a new Lua filter) to emit a `set-story-info()` Typst call at each h1 boundary, populated from the spec's chapters array. Or: pass chapter metadata in via `--metadata=chapters_json=...` and have a small Lua function look up each h1's matching entry by source order (mirrors the EPUB-side injection logic).
+
+3. **Auto-detection from manuscript.** Even with the model fixed, manually entering 9+ chapter title/author pairs for an anthology is friction. The chapter title is already discoverable from the h1 text. Author detection needs a convention — options:
+   - First non-heading line under the h1 if formatted as "By {Name}" (common author-page convention)
+   - Pandoc div with `class="byline"` (requires source-file annotation)
+   - YAML front-matter block at chapter boundaries (Markdown convention)
+   - First italicized line on the chapter opener page
+
+   Pick one (or two with fallback) and auto-populate the chapters table on book upload. User can override per row in the SPA editor (which keeps the manual-entry path as a backstop).
+
+**Proposed phasing:**
+
+- **Phase A** (~1h): Schema relocation. `spec.chapters[]` top-level. EPUB pipeline reads new location with fallback. Admin SPA: move the Chapters subsection out of the EPUB card into a new top-level "Anthology" section between Elements and EPUB cards. Backward-compatible for existing specs (Twitter Years is empty anyway).
+- **Phase B** (~1-2h): PDF pipeline integration. Lua filter emits `set-story-info()` per chapter from spec data. Smoke against Ghosts.
+- **Phase C** (~2h): Auto-detection on upload. Pick author-detection heuristic (recommend "first line under h1 matching `^[Bb]y \S+`" as initial impl with manual override always available). Wire into the upload handler so chapters table arrives pre-populated.
+
+**Blocks/related:**
+- TRK-TEST-002 currently requires manual chapter entry — Phase A unblocks the architectural side; Phase B makes the PDF parity test actually fair (running headers will work); Phase C removes the entry friction.
+- For the immediate TEST-002 session: just manually enter the 9 Ghosts chapters in the current EPUB-card location. Comes back as architectural debt to fix in DEV-012.
 
 ### TRK-DEV-011 — Admin SPA UX polish (project workflow gaps)
 
