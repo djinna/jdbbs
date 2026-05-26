@@ -12,7 +12,10 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ## 🟢 Resume here — next session (2026-05-30)
 
-**Last touched:** 2026-05-26 (TRK-DEV-010 shipped + TRK-TEST-002 closed — Ghosts live visual regression done; parity matrix closed with 6 ❌ child tickets filed).
+**Last touched:** 2026-05-26 (TRK-DEV-013 done in parallel with the DESIGN-005/006/007/008/009 session — `epubcheck` PKG-005 fixed; Ghosts EPUB now validates clean).
+
+**Just shipped 2026-05-26 — TRK-DEV-013 done:**
+- **TRK-DEV-013 done.** `srv/epub.go::stripMimetypeExtraField` chained unconditionally after `injectChapterAuthors` in `runEPUBGeneration`. Root cause was Go's `archive/zip` Extended-Timestamp extra field on the mimetype LFH (not pandoc proper). Verified: regenerated Ghosts EPUB through prod SPA; `epubcheck` reports `0 fatals / 0 errors / 0 warnings / 0 infos`. Commit `bf878da`, deployed. New unit test `TestStripMimetypeExtraField` in `srv/epub_packaging_test.go`.
 
 **Just shipped 2026-05-26 — TRK-DEV-010 + TRK-TEST-002 done:**
 - **TRK-DEV-010 done.** `srv/epub.go::handleGenerateEPUB` now appends `--epub-embed-font` for the four bundled Noto fonts (`typesetting/fonts/noto/CJK-TC/NotoSerifTC-{Regular,Bold}.otf` + `Thai/NotoSerifThai-{Regular,Bold}.ttf`) before the pandoc invocation. Defensive `os.Stat` per file. Verified end-to-end: book 9 → output 27 EPUB has all 4 fonts in `EPUB/fonts/` (16MB of CJK-TC dominates the package). Commit `e5b5f09`, deployed.
@@ -25,7 +28,7 @@ Edit only from a clean working tree, push before someone else pulls.
 - **TRK-DESIGN-007** (P3) — Running header title rendered Title Case, should be ALL CAPS (`upper()` wrap in `series-template.typ`).
 - **TRK-DESIGN-008** (P1) — Body paragraph first-line indent not rendering despite `#set par(first-line-indent: 0.75em)` in chapter `.typ` files; likely Typst version syntax.
 - **TRK-DESIGN-009** (P2) — Poem/verse blocks render as plain body. Needs `poem()` wrapping in chapter files + correction to use body-italic not mono.
-- **TRK-DEV-013** (P3) — `epubcheck` PKG-005 packaging error on generated EPUBs (mimetype extra field from pandoc's zip writer).
+- ~~**TRK-DEV-013** (P3)~~ — DONE 2026-05-26 (commit `bf878da`).
 
 **Next priorities (in order):**
 1. **TRK-DESIGN-008** + **TRK-DESIGN-005** + **TRK-DESIGN-007** (one short session) — three quick Typst template/source fixes that together close the biggest perceived-quality gap (no indents, wrong header case, broken import). Recompile & re-diff to confirm.
@@ -915,7 +918,7 @@ A built Go binary lives at the prodcal repo root. Tracked in git, in CI artifact
 ### TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix
 
 - area: DESIGN
-- status: in-progress (audit done + live-compile verified 2026-05-26; closes when DESIGN-005/006/007/008/009 + DEV-013 land)
+- status: in-progress (audit done + live-compile verified 2026-05-26; closes when DESIGN-005/006/007/008/009 land — DEV-013 closed 2026-05-26 `bf878da`)
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-26
@@ -1168,11 +1171,17 @@ If that works, roll across all 9 chapter files. May also want to set this at the
 ### TRK-DEV-013 — epubcheck PKG-005 packaging error from pandoc-generated EPUBs
 
 - area: DEV
-- status: open
+- status: done (2026-05-26)
 - priority: P3
 - created: 2026-05-26 (from TRK-TEST-002)
 - updated: 2026-05-26
-- refs: `srv/epub.go::runEPUBGeneration` (post-pandoc EPUB packaging); pandoc's zip writer
+- refs: `srv/epub.go::stripMimetypeExtraField` + `runEPUBGeneration`; `srv/epub_packaging_test.go`; commit `bf878da`
+
+**Closed 2026-05-26.** Root cause was actually Go's `archive/zip` writer (used in our post-pandoc rewrite), not pandoc — it emits a 9-byte Extended-Timestamp extra (tag `0x5455` "UT", 5 bytes flags+mtime + 4 bytes header) on the mimetype LFH whenever `FileHeader.Modified` is non-zero. EPUB spec forbids any extra field on mimetype's LFH; epubcheck flagged it as PKG-005 on every output.
+
+Fix: new `stripMimetypeExtraField(epubData []byte) ([]byte, error)` re-emits the zip with mimetype's LFH cleared (`Method=Store`, `Modified=time.Time{}`, `Extra=nil`); all other entries copied through with `Method`/`Modified`/`Extra` preserved. Chained unconditionally after `injectChapterAuthors` in `runEPUBGeneration` so it covers both the byline-rewrite path and the no-chapters passthrough path.
+
+Verification: regenerated Ghosts EPUB through prod SPA; `epubcheck` reports `0 fatals / 0 errors / 0 warnings / 0 infos` (previously failed on PKG-005, with info-level RSC-004 on commercial-font encryption — RSC-004 is also gone now, presumably because no font encryption is happening in the current pipeline). Unit test `TestStripMimetypeExtraField` constructs an input zip with a 9-byte UT extra on mimetype, asserts the strip clears the LFH extra-field-length to 0 while preserving body and other entries.
 
 **Problem.** `epubcheck scratch/ghosts-app.epub` reports:
 
