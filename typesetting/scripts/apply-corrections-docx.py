@@ -64,10 +64,12 @@ except ImportError:
 
 try:
     from docx import Document
+    from docx.oxml import parse_xml
     from docx.oxml.ns import qn
     from docx.text.paragraph import Paragraph
+    from lxml import etree
 except ImportError:
-    print("python-docx required: pip install python-docx", file=sys.stderr)
+    print("python-docx required: pip install python-docx lxml", file=sys.stderr)
     sys.exit(1)
 
 
@@ -291,21 +293,45 @@ def _iter_table_paragraphs(tbl):
                 yield from _iter_table_paragraphs(sub)
 
 
-def _iter_notes_paragraphs(doc, reltype):
-    """Yield paragraphs from the footnotes or endnotes part, if present.
+def _open_notes_part(doc, reltype):
+    """Return (part, parsed_root) for the footnotes or endnotes part, or None.
 
-    Footnote/endnote text lives in a separate OOXML part (word/footnotes.xml,
-    word/endnotes.xml) reached via document relationships — doc.paragraphs
-    never sees them, which is why footnote typos used to slip through.
+    Footnotes/endnotes live in separate OOXML parts (word/footnotes.xml,
+    word/endnotes.xml). python-docx models them as plain Part instances —
+    no .element accessor, no high-level Paragraph wrappers — so we parse
+    the raw blob with lxml ourselves and serialize back after mutations.
+    Callers must invoke _save_notes_part to persist changes.
     """
     main_part = doc.part
     for rel in main_part.rels.values():
         if rel.reltype != reltype:
             continue
         notes_part = rel.target_part
-        root = notes_part.element
-        for p_elem in root.iter(qn("w:p")):
-            yield Paragraph(p_elem, notes_part)
+        try:
+            root = parse_xml(notes_part.blob)
+        except Exception as e:
+            print(f"warning: parse {reltype} blob: {e}", file=sys.stderr)
+            return None
+        return notes_part, root
+    return None
+
+
+def _iter_notes_paragraphs(notes_root, notes_part):
+    """Yield Paragraph wrappers for every <w:p> in a notes part root."""
+    for p_elem in notes_root.iter(qn("w:p")):
+        yield Paragraph(p_elem, notes_part)
+
+
+def _save_notes_part(part, root):
+    """Serialize a mutated notes-part root back into its container blob.
+
+    python-docx writes generic Parts to the output zip from .blob directly
+    (only XmlPart subclasses get re-serialized from .element), so assigning
+    the new XML bytes here is what makes the edits stick.
+    """
+    part.blob = etree.tostring(
+        root, xml_declaration=True, encoding="UTF-8", standalone=True
+    )
 
 
 def iter_all_paragraphs(doc):
@@ -352,17 +378,21 @@ def iter_all_paragraphs(doc):
     except Exception as e:
         print(f"warning: skipping headers/footers: {e}", file=sys.stderr)
 
-    # Footnotes / endnotes
-    try:
-        for p in _iter_notes_paragraphs(doc, FOOTNOTES_RELTYPE):
-            yield "note", p
-    except Exception as e:
-        print(f"warning: skipping footnotes: {e}", file=sys.stderr)
-    try:
-        for p in _iter_notes_paragraphs(doc, ENDNOTES_RELTYPE):
-            yield "note", p
-    except Exception as e:
-        print(f"warning: skipping endnotes: {e}", file=sys.stderr)
+    # Footnotes / endnotes — parsed from .blob and stashed on the doc for
+    # post-mutation write-back. These parts are plain Part instances in
+    # python-docx (no .element), so we own the serialization round-trip.
+    doc._notes_parts_to_save = []
+    for reltype in (FOOTNOTES_RELTYPE, ENDNOTES_RELTYPE):
+        try:
+            opened = _open_notes_part(doc, reltype)
+            if opened is None:
+                continue
+            part, root = opened
+            doc._notes_parts_to_save.append((part, root))
+            for p in _iter_notes_paragraphs(root, part):
+                yield "note", p
+        except Exception as e:
+            print(f"warning: skipping {reltype}: {e}", file=sys.stderr)
 
 
 def apply_to_docx(docx_path, corrections, output_path, dry_run=False):
@@ -421,6 +451,13 @@ def apply_to_docx(docx_path, corrections, output_path, dry_run=False):
         })
 
     if not dry_run and any(r["count"] > 0 for r in results):
+        # Persist mutated footnotes/endnotes back into their parts before
+        # the package serializes — generic Parts ship to disk from .blob.
+        for part, root in getattr(doc, "_notes_parts_to_save", []):
+            try:
+                _save_notes_part(part, root)
+            except Exception as e:
+                print(f"warning: serialize notes part: {e}", file=sys.stderr)
         doc.save(output_path)
 
     return results
