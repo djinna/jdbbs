@@ -10,18 +10,31 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (2026-05-13)
+## 🟢 Resume here — next session (2026-05-25)
 
-**Last touched:** 2026-05-12 18:51 UTC.
+**Last touched:** 2026-05-25.
+
+**Just shipped — TRK-MIG-009 (canonical repo cutover):**
+- `djinna/prodcal` HEAD force-pushed into `djinna/jdbbs:main` (commit `83e21f2` absorbs TRACKER.md, MIGRATION_LOG.md, NEXT_SESSION_PROMPT_2026-05-13.md, CLAUDE.md; gitignores `.claude/`).
+- `djinna/prodcal` and `djinna/book-prod` archived (read-only) on GitHub; redirects from old URLs still resolve.
+- Safety tags pushed: `pre-jdbbs-rename-2026-05-25` (on prodcal) and `pre-overwrite-2026-05-25` (on jdbbs).
+- VM remote URL updated `git@github.com:djinna/prodcal.git` → `https://github.com/djinna/jdbbs.git`; pulled cleanly; service stayed active throughout.
+- Local clones renamed: `~/jd-projects/prodcal` → `~/jd-projects/jdbbs`; old `~/jd-projects/jdbbs` preserved as `~/jd-projects/jdbbs-bootstrap-pre-2026-05-25`.
+- Local `~/jd-projects/book-prod` clone deprecated (see FLOW-001).
+- **NOT renamed** (deferred — invisible to users, low value, would require systemd unit touch which is path-sensitive per TRK-OPS-005): VM directory `/home/exedev/prodcal/`, systemd unit `prodcal.service`, binary name `prodcal`. These are internal-only.
 
 **Live state (assumed healthy until verified):**
-- `prodcal` active on `jdbbs.exe.xyz`, MainPID==listener (Type=notify), DB at `/home/exedev/prodcal/db.sqlite3` (117 MB, projects=12, books=6, Twitter Years is project 7)
-- Backup pipeline 3-2-1 satisfied; first unattended daily cron runs tonight at 03:00 UTC
+- `prodcal` service active on `jdbbs.exe.xyz`, MainPID==listener (Type=notify), DB at `/home/exedev/prodcal/db.sqlite3` (117 MB, projects=12, books=6, Twitter Years is project 7)
+- Backup pipeline 3-2-1 satisfied
 - All four sentinels green; `~/backups/.HEALTH-OK` < 1h old
 
-**Run before doing anything else** (full block in `NEXT_SESSION_PROMPT_2026-05-13.md`):
+**Run before doing anything else** (use `jpull` on the Mac to refresh local first):
 
 ```bash
+# Local
+jpull                                  # fetch jdbbs (+ archived clones if you still have them)
+
+# VM-side smoke
 ssh exedev@jdbbs.exe.xyz '\
   systemctl is-active prodcal && \
   cat ~/backups/.HEALTH-OK && \
@@ -31,7 +44,7 @@ ssh exedev@jdbbs.exe.xyz '\
     "SELECT '"'"'projects='"'"' || COUNT(*) FROM projects UNION ALL SELECT '"'"'books='"'"' || COUNT(*) FROM books" && \
   echo "--- R2 ---" && rclone size r2:jdbbs-backups'
 curl -sI https://jdbbs.exe.xyz | head -1
-jbackup-pull
+jbackup-pull   # only on Macs where this function is configured
 ```
 
 **Next priorities (pick one and start):**
@@ -44,6 +57,8 @@ jbackup-pull
 
 - Want a real alert channel (Discord webhook, ntfy.sh, exe.dev email forward) for backup-health failures? Currently observable only via `jbackup-pull`.
 - Are the 12 test projects 100% disposable, or should any be exported / kept for reference before delete? (Earlier confirmed: only Twitter Years is real.)
+- Set up `jbackup-pull` on the second Mac too? (Asymmetry observed 2026-05-25.)
+- VM-side rename (`/home/exedev/prodcal/` → `/home/exedev/jdbbs/`, plus systemd unit) — defer indefinitely, or schedule as a discrete cutover session?
 
 **Do NOT touch without re-reading the relevant TRK entry:**
 - prodcal systemd unit — restart pattern is documented in TRK-OPS-005, depends on `Type=notify` + `sd_notify` ready signal
@@ -109,6 +124,7 @@ jbackup-pull
   - [TRK-OPS-001 — Stale prodcal process holding :8000; systemd in restart loop](#trk-ops-001--stale-prodcal-process-holding-8000-systemd-in-restart-loop)
   - [TRK-OPS-002 — Verify TLS termination and reverse proxy path](#trk-ops-002--verify-tls-termination-and-reverse-proxy-path)
   - [TRK-OPS-003 — SQLite WAL hygiene + backup verification](#trk-ops-003--sqlite-wal-hygiene--backup-verification)
+  - [TRK-OPS-008 — VM-side rename: prodcal → jdbbs](#trk-ops-008--vm-side-rename-prodcal--jdbbs-directory-systemd-unit-binary-scripts)
   - [TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/](#trk-ops-004--env-on-disk-in-homeexedevprodcal)
 - [Security (SEC)](#security-sec)
   - [TRK-SEC-008 — Resolve 6 Dependabot vulnerabilities on `djinna/prodcal`](#trk-sec-008--resolve-6-dependabot-vulnerabilities-on-djinnaprodcal)
@@ -261,19 +277,29 @@ Risk tolerance per user (minutes of downtime acceptable) easily met. No data los
 ### TRK-MIG-009 — Final rename / move prodcal → jdbbs
 
 - area: MIG
-- status: blocked
+- status: done
 - priority: P3
 - created: 2026-05-12
-- updated: 2026-05-12
-- blocked-by: TRK-MIG-004; plus 1–2 weeks of stable post-cutover operation
+- updated: 2026-05-25
+- refs: prodcal `83e21f2` (absorption commit, force-pushed into jdbbs:main); safety tags `pre-jdbbs-rename-2026-05-25` (prodcal) + `pre-overwrite-2026-05-25` (jdbbs)
 
-Once the unified prodcal is stable and feature-complete in production, decide on the final home:
+**Done 2026-05-25.** Chose **Option B (clean cutover)** with safety tags. Steps executed:
 
-- **Option A (preserve history):** GitHub Settings → rename `djinna/prodcal` → `djinna/jdbbs`. Archive the current `djinna/jdbbs` (push a tag of its current state first). Update VM remotes and systemd paths.
-- **Option B (clean cutover):** Force-push prodcal's final state into `djinna/jdbbs`, archive `djinna/prodcal`. Loses prodcal git history (or preserve it in a tag).
-- **Option C (defer):** keep working under the prodcal name indefinitely, archive jdbbs as a stale draft, accept that the public name is `prodcal` and the URL stays `jdbbs.exe.xyz`.
+1. Absorbed jdbbs-unique files (TRACKER.md, MIGRATION_LOG.md, NEXT_SESSION_PROMPT_2026-05-13.md, CLAUDE.md) into prodcal as commit `83e21f2`; pushed to djinna/prodcal.
+2. Tagged both repos at pre-cutover HEADs (`pre-jdbbs-rename-2026-05-25`, `pre-overwrite-2026-05-25`); pushed tags.
+3. Force-pushed prodcal `83e21f2` into djinna/jdbbs:main (overwriting the 24-commit bootstrap history, which remains accessible via `pre-overwrite-2026-05-25` tag).
+4. Renamed local clones: `~/jd-projects/prodcal` → `~/jd-projects/jdbbs`; old jdbbs preserved at `~/jd-projects/jdbbs-bootstrap-pre-2026-05-25`.
+5. VM: updated remote URL `git@github.com:djinna/prodcal.git` → `https://github.com/djinna/jdbbs.git`; `git fetch && git pull --ff-only` brought in the absorption commit; service stayed active throughout (no systemd touch).
+6. Archived `djinna/prodcal` and `djinna/book-prod` on GitHub (read-only; redirects preserved).
 
-Recommendation: pick after we see what reconciliation feels like. Don't decide today.
+**Deliberately deferred** (low value, would require systemd touch which is path-sensitive per TRK-OPS-005):
+- VM directory rename `/home/exedev/prodcal/` → `/home/exedev/jdbbs/`
+- systemd unit rename `prodcal.service` → `jdbbs.service`
+- binary name change `prodcal` → `jdbbs`
+- backup script path updates (`backup-db.sh`, `sync-to-r2.sh`, `check-backups.sh`)
+- crontab path updates
+
+Filed as **TRK-OPS-008** (open, P3) for if/when it becomes worth doing.
 
 ### TRK-MIG-005 — Decide EPUB strategy (Go handler vs shell script)
 
@@ -524,6 +550,28 @@ Three additions to close the "silent backup rot" gap:
 - RPO: ≤ 24 hours (daily backups); upgrade to ≤ 1 hour later with litestream if we go heavier on usage.
 - RTO: ≤ 30 minutes for a fresh VM (spin up + pull repo + `rclone copy r2:jdbbs-backups/db/<latest> .` + gunzip + start systemd).
 
+### TRK-OPS-008 — VM-side rename: prodcal → jdbbs (directory, systemd unit, binary, scripts)
+
+- area: OPS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+- refs: TRK-MIG-009 (deferred this work), TRK-OPS-005 (orphan-race fix is path-sensitive)
+
+Cosmetic cleanup deferred from MIG-009. After 2026-05-25, GitHub repo is `djinna/jdbbs`, local clone is `~/jd-projects/jdbbs`, but VM is still under `/home/exedev/prodcal/` with `prodcal.service` running `./prodcal` binary. Nothing user-facing depends on these names (jdbbs.exe.xyz is nginx-fronted). Items to do if/when:
+
+1. Stop `prodcal.service`.
+2. `mv /home/exedev/prodcal /home/exedev/jdbbs`.
+3. Edit `srv.service` → `WorkingDirectory=/home/exedev/jdbbs`, `Environment=JDBBS_TYPESETTING_DIR=/home/exedev/jdbbs/typesetting`, `ExecStart=/home/exedev/jdbbs/jdbbs` (after renaming the binary). Rename `srv.service` → `jdbbs.service` and re-symlink in `/etc/systemd/system/`.
+4. `go build -o jdbbs ./cmd/srv` (or just `mv prodcal jdbbs`).
+5. Update path references in `scripts/backup-db.sh`, `scripts/sync-to-r2.sh`, `scripts/check-backups.sh`, `scripts/restore-drill.sh` (grep `/home/exedev/prodcal` and `db.sqlite3` location).
+6. Update crontab paths (`crontab -l | sed 's|/prodcal|/jdbbs|g' | crontab -`).
+7. `daemon-reload`, `enable`, `start jdbbs.service`. Verify with the standard verification block.
+8. Confirm next backup cron run produces a valid sentinel.
+
+Risk: TRK-OPS-005's orphan-race fix depends on `Type=notify` + `sd_notify` ordering — re-validate after the unit-file rewrite. Plan ≥30 min and have a rollback (revert the unit file, mv directory back).
+
 ### TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/
 
 - area: OPS / SEC
@@ -661,13 +709,12 @@ User-supplied DOCX → Pandoc → Lua → Typst → PDF. User-supplied YAML → 
 ### TRK-FLOW-001 — Session-prompt proliferation hygiene
 
 - area: FLOW
-- status: open
+- status: done
 - priority: P3
 - created: 2026-05-12
-- updated: 2026-05-12
-- refs: VM `/home/exedev/book-production/NEXT_SESSION_PROMPT_*.md` (10+ files)
+- updated: 2026-05-25
 
-Migration convention dropped these from jdbbs; but they keep accumulating in the legacy `book-production/` clone on the VM. Once that clone is retired (TRK-MIG-003), the problem goes away. Add a convention in jdbbs/AGENTS.md: rolling `WORKLOG.md` or this TRACKER file replaces per-session prompt files.
+**Done 2026-05-25** via TRK-MIG-009. djinna/book-prod archived, local `~/jd-projects/book-prod` deprecated, single canonical repo (jdbbs) means there's only one place per-session prompts can land. Convention going forward: TRACKER.md "Resume here" block is the live entry point; per-session prompts (`NEXT_SESSION_PROMPT_YYYY-MM-DD.md`) are end-of-session snapshots committed to jdbbs root, not mirrored anywhere.
 
 ### TRK-FLOW-002 — Verify CI on jdbbs is running and useful
 
