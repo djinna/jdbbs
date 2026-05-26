@@ -165,7 +165,7 @@
     grid(
       columns: (1fr, auto),
       align: (left, right),
-      title,
+      upper(title),
       [#page-num],
     )
   }

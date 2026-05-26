@@ -7,7 +7,6 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 In a thread perhaps almost as strange as the stories in this volume, a
 motley crew of about two dozen researchers meet at a workshop about
 distributed AI and blockchain protocols in the outskirts of Bangkok,
@@ -51,7 +50,6 @@ Across Southeast Asia, the societies that did thrive developed a rich
 range of mechanisms for sustainable water distribution. Two such devices
 lent their names to the workshop:
 
-#set par(first-line-indent: 0em)
 -   _Khlongs_ were wide, often navigable, canals for water distribution
     > and waterborne transportation, especially in the lower delta
     > realms of what we know today as Thailand. Khlongs served as
@@ -59,7 +57,6 @@ lent their names to the workshop:
     > the rivers they were typically built from. One might even think of
     > them as _artificial rivers_ or streams.
 
-#set par(first-line-indent: 0em)
 -   The _Subaks_ of Bali comprised simpler channels for moving water and
     > between paddies, along with their accompanying elaborate social
     > governance and ritual systems used to enact and oversee the

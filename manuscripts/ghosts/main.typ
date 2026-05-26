@@ -1,4 +1,4 @@
-#import "../../templates/series-template.typ": *
+#import "../../typesetting/templates/series-template.typ": *
 
 #show: book.with(
   title: "Ghosts in Machines",

@@ -7,7 +7,6 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 My grandfather used to leave strawberry soda in the white and gold san
 chao thi spirit house on the corner of our property. He said the ghosts
@@ -195,18 +194,15 @@ quickly. The mechanisms were fuzzy, but we'd clarify them in the coming
 weeks. Our breakthrough came when we started seeing the ghost's behavior
 in layers.
 
-#set par(first-line-indent: 0em)
 1.  The anchor layer: The ERC-725 contracts that bound everything
     > together with cryoptographic proofs, API tokens, weights, and
     > verified links.
 
-#set par(first-line-indent: 0em)
 2.  The personality runtime layer: A distributed mesh. The wrappers
     > weren't running anywhere permanently. They were using federated
     > runtimes in the cloud, appearing in cached checkpoints and API
     > hooks.
 
-#set par(first-line-indent: 0em)
 3.  The propagation layer: Somehow, the anchors were fabricating old
     > OAuth tokens and reauthorizing old cookies to worm through
     > mistakes in service boundaries. This was how they haunted us.

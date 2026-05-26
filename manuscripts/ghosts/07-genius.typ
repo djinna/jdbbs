@@ -7,19 +7,16 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[An Omega Metafiction Protocol]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Unexpected Transmission]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 In the control room of the European Space Center, on-call engineer
 Marcus Chen stared at his screens with the blasé expression of someone
@@ -112,7 +109,6 @@ science!"
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Protocols in Conflict]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Three hours later, Marcus had assembled the full crisis team. The
 control room screens now displayed eight windows, each showing the
@@ -186,7 +182,6 @@ avant-garde."
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Houston, We Have a (Methodological) Problem]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 "Let's talk about real problems," said Marcus. "Francesca, what's the
 impact of your eight simultaneous protocols on the probe's systems?"
@@ -299,7 +294,6 @@ experiments?"
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Experimental Audit]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Around the table, the engineers, ethicists and supervisors looked like
 parents discovering that their children had turned the garage into a
@@ -407,7 +401,6 @@ disorientation: a single case study.'"
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Survival Protocols]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 "Alright," said Marcus after taking several painkillers, "let's talk
 solutions. Francesca, can you correct the trajectory?"
@@ -495,7 +488,6 @@ Dimitri.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Final Protocol]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 "Very well," Marcus declared after consulting his superiors, "we have a
 protocol proposal."
@@ -587,7 +579,6 @@ insanity!"
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Epilogue: Data Transmission]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Six months later, Marcus was receiving daily experimental reports from
 the Prometheus-7 probe, now renamed Autonomous Experimental Laboratory

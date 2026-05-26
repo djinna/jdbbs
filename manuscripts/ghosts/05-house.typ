@@ -7,19 +7,16 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Recollected by Dorian Ames, C.I.A.---Certified Inquiry Agent, Ret.]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Prologue: Now]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Nobody dies as long as their data pays rent. Call it cynical, but it's
 carved in silicon truth. In 2075 you can share a commuter shuttle with
@@ -48,7 +45,6 @@ Sometimes I wonder if we were right to feel it.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Contract]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 March winds clawed at Michigan Avenue like something desperate and
 dying. I was surviving on vending machine peanuts and half-paid
@@ -150,7 +146,6 @@ the growing dusk.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Arrival on Tillman Street]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Detroit looked like an art-deco cathedral someone had tried to fold into
 a suitcase—beautiful edges, awkward angles, more history than room for
@@ -204,7 +199,6 @@ The pattern itself became suspicious.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[First Glitch]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Thursday morning, clouds bruising the river like old wounds, the porch
 lamp jumped on twenty minutes early. Ten minutes later it dimmed,
@@ -246,7 +240,6 @@ He didn't finish, but his expression said enough.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Upstairs Room]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 The kitchen gleamed with the kind of cleanliness that only comes from
 daily automation. A floor robot had paused mid-spiral beside the
@@ -299,7 +292,6 @@ community theater, and we\'d all been fooled by the stage lighting.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Digital Autopsy]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 The coroner's team worked with quiet efficiency; Pearl left in a zipped
 bag, reduced to administrative weight. Carter hovered to finish
@@ -359,7 +351,6 @@ tomb. "It's everyone's problem now."
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Nieces]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 We met on video that night. Claire's apartment light flickered—old
 building, unreliable grid. Evelyn held a mug with both hands like it was
@@ -396,7 +387,6 @@ But her voice carried doubt, and I understood why.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Funeral]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Rain gave way to bright cold the morning they buried Pearl. Small
 service at Woodlawn Cemetery: the Ferrands, three neighbors who
@@ -418,7 +408,6 @@ The weight of it felt like responsibility.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Echoes in the System]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Detroit city council fast-tracked a hearing on "digital survivorship and
 posthumous identity management." I sat at the witness table, describing
@@ -443,7 +432,6 @@ splinter I couldn't quite reach.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Coda: Radio Night]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Late October, I drove west on a contract that had finished faster than
 expected. Past Ann Arbor the sky cleared, stars bright over dark fields

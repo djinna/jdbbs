@@ -7,7 +7,6 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 Selena logged into the local node at 06:58, as she had for the last
 2,121 cycles.

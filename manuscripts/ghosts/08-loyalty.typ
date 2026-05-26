@@ -7,7 +7,6 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 The Adaptation Force's glideskiff floats above a half-submerged road,
 flanked by mouldering low-rises and glistening scaffolds slowly being
@@ -416,7 +415,6 @@ around her grandmother, as the lights cut out.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[Epilogue]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 In the following weeks, Ping would activate the Airloom and suddenly
 find herself transported to familiar aisles, surrounded by fluorescent

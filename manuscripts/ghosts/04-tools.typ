@@ -7,13 +7,11 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Troublemaker Shanghai, Pudong, Yanlord Riverside City, 2017]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 A typical war, sparked by a bottle of soy sauce, erupted at the tail end
 of the Friday evening rush hour. Outside, the Yan'an West Road Viaduct
@@ -92,7 +90,6 @@ of their lives.
 #v(1em)
 #text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Third Party Shanghai, Pudong, Yanlord Riverside City (After Smart System Upgrade), 2027]
 #v(0.5em)
-#set par(first-line-indent: 0em)
 
 Ten years is long enough for the Lujiazui skyline to grow a few inches
 taller, and for a home to be completely transformed.

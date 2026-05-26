@@ -7,7 +7,6 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 "In nature nothing exists alone."
 

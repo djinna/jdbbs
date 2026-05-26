@@ -7,7 +7,6 @@
 
 #v(2em)
 
-#set par(first-line-indent: 0em)
 
 Moodily, Darius was contemplating his latest acquisition, a mahogany
 writing desk that had belonged to Charles Dickens. The desk was perfect:
