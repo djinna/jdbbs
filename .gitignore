@@ -7,3 +7,6 @@ seed_data.json
 SESSION-SUMMARY.txt
 TEAM-UPDATE.txt
 .hermes/
+
+# Claude Code local state — bootstrap per CLAUDE.md instructions
+.claude/
