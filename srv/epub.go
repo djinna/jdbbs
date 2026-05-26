@@ -72,10 +72,12 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 	spec.Language = "en"
 	spec.TOCDepth = 2
 
+	var specSnapshot string
 	if book.ProjectID.Valid {
 		dbSpec, err := q.GetBookSpec(ctx, book.ProjectID.Int64)
 		if err == nil {
 			spec = parseEPUBSpec(dbSpec.Data, book)
+			specSnapshot = dbSpec.Data
 
 			// Write cover image if available
 			coverRow, err := q.GetBookSpecCover(ctx, book.ProjectID.Int64)
@@ -148,6 +150,7 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 		OutputFormat:   "epub",
 		OutputData:     epubData,
 		SourceFilename: book.SourceFilename,
+		SpecSnapshot:   nullStringFrom(specSnapshot),
 	}); err != nil {
 		slog.Error("epub: persist history", "id", bid, "err", err)
 		return

@@ -39,6 +39,7 @@ type BookOutput struct {
 	OutputFormat   string
 	OutputData     []byte
 	SourceFilename string
+	SpecSnapshot   sql.NullString
 	CreatedAt      time.Time
 }
 

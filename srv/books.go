@@ -229,7 +229,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		return
 	}
 
-	configOverride := s.buildTypstConfig(bid, book)
+	configOverride, specSnapshot := s.buildTypstConfig(bid, book)
 	// Pass config explicitly to book.with so the caller's merged config (above)
 	// reaches the template's body styling. Without this, book()'s `config: config`
 	// parameter default captures the template module's default-config rather than
@@ -308,6 +308,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		OutputFormat:   "pdf",
 		OutputData:     pdfData,
 		SourceFilename: book.SourceFilename,
+		SpecSnapshot:   nullStringFrom(specSnapshot),
 	}); err != nil {
 		s.failConversion(bid, "persist pdf history: "+err.Error())
 		return
@@ -411,6 +412,122 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// bookAuth gates a book by its project's auth (or admin if unlinked).
+// Returns book metadata on success so callers can reuse the lookup.
+func (s *Server) bookAuth(w http.ResponseWriter, r *http.Request, bid int64) (dbgen.GetBookProjectIDRow, bool) {
+	q := dbgen.New(s.DB)
+	ref, err := q.GetBookProjectID(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return ref, false
+	}
+	if ref.ProjectID.Valid {
+		if !s.requireAuth(w, r, ref.ProjectID.Int64) {
+			return ref, false
+		}
+	} else if !s.requireExeDevAdminAPI(w, r) {
+		return ref, false
+	}
+	return ref, true
+}
+
+// handleListBookOutputs returns recent compile artifacts for a book (metadata only).
+// Pass ?include=spec to also return spec_snapshot per row.
+func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
+	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	if _, ok := s.bookAuth(w, r, bid); !ok {
+		return
+	}
+
+	includeSpec := r.URL.Query().Get("include") == "spec"
+	q := dbgen.New(s.DB)
+	rows, err := q.ListBookOutputs(r.Context(), dbgen.ListBookOutputsParams{
+		BookID: bid,
+		Limit:  20,
+	})
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+
+	type outRow struct {
+		ID             int64     `json:"id"`
+		BookID         int64     `json:"book_id"`
+		OutputFormat   string    `json:"output_format"`
+		SourceFilename string    `json:"source_filename"`
+		SizeBytes      int64     `json:"size_bytes"`
+		CreatedAt      time.Time `json:"created_at"`
+		SpecSnapshot   *string   `json:"spec_snapshot,omitempty"`
+	}
+	out := make([]outRow, 0, len(rows))
+	for _, row := range rows {
+		item := outRow{
+			ID:             row.ID,
+			BookID:         row.BookID,
+			OutputFormat:   row.OutputFormat,
+			SourceFilename: row.SourceFilename,
+			SizeBytes:      row.SizeBytes,
+			CreatedAt:      row.CreatedAt,
+		}
+		if includeSpec && row.SpecSnapshot.Valid {
+			s := row.SpecSnapshot.String
+			item.SpecSnapshot = &s
+		}
+		out = append(out, item)
+	}
+	jsonOK(w, out)
+}
+
+// handleDownloadBookOutput streams a specific historical compile artifact.
+func (s *Server) handleDownloadBookOutput(w http.ResponseWriter, r *http.Request) {
+	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	oid, err := strconv.ParseInt(r.PathValue("output_id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad output_id", 400)
+		return
+	}
+	if _, ok := s.bookAuth(w, r, bid); !ok {
+		return
+	}
+
+	q := dbgen.New(s.DB)
+	row, err := q.GetBookOutput(r.Context(), dbgen.GetBookOutputParams{ID: oid, BookID: bid})
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+
+	bookMeta, err := q.GetBook(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+
+	ts := row.CreatedAt.UTC().Format("20060102-1504")
+	ext := row.OutputFormat
+	ct := "application/octet-stream"
+	switch row.OutputFormat {
+	case "pdf":
+		ct = "application/pdf"
+	case "epub":
+		ct = "application/epub+zip"
+	}
+	filename := fmt.Sprintf("%s-%s.%s", sanitizeFilename(bookMeta.Title), ts, ext)
+	w.Header().Set("Content-Type", ct)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Header().Set("Content-Length", strconv.Itoa(len(row.OutputData)))
+	w.Header().Set("Cache-Control", "no-store")
+	w.Write(row.OutputData)
+}
+
 // handleDeleteBook removes a book.
 func (s *Server) handleDeleteBook(w http.ResponseWriter, r *http.Request) {
 	if !s.requireExeDevAdminAPI(w, r) {
@@ -465,27 +582,35 @@ func (s *Server) handleLinkBookProject(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]string{"ok": "true"})
 }
 
-// buildTypstConfig looks up the book_spec for the linked project
-// and generates Typst config override lines. Returns empty string if no spec found.
-func (s *Server) buildTypstConfig(bid int64, book dbgen.Book) string {
+// buildTypstConfig looks up the book_spec for the linked project and returns
+// (Typst config override lines, raw spec JSON for snapshotting). Both empty if no spec.
+func (s *Server) buildTypstConfig(bid int64, book dbgen.Book) (string, string) {
 	if !book.ProjectID.Valid {
-		return ""
+		return "", ""
 	}
 
 	q := dbgen.New(s.DB)
 	spec, err := q.GetBookSpec(context.Background(), book.ProjectID.Int64)
 	if err != nil {
 		slog.Debug("no book spec for project", "project_id", book.ProjectID.Int64, "err", err)
-		return ""
+		return "", ""
 	}
 
 	var data map[string]any
 	if err := json.Unmarshal([]byte(spec.Data), &data); err != nil {
 		slog.Warn("bad spec JSON", "project_id", book.ProjectID.Int64, "err", err)
-		return ""
+		return "", ""
 	}
 
-	return specToTypstConfig(data)
+	return specToTypstConfig(data), spec.Data
+}
+
+// nullStringFrom maps "" to NULL so legacy/no-spec rows stay NULL instead of empty.
+func nullStringFrom(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: s, Valid: true}
 }
 
 func escapeTypstString(s string) string {

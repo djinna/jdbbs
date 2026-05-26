@@ -639,6 +639,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <button class="btn btn-sm" id="ts-generate-epub" disabled style="border-color:var(--green);color:var(--green)">Generate EPUB</button>
               <span id="ts-epub-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
             </div>
+            <div class="ts-output-history" id="ts-epub-history" style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted)"></div>
           </div>
         </div>
       </div>
@@ -801,6 +802,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <button class="btn btn-sm" id="ts-compile-pdf" disabled style="border-color:var(--accent);color:var(--accent)">Compile PDF</button>
               <span id="ts-compile-status" class="ts-status-line"></span>
             </div>
+            <div class="ts-output-history" id="ts-pdf-history" style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted)"></div>
           </div>
         </div>
       </div>
@@ -2585,11 +2587,62 @@ async function tsLoadLinkedBooks() {
     const pool = linked.length > 0 ? linked : books;
     tsPopulateBookSelects(pool, [tsPdfBook, tsEpubBook, tsPreflightBook]);
     tsLoadPreflightStatus();
+    tsRefreshHistory();
   } catch(e) {}
 }
 
-tsPdfBook.addEventListener('change', () => tsCompilePdf.disabled = !tsPdfBook.value);
-tsEpubBook.addEventListener('change', () => tsGenerateEpub.disabled = !tsEpubBook.value);
+const tsPdfHistory = document.getElementById('ts-pdf-history');
+const tsEpubHistory = document.getElementById('ts-epub-history');
+
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function fmtTs(s) {
+  try { return new Date(s).toLocaleString(); } catch(e) { return s; }
+}
+
+async function tsRenderHistory(bid, format, el) {
+  if (!el) return;
+  if (!bid) { el.innerHTML = ''; return; }
+  try {
+    const r = await fetch(`/api/books/${bid}/outputs`);
+    if (!r.ok) { el.innerHTML = ''; return; }
+    const rows = (await r.json()).filter(o => o.output_format === format);
+    if (rows.length === 0) {
+      el.innerHTML = '<div style="opacity:0.7">No compiles yet.</div>';
+      return;
+    }
+    const items = rows.map(o => {
+      const href = absoluteURL(`/api/books/${bid}/outputs/${o.id}/download`);
+      return `<div style="display:flex;gap:0.5rem;align-items:baseline;padding:0.1rem 0">
+        <span style="color:var(--text)">${esc(fmtTs(o.created_at))}</span>
+        <span style="opacity:0.6">${esc(o.output_format)}</span>
+        <span style="opacity:0.6">${esc(fmtBytes(o.size_bytes))}</span>
+        <a href="${href}" style="color:var(--accent)">download</a>
+      </div>`;
+    }).join('');
+    el.innerHTML = `<div style="font-weight:500;margin-bottom:0.25rem">Recent compiles (${rows.length})</div>${items}`;
+  } catch(e) {
+    el.innerHTML = '';
+  }
+}
+
+function tsRefreshHistory() {
+  tsRenderHistory(tsPdfBook.value, 'pdf', tsPdfHistory);
+  tsRenderHistory(tsEpubBook.value, 'epub', tsEpubHistory);
+}
+
+tsPdfBook.addEventListener('change', () => {
+  tsCompilePdf.disabled = !tsPdfBook.value;
+  tsRenderHistory(tsPdfBook.value, 'pdf', tsPdfHistory);
+});
+tsEpubBook.addEventListener('change', () => {
+  tsGenerateEpub.disabled = !tsEpubBook.value;
+  tsRenderHistory(tsEpubBook.value, 'epub', tsEpubHistory);
+});
 tsPreflightBook.addEventListener('change', () => {
   tsRunPreflight.disabled = !tsPreflightBook.value;
   tsLoadPreflightStatus();
@@ -2620,6 +2673,7 @@ tsCompilePdf.addEventListener('click', async () => {
         tsCompileStatus.style.color = 'var(--green)';
         tsCompileStatus.innerHTML += `<a href="${absoluteURL(`/api/books/${bid}/download/pdf`)}" style="color:var(--accent);font-size:0.72rem">Download PDF</a>`;
         tsCompilePdf.disabled = false;
+        tsRenderHistory(bid, 'pdf', tsPdfHistory);
       } else if (book && book.Status === 'error') {
         clearInterval(iv);
         tsCompileStatus.textContent = 'Error: ' + (book.ErrorMsg || 'unknown');
@@ -2657,6 +2711,7 @@ tsGenerateEpub.addEventListener('click', async () => {
         tsEpubStatus.style.color = 'var(--green)';
         tsEpubStatus.innerHTML += `<a href="${epubURL}" style="color:var(--accent);font-size:0.72rem">Download EPUB</a>`;
         tsGenerateEpub.disabled = false;
+        tsRenderHistory(bid, 'epub', tsEpubHistory);
       }
     }, 2000);
   } catch(e) {
