@@ -231,6 +231,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-DEV-005 — Compile-history panel in admin SPA](#trk-dev-005--compile-history-panel-in-admin-spa)
   - [TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile](#trk-dev-006--snapshot-spec-json-into-book_outputs-per-compile)
   - [TRK-DEV-010 — Wire `--epub-embed-font` into pandoc invocation for Noto CJK/Thai bundle](#trk-dev-010--wire---epub-embed-font-into-pandoc-invocation-for-noto-cjkthai-bundle)
+  - [TRK-DEV-011 — Admin SPA UX polish (project workflow gaps)](#trk-dev-011--admin-spa-ux-polish-project-workflow-gaps)
   - [TRK-DEV-008 — Corrections patcher ergonomics](#trk-dev-008--corrections-patcher-ergonomics)
 - [Translation (TRANS) — v2](#translation-trans--v2)
   - [TRK-TRANS-001..009 — see PRODUCTION_ROADMAP_2026-05-25.md](#translation-trans--v2)
@@ -1384,6 +1385,28 @@ args = append(args,
 Verify path resolution — pandoc resolves relative to `cmd.Dir` (currently `tmpDir`). May need absolute paths via `filepath.Join(repoRoot, ...)` or chdir to repo root. Smoke: compile any book to EPUB, unzip and confirm `EPUB/fonts/*.otf` are present and CSS resolves.
 
 **Effort:** ~15 min including smoke. **Pickup:** as soon as TRK-DEV-009 lands (concurrent file). **Closes:** the "Deferred" item in TRK-DESIGN-004.
+
+### TRK-DEV-011 — Admin SPA UX polish (project workflow gaps)
+
+- area: DEV
+- status: open
+- priority: P3
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: surfaced during 2026-05-26 user setup for TEST-002 (Ghosts project creation walkthrough)
+
+User feedback while creating a new project + uploading manuscript revealed three workflow gaps. Filed as one ticket since they're all admin SPA polish surfaced in the same session; pick when warranted, not as a batch.
+
+1. **Calendar widget on New Project form.** The new-project form (where you name the project + assign client) should include a date-picker for project start date, not require editing it after the fact from the project detail view. Currently you create the project, then navigate into it to set scheduling. Minor friction; common path.
+
+2. **No manuscript upload on the transmittal/project detail page.** Manuscript uploads live on the top-level `Files` tab (`srv/static/admin.html` line 450, `tab-files`); the project-detail/transmittal view at `/pi/{slug}` has no upload affordance. The user reasonably expects to upload-while-in-context-of-the-project. Options:
+   - Add a small "Upload manuscript" affordance on the project detail page that pre-fills `project_id` and links into the Files workflow.
+   - Or: surface "Books in this project" on the project detail page with an upload-here button.
+   - Either way, current state forces a back-out-to-top-level → select-project-in-dropdown → upload flow that's easy to miss when new to the SPA.
+
+3. **Transmittal Date field doesn't propagate to Calendar tab.** Setting "Transmittal Date" in either Book Information or Production sections of the transmittal does not appear in the project's Calendar tab. Also: there are TWO Transmittal Date fields on the transmittal page (one under Book Information, one under Production) — unclear which is canonical, and neither hooks into Calendar. Investigate which field the Calendar tab reads from (or whether it reads at all); fix the wire-up; consider collapsing the two fields if they represent the same concept.
+
+**Effort estimates:** item 1 ~30 min, item 2 ~1-2 hours (depends on how much existing Files-tab plumbing is reused), item 3 ~30-60 min (investigation + fix). None are blocking the v1 release-confidence track; pick as ergonomics warrant.
 
 ### TRK-DEV-008 — Corrections patcher ergonomics
 
