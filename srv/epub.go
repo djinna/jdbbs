@@ -199,6 +199,17 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 		}
 	}
 
+	// TRK-DEV-013: strip the 9-byte Extended-Timestamp extra field that
+	// pandoc's zip writer (and Go's archive/zip writer) attach to the
+	// mimetype entry. EPUB spec forbids any extra field on mimetype's local
+	// file header; epubcheck flags it as PKG-005.
+	if stripped, serr := stripMimetypeExtraField(epubData); serr != nil {
+		slog.Warn("epub: mimetype extra-field strip failed; shipping as-is",
+			"id", bid, "err", serr)
+	} else {
+		epubData = stripped
+	}
+
 	// Store in DB
 	if _, err := q.CreateBookOutput(ctx, dbgen.CreateBookOutputParams{
 		BookID:              bid,
@@ -447,6 +458,50 @@ func injectChapterAuthors(epubData []byte, chapters []epubChapter) ([]byte, erro
 			}
 			rc.Close()
 		}
+	}
+	if err := zw.Close(); err != nil {
+		return nil, fmt.Errorf("close zip: %w", err)
+	}
+	return out.Bytes(), nil
+}
+
+// stripMimetypeExtraField rewrites the EPUB zip so the mimetype entry has a
+// clean local file header: Method=Store, no Extra bytes, and Modified zeroed
+// (so Go's archive/zip writer does not emit an Extended-Timestamp extra,
+// which is what triggers epubcheck PKG-005). All other entries are
+// re-emitted with their original Method/Modified/Extra preserved.
+func stripMimetypeExtraField(epubData []byte) ([]byte, error) {
+	zr, err := zip.NewReader(bytes.NewReader(epubData), int64(len(epubData)))
+	if err != nil {
+		return nil, fmt.Errorf("open epub: %w", err)
+	}
+	var out bytes.Buffer
+	zw := zip.NewWriter(&out)
+	for _, f := range zr.File {
+		fh := &zip.FileHeader{
+			Name:     f.Name,
+			Method:   f.Method,
+			Modified: f.Modified,
+			Extra:    f.Extra,
+		}
+		if f.Name == "mimetype" {
+			fh.Method = zip.Store
+			fh.Modified = time.Time{}
+			fh.Extra = nil
+		}
+		w, err := zw.CreateHeader(fh)
+		if err != nil {
+			return nil, fmt.Errorf("create %s: %w", f.Name, err)
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return nil, fmt.Errorf("open %s: %w", f.Name, err)
+		}
+		if _, err := io.Copy(w, rc); err != nil {
+			rc.Close()
+			return nil, fmt.Errorf("copy %s: %w", f.Name, err)
+		}
+		rc.Close()
 	}
 	if err := zw.Close(); err != nil {
 		return nil, fmt.Errorf("close zip: %w", err)
