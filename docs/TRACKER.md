@@ -12,9 +12,20 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ## 🟢 Resume here — next session (2026-05-30)
 
-**Last touched:** 2026-05-29 (TRK-DEV-009 — per-chapter EPUB author bylines — landed; TRK-DESIGN-004 fontwork landed in the parallel session if its TRACKER section is also updated).
+**Last touched:** 2026-05-26 (TRK-DEV-012 Phase A + Phase B — anthology chapters as top-level spec + PDF Lua-filter integration — landed).
 
-**Just shipped 2026-05-29 — TRK-DEV-009 done:**
+**Just shipped 2026-05-26 — TRK-DEV-012 Phase A + B done:**
+- `srv/epub.go::parseEPUBSpec`: chapters now read from top-level `spec.chapters[]`; falls back to legacy `spec.epub.chapters[]` with a log line for any DEV-009-era specs.
+- `srv/books.go`: new `(*Server).writeChaptersMetadata` writes `chapters.json` into the pandoc tmpdir when `spec.chapters[]` is non-empty, passed to pandoc via `--metadata-file`.
+- `typesetting/filters/docx-to-typst-enhanced.lua`: `Meta()` reads `meta.chapters`; new `Header()` filter pass emits `#set-story-info(title:, author:)` as a Typst RawBlock before each level-1 heading, indexed by source-order h1 count. Single-author books (no chapters metadata) flow through unchanged.
+- `srv/static/admin.html`: chapters editor moved out of the EPUB card into a new top-level "Anthology" card. One-time client migration `tsMigrateChaptersFromEpub()` rewrites `tsSpec.epub.chapters` → `tsSpec.chapters` on form populate, dirties the spec so the next autosave persists.
+- Tests: `TestParseEPUBSpec_Chapters_TopLevel`, `_LegacyEpubFallback`, `_TopLevelWinsOverLegacy`.
+- **Phase C still open** (auto-detect chapter title + author on upload) — deferred per session prompt.
+- **Next:** TRK-TEST-002 (live Ghosts visual regression) is now end-to-end meaningful: enter the 9 Ghosts chapters in the new Anthology card, recompile, diff PDF + EPUB against the reference. Also TRK-DESIGN-003 (smart punctuation / body alignment) is still queued.
+
+---
+
+**Earlier 2026-05-29 — TRK-DEV-009 done:**
 - `srv/epub.go`: `epubSpec.Chapters` + `injectChapterAuthors` post-pandoc zip rewrite. Splices `<p class="chapter-author">{author}</p>` after the first `<h1>` of each chapter XHTML, matched in spine order. `mimetype` invariant preserved; XML escapes; nav/toc/title/cover skipped.
 - `srv/epub_chapter_test.go`: five unit tests + a `parseEPUBSpec` chapters test.
 - `srv/static/admin.html`: "Chapters (anthology bylines)" repeating-row editor in the EPUB card.
@@ -1390,10 +1401,22 @@ Verify path resolution — pandoc resolves relative to `cmd.Dir` (currently `tmp
 ### TRK-DEV-012 — Anthology chapters as top-level spec + PDF pipeline integration + auto-detection
 
 - area: DEV
-- status: open
+- status: in-progress (Phase A + B landed 2026-05-26; Phase C deferred)
 - priority: P1
 - created: 2026-05-26
 - updated: 2026-05-26
+
+**Phase A landed 2026-05-26:**
+- `srv/epub.go::parseEPUBSpec`: reads from top-level `spec.chapters[]` first; falls back to legacy `spec.epub.chapters[]` (DEV-009 location) for back-compat. Logs the fallback path.
+- `srv/static/admin.html`: chapters editor moved out of the EPUB card into a new top-level "Anthology" card immediately above EPUB. Renamed JS `tsRenderEpubChapters` → `tsRenderChapters` reading `tsSpec.chapters`. One-time client-side migration `tsMigrateChaptersFromEpub()` runs on form populate, mutating `tsSpec.epub.chapters` → `tsSpec.chapters` and marking the spec dirty so the next save persists.
+- Tests: `TestParseEPUBSpec_Chapters_TopLevel`, `…_LegacyEpubFallback`, `…_TopLevelWinsOverLegacy`.
+
+**Phase B landed 2026-05-26:**
+- `srv/books.go::runConversion`: when `spec.chapters[]` is non-empty, writes a `chapters.json` metadata file into the pandoc tmpdir and passes `--metadata-file=chapters.json` to the pandoc invocation. New helper `(*Server).writeChaptersMetadata`.
+- `typesetting/filters/docx-to-typst-enhanced.lua`: `Meta()` reads `meta.chapters` into a Lua table; new `Header()` filter pass emits `#set-story-info(title: "<title>", author: "<author>")` as a Typst RawBlock immediately before each level-1 heading, indexed by source-order h1 count. Single-author books (no metadata) flow through unchanged — Twitter Years output is byte-identical to today's.
+- Quote/backslash escaping in titles/authors (tested via the Fernández smoke name in the Ghosts spec).
+
+**Still open (Phase C):** auto-detect chapter title + author from the manuscript on upload so manual SPA entry isn't required. Pick later when manual-entry friction warrants — deferred per the DEV-012 session prompt.
 - refs: TRK-DEV-009 (filed the EPUB side as `spec.epub.chapters`); `srv/static/admin.html` line ~594 (current Chapters editor inside EPUB card); `srv/epub.go::injectChapterAuthors`; `typesetting/filters/docx-to-typst-enhanced.lua`; `manuscripts/ghosts/main.typ` (reference: per-chapter `set-story-info(title:, author:)` calls — what the SPA pipeline currently doesn't emit)
 
 **Three concerns surfaced during TRK-TEST-002 setup (2026-05-26):**

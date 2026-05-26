@@ -163,12 +163,13 @@ func TestInjectChapterAuthors_PreservesMimetypeFirst(t *testing.T) {
 	}
 }
 
-func TestParseEPUBSpec_Chapters(t *testing.T) {
-	json := `{"epub":{"chapters":[
+func TestParseEPUBSpec_Chapters_TopLevel(t *testing.T) {
+	// TRK-DEV-012: canonical location is spec.chapters[] (top-level).
+	json := `{"chapters":[
 		{"title":"A","author":"Alice","file":"01.md"},
 		{"title":"B","author":"Bob"},
 		{"title":"","author":""}
-	]}}`
+	]}`
 	spec := parseEPUBSpec(json, dbgen.Book{Title: "T", Author: "A"})
 	if len(spec.Chapters) != 2 {
 		t.Fatalf("expected 2 chapters (empty stub dropped); got %d: %+v", len(spec.Chapters), spec.Chapters)
@@ -178,5 +179,29 @@ func TestParseEPUBSpec_Chapters(t *testing.T) {
 	}
 	if spec.Chapters[1].Author != "Bob" {
 		t.Errorf("chapter[1]: %+v", spec.Chapters[1])
+	}
+}
+
+func TestParseEPUBSpec_Chapters_LegacyEpubFallback(t *testing.T) {
+	// TRK-DEV-012: pre-existing DEV-009 specs stored chapters at
+	// spec.epub.chapters[]. Backend reads them when spec.chapters[] is absent.
+	json := `{"epub":{"chapters":[
+		{"title":"Old","author":"Legacy"}
+	]}}`
+	spec := parseEPUBSpec(json, dbgen.Book{Title: "T", Author: "A"})
+	if len(spec.Chapters) != 1 || spec.Chapters[0].Author != "Legacy" {
+		t.Fatalf("expected legacy chapter to be read; got %+v", spec.Chapters)
+	}
+}
+
+func TestParseEPUBSpec_Chapters_TopLevelWinsOverLegacy(t *testing.T) {
+	// If both exist (mid-migration), prefer canonical location.
+	json := `{
+		"chapters":[{"title":"New","author":"NewAuthor"}],
+		"epub":{"chapters":[{"title":"Old","author":"OldAuthor"}]}
+	}`
+	spec := parseEPUBSpec(json, dbgen.Book{Title: "T", Author: "A"})
+	if len(spec.Chapters) != 1 || spec.Chapters[0].Author != "NewAuthor" {
+		t.Fatalf("expected top-level to win; got %+v", spec.Chapters)
 	}
 }

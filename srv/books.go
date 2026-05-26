@@ -227,14 +227,23 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 	// Step 1: direct pandoc docx -> typst using the bundled lua filter.
 	typPath := filepath.Join(tmpDir, "book.typ")
-	pandocCmd := exec.Command("pandoc",
+	pandocArgs := []string{
 		"--from=docx+styles",
 		docxPath,
-		"--lua-filter="+typstFilterPath(),
-		"--extract-media="+filepath.Join(tmpDir, "media"),
+		"--lua-filter=" + typstFilterPath(),
+		"--extract-media=" + filepath.Join(tmpDir, "media"),
 		"-t", "typst",
 		"-o", typPath,
-	)
+	}
+
+	// TRK-DEV-012 Phase B: pass anthology chapter metadata to the Lua filter
+	// via --metadata-file so it can emit per-chapter #set-story-info() calls.
+	// Single-author books (no chapters configured) flow through unchanged.
+	if chaptersFile, ok := s.writeChaptersMetadata(book, tmpDir); ok {
+		pandocArgs = append(pandocArgs, "--metadata-file="+chaptersFile)
+	}
+
+	pandocCmd := exec.Command("pandoc", pandocArgs...)
 	if out, err := pandocCmd.CombinedOutput(); err != nil {
 		s.failConversion(bid, fmt.Sprintf("pandoc typst: %s\n%s", err, string(out)))
 		return
@@ -661,6 +670,50 @@ func literalTypstMentions(s string) string {
 
 func clampTypstInlineImages(s string) string {
 	return typstImageClampRe.ReplaceAllString(s, `#image("$1", width: 100%, fit: "contain"$2)`)
+}
+
+// writeChaptersMetadata looks up the book's spec, extracts anthology chapters,
+// and writes them to a JSON metadata file that pandoc can pass to the Lua
+// filter via --metadata-file. Returns the file path and true on success.
+// Returns ("", false) if the book has no spec, no chapters, or the write
+// fails — caller should treat these as a single-author book.
+//
+// TRK-DEV-012 Phase B.
+func (s *Server) writeChaptersMetadata(book dbgen.Book, tmpDir string) (string, bool) {
+	if !book.ProjectID.Valid {
+		return "", false
+	}
+	q := dbgen.New(s.DB)
+	spec, err := q.GetBookSpec(context.Background(), book.ProjectID.Int64)
+	if err != nil {
+		return "", false
+	}
+	parsed := parseEPUBSpec(spec.Data, book)
+	if len(parsed.Chapters) == 0 {
+		return "", false
+	}
+	type metaChapter struct {
+		Title  string `json:"title"`
+		Author string `json:"author"`
+		File   string `json:"file,omitempty"`
+	}
+	chs := make([]metaChapter, 0, len(parsed.Chapters))
+	for _, c := range parsed.Chapters {
+		chs = append(chs, metaChapter{Title: c.Title, Author: c.Author, File: c.File})
+	}
+	payload, err := json.Marshal(map[string]any{"chapters": chs})
+	if err != nil {
+		return "", false
+	}
+	path := filepath.Join(tmpDir, "chapters.json")
+	if err := os.WriteFile(path, payload, 0644); err != nil {
+		slog.Warn("chapters metadata: write failed; PDF will lack per-chapter set-story-info()",
+			"book_id", book.ID, "err", err)
+		return "", false
+	}
+	slog.Info("chapters metadata written for Lua filter",
+		"book_id", book.ID, "chapters", len(chs))
+	return path, true
 }
 
 func sanitizeFilename(s string) string {

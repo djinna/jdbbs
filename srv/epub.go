@@ -283,28 +283,39 @@ func parseEPUBSpec(specJSON string, book dbgen.Book) epubSpec {
 		if v, ok := epub["custom_css"].(string); ok {
 			spec.CustomCSS = v
 		}
-		if raw, ok := epub["chapters"].([]any); ok {
-			for _, item := range raw {
-				m, ok := item.(map[string]any)
-				if !ok {
-					continue
-				}
-				ch := epubChapter{}
-				if v, ok := m["title"].(string); ok {
-					ch.Title = v
-				}
-				if v, ok := m["author"].(string); ok {
-					ch.Author = v
-				}
-				if v, ok := m["file"].(string); ok {
-					ch.File = v
-				}
-				// Only keep rows that contribute something (author or title
-				// — a row with neither is a stub from the UI).
-				if strings.TrimSpace(ch.Author) != "" || strings.TrimSpace(ch.Title) != "" {
-					spec.Chapters = append(spec.Chapters, ch)
-				}
+	}
+
+	// TRK-DEV-012: chapters live at top-level spec.chapters[]. Fall back to
+	// the DEV-009-era spec.epub.chapters[] location for back-compat — the
+	// admin SPA migrates these on first re-save.
+	chaptersRaw, _ := data["chapters"].([]any)
+	if chaptersRaw == nil {
+		if epub, ok := data["epub"].(map[string]any); ok {
+			if legacy, ok := epub["chapters"].([]any); ok && len(legacy) > 0 {
+				chaptersRaw = legacy
+				slog.Info("epub: reading chapters from legacy spec.epub.chapters[] — admin SPA will migrate on next save")
 			}
+		}
+	}
+	for _, item := range chaptersRaw {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		ch := epubChapter{}
+		if v, ok := m["title"].(string); ok {
+			ch.Title = v
+		}
+		if v, ok := m["author"].(string); ok {
+			ch.Author = v
+		}
+		if v, ok := m["file"].(string); ok {
+			ch.File = v
+		}
+		// Only keep rows that contribute something (author or title — a row
+		// with neither is a stub from the UI).
+		if strings.TrimSpace(ch.Author) != "" || strings.TrimSpace(ch.Title) != "" {
+			spec.Chapters = append(spec.Chapters, ch)
 		}
 	}
 

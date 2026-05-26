@@ -454,6 +454,21 @@ end
 -- DOCUMENT WRAPPER
 -- =============================================================================
 
+-- TRK-DEV-012 Phase B: per-chapter `#set-story-info()` injection for the
+-- Typst output. The Go pipeline writes a chapters.json metadata file and
+-- passes it via --metadata-file when the book spec has spec.chapters[].
+-- We read it here and emit a RawBlock before every level-1 heading, indexed
+-- by source-order h1 count. Single-author books (no metadata) are unchanged.
+local chapter_meta = nil
+local h1_count = 0
+
+local function typst_escape(s)
+  if not s then return "" end
+  s = s:gsub('\\', '\\\\')
+  s = s:gsub('"', '\\"')
+  return s
+end
+
 function Meta(meta)
   local map_count = load_edge_decisions_map(meta)
   if map_count > 0 then
@@ -461,7 +476,30 @@ function Meta(meta)
   else
     load_edge_decisions(meta)
   end
+
+  if meta.chapters then
+    chapter_meta = {}
+    for _, c in ipairs(meta.chapters) do
+      local t = ""
+      local a = ""
+      if c.title then t = pandoc.utils.stringify(c.title) end
+      if c.author then a = pandoc.utils.stringify(c.author) end
+      table.insert(chapter_meta, { title = t, author = a })
+    end
+  end
   return nil
+end
+
+function Header(el)
+  if el.level ~= 1 then return nil end
+  if not chapter_meta then return nil end
+  h1_count = h1_count + 1
+  local c = chapter_meta[h1_count]
+  if not c then return nil end
+  local title = typst_escape(c.title)
+  local author = typst_escape(c.author)
+  local raw = string.format('#set-story-info(title: "%s", author: "%s")\n', title, author)
+  return { pandoc.RawBlock("typst", raw), el }
 end
 
 local function is_convert_comment_block(block)
@@ -563,6 +601,7 @@ return {
   { Span = Span },
   { Div = Div },
   { Para = Para },
+  { Header = Header },
   { HorizontalRule = HorizontalRule },
   { CodeBlock = CodeBlock },
   { BlockQuote = BlockQuote },
