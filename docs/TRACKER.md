@@ -857,14 +857,46 @@ Three plausible patterns for spec → template config override (param to `#book(
 - updated: 2026-05-25
 - refs: srv/bookspecs.go (handleGenerateConfig already exists), srv/books.go (runConversion needs spec injection), typesetting/templates/series-template.typ (already accepts merge-config); PRODUCTION_ROADMAP_2026-05-25.md (CP-1)
 
-The keystone gap: `handleGenerateConfig` produces a valid Typst config from book_spec, but `runConversion()` in `books.go` doesn't consume it — spec edits never reach the compiled PDF. **Action:**
+The keystone gap: `handleGenerateConfig` produces a valid Typst config from book_spec, but `runConversion()` in `books.go` doesn't consume it — spec edits never reach the compiled PDF.
 
-1. In `runConversion()`: load the project's book_spec (via `book.project_id`), render `config.typ` next to generated `main.typ`, prepend an import to main.typ.
-2. New endpoint `POST /api/projects/{id}/book-spec/compile` that orchestrates: load spec → load source manuscript → write config.typ + main.typ → invoke typst → return PDF artifact + log.
-3. Wire the existing admin SPA "Compile PDF" button to the new endpoint.
-4. Smoke test with one real book end-to-end (Twitter Years or Ghosts).
+#### Current state (audited 2026-05-25 — start here, don't re-discover)
 
-**Effort:** 3-4 hours. **Blocks:** TRK-DESIGN-001 (Ghosts parity needs working compile), TRK-TEST-001 (compile fixtures need working compile). **Fold in:** TRK-MIG-007 (verify/bundle Libertinus on VM during this session).
+**Already shipped, reuse:**
+- `srv/bookspecs.go::handleGenerateConfig` (line ~454) — given a project, produces a Typst config dict. Output format matches what `series-template.typ::merge-config` expects.
+- `srv/bookspecs.go` — full CRUD for `book_specs`: GET, PUT, pull-transmittal, generate-word-template, upload-cover.
+- `typesetting/templates/series-template.typ` (lines 13-90) — `default-config` dict + `merge-config()` (line 80-86). Callers can merge overrides before importing.
+- `db/migrations/008-book-specs.sql` — `book_specs` table, one per project.
+- `db/migrations/009-book-project-link.sql` — `books.project_id` FK (needed to look up spec from book).
+- Admin SPA "Compile PDF" button exists in `srv/static/admin.html` (~line 550-700). Currently calls preflight endpoint, not a compile endpoint.
+- `typesetting/scripts/build.sh` — Typst-to-PDF wrapper. Likely the right shell to invoke from Go.
+
+**Missing seam — this ticket:**
+- No call to `handleGenerateConfig` from `runConversion()` in `srv/books.go`.
+- `runConversion()` writes a bare `main.typ` with no spec-derived config import.
+- No `POST /api/projects/{id}/book-spec/compile` endpoint.
+- Admin SPA "Compile PDF" button is wired to preflight, not to compile.
+
+**Watch out:**
+- VM systemd unit `prodcal.service` is path-sensitive (TRK-OPS-005) — do NOT touch the unit file. Just push new binary + restart.
+- VM dir is still `/home/exedev/prodcal/` (TRK-OPS-008 deferred). Local path is `~/jd-projects/jdbbs/` — same content, different parent name.
+- Single canonical repo as of 2026-05-25 (TRK-MIG-009). Push to `djinna/jdbbs`, deploy by `ssh exedev@jdbbs.exe.xyz 'cd /home/exedev/prodcal && git pull && go build -o prodcal ./cmd/srv && sudo systemctl restart prodcal'`.
+
+#### Implementation steps
+
+1. **In `srv/books.go::runConversion()`**: after determining output dir, look up the book's project's book_spec; if present, render `config.typ` (same shape as handleGenerateConfig output, but written to a file) into the working dir; prepend `#import "config.typ": *` (or `merge-config`-pattern import) to generated `main.typ`. Fall back to default-config when no spec exists.
+2. **New endpoint** `POST /api/projects/{id}/book-spec/compile` in `srv/bookspecs.go`: load spec → resolve linked book(s) → invoke runConversion() with PDF target → return JSON `{pdf_url, log}` (or stream the PDF). Mirror the existing generate-word-template endpoint's shape.
+3. **Wire admin SPA**: in `srv/static/admin.html`, find the existing "Compile PDF" button in the Typesetting tab; change its handler to POST the new endpoint; surface log + download link in the existing output area.
+4. **Refactor opportunity (optional, defer if time-pressed)**: extract config-rendering from `handleGenerateConfig` into a `renderTypstConfig(spec)` helper that both the existing endpoint and `runConversion()` call. Avoids duplication.
+5. **Smoke test end-to-end on the VM**: pick a real book (Twitter Years has real content), edit spec in admin UI, click Compile PDF, download artifact, eyeball it. Check that spec changes (base size, leading, section break style) actually appear in the PDF.
+
+#### Acceptance checks
+- Spec change in admin UI → recompile → visible diff in PDF.
+- Compile endpoint returns within 30s for a single-chapter book.
+- Default-config fallback works for projects with no spec.
+- No regression to existing `handleGenerateConfig` callers.
+- Service restart is clean (no orphan race per TRK-OPS-005).
+
+**Effort:** 3-4 hours. **Blocks:** TRK-DESIGN-001 (Ghosts parity needs working compile), TRK-TEST-001 (compile fixtures need working compile). **Fold in:** TRK-MIG-007 (verify/bundle Libertinus on VM during this session — `ssh exedev@jdbbs.exe.xyz 'fc-list | grep -i libertinus'`; if absent, `apt install fonts-libertinus`).
 
 ### TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)
 
