@@ -152,6 +152,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
 - [Dev (DEV)](#dev-dev)
   - [TRK-DEV-001 — `series-template.typ` config override mechanism (consolidate)](#trk-dev-001--series-templatetyp-config-override-mechanism-consolidate)
   - [TRK-DEV-002 — Wire spec → Typst compile pipeline (CP-1, KEYSTONE)](#trk-dev-002--wire-spec--typst-compile-pipeline-cp-1-keystone)
+  - [TRK-DEV-004 — Special-typography preservation class](#trk-dev-004--special-typography-preservation-class-data-model--preflight--pipeline)
   - [TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)](#trk-dev-003--wire-spec--epub-compile-pipeline-cp-2)
 - [Translation (TRANS) — v2](#translation-trans--v2)
   - [TRK-TRANS-001..009 — see PRODUCTION_ROADMAP_2026-05-25.md](#translation-trans--v2)
@@ -906,6 +907,54 @@ Three plausible patterns for spec → template config override (param to `#book(
 - Service restart is clean (no orphan race per TRK-OPS-005).
 
 **Effort:** 3-4 hours. **Blocks:** TRK-DESIGN-001 (Ghosts parity needs working compile), TRK-TEST-001 (compile fixtures need working compile). **Fold in:** TRK-MIG-007 (verify/bundle Libertinus on VM during this session — `ssh exedev@jdbbs.exe.xyz 'fc-list | grep -i libertinus'`; if absent, `apt install fonts-libertinus`).
+
+### TRK-DEV-004 — Special-typography preservation class (data model + preflight + pipeline)
+
+- area: DEV
+- status: open
+- priority: P2
+- created: 2026-05-25
+- updated: 2026-05-25
+- refs: docs/notes/2026-04-12-special-typography-preflight-and-ascii-preservation.md (original design discussion); docs/notes/2026-04-13-typst-pipeline-rewire-and-testing-retro.md (the Twitter Years QA session where this surfaced); docs/notes/2026-04-14-preflight-redesign-parked.md (preflight UI redesign that came out of the same period)
+
+**Problem.** Layout-sensitive content (ASCII art, tweet snapshots, poem-like blocks, terminal transcripts, preserved-formatting reproductions) gets silently normalized somewhere between manuscript → output. During the April 2026 Twitter Years QA sessions this caused visible breakage in PDF output and remains an open semantic gap. The original note's framing is the right one: this isn't "bad spacing" — it's *intentional preformatted content* that needs to be declared and preserved.
+
+**Why this matters now.** Twitter Years (project 7, book 6) is the first real book targeted at the v1 pipeline (TRK-DEV-002). A tweet-feed book is dense with this exact content class. If TRK-DEV-002's smoke test produces a PDF where tweet snapshots are mangled, the bug is here, not in the compile wiring.
+
+**Scope — three layers:**
+
+1. **Data model.** Add a structured "special typography" section to the transmittal (and surface it in book_specs). Per item:
+   - label / short name
+   - manuscript location or chapter
+   - description of intent
+   - expected treatment
+   - Word style to apply
+   - EPUB treatment (CSS class or block-level rule)
+   - print treatment (Typst directive or named style)
+   - notes / unresolved questions
+
+2. **Preflight.** Extend the existing preflight (`scripts/detect-edge-cases.py`, redesigned 2026-04-14 per parked note) to output:
+   - declared special-typography blocks (from transmittal/spec) — confirmed present in manuscript
+   - observed layout-sensitive content NOT declared (suspicious — needs editorial review)
+   - undeclared items block the compile until resolved or explicitly waived
+
+3. **Pipeline preservation.** Both DOCX→Typst (via `docx-to-typst-enhanced.lua`) and DOCX→EPUB (via the spec→CSS path being built in TRK-DEV-003) must consume the declared-items list and emit the right wrapper (semantic Typst block / EPUB div with the right class). No silent normalization of whitespace, line breaks, or block boundaries inside a declared item.
+
+**Approach (suggested phasing — each could be a separate sub-session):**
+
+- **Phase A** — data model only: extend transmittal JSON schema; add UI section in `srv/static/transmittal.js`; ship without changing pipeline behavior. ~1 session.
+- **Phase B** — preflight integration: declared items survive into the preflight report; undeclared layout-sensitive content gets flagged. ~1 session.
+- **Phase C** — pipeline preservation in Typst path. Add Lua-filter handling for declared blocks; verify ASCII art and tweet snapshots round-trip. Should be done WITH or AFTER TRK-DEV-002 ships. ~1 session.
+- **Phase D** — pipeline preservation in EPUB path. CSS classes + Pandoc filter. Should be done WITH or AFTER TRK-DEV-003 ships. ~1 session.
+
+**Acceptance check** (Twitter Years smoke test):
+- Transmittal has at least one declared special-typography item (e.g. "tweet feed snippet").
+- Manuscript contains that item.
+- Preflight confirms declared item present; no undeclared layout-sensitive content flagged.
+- Compiled PDF preserves the item's spacing, line breaks, and block structure exactly.
+- Compiled EPUB does the same (lossy-by-design only where reflow demands it; no silent whitespace collapse).
+
+**Relationship to v2 (translation layer):** the same preservation contract will need to survive translation (the bilingual side-by-side format from TRK-TRANS-002 must keep declared blocks intact, and per-language Typst templates need lang-agnostic handling of preformatted blocks). Worth keeping in mind during Phase A's schema design — the spec for a declared item probably needs a `translatable: bool` flag so things like ASCII art (don't translate) are distinguished from tweet snapshots (translate the text inside, preserve the structure).
 
 ### TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)
 
