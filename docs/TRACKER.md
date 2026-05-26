@@ -12,28 +12,23 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ## 🟢 Resume here — next session (2026-05-29)
 
-**Last touched:** 2026-05-28.
+**Last touched:** 2026-05-26 (orchestrator fan-out: DEV-007 in a fresh Claude Code session + OPS-006 and DESIGN-001 audit in the orchestrator).
 
-**Just shipped this session — TRK-DEV-007 (diff-vs-previous UI) done:**
-- Compile-history panel rows now show a `diff` link that toggles an inline two-column comparison (spec changes left, corrections changes right) against the immediately-preceding compile of the same format. Empty diffs render explicit copy; legacy pre-snapshot rows degrade gracefully (greyed link + "earlier compile had no spec snapshot" rather than throwing).
-- JS-only landing in `srv/static/admin.html`: helpers `tsSpecDiff` (recursive JSON walk, stable-sorted, flat path list), `tsParseCorrectionsYAML` (parses the `%q`-quoted YAML emitted by `renderCorrectionsYAML` via `JSON.parse('"' + raw + '"')`), `tsCorrectionsDiff` (set-diff keyed on `find`, returns added/removed/changed with per-field deltas). `tsRenderHistory` upgraded to fetch with `?include=spec,corrections` and cache rows in `tsHistoryRows[el.id]` so the diff-toggle handler can look up the older row by index.
-- Unit-tested the three helpers under `node --check` plus a behavioral script before pushing. No API, no Go, no schema changes — pure JS in an embedded static file (Go rebuild on the VM picks it up).
-- TRK-DEV-007 marked `done` in TRACKER.
+**Just shipped 2026-05-26 — three concurrent workstreams landed:**
 
-**Pre-existing context (carried forward from 2026-05-26 — verify before relying on):**
-- TRK-MIG-006 corrections round-trip live on PDF + EPUB; migration 016 (`book_outputs.corrections_snapshot`) applied; snapshots populated since.
+1. **TRK-DEV-007 (diff-vs-previous UI) done.** Compile-history panel rows now show a `diff` link that toggles an inline two-column comparison (spec changes left, corrections changes right) against the immediately-preceding compile of the same format. Empty diffs render explicit copy; legacy pre-snapshot rows degrade gracefully. JS-only landing in `srv/static/admin.html`: helpers `tsSpecDiff`, `tsParseCorrectionsYAML`, `tsCorrectionsDiff`; `tsRenderHistory` upgraded to fetch with `?include=spec,corrections`. Commit `705eb3f`.
+
+2. **TRK-OPS-006 done.** Prod DB cleaned: 12 → 1 projects. Twitter Years (id 7) preserved; the other 11 (Art of Gig, tweetbook, Digital Garden, multiple test/smoke projects) deleted in a single transaction under `PRAGMA foreign_keys = ON;`. All FK cascades fired correctly. Zero orphans. VACUUM ran. Backup at `~/backups/prodcal-20260526-032947.sqlite3.gz`. Full before/after counts in TRK-OPS-006 close.
+
+3. **TRK-DESIGN-001 audited; parity matrix shipped.** Doc at `docs/GHOSTS_PARITY_2026-05-26.md`: 25 ✅ / 10 ⚠️ (need live compile) / 1 ❌ (PDF/X-4 — Typst limitation). **Single biggest gap:** anthology per-chapter author bylines work on the Typst side (`set-story-info()` per chapter in template + main.typ) but break in the EPUB pipeline — `book_specs.data` has no per-chapter author array, so pandoc emits one book-level author. Critical-path for Ghosts-like series after Twitter Years. Three child tickets surfaced: TRK-DEV-009, TRK-DESIGN-004, enriched TRK-TEST-002. Commit `6480e94`.
+
+**Pre-existing context (2026-05-26 earlier — TRK-MIG-006 + TRK-DEV-008):**
+- Corrections round-trip live on PDF + EPUB; migration 016 (`book_outputs.corrections_snapshot`) applied; snapshots populated since.
 - TRK-DEV-008 filed (P3, patcher ergonomics) — pick when warranted.
 
-**Just shipped 2026-05-26 — TRK-MIG-006 (CP-3) done; TRK-DEV-008 filed:**
-- TRK-MIG-006: corrections pipeline round-trip live on both PDF and EPUB. Pending corrections (`status='pending'`) materialize as YAML in-process, patch the source docx via `apply-corrections-docx.py` before pandoc runs. Patcher extended from body-only to body + tables + headers/footers + footnotes + endnotes (footnotes/endnotes go through a `.blob` round-trip since python-docx models them as plain `Part`, not `XmlPart`). In-memory metadata also patched so the EPUB/PDF title pages reflect corrections (pandoc/typst receive author/title via flags, not from docx content). Migration 016 adds `book_outputs.corrections_snapshot TEXT NULL`; `?include=spec,corrections` returns both per row.
-- Status flips stay manual on purpose: every compile re-applies pending from the original docx, so auto-flipping would silently drop the fix on the next compile. The user marks applied when the canonical Word doc subsumes the fix.
-- Verified live with `Venkatesh → Venkat` (body byline, footnote citation, pandoc metadata) and `alchemy → al-TEST` (body-local). Matching is case-sensitive by design (matches the `iphone → iPhone` example); `Alchemy` needs its own row.
-- TRK-DEV-008 filed (P3) with eight candidate ergonomics improvements — case-insensitive flag, whole-word matching, per-scope filters, surfaced patcher warnings, dry-run preview, snapshot diff in history panel, and two notes on auto-marking-applied that need data-model thought first.
-- Commits `9af05ad`, `d69b4e3`, `3918527`, `10a07c7`. Live on jdbbs.exe.xyz; migration 016 confirmed applied; HTTP/2 200; service active.
-
-**Pre-existing live state (unchanged):**
-- `prodcal` service active on `jdbbs.exe.xyz`, MainPID==listener (Type=notify), DB at `/home/exedev/prodcal/db.sqlite3`, projects=12, books=6 (Twitter Years is #7).
-- Backup pipeline 3-2-1 satisfied; sentinels green.
+**Live state:**
+- `prodcal` service active on `jdbbs.exe.xyz`, MainPID==listener (Type=notify), DB at `/home/exedev/prodcal/db.sqlite3`. Projects=1, books=6 (all linked to Twitter Years #7). Backup pipeline 3-2-1 satisfied; sentinels green.
+- DB size grew from 117MB (TRK-MIG-009 cutover, 2026-05-12) to 276MB (2026-05-26) — `book_outputs.output_data` BLOBs from accumulating compile artifacts. Tracked as TRK-OPS-009 (retention policy, P3).
 
 **Run before doing anything else** (use `jpull` on the Mac first):
 
@@ -49,18 +44,24 @@ curl -sI https://jdbbs.exe.xyz | head -1
 
 Expect: `prodcal active`, `OK`, `16/15/14`, `HTTP/2 200`.
 
-**Next priorities (see `docs/PRODUCTION_ROADMAP_2026-05-25.md` for the full v1→v2 path):**
+**Next priorities — release-confidence track for Ghosts-like anthologies:**
 
-1. **TRK-DESIGN-001 (CP-5)** — Ghosts parity matrix. The release-confidence check after CP-1..CP-4. ~2-3 hours.
-2. **TRK-OPS-006** — drop 12 test/dummy projects from prod DB. ~5-10 min, mechanical (backup → `DELETE FROM projects WHERE id != 7` → verify cascades).
-3. **TRK-DEV-004** — Special-typography preservation class (data model + preflight + pipeline). ~3 sessions; Phase A first.
-4. **TRK-DEV-008** (any single item) — corrections patcher ergonomics; item 1 (case-insensitive flag) is the cheapest unlock if a real correction set surfaces case-mismatch pain.
+1. **TRK-DEV-009 (P1, ~3-4 hours)** — Per-chapter author in EPUB spec + pipeline. The single biggest gap from the Ghosts parity audit. Extend `book_specs.data.epub` with a chapters array (`{ title, author }[]`) and wire pandoc EPUB generation to use it. Without this, all multi-author anthologies (Ghosts, Librarians, future titles) fail in EPUB.
+2. **TRK-TEST-002 (P1, ~2-3 hours)** — Live Ghosts compilation + visual regression. Run `manuscripts/ghosts/main.typ` through Typst on VM (or local), pandoc-compile the same source to EPUB, diff page-by-page against `reference/GHOSTS.pdf`/`.epub`. Closes the 10 ⚠️ cells in the parity matrix. After DEV-009 lands so the EPUB diff is meaningful.
+3. **TRK-DESIGN-004 (P1, ~2-3 hours)** — CJK/Thai font bundling decision. Ghosts has CJK (Hiragino) and Thai (Thonburi) content; current code has CSS rules but no Typst fallback. Decide: bundle commercial fonts (TRK-DESIGN-002 covers licensing) or pick OFL alternatives.
+4. **TRK-DESIGN-003 (P2, ~2-3 hours)** — Typography drift audit + smart-punctuation conversion. Body alignment (justify vs ragged-right) is the one confirmed CSS drift item; smart-punctuation conversion not yet wired in pandoc invocations. Likely fold in during a TEST-002 visual-diff session.
 
-After CP-5 ships, v1 workflow is "complete." Translation layer (v2) is **TRK-TRANS-001..009** — see `docs/PRODUCTION_ROADMAP_2026-05-25.md`.
+**Track 2 (after DEV-009 ships):**
+
+5. **TRK-DEV-004** — Special-typography preservation class (data model + preflight + pipeline). ~3 sessions; Phase A is data model only.
+6. **TRK-DEV-008 (any single item)** — corrections patcher ergonomics; item 1 (case-insensitive flag) is the cheapest unlock; item 4 (surface patcher warnings) is the highest-leverage.
+7. **TRK-OPS-009 (P3)** — book_outputs retention policy. ~30 min when growth becomes uncomfortable.
+
+After DEV-009 + TEST-002 + DESIGN-004 ship, v1 workflow is "complete enough to ship Ghosts-like titles." Translation layer (v2) is **TRK-TRANS-001..009** — see `docs/PRODUCTION_ROADMAP_2026-05-25.md`.
 
 **Open questions for the user:**
 
-- 12 test projects in prod DB — disposable or any worth exporting before delete? (Earlier confirmed only Twitter Years is real.)
+- TRK-DESIGN-002 — commercial font licenses (Plantin MT Pro, Proxima Nova, Hiragino, Thonburi): user said yes earlier. Locate license docs, decide bundling vs subs.
 - Want a real alert channel (Discord webhook / ntfy.sh / email) for backup-health failures?
 - VM-side rename (`/home/exedev/prodcal/` → `/home/exedev/jdbbs/`, plus systemd unit) — defer indefinitely or schedule?
 
@@ -187,6 +188,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-OPS-002 — Verify TLS termination and reverse proxy path](#trk-ops-002--verify-tls-termination-and-reverse-proxy-path)
   - [TRK-OPS-003 — SQLite WAL hygiene + backup verification](#trk-ops-003--sqlite-wal-hygiene--backup-verification)
   - [TRK-OPS-008 — VM-side rename: prodcal → jdbbs](#trk-ops-008--vm-side-rename-prodcal--jdbbs-directory-systemd-unit-binary-scripts)
+  - [TRK-OPS-009 — book_outputs retention policy](#trk-ops-009--book_outputs-retention-policy)
   - [TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/](#trk-ops-004--env-on-disk-in-homeexedevprodcal)
 - [Security (SEC)](#security-sec)
   - [TRK-SEC-008 — Resolve 6 Dependabot vulnerabilities on `djinna/prodcal`](#trk-sec-008--resolve-6-dependabot-vulnerabilities-on-djinnaprodcal)
@@ -206,6 +208,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
 - [Design / Typography (DESIGN)](#design--typography-design)
   - [TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix](#trk-design-001--ghosts-indesign--typst-parity-matrix)
   - [TRK-DESIGN-003 — Typography drift audit + smart-punctuation conversion](#trk-design-003--typography-drift-audit--smart-punctuation-conversion-epub-and-typst)
+  - [TRK-DESIGN-004 — CJK/Thai font bundling & fallback strategy](#trk-design-004--cjkthai-font-bundling--fallback-strategy)
   - [TRK-DESIGN-002 — Commercial font licensing & bundling](#trk-design-002--commercial-font-licensing--bundling)
 - [Dev (DEV)](#dev-dev)
   - [TRK-DEV-001 — `series-template.typ` config override mechanism (consolidate)](#trk-dev-001--series-templatetyp-config-override-mechanism-consolidate)
@@ -213,6 +216,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-DEV-004 — Special-typography preservation class](#trk-dev-004--special-typography-preservation-class-data-model--preflight--pipeline)
   - [TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)](#trk-dev-003--wire-spec--epub-compile-pipeline-cp-2)
   - [TRK-DEV-007 — Diff-vs-previous UI in compile-history panel](#trk-dev-007--diff-vs-previous-ui-in-compile-history-panel)
+  - [TRK-DEV-009 — Per-chapter author in EPUB spec + pipeline (anthology critical-path)](#trk-dev-009--per-chapter-author-in-epub-spec--pipeline-anthology-critical-path)
   - [TRK-DEV-005 — Compile-history panel in admin SPA](#trk-dev-005--compile-history-panel-in-admin-spa)
   - [TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile](#trk-dev-006--snapshot-spec-json-into-book_outputs-per-compile)
   - [TRK-DEV-008 — Corrections patcher ergonomics](#trk-dev-008--corrections-patcher-ergonomics)
@@ -520,21 +524,38 @@ nginx on the VM has only a generic `_` server block — it doesn't terminate TLS
 ### TRK-OPS-006 — Clean up 12 test/dummy projects in production DB
 
 - area: OPS
-- status: open
+- status: done
 - priority: P2
 - created: 2026-05-12
-- updated: 2026-05-12
-- refs: live DB `/home/exedev/prodcal/db.sqlite3`
+- updated: 2026-05-26
+- refs: backup `~/backups/prodcal-20260526-032947.sqlite3.gz` on VM
 
-Only project #7 "The Twitter Years: 2007–22" is canonical (per user 2026-05-12). The other 12 — Art of Gig, tweetbook, The Digital Garden, test, Smoke Test, 9apr26 test, test (again), Admin 9 Apr Seed Check, test 3, test 01, test 02 — are leftover test/dummy projects.
+**Done 2026-05-26.** Fresh backup taken via `scripts/backup-db.sh` (probe: projects=12 books=6 integrity=ok, 261MB gzipped). Executed `DELETE FROM projects WHERE id != 7` in a single transaction with `PRAGMA foreign_keys = ON;`.
 
-**Action:**
-1. Pre-cleanup snapshot: `sqlite3 db.sqlite3 ".backup 'backups/pre-cleanup-$(date +%Y%m%dT%H%M%SZ).sqlite3'"`.
-2. In one transaction: `DELETE FROM projects WHERE id != 7`. Verify any cascading deletes (book_specs.project_id, books.project_id, manuscript_preflights.project_id, transmittals.project_id) are wired correctly via FK ON DELETE or need explicit DELETEs.
-3. Verify project #7's books survive (should — only that project has books) and that the SPA renders correctly with one project visible.
-4. Reclaim space with `VACUUM` if the deletion freed substantial DB rows.
+**Important gotcha for future similar work:** SQLite's `PRAGMA foreign_keys` defaults to OFF per-connection. Without enabling it explicitly, FK cascades silently no-op — the DELETE succeeds but leaves orphans in every dependent table. Always set the pragma at the start of any session that depends on cascades.
 
-Risk: low. Reversible from backups if needed.
+**Before → after row counts:**
+
+| Table | Before | After | Cascade source |
+|---|---:|---:|---|
+| projects | 12 | 1 | (target of DELETE) |
+| books | 6 | 6 | `project_id` ON DELETE SET NULL — all already linked to #7, none orphaned |
+| book_specs | 5 | 1 | ON DELETE CASCADE |
+| transmittals | 9 | 1 | ON DELETE CASCADE |
+| transmittal_versions | 27 | 12 | via transmittals CASCADE |
+| corrections | 2 | 1 | ON DELETE CASCADE |
+| tasks | 166 | 0 | ON DELETE CASCADE (project 7 had no tasks) |
+| manuscript_preflights | 12 | 12 | all 12 linked to project 7 |
+| journal | 4 | 0 | ON DELETE CASCADE |
+| file_log | 4 | 0 | ON DELETE CASCADE |
+| auth_tokens | 3 | 0 | ON DELETE CASCADE |
+| book_outputs | 22 | 22 | via books (books retained → outputs retained) |
+
+Zero orphans verified post-commit. VACUUM ran.
+
+**Note:** Deleted project names were Art of Gig, tweetbook, The Digital Garden, test (twice), Smoke Test 2026-04-08, 9apr26 test, Admin 9 Apr Seed Check, test 3, test 01, test 02. None named "Ghosts" — the Ghosts manuscript lives at `manuscripts/ghosts/` in the repo and `reference/GHOSTS.{pdf,epub}` for the golden output, not as a DB project. The Typst direct-compile path doesn't need a DB project; if/when the admin SPA path is needed for Ghosts (e.g. after TRK-DEV-009 to test multi-author EPUB end-to-end), a fresh Ghosts project would be created from the manuscript DOCX upload.
+
+**DB size note:** post-VACUUM size is 276MB (up from 117MB at TRK-MIG-009 cutover 2026-05-12). Growth dominated by `book_outputs.output_data` BLOBs from compile-history retention. Tracked as TRK-OPS-009.
 
 ### TRK-OPS-007 — Backup hygiene: integrity probes + off-VM replication
 
@@ -650,6 +671,26 @@ Cosmetic cleanup deferred from MIG-009. After 2026-05-25, GitHub repo is `djinna
 8. Confirm next backup cron run produces a valid sentinel.
 
 Risk: TRK-OPS-005's orphan-race fix depends on `Type=notify` + `sd_notify` ordering — re-validate after the unit-file rewrite. Plan ≥30 min and have a rollback (revert the unit file, mv directory back).
+
+### TRK-OPS-009 — book_outputs retention policy
+
+- area: OPS
+- status: open
+- priority: P3
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: db/migrations/014-book-output-history.sql; TRK-DEV-005 close note ("keep everything for now"); 2026-05-26 observation: DB grew from 117MB to 276MB in two weeks
+
+**Context.** Every PDF/EPUB compile persists the full artifact bytes into `book_outputs.output_data` (DEV-005). Over a couple of weeks of dev compiling, the DB grew from 117MB (cutover 2026-05-12) to 276MB (2026-05-26). Most of that is `book_outputs` BLOBs.
+
+Not urgent — backups are still under 300MB gzipped, R2 cost is trivial — but worth a policy before it reaches a real pain point. Options:
+
+1. **Keep latest N per (book_id, output_format).** Simple `DELETE` cron, e.g. keep 20 of each. Loses history beyond that window.
+2. **Keep all "marked" outputs + latest N otherwise.** Add `book_outputs.pinned BOOLEAN DEFAULT 0`; users mark via UI; pruning skips pinned rows.
+3. **Move blobs to filesystem after N days.** `book_outputs.output_data` becomes a filesystem path for older rows. More complex; defers the size pressure rather than removing it.
+4. **Do nothing.** Plausible for the next 6-12 months at current growth rate.
+
+**Recommendation:** option 2, but file as a small implementation ticket only when DB size hits ~1GB or backup duration becomes noticeable. Until then, this is just a watch item.
 
 ### TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/
 
@@ -838,11 +879,23 @@ A built Go binary lives at the prodcal repo root. Tracked in git, in CI artifact
 ### TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix
 
 - area: DESIGN
-- status: open
+- status: in-progress (audit done; live-compile verification + child tickets remain)
 - priority: P1
 - created: 2026-05-12
-- updated: 2026-05-12
-- refs: book-prod/reference/GHOSTS.pdf (136 pages, 353.811 × 546.567 pt = 4.91 × 7.59 in, PDF/X-4, InDesign 21.0)
+- updated: 2026-05-26
+- refs: `docs/GHOSTS_PARITY_2026-05-26.md` (full audit, 25✅/10⚠️/1❌); `reference/GHOSTS.pdf` (136 pages, 353.811 × 546.567 pt = 4.91 × 7.59 in, PDF/X-4, InDesign 21.0); `manuscripts/ghosts/main.typ` (per-chapter Typst sources with `set-story-info()` configured for 9 chapters)
+
+**2026-05-26 audit done (subagent, read-only).** Full matrix in `docs/GHOSTS_PARITY_2026-05-26.md`. Summary: 25 ✅ items match code, 10 ⚠️ need live-compile verification, 1 ❌ (PDF/X-4 — Typst limitation; post-process via Ghostscript possible).
+
+**Critical finding:** anthology per-chapter author bylines work on the Typst side (`set-story-info(title:, author:)` per chapter in template; main.typ configures 9 chapters with different authors) but **break in the EPUB pipeline** — `book_specs.data` schema has no per-chapter author array, so pandoc emits one book-level author for the whole EPUB regardless of source markup. Filed as **TRK-DEV-009** (P1, critical-path for Ghosts-like anthologies).
+
+**Child tickets filed/enriched:**
+- TRK-DEV-009 — Per-chapter author in EPUB spec + pipeline (new, P1)
+- TRK-DESIGN-004 — CJK/Thai font bundling (new, P1) — Ghosts has multilingual content (Hiragino, Thonburi)
+- TRK-TEST-002 — enriched with concrete visual-regression approach (existing, P1) — live compile + page-by-page diff vs reference
+- TRK-DESIGN-003 — already covers body-alignment drift + smart-punctuation (existing, P2)
+
+**Closure criteria:** the 10 ⚠️ cells get resolved via TRK-TEST-002 live compilation; the 1 ❌ (PDF/X-4) is accepted as can't-have unless a post-process step is added later. Final close happens after TRK-DEV-009 + TRK-DESIGN-004 + TRK-TEST-002 all ship.
 
 The published Ghosts PDF is the golden parity target. Embedded fonts: Plantin MT Pro (R/I), Proxima Nova (B/SB/M), Menlo, HiraKakuPro-W3, Thonburi (last two for CJK/Thai glyphs).
 
@@ -871,7 +924,7 @@ The published Ghosts PDF is the golden parity target. Embedded fonts: Plantin MT
 | PDF/X-4 prepress output | yes | not directly (PDF/A possible) | ❌ | likely cant-have; or post-process via Ghostscript |
 | ICC color profile embedded | yes | unknown | ❓ | needs check |
 
-**Action:** spend a focused pass with InDesign PDF + a rendered Typst PDF side-by-side; fill remaining `❓` cells; produce a final cant-have list.
+**Original action (superseded by 2026-05-26 audit above):** ~~spend a focused pass with InDesign PDF + a rendered Typst PDF side-by-side; fill remaining `❓` cells; produce a final cant-have list.~~ The detailed audit is in `docs/GHOSTS_PARITY_2026-05-26.md`; remaining ❓/⚠️ cells will close via TRK-TEST-002 (live compile + diff).
 
 ### TRK-DESIGN-003 — Typography drift audit + smart-punctuation conversion (EPUB and Typst)
 
@@ -904,6 +957,37 @@ Verify the conversion doesn't bleed into declared special-typography blocks (TRK
 - EPUB CSS audit produces a documented list of drift items with per-item decisions.
 
 Fold into the same session as TRK-DEV-003 (now closed) — or schedule independently after the diagnostic loop (TRK-DEV-005/006) lands.
+
+### TRK-DESIGN-004 — CJK/Thai font bundling & fallback strategy
+
+- area: DESIGN
+- status: open
+- priority: P1
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: TRK-DESIGN-001, TRK-DESIGN-002, `docs/GHOSTS_PARITY_2026-05-26.md` §"CJK Glyphs" / "Thai Glyphs"; `typesetting/templates/epub/epub-styles.css` (lines 344-353 — `.chinese` / `.thai` classes already declared); `manuscripts/ghosts/` (contains CJK + Thai content per parity audit)
+
+**Problem.** Reference GHOSTS.pdf embeds HiraKakuPro-W3 (Japanese) and Thonburi (Thai) fonts for multilingual content (the Khlongs chapter and other passages). Current state:
+- **Typst:** no CJK/Thai font bundled in `typesetting/fonts/`; would fall back to OS defaults (works on macOS, unpredictable on Linux/VM)
+- **EPUB:** CSS classes `.chinese` / `.thai` reference Hiragino/Thonburi by name with fallback stacks; e-reader rendering depends on whether the user's device has the fonts
+
+Without resolution, the Ghosts compile will produce ❌ for CJK/Thai cells in the parity matrix (tofu boxes or wrong-glyph substitution).
+
+**Decision points (need user input):**
+
+1. **Bundle the commercial fonts (Hiragino, Thonburi)?** User indicated they have licenses for Plantin + Proxima (TRK-DESIGN-002). Hiragino is Apple-system on macOS — licensing for embedding in distributed EPUB/PDF is restrictive. Thonburi same. *Probably* requires OFL alternatives even if user owns macOS-distributable copies.
+2. **Pick OFL alternatives:** Noto Serif CJK JP (and SC/TC for Chinese variants) is the standard OFL CJK font; Noto Sans Thai for Thai. Metrics differ from Hiragino/Thonburi — visual drift in the parity diff is expected.
+3. **Embed in EPUB?** Once chosen, add `@font-face` to `epub-styles.css` and ship the font files inside the EPUB package. This guarantees rendering on any e-reader but inflates EPUB size by ~5-15MB per CJK family.
+
+**Suggested approach:**
+
+1. Audit `manuscripts/ghosts/` for actual CJK/Thai content extent — Unicode block scan via `python -c "import unicodedata; ..."`. Confirms what fonts are actually needed.
+2. Bundle Noto Serif CJK JP + Noto Sans Thai (OFL) into `typesetting/fonts/noto/`. Same shape as the Libertinus bundle (TRK-MIG-007).
+3. Update `series-template.typ` font fallback chain to include the new families (Typst's `text` `font:` accepts a list).
+4. Update `epub-styles.css` `.chinese` / `.thai` classes to use the bundled families as primary; declare `@font-face` if shipping inside EPUB.
+5. Smoke test against the Khlongs chapter specifically.
+
+**Effort:** ~2-3 hours including font download + license verification + smoke test. **Blocks:** TRK-TEST-002 visual regression (CJK/Thai cells can't be evaluated without working fonts). **Related:** TRK-DESIGN-002 (broader font-licensing question — owner has Plantin/Proxima but probably not Hiragino/Thonburi distribution rights).
 
 ### TRK-DESIGN-002 — Commercial font licensing & bundling
 
@@ -1175,6 +1259,58 @@ For corrections:
 
 **Effort:** ~1-2 hours. **Pairs well with:** TRK-DEV-008 item 4 (surface patcher warnings in the panel) — same UI zone, but distinct enough to file as separate tickets; do them in separate sessions to keep merge surface clean. **Don't bundle with:** TRK-DEV-004 (special-typography) or any other admin.html-heavy work in the same session.
 
+### TRK-DEV-009 — Per-chapter author in EPUB spec + pipeline (anthology critical-path)
+
+- area: DEV
+- status: open
+- priority: P1
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: `docs/GHOSTS_PARITY_2026-05-26.md` §"Single Biggest Gap"; `srv/epub.go::handleGenerateEPUB` (`buildEPUBMetadata`, line ~85+); `srv/bookspecs.go` (`parseEPUBSpec`); `manuscripts/ghosts/main.typ` (Typst-side reference: `set-story-info(title:, author:)` per chapter); `typesetting/templates/series-template.typ` (per-chapter rendering already supported); `db/migrations/008-book-specs.sql` (where `book_specs.data` schema lives)
+
+**The single biggest gap from the Ghosts parity audit.**
+
+**Current state:**
+- Typst pipeline: ✅ anthology support working. `series-template.typ` exposes `set-story-info(title:, author:)`; `manuscripts/ghosts/main.typ` configures 9 different authors across 9 chapters; running headers correctly state-track per-chapter author (verso) and title (recto).
+- EPUB pipeline: ❌ broken for anthologies. `book_specs.data.epub` schema has only a singular `author` field; pandoc receives one `--metadata=author=…` value for the whole book; chapter divisions are preserved but per-chapter authorship is lost.
+
+**Impact:** Any multi-author book (Ghosts, Librarians, future series titles) ships an EPUB with one author across all chapters. Twitter Years (single author) ships fine. The first time the EPUB fails is the first multi-author book to ship.
+
+**Approach:**
+
+1. **Schema extension.** Add `chapters` array to `book_specs.data.epub`:
+   ```jsonc
+   "epub": {
+     ...existing fields...,
+     "chapters": [
+       { "title": "Soda Sweet as Blood", "author": "Spencer Nitkey", "file": "01-soda.md" },
+       { "title": "In Every Lifetime", "author": "Lara Dal Molin", "file": "02-lifetime.md" },
+       ...
+     ]
+   }
+   ```
+   No migration needed — `book_specs.data` is JSON, schema-flexible. UI exposes it as a repeating row editor in the Typesetting tab's EPUB section.
+
+2. **Population sources.** Three ways the chapters array gets filled:
+   - **Manual entry in admin SPA.** Always available.
+   - **Pull from transmittal.** Extend `handlePullTransmittalToSpec` to map `transmittal.chapters[*]` → `spec.epub.chapters[*]` if the transmittal has structured chapter data.
+   - **Auto-detect from manuscript.** Lower priority; would scan uploaded DOCX heading-style runs + paragraphs following them. Defer to a follow-up ticket.
+
+3. **EPUB generation wiring.** Two integration points in `srv/epub.go`:
+   - **Pandoc metadata:** pandoc supports per-chapter `<h1>` author via custom Lua filter or via XHTML postprocessing. Cleanest: emit chapters as separate XHTML files via pandoc's `--split-level=1` (already happens) and inject a `<p class="chapter-author">{{author}}</p>` block per chapter from the spec.
+   - **EPUB OPF metadata:** the EPUB spec doesn't natively support per-chapter authors at the package-metadata level, but most readers honor in-content `<p class="chapter-author">` styling. The existing `.chapter-author` CSS class (epub-styles.css lines 102-111) handles rendering — only the *content injection* is missing.
+
+4. **UI in admin SPA.** Add a "Chapters" subsection under EPUB settings in the Typesetting tab. Reuse the corrections-table pattern (add/remove rows; per-row title + author + optional file field). Auto-save like other spec fields.
+
+5. **Smoke test:** Upload Ghosts DOCX as a new project (id != 7, won't conflict with Twitter Years); configure 9 chapters with authors; compile EPUB; verify per-chapter bylines render in Calibre or epubcheck.
+
+**Acceptance:**
+- A book with `spec.epub.chapters` populated produces an EPUB with each chapter showing its own author byline as a `.chapter-author` paragraph.
+- A book with empty `chapters` (or pre-DEV-009 spec) falls back to current behavior: book-level `spec.author` for the whole EPUB.
+- Round-trip with Ghosts source produces an EPUB whose chapter-by-chapter author bylines match the reference GHOSTS.epub.
+
+**Effort:** ~3-4 hours. **Blocks:** TRK-TEST-002 visual regression (EPUB diff is meaningless without this). **Related:** TRK-DEV-004 (anthology-aware spec is also where special-typography per-chapter declarations might live — schema design should consider how they'd nest).
+
 ### TRK-DEV-008 — Corrections patcher ergonomics
 
 - area: DEV
@@ -1227,10 +1363,29 @@ Smallest-possible fixture inputs (1-page DOCX, 1-page Markdown) in `test/fixture
 - status: open
 - priority: P1
 - created: 2026-05-12
-- updated: 2026-05-12
-- refs: TRK-DESIGN-001
+- updated: 2026-05-26
+- refs: TRK-DESIGN-001, `docs/GHOSTS_PARITY_2026-05-26.md` (closes 10 ⚠️ cells); `manuscripts/ghosts/main.typ` + chapter `.typ` files; `reference/GHOSTS.pdf` + `reference/GHOSTS.epub`; `typesetting/scripts/build-ghosts.sh`
 
-Build Ghosts Typst PDF, render each page to PNG via `pdftoppm`, diff against pre-rendered InDesign pages (already in `reference/new_uploads/pdf_samples/ghosts-{010..012}.png` — extend the set), threshold tuned for justified-text noise. Tools: `diff-pdf` or ImageMagick `compare -metric`.
+**Scope.** Live-compile Ghosts end-to-end (Typst + EPUB) and page-by-page diff vs reference. The DESIGN-001 audit established what the code does; this ticket establishes what the rendered output actually looks like.
+
+**Approach:**
+
+1. **Typst PDF compile.** On VM: `cd /home/exedev/prodcal/manuscripts/ghosts && typst compile --font-path ../../typesetting/fonts main.typ /tmp/ghosts-typst.pdf` (or invoke via `typesetting/scripts/build-ghosts.sh` which already wires the right paths). Expect 136-ish pages.
+2. **EPUB compile.** Two options:
+   - Direct: pandoc the same source chapters with the bundled EPUB stylesheet.
+   - Via admin SPA: upload Ghosts DOCX as a project, configure spec to mark it anthology (post-TRK-DEV-009 only), compile EPUB. This is the "real" path but blocked on DEV-009 for fair per-chapter-author comparison.
+3. **PDF page-by-page diff.** `pdftoppm` both PDFs to PNG @ 150 dpi; ImageMagick `compare -metric AE -fuzz 5%` per page; emit a per-page-delta CSV. Threshold for justified-text noise: tune empirically (start at AE < 0.5% of pixels).
+4. **EPUB diff.** `epubcheck` for structural validity. Unzip both, diff per-chapter XHTML (semantic: chapter title, author byline, body presence). Render EPUB to PDF via Calibre (`ebook-convert`) for visual diff.
+5. **Close the 10 ⚠️ cells.** Each gets ✅ or ❌ with evidence (per-page deltas, screenshots, observations). ❌ cells spawn child tickets.
+
+**Pre-requisites (must ship before this is meaningful):**
+- **TRK-DEV-009** — per-chapter EPUB author. Without this, EPUB diff will show one author across all chapters; can't validate anthology behavior.
+- **TRK-DESIGN-004** — CJK/Thai font availability on compile host. Without bundled or installed fonts, glyphs will render as tofu and inflate the diff metric.
+- **TRK-DESIGN-002** — Plantin MT Pro + Proxima Nova bundling (user has licenses). With open-source subs (Libertinus + Source Sans 3), metric/visual differences inflate the diff. Could be done after a first pass-with-subs to get a baseline.
+
+**Sample reference PNGs already exist:** `reference/pdf_pages/` (or equivalent — see GHOSTS_PARITY doc for the actual file inventory the subagent found). Extend to all 136 pages.
+
+**Effort:** ~2-3 hours when prerequisites are met. Probably best done as a dedicated session after DEV-009 + DESIGN-004 + DESIGN-003 land.
 
 ### TRK-TEST-003 — VM smoke script + cron
 
@@ -1367,3 +1522,6 @@ Source doc identifies these as load-bearing before building:
 - **2026-05-25** — v1 critical path consolidated in `docs/PRODUCTION_ROADMAP_2026-05-25.md`. The three older planning docs (TEST_PLAN_2026-03-09, TYPOGRAPHY_REFINEMENT_PROMPT, TYPST_FRONTEND_PLAN) are superseded by it. Originals preserved in `book-prod-archived-2026-05-25/`.
 - **2026-05-25** — Translation layer architecture: Variant E (orchestrator) + Variant F (cross-lingual consistency). Skip Variant G (MT-with-rubber-stamp). Tracked as TRK-TRANS-001..009 (v2, all P3).
 - **2026-05-25** — Working notes moved from repo root to `docs/` for tidiness (TRACKER.md, MIGRATION_LOG.md, NEXT_SESSION_PROMPT_*.md, etc.). `scripts/jpull.sh` updated to read from either location.
+- **2026-05-26** — Orchestrator fan-out validated: three concurrent workstreams (DEV-007 in a fresh Claude Code session; OPS-006 + DESIGN-001 audit in the orchestrator session via direct shell + Explore subagent) landed cleanly. Coordination point: shared working tree on one Mac means parallel sessions can't simultaneously modify the same file; TRACKER.md is the recurring contention surface. Resolution: orchestrator defers TRACKER edits until parallel sessions commit, then applies its updates on top.
+- **2026-05-26** — Ghosts parity audit defines the v1 release-confidence track. Critical-path tickets surfaced: TRK-DEV-009 (per-chapter EPUB author), TRK-DESIGN-004 (CJK/Thai fonts). TRK-TEST-002 (live visual regression) gates final close of TRK-DESIGN-001.
+- **2026-05-26** — SQLite gotcha confirmed: `PRAGMA foreign_keys = ON;` must be set explicitly per connection or FK cascades silently no-op. Affects any future bulk-cleanup work and any code that relies on cascades.
