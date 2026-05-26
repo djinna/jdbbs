@@ -34,13 +34,14 @@ type Book struct {
 }
 
 type BookOutput struct {
-	ID             int64
-	BookID         int64
-	OutputFormat   string
-	OutputData     []byte
-	SourceFilename string
-	SpecSnapshot   sql.NullString
-	CreatedAt      time.Time
+	ID                  int64
+	BookID              int64
+	OutputFormat        string
+	OutputData          []byte
+	SourceFilename      string
+	SpecSnapshot        sql.NullString
+	CorrectionsSnapshot sql.NullString
+	CreatedAt           time.Time
 }
 
 type BookSpec struct {

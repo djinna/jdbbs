@@ -65,6 +65,13 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 
 	slog.Info("epub generation starting", "id", bid, "title", book.Title)
 
+	// Apply pending corrections to the source docx before pandoc runs, so the
+	// EPUB inherits the same patches the PDF pipeline does.
+	var correctionsSnapshot string
+	if book.ProjectID.Valid {
+		correctionsSnapshot = s.applyCorrectionsIfAny(ctx, bid, book.ProjectID.Int64, tmpDir, docxPath)
+	}
+
 	// Load spec if project is linked
 	var spec epubSpec
 	spec.Title = book.Title
@@ -146,11 +153,12 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 
 	// Store in DB
 	if _, err := q.CreateBookOutput(ctx, dbgen.CreateBookOutputParams{
-		BookID:         bid,
-		OutputFormat:   "epub",
-		OutputData:     epubData,
-		SourceFilename: book.SourceFilename,
-		SpecSnapshot:   nullStringFrom(specSnapshot),
+		BookID:              bid,
+		OutputFormat:        "epub",
+		OutputData:          epubData,
+		SourceFilename:      book.SourceFilename,
+		SpecSnapshot:        nullStringFrom(specSnapshot),
+		CorrectionsSnapshot: nullStringFrom(correctionsSnapshot),
 	}); err != nil {
 		slog.Error("epub: persist history", "id", bid, "err", err)
 		return

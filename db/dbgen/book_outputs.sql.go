@@ -13,19 +13,20 @@ import (
 
 const createBookOutput = `-- name: CreateBookOutput :one
 INSERT INTO book_outputs (
-    book_id, output_format, output_data, source_filename, spec_snapshot
+    book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot
 ) VALUES (
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 )
-RETURNING id, book_id, output_format, output_data, source_filename, spec_snapshot, created_at
+RETURNING id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at
 `
 
 type CreateBookOutputParams struct {
-	BookID         int64
-	OutputFormat   string
-	OutputData     []byte
-	SourceFilename string
-	SpecSnapshot   sql.NullString
+	BookID              int64
+	OutputFormat        string
+	OutputData          []byte
+	SourceFilename      string
+	SpecSnapshot        sql.NullString
+	CorrectionsSnapshot sql.NullString
 }
 
 func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputParams) (BookOutput, error) {
@@ -35,6 +36,7 @@ func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputPara
 		arg.OutputData,
 		arg.SourceFilename,
 		arg.SpecSnapshot,
+		arg.CorrectionsSnapshot,
 	)
 	var i BookOutput
 	err := row.Scan(
@@ -44,13 +46,14 @@ func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputPara
 		&i.OutputData,
 		&i.SourceFilename,
 		&i.SpecSnapshot,
+		&i.CorrectionsSnapshot,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listBookOutputs = `-- name: ListBookOutputs :many
-SELECT id, book_id, output_format, source_filename, length(output_data) AS size_bytes, spec_snapshot, created_at
+SELECT id, book_id, output_format, source_filename, length(output_data) AS size_bytes, spec_snapshot, corrections_snapshot, created_at
 FROM book_outputs
 WHERE book_id = ?
 ORDER BY created_at DESC, id DESC
@@ -63,13 +66,14 @@ type ListBookOutputsParams struct {
 }
 
 type ListBookOutputsRow struct {
-	ID             int64
-	BookID         int64
-	OutputFormat   string
-	SourceFilename string
-	SizeBytes      int64
-	SpecSnapshot   sql.NullString
-	CreatedAt      time.Time
+	ID                  int64
+	BookID              int64
+	OutputFormat        string
+	SourceFilename      string
+	SizeBytes           int64
+	SpecSnapshot        sql.NullString
+	CorrectionsSnapshot sql.NullString
+	CreatedAt           time.Time
 }
 
 func (q *Queries) ListBookOutputs(ctx context.Context, arg ListBookOutputsParams) ([]ListBookOutputsRow, error) {
@@ -88,6 +92,7 @@ func (q *Queries) ListBookOutputs(ctx context.Context, arg ListBookOutputsParams
 			&i.SourceFilename,
 			&i.SizeBytes,
 			&i.SpecSnapshot,
+			&i.CorrectionsSnapshot,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -104,7 +109,7 @@ func (q *Queries) ListBookOutputs(ctx context.Context, arg ListBookOutputsParams
 }
 
 const getBookOutput = `-- name: GetBookOutput :one
-SELECT id, book_id, output_format, output_data, source_filename, spec_snapshot, created_at
+SELECT id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at
 FROM book_outputs
 WHERE id = ? AND book_id = ?
 `
@@ -124,6 +129,7 @@ func (q *Queries) GetBookOutput(ctx context.Context, arg GetBookOutputParams) (B
 		&i.OutputData,
 		&i.SourceFilename,
 		&i.SpecSnapshot,
+		&i.CorrectionsSnapshot,
 		&i.CreatedAt,
 	)
 	return i, err

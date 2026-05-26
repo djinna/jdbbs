@@ -207,6 +207,15 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 
 	slog.Info("book conversion starting", "id", bid, "title", book.Title)
 
+	// Step 0: apply project's pending corrections to the source docx (no-op
+	// when the book isn't project-linked or has no pending corrections). The
+	// resulting bytes flow through pandoc → typst like any other source.
+	ctxApply := context.Background()
+	var correctionsSnapshot string
+	if book.ProjectID.Valid {
+		correctionsSnapshot = s.applyCorrectionsIfAny(ctxApply, bid, book.ProjectID.Int64, tmpDir, docxPath)
+	}
+
 	// Step 1: direct pandoc docx -> typst using the bundled lua filter.
 	typPath := filepath.Join(tmpDir, "book.typ")
 	pandocCmd := exec.Command("pandoc",
@@ -304,11 +313,12 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	// Store PDF in DB
 	ctx := context.Background()
 	if _, err := q.CreateBookOutput(ctx, dbgen.CreateBookOutputParams{
-		BookID:         bid,
-		OutputFormat:   "pdf",
-		OutputData:     pdfData,
-		SourceFilename: book.SourceFilename,
-		SpecSnapshot:   nullStringFrom(specSnapshot),
+		BookID:              bid,
+		OutputFormat:        "pdf",
+		OutputData:          pdfData,
+		SourceFilename:      book.SourceFilename,
+		SpecSnapshot:        nullStringFrom(specSnapshot),
+		CorrectionsSnapshot: nullStringFrom(correctionsSnapshot),
 	}); err != nil {
 		s.failConversion(bid, "persist pdf history: "+err.Error())
 		return
@@ -432,7 +442,8 @@ func (s *Server) bookAuth(w http.ResponseWriter, r *http.Request, bid int64) (db
 }
 
 // handleListBookOutputs returns recent compile artifacts for a book (metadata only).
-// Pass ?include=spec to also return spec_snapshot per row.
+// Pass ?include=spec,corrections (comma-separated) to also return the matching
+// snapshots per row.
 func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
 	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -443,7 +454,15 @@ func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	includeSpec := r.URL.Query().Get("include") == "spec"
+	var includeSpec, includeCorrections bool
+	for _, tok := range strings.Split(r.URL.Query().Get("include"), ",") {
+		switch strings.TrimSpace(tok) {
+		case "spec":
+			includeSpec = true
+		case "corrections":
+			includeCorrections = true
+		}
+	}
 	q := dbgen.New(s.DB)
 	rows, err := q.ListBookOutputs(r.Context(), dbgen.ListBookOutputsParams{
 		BookID: bid,
@@ -455,13 +474,14 @@ func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type outRow struct {
-		ID             int64     `json:"id"`
-		BookID         int64     `json:"book_id"`
-		OutputFormat   string    `json:"output_format"`
-		SourceFilename string    `json:"source_filename"`
-		SizeBytes      int64     `json:"size_bytes"`
-		CreatedAt      time.Time `json:"created_at"`
-		SpecSnapshot   *string   `json:"spec_snapshot,omitempty"`
+		ID                  int64     `json:"id"`
+		BookID              int64     `json:"book_id"`
+		OutputFormat        string    `json:"output_format"`
+		SourceFilename      string    `json:"source_filename"`
+		SizeBytes           int64     `json:"size_bytes"`
+		CreatedAt           time.Time `json:"created_at"`
+		SpecSnapshot        *string   `json:"spec_snapshot,omitempty"`
+		CorrectionsSnapshot *string   `json:"corrections_snapshot,omitempty"`
 	}
 	out := make([]outRow, 0, len(rows))
 	for _, row := range rows {
@@ -476,6 +496,10 @@ func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
 		if includeSpec && row.SpecSnapshot.Valid {
 			s := row.SpecSnapshot.String
 			item.SpecSnapshot = &s
+		}
+		if includeCorrections && row.CorrectionsSnapshot.Valid {
+			c := row.CorrectionsSnapshot.String
+			item.CorrectionsSnapshot = &c
 		}
 		out = append(out, item)
 	}
