@@ -1,3 +1,5 @@
+#import "../../typesetting/templates/series-template.typ": poem
+
 #set text(font: "Libertinus Serif", size: 10pt)
 #set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
