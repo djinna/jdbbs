@@ -157,6 +157,21 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 		args = append(args, fmt.Sprintf("--metadata=description:%s", spec.Description))
 	}
 
+	// Embed bundled multilingual fonts so EPUBs render CJK/Thai correctly on
+	// readers that don't have Noto installed (Kindle, older Adobe Digital
+	// Editions, sideloaded devices).
+	for _, rel := range []string{
+		"noto/CJK-TC/NotoSerifTC-Regular.otf",
+		"noto/CJK-TC/NotoSerifTC-Bold.otf",
+		"noto/Thai/NotoSerifThai-Regular.ttf",
+		"noto/Thai/NotoSerifThai-Bold.ttf",
+	} {
+		fp := filepath.Join(fontsDirPath(), rel)
+		if _, err := os.Stat(fp); err == nil {
+			args = append(args, "--epub-embed-font="+fp)
+		}
+	}
+
 	args = append(args, docxPath)
 
 	cmd := exec.Command("pandoc", args...)
