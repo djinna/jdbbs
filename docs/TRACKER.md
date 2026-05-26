@@ -203,6 +203,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-DEV-002 — Wire spec → Typst compile pipeline (CP-1, KEYSTONE)](#trk-dev-002--wire-spec--typst-compile-pipeline-cp-1-keystone)
   - [TRK-DEV-004 — Special-typography preservation class](#trk-dev-004--special-typography-preservation-class-data-model--preflight--pipeline)
   - [TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)](#trk-dev-003--wire-spec--epub-compile-pipeline-cp-2)
+  - [TRK-DEV-007 — Diff-vs-previous UI in compile-history panel](#trk-dev-007--diff-vs-previous-ui-in-compile-history-panel)
   - [TRK-DEV-005 — Compile-history panel in admin SPA](#trk-dev-005--compile-history-panel-in-admin-spa)
   - [TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile](#trk-dev-006--snapshot-spec-json-into-book_outputs-per-compile)
   - [TRK-DEV-008 — Corrections patcher ergonomics](#trk-dev-008--corrections-patcher-ergonomics)
@@ -1114,6 +1115,53 @@ Follow-ups filed: TRK-DEV-005 (compile-history panel — `book_outputs` already 
 **Acceptance:** new compiles persist spec; API returns it; legacy rows still listable with `spec_snapshot: null`.
 
 **Effort:** ~1.5 hours. **Blocked by:** TRK-DEV-005 (no panel = nowhere to expose snapshot diff). **Related:** TRK-MIG-006 (corrections round-trip) — both want artifact lineage; consider whether `book_outputs` should also reference the correction_set_id that was active at compile time.
+
+### TRK-DEV-007 — Diff-vs-previous UI in compile-history panel
+
+- area: DEV
+- status: open
+- priority: P2
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: srv/static/admin.html (compile-history panel under PDF + EPUB Compile buttons); `GET /api/books/{id}/outputs?include=spec,corrections` (already returns both snapshots); commits 56e8256 (DEV-005/006), 9af05ad-10a07c7 (MIG-006 corrections_snapshot)
+
+**Context.** Both `spec_snapshot` (DEV-006, migration 015) and `corrections_snapshot` (MIG-006, migration 016) are now persisted per compile. The history panel lists rows + lets you download artifacts but nothing surfaces *what changed* between two compiles. Right now: user compiles twice, downloads both PDFs, opens them side-by-side, tries to remember which spec edits and which corrections were active. The data exists; only the UI gap is left.
+
+**Scope.**
+
+1. **API:** no new endpoint needed. `GET /api/books/{id}/outputs?include=spec,corrections` already returns the data per row.
+2. **UI helper (JS):** small diff function that compares two JSON objects field-by-field and emits a flat list of `{ path, before, after }` for changed fields. Spec diff = nested JSON walk (typography.base_size_pt: 10 → 12). Corrections diff = set-difference on YAML-parsed entries (added/removed/modified rows).
+3. **History panel additions:**
+   - Each row in the panel gets a "diff" button (except the oldest visible row).
+   - Click → modal or expand-in-place showing two columns: spec diff (left), corrections diff (right). "Compared to compile from <earlier timestamp>".
+   - Default diff target is the immediately-preceding row (chronologically). Optional: a dropdown to compare against any other row in the panel.
+   - Empty diff renders as "no spec or corrections changes since [timestamp]" — distinguishes "we compiled twice with same inputs" (a thing to know) from "we never recorded a snapshot" (legacy rows from before migration 015/016).
+   - Legacy rows with `spec_snapshot: null` show "(no snapshot recorded)" in the diff target dropdown and disable the diff button when they're the target.
+
+**Format suggestion** for the field-list diff:
+
+```
+typography.base_size_pt:  10 → 12
+typography.body_font:     "Libertinus Serif" → "Plantin MT Pro"
+running_heads.verso:      "author" → "title"
+```
+
+For corrections:
+
+```
++ added:   { find: "Venkatesh", replace: "Venkat", status: "pending" }
+- removed: { find: "iphone", replace: "iPhone", status: "applied" }
+~ changed: { find: "alchemy" } status: "pending" → "applied"
+```
+
+**Acceptance:**
+
+- After two compiles with different spec values, the diff button on the newer row shows the field changes.
+- After two compiles with different corrections (one added between compiles), the diff shows the added correction.
+- An empty diff is rendered explicitly, not as a blank panel.
+- Legacy pre-snapshot rows are handled gracefully.
+
+**Effort:** ~1-2 hours. **Pairs well with:** TRK-DEV-008 item 4 (surface patcher warnings in the panel) — same UI zone, but distinct enough to file as separate tickets; do them in separate sessions to keep merge surface clean. **Don't bundle with:** TRK-DEV-004 (special-typography) or any other admin.html-heavy work in the same session.
 
 ### TRK-DEV-008 — Corrections patcher ergonomics
 
