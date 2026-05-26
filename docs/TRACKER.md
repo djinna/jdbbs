@@ -12,16 +12,27 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ## 🟢 Resume here — next session (2026-05-30)
 
-**Last touched:** 2026-05-26 (TRK-DEV-012 Phase A + Phase B — anthology chapters as top-level spec + PDF Lua-filter integration — landed).
+**Last touched:** 2026-05-26 (TRK-DEV-010 shipped + TRK-TEST-002 closed — Ghosts live visual regression done; parity matrix closed with 6 ❌ child tickets filed).
 
-**Just shipped 2026-05-26 — TRK-DEV-012 Phase A + B done:**
-- `srv/epub.go::parseEPUBSpec`: chapters now read from top-level `spec.chapters[]`; falls back to legacy `spec.epub.chapters[]` with a log line for any DEV-009-era specs.
-- `srv/books.go`: new `(*Server).writeChaptersMetadata` writes `chapters.json` into the pandoc tmpdir when `spec.chapters[]` is non-empty, passed to pandoc via `--metadata-file`.
-- `typesetting/filters/docx-to-typst-enhanced.lua`: `Meta()` reads `meta.chapters`; new `Header()` filter pass emits `#set-story-info(title:, author:)` as a Typst RawBlock before each level-1 heading, indexed by source-order h1 count. Single-author books (no chapters metadata) flow through unchanged.
-- `srv/static/admin.html`: chapters editor moved out of the EPUB card into a new top-level "Anthology" card. One-time client migration `tsMigrateChaptersFromEpub()` rewrites `tsSpec.epub.chapters` → `tsSpec.chapters` on form populate, dirties the spec so the next autosave persists.
-- Tests: `TestParseEPUBSpec_Chapters_TopLevel`, `_LegacyEpubFallback`, `_TopLevelWinsOverLegacy`.
-- **Phase C still open** (auto-detect chapter title + author on upload) — deferred per session prompt.
-- **Next:** TRK-TEST-002 (live Ghosts visual regression) is now end-to-end meaningful: enter the 9 Ghosts chapters in the new Anthology card, recompile, diff PDF + EPUB against the reference. Also TRK-DESIGN-003 (smart punctuation / body alignment) is still queued.
+**Just shipped 2026-05-26 — TRK-DEV-010 + TRK-TEST-002 done:**
+- **TRK-DEV-010 done.** `srv/epub.go::handleGenerateEPUB` now appends `--epub-embed-font` for the four bundled Noto fonts (`typesetting/fonts/noto/CJK-TC/NotoSerifTC-{Regular,Bold}.otf` + `Thai/NotoSerifThai-{Regular,Bold}.ttf`) before the pandoc invocation. Defensive `os.Stat` per file. Verified end-to-end: book 9 → output 27 EPUB has all 4 fonts in `EPUB/fonts/` (16MB of CJK-TC dominates the package). Commit `e5b5f09`, deployed.
+- **TRK-TEST-002 done.** Live-compiled Ghosts both Typst-PDF and EPUB against project 14 (book 9), diffed page-by-page against `reference/GHOSTS.{pdf,epub}`. All 10 ⚠️ cells in `docs/GHOSTS_PARITY_2026-05-26.md` resolved to ✅ / ❌ / acceptable-deviation. **DEV-009 fully verified** — all 9 per-chapter authors injected correctly in `ch00N.xhtml`. PDF page count 101 vs 136 (-25.7%, finding) driven by missing front matter, missing chapter images, tighter leading. 6 new child tickets filed (see below).
+- **Workflow note:** API calls against `127.0.0.1:8000` from inside the VM with synthetic `X-ExeDev-UserID` header bypass the reverse-proxy auth and exercise the real HTTP handlers. Each `generate-epub` POST creates a new `book_outputs` row keyed by `(book_id, created_at)`, so iterate-and-diff is naturally history-tracked via `GET /api/books/{id}/outputs`.
+
+**New child tickets from TRK-TEST-002 (parity findings):**
+- **TRK-DESIGN-005** (P1) — `manuscripts/ghosts/main.typ` broken import path (templates moved to `typesetting/templates/`). One-line fix.
+- **TRK-DESIGN-006** (P2) — Chapter opener images not rendering in Typst output. Investigate path resolution against `--root` staging.
+- **TRK-DESIGN-007** (P3) — Running header title rendered Title Case, should be ALL CAPS (`upper()` wrap in `series-template.typ`).
+- **TRK-DESIGN-008** (P1) — Body paragraph first-line indent not rendering despite `#set par(first-line-indent: 0.75em)` in chapter `.typ` files; likely Typst version syntax.
+- **TRK-DESIGN-009** (P2) — Poem/verse blocks render as plain body. Needs `poem()` wrapping in chapter files + correction to use body-italic not mono.
+- **TRK-DEV-013** (P3) — `epubcheck` PKG-005 packaging error on generated EPUBs (mimetype extra field from pandoc's zip writer).
+
+**Next priorities (in order):**
+1. **TRK-DESIGN-008** + **TRK-DESIGN-005** + **TRK-DESIGN-007** (one short session) — three quick Typst template/source fixes that together close the biggest perceived-quality gap (no indents, wrong header case, broken import). Recompile & re-diff to confirm.
+2. **TRK-DESIGN-006** (chapter images) — bigger investigation; likely needs main.typ refactor.
+3. **TRK-DESIGN-001 close** — once the 5 ❌ DESIGN tickets land, the parity matrix is ✅ across the board for v1; DESIGN-001 closes.
+4. **TRK-DESIGN-003** (smart punctuation / body alignment ragged-vs-justified audit) — still queued.
+5. **TRK-DEV-012 Phase C** (chapter auto-detection on upload) — still deferred.
 
 ---
 
@@ -904,10 +915,12 @@ A built Go binary lives at the prodcal repo root. Tracked in git, in CI artifact
 ### TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix
 
 - area: DESIGN
-- status: in-progress (audit done; live-compile verification + child tickets remain)
+- status: in-progress (audit done + live-compile verified 2026-05-26; closes when DESIGN-005/006/007/008/009 + DEV-013 land)
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-26
+
+**2026-05-26 update.** TRK-TEST-002 closed; all 10 ⚠️ cells in `docs/GHOSTS_PARITY_2026-05-26.md` resolved. Six new ❌ findings filed as child tickets (TRK-DESIGN-005..009 + TRK-DEV-013). DESIGN-001 stays open until those land; flips to `done` when the matrix has zero ❌ for v1 scope.
 - refs: `docs/GHOSTS_PARITY_2026-05-26.md` (full audit, 25✅/10⚠️/1❌); `reference/GHOSTS.pdf` (136 pages, 353.811 × 546.567 pt = 4.91 × 7.59 in, PDF/X-4, InDesign 21.0); `manuscripts/ghosts/main.typ` (per-chapter Typst sources with `set-story-info()` configured for 9 chapters)
 
 **2026-05-26 audit done (subagent, read-only).** Full matrix in `docs/GHOSTS_PARITY_2026-05-26.md`. Summary: 25 ✅ items match code, 10 ⚠️ need live-compile verification, 1 ❌ (PDF/X-4 — Typst limitation; post-process via Ghostscript possible).
@@ -1037,6 +1050,149 @@ Without resolution, the Ghosts compile will produce ❌ for CJK/Thai cells in th
 5. Smoke test against the Khlongs chapter specifically.
 
 **Effort:** ~2-3 hours including font download + license verification + smoke test. **Blocks:** TRK-TEST-002 visual regression (CJK/Thai cells can't be evaluated without working fonts). **Related:** TRK-DESIGN-002 (broader font-licensing question — owner has Plantin/Proxima but probably not Hiragino/Thonburi distribution rights).
+
+### TRK-DESIGN-005 — Fix `manuscripts/ghosts/main.typ` broken import path
+
+- area: DESIGN
+- status: open
+- priority: P1
+- created: 2026-05-26 (from TRK-TEST-002)
+- updated: 2026-05-26
+- refs: `manuscripts/ghosts/main.typ:1`; surfaced during TRK-TEST-002 live compile
+
+**Problem.** `main.typ` line 1 imports `"../../templates/series-template.typ"`, which resolves to `<repo-root>/templates/series-template.typ` — a path that doesn't exist. The real template lives at `typesetting/templates/series-template.typ`. Direct `typst compile` from `manuscripts/ghosts/` fails with `cannot read file outside of project root` (until `--root` is widened) and then `file not found` against the wrong path.
+
+**Workaround used in TEST-002:** Staged a mirror tree in `/tmp/ghosts-build/` with `templates/` symlinked/copied to the real location. Worked but adds friction every time someone wants to recompile.
+
+**Fix.** One-line edit in `main.typ`:
+
+```diff
+-#import "../../templates/series-template.typ": *
++#import "../../typesetting/templates/series-template.typ": *
+```
+
+Then verify `typst compile --root <repo-root> --font-path typesetting/fonts manuscripts/ghosts/main.typ` works without the staging tree.
+
+**Why this exists.** Pre-dates TRK-MIG-007 (Libertinus + typesetting reorg). When templates were under `templates/` at repo root, the import was correct. The reorg moved templates into `typesetting/templates/` and didn't update manuscript-level imports. Twitter Years is single-author and uses a different path so this didn't surface.
+
+**Effort:** 5 min including a smoke compile to confirm.
+
+### TRK-DESIGN-006 — Chapter opener images not rendering in Typst output
+
+- area: DESIGN
+- status: open
+- priority: P2
+- created: 2026-05-26 (from TRK-TEST-002)
+- updated: 2026-05-26
+- refs: `manuscripts/ghosts/main.typ` lines ~84-164 (per `docs/GHOSTS_PARITY_2026-05-26.md` note); `manuscripts/ghosts/ghosts_0[0-8]_*.jpg`
+
+**Problem.** Reference GHOSTS.pdf has a dedicated image+title spread for each of the 9 chapters (full-width chapter-opener images). The compiled Typst output (`scratch/ghosts-typst.pdf`, page 8 = KSB chapter opener) shows the title and author byline but **no image**. The 8 JPEGs are sitting in `manuscripts/ghosts/` next to the typ files.
+
+**Hypotheses (in order of likelihood):**
+1. `main.typ`'s `#image()` calls resolve relative to the file invoking them, but Typst's `--root` may scope them differently when the staging-tree workaround is used. Once TRK-DESIGN-005 is fixed and we can `typst compile` from the real layout, this may auto-resolve.
+2. `set page(background: image(...))` is being used and silently no-ops (paragraph-of-text covers the page).
+3. Image-path strings have stale relative refs (e.g. `./ghosts_01_SODA.jpg` when chapter file is in a sibling dir).
+
+**Action.** Inspect `main.typ` image calls and chapter `.typ` files (e.g. `01-soda.typ`); fix the path or placement; recompile and verify chapter openers have images.
+
+**Effort:** ~30-60 min depending on which hypothesis bites. Best done immediately after TRK-DESIGN-005 to keep the staging-tree workaround out of the loop.
+
+### TRK-DESIGN-007 — Running header title rendered Title Case, should be ALL CAPS
+
+- area: DESIGN
+- status: open
+- priority: P3
+- created: 2026-05-26 (from TRK-TEST-002)
+- updated: 2026-05-26
+- refs: `typesetting/templates/series-template.typ::running-header()` (lines ~134-172 per parity doc); compare `scratch/diff-typst/page-010.png` (Typst) vs `scratch/diff-ref/page-015.png` (reference)
+
+**Problem.** Typst running-header shows the story title in Title Case ("Khlongs, Subaks, Beaings"). Reference shows ALL CAPS ("KHLONGS, SUBAKS, BEAINGS"). Author byline (verso) is already correctly upper-cased in Typst output ("SPENCER NITKEY"), so only the title path needs the change.
+
+**Fix.** In `running-header()` (or wherever it renders `current-story-title`), wrap the title display in `upper(...)`. Or apply via `#set text(features: ("smcp",))` if a smallcaps variant is preferred — match the reference's appearance, which looks like plain UPPERCASE not true smallcaps.
+
+**Effort:** 5 min including recompile + visual check.
+
+### TRK-DESIGN-008 — Body paragraph first-line indent not rendering despite spec
+
+- area: DESIGN
+- status: open
+- priority: P1
+- created: 2026-05-26 (from TRK-TEST-002)
+- updated: 2026-05-26
+- refs: `manuscripts/ghosts/00-intro.typ` and 01-08*.typ (each opens with `#set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)`); `scratch/diff-typst/page-009.png` (no indents visible) vs `scratch/diff-ref/page-015.png` (clear 0.75em indent on body paragraphs)
+
+**Problem.** Every chapter `.typ` file declares `first-line-indent: 0.75em` in its opening `#set par(...)` call. The compiled output shows no first-line indents anywhere in the body — every paragraph flush-left. This is the single most visible perceived-quality regression vs the reference.
+
+**Likely root cause.** Typst's `first-line-indent` parameter changed shape across versions. In older Typst it was just `first-line-indent: 0.75em` and indented all non-first paragraphs. In newer Typst (0.11+ roughly), the same syntax only indents paragraphs that come after another paragraph break of the same level — the first paragraph after a heading, section break, or block element does NOT get indented (which is correct), but the rule may be stricter now and not "activate" without an `all: true` flag, or it needs the new struct form `first-line-indent: (amount: 0.75em, all: true)`.
+
+**Action.** Verify Typst version on VM (`typst --version`). Test the fix in one chapter file (e.g. `01-soda.typ`):
+
+```diff
+-#set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
++#set par(justify: true, leading: 0.6em, first-line-indent: (amount: 0.75em, all: true))
+```
+
+If that works, roll across all 9 chapter files. May also want to set this at the template level (`series-template.typ`) so chapter files don't have to repeat it.
+
+**Effort:** ~20 min including version check, test, roll-out, recompile.
+
+**Why this matters.** Combined with TRK-DESIGN-005 and TRK-DESIGN-007, these three quick fixes close the bulk of the perceived-quality gap visible in side-by-side comparison.
+
+### TRK-DESIGN-009 — Poem/verse blocks render as plain body in Typst
+
+- area: DESIGN
+- status: open
+- priority: P2
+- created: 2026-05-26 (from TRK-TEST-002)
+- updated: 2026-05-26
+- refs: `typesetting/templates/series-template.typ::poem()` (lines ~243-247); `manuscripts/ghosts/01-soda.typ` (contains the 4-line verse "Where have I gone? / High waves sighing, / erasing, placing life on... who? / It is Thursday and I miss you. / Without true light, hues grow so dull."); `scratch/diff-typst/page-015.png`
+
+**Problem.** The 4-line poem in chapter 1 (Spencer Nitkey's "Soda Sweet as Blood") renders in Typst as ordinary justified body, indistinguishable from prose. The reference treats it as a verse block — centered, smaller, italic, looser leading.
+
+**Twofold root cause:**
+1. **Chapter `.typ` files don't wrap the verse in `poem()`.** The `01-soda.typ` content treats the verse as plain text. Need to refactor so verse runs are inside `#poem[...]` or similar.
+2. **The `poem()` function's own styling uses code-font (JetBrains Mono) instead of body-font italic** (per existing parity-doc note). Should be:
+   - font: body-font (Libertinus Serif) with `style: "italic"`
+   - size: 0.875em (slightly smaller than body)
+   - alignment: center
+   - leading: looser (e.g. 0.8em)
+
+**Action.** Two PRs likely, or one combined:
+1. Fix `poem()` in `series-template.typ` to use body-italic styling.
+2. Refactor chapter `.typ` files to wrap actual verse content in `poem()`. Easier when this is auto-detected from manuscript markup (markdown ```verse blocks or similar) — file a follow-up to wire this into the docx→typst Lua filter.
+
+**Effort:** ~45 min for the styling change + chapter refactor. Auto-detection follow-up is a separate ticket.
+
+**Note.** EPUB-side has the same gap (pandoc doesn't tag verse from docx without explicit class markup). Mostly relevant only for manuscripts that actually contain verse — flagged ⚠️ on EPUB side because of that.
+
+### TRK-DEV-013 — epubcheck PKG-005 packaging error from pandoc-generated EPUBs
+
+- area: DEV
+- status: open
+- priority: P3
+- created: 2026-05-26 (from TRK-TEST-002)
+- updated: 2026-05-26
+- refs: `srv/epub.go::runEPUBGeneration` (post-pandoc EPUB packaging); pandoc's zip writer
+
+**Problem.** `epubcheck scratch/ghosts-app.epub` reports:
+
+```
+ERROR(PKG-005): The mimetype file has an extra field of length 9.
+The use of the extra field feature of the ZIP format is not permitted for the mimetype file.
+```
+
+EPUB spec is strict here: the `mimetype` entry must be the first file in the zip, uncompressed, with no extra field. Pandoc's zip writer apparently adds a 9-byte extra field. Strict readers (some Kindle paths, some validators) may reject the package; permissive readers (Apple Books, Adobe Digital Editions, Calibre) accept it.
+
+Reference EPUB passes epubcheck with zero errors (just info-level RSC-004 notes about encrypted commercial fonts).
+
+**Fix options:**
+1. **Post-process in `runEPUBGeneration`** — after pandoc completes, open the EPUB zip and rewrite the `mimetype` entry with the extra field stripped. Cheap, surgical. The existing `injectChapterAuthors` already does a similar zip rewrite, so the machinery is in place.
+2. **Build the EPUB ourselves** — bypass pandoc's zip writer entirely and re-package its output through Go's `archive/zip`. More invasive.
+3. **Upstream patch to pandoc** — slow; not worth waiting.
+
+Recommend option 1.
+
+**Effort:** ~30-60 min including a regression test (epubcheck call in `srv/epub_chapter_test.go` or similar).
 
 ### TRK-DESIGN-002 — Commercial font licensing & bundling
 
@@ -1375,11 +1531,13 @@ For corrections:
 ### TRK-DEV-010 — Wire `--epub-embed-font` into pandoc invocation for Noto CJK/Thai bundle
 
 - area: DEV
-- status: open
+- status: **done** (2026-05-26; commit `e5b5f09`)
 - priority: P2
 - created: 2026-05-25
-- updated: 2026-05-25
-- refs: TRK-DESIGN-004 (parent — bundled the fonts but deferred this wiring to avoid concurrent-edit conflict with TRK-DEV-009); `srv/epub.go` line ~144; `typesetting/fonts/noto/`
+- updated: 2026-05-26
+- refs: TRK-DESIGN-004 (parent — bundled the fonts but deferred this wiring to avoid concurrent-edit conflict with TRK-DEV-009); `srv/epub.go` line ~159; `typesetting/fonts/noto/`
+
+**Closure (2026-05-26).** Loop of `--epub-embed-font=<abs path>` args for the four Noto files (CJK-TC Regular/Bold + Thai Regular/Bold) appended to pandoc's `args` slice immediately before the `docxPath` positional. Paths resolved via existing `fontsDirPath()` helper. Defensive `os.Stat` per file so a partial deploy degrades to "missing glyphs" rather than a pandoc-side error. Verified end-to-end via TRK-TEST-002: recompiled book 9 EPUB has all 4 fonts in `EPUB/fonts/` (`scratch/app-unzip/EPUB/fonts/Noto*`, 16MB of CJK-TC dominates package size, 184KB of Thai is light). Deployed.
 
 **Problem.** TRK-DESIGN-004 landed Noto Serif TC + Noto Serif Thai under `typesetting/fonts/noto/` and added `@font-face url(NotoSerifTC-Regular.otf)` etc. to `epub-styles.css`. The CSS expects the font files to live inside the generated EPUB package (pandoc's convention is to reference by basename when `--epub-embed-font` packages them). Without the flag, the `@font-face` declarations point to missing files inside the EPUB and readers fall through to the family-stack OS fallbacks (Hiragino on macOS, system Noto if installed on Linux, possibly tofu otherwise).
 
@@ -1518,10 +1676,38 @@ Smallest-possible fixture inputs (1-page DOCX, 1-page Markdown) in `test/fixture
 ### TRK-TEST-002 — Visual regression for Ghosts golden
 
 - area: TEST
-- status: open
+- status: **done** (2026-05-26)
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-26
+
+**Closure (2026-05-26).** Live-compiled Ghosts both Typst-PDF and EPUB end-to-end and diffed against the references.
+
+**Setup.** Project 14 (Ghosts TEST-002) was already configured with book 9 (`ghosts-test-002.docx`, 9 chapters with h1 chapter titles built via `pandoc manuscripts/ghosts/*.md`), spec set to Protocolized trim 4.91×7.59, Libertinus Serif body, Source Sans 3 heading, and the 9 chapter+author pairs populated in the post-DEV-012 top-level `spec.chapters[]`.
+
+**Compile path.** Both compiles run inside the VM:
+- **Typst PDF:** Direct `typst compile` against `manuscripts/ghosts/main.typ`, staged in `/tmp/ghosts-build/` because of TRK-DESIGN-005 (broken import path). Output: `scratch/ghosts-typst.pdf`, 893KB, 101 pages, 353.811×546.567pt.
+- **EPUB:** `POST /api/books/9/generate-epub` via `127.0.0.1:8000` with `X-ExeDev-UserID: j@djinna.com`, output id 27, 14.2MB. Each call creates a new `book_outputs` row → naturally diffable across iterations.
+
+**Findings — all 10 ⚠️ cells from `docs/GHOSTS_PARITY_2026-05-26.md` resolved.** Six new ❌ tickets filed:
+- TRK-DESIGN-005 (P1) — broken `main.typ` import path
+- TRK-DESIGN-006 (P2) — chapter opener images not rendering
+- TRK-DESIGN-007 (P3) — running header title case wrong (Title vs ALL CAPS)
+- TRK-DESIGN-008 (P1) — body paragraph first-line indent not rendering
+- TRK-DESIGN-009 (P2) — poem/verse blocks render as plain body
+- TRK-DEV-013 (P3) — epubcheck PKG-005 packaging error
+
+**Major positives confirmed:** DEV-009 + DEV-010 + DEV-012 all working end-to-end. All 9 per-chapter authors injected in EPUB. All 4 Noto fonts embedded. Verso/recto running-header parity logic correct. TOC structure matches. Body justification + hyphenation correct. Trim matches exactly.
+
+**Page-count delta (101 vs 136).** Driven by sparse front matter, missing chapter images, and tighter leading — none fundamental.
+
+**Release confidence for Ghosts-like titles.** Ship-blocked on 6 child tickets. The P1s (DESIGN-005 + DESIGN-008) are one-line/one-session fixes; once they land, perceived parity jumps significantly. P2/P3 remainders are polish.
+
+**Artifacts retained:** `scratch/ghosts-{typst,reference}.pdf`, `scratch/ghosts-{app,reference}.epub`, `scratch/diff-{typst,ref}/page-*.png`, `scratch/{app,ref}-unzip/`. All gitignored.
+
+---
+
+#### Old ticket body (pre-closure context, retained for reference)
 - refs: TRK-DESIGN-001, `docs/GHOSTS_PARITY_2026-05-26.md` (closes 10 ⚠️ cells); `manuscripts/ghosts/main.typ` + chapter `.typ` files; `reference/GHOSTS.pdf` + `reference/GHOSTS.epub`; `typesetting/scripts/build-ghosts.sh`
 
 **Scope.** Live-compile Ghosts end-to-end (Typst + EPUB) and page-by-page diff vs reference. The DESIGN-001 audit established what the code does; this ticket establishes what the rendered output actually looks like.
