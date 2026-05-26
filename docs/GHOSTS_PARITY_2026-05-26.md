@@ -174,7 +174,7 @@ The anthology is the canary for future books. Twitter Years is single-author; Gh
 
 ---
 
-**Document Status:** Matrix closed 2026-05-26. All 10 ⚠️ cells resolved (✅ / ❌ / acceptable-deviation). DESIGN-001 stays `in-progress` because of the 5 new ❌ child tickets (DESIGN-005 through DESIGN-009 + DEV-013); it closes when those land.
+**Document Status:** Matrix closed 2026-05-26. All 10 ⚠️ cells resolved (✅ / ❌ / acceptable-deviation). DESIGN-001 stays `in-progress` because of the remaining ❌ child tickets. **Update 2026-05-26 (later):** DESIGN-005/007/008 + DEV-013 closed in commit `1dc4ad6`. Remaining: DESIGN-006 (chapter images) + DESIGN-009 (poem/verse).
 
 ---
 
@@ -182,10 +182,10 @@ The anthology is the canary for future books. Twitter Years is single-author; Gh
 
 | # | Ticket | Severity | Summary |
 |---|--------|----------|---------|
-| 1 | **TRK-DESIGN-005** | P1 | `manuscripts/ghosts/main.typ:1` imports `"../../templates/series-template.typ"` but templates moved to `typesetting/templates/`. Compile fails without a transient symlink or root-staging hack. One-line fix: change path to `../../typesetting/templates/series-template.typ`. |
+| 1 | **TRK-DESIGN-005** ✅ done `1dc4ad6` | P1 | `manuscripts/ghosts/main.typ:1` imports `"../../templates/series-template.typ"` but templates moved to `typesetting/templates/`. Compile fails without a transient symlink or root-staging hack. One-line fix: change path to `../../typesetting/templates/series-template.typ`. |
 | 2 | **TRK-DESIGN-006** | P2 | Chapter opener images do not render in compiled Typst output (`scratch/diff-typst/page-008.png`). Reference has each chapter opener with image-behind. `main.typ` has `#image()` calls; likely path-resolution issue against `--root` staging or `#image` placement (page background vs inline). |
-| 3 | **TRK-DESIGN-007** | P3 | Running header title is Title Case in Typst, ALL CAPS in reference. Author byline already correctly upper-cased. One-line fix in `series-template.typ::running-header()` — wrap title in `upper()`. |
-| 4 | **TRK-DESIGN-008** | P1 | Body paragraph first-line indent (0.75em) does not render in Typst output, despite `#set par(first-line-indent: 0.75em)` in every chapter `.typ` file. Likely a Typst version-syntax issue (needs `all: true` or the new `first-line-indent: (amount: 0.75em, all: true)` form). Most visible regression vs reference. |
+| 3 | **TRK-DESIGN-007** ✅ done `1dc4ad6` | P3 | Running header title is Title Case in Typst, ALL CAPS in reference. Author byline already correctly upper-cased. One-line fix in `series-template.typ::running-header()` — wrap title in `upper()`. |
+| 4 | **TRK-DESIGN-008** ✅ done `1dc4ad6` | P1 | Body paragraph first-line indent (0.75em) does not render in Typst output. Root cause was **leaky `#set par(first-line-indent: 0em)` lines in chapter files** persisting through file scope, not a Typst-version syntax issue. Deleted 42 such redundant lines across 9 chapter files; Typst defaults handle first-para-after-block naturally. |
 | 5 | **TRK-DESIGN-009** | P2 | Poem/verse blocks render as plain justified body in Typst — the 4-line haiku-style verse in Ghosts ch1 ("Where have I gone? / High waves sighing,...") is plain text. Two-part fix: (a) chapter `.typ` files need to wrap verse in `poem()`, (b) the `poem()` styling itself should use body-font italic not monospace (per existing parity doc note). |
 | 6 | **TRK-DEV-013** | P3 | `epubcheck` reports PKG-005 error on generated EPUBs: "mimetype file has an extra field of length 9". Cosmetic but blocks strict readers. Originates in pandoc's zip writer; either patch the EPUB post-pandoc to strip the extra field, or use a different zip tool. |
 

@@ -10,7 +10,25 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (2026-05-30)
+## 🟢 Resume here — next session (after 2026-05-26 DESIGN triple)
+
+**Last touched:** 2026-05-26 — TRK-DESIGN-005/007/008 all landed. Typst Ghosts compile is now clean (no staging-tree hack), running header is ALL CAPS on recto, body paragraphs have 0.75em first-line indent everywhere expected. 103 pages (was 101 — slight reflow from indent). Remaining DESIGN-001 children: DESIGN-006 (chapter images) + DESIGN-009 (poem/verse blocks).
+
+**Just shipped 2026-05-26 — TRK-DESIGN-005 + 007 + 008 done:**
+- **TRK-DESIGN-005 done.** `manuscripts/ghosts/main.typ:1` import path corrected to `../../typesetting/templates/series-template.typ`. `typst compile --root .` now works without the `/tmp/ghosts-build/` staging-tree workaround.
+- **TRK-DESIGN-007 done.** `typesetting/templates/series-template.typ:168` recto running header title wrapped in `upper()`. Verso author byline was already correct (`upper(author)` on line 161). Verified on page 5 ("KHLONGS, SUBAKS, BEAINGS") and page 9 (Sam Chua verso).
+- **TRK-DESIGN-008 done.** Root cause was **not** Typst version syntax — it was leaky `#set par(first-line-indent: 0em)` lines in chapter files (line ~10 of each, killing indent for the rest of the file scope; plus 30+ more before list blocks that never restored). Deleted 42 such lines across 9 chapter files via `perl -i`. Typst's default first-paragraph-after-block behavior handles the "no indent after heading" case naturally; the kills were redundant AND destructive. Each chapter's line-2 `#set par(...first-line-indent: 0.75em)` now applies as intended. Compile produced visible indents on every body paragraph.
+- **CLAUDE.md workflow note added:** the harness auto-mode classifier blocks assistant `ssh exedev@...` calls. Convention is now: assistant writes a single concatenated shell command, user pastes it into their shell and pastes output back. See `CLAUDE.md` "VM ssh — user-run, not assistant-run".
+
+**Remaining DESIGN-001 children (in priority order):**
+- **TRK-DESIGN-006** (P2, ~30-60 min) — chapter opener images not rendering. Investigate `--root`/image path resolution.
+- **TRK-DESIGN-009** (P2, ~45 min) — poem/verse blocks render as plain body. Two-part: chapter `.typ` files + `poem()` styling in template.
+
+Once those land, DESIGN-001 closes with zero ❌ in the parity matrix.
+
+---
+
+## 🗂 Earlier resume block — 2026-05-30 (DESIGN triple session prep)
 
 **Last touched:** 2026-05-26 (TRK-DEV-013 done in parallel with the DESIGN-005/006/007/008/009 session — `epubcheck` PKG-005 fixed; Ghosts EPUB now validates clean).
 
@@ -918,12 +936,14 @@ A built Go binary lives at the prodcal repo root. Tracked in git, in CI artifact
 ### TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix
 
 - area: DESIGN
-- status: in-progress (audit done + live-compile verified 2026-05-26; closes when DESIGN-005/006/007/008/009 land — DEV-013 closed 2026-05-26 `bf878da`)
+- status: in-progress (audit done; DESIGN-005/007/008 closed 2026-05-26 commit `1dc4ad6`; DEV-013 closed 2026-05-26 `bf878da`; remaining: DESIGN-006 + DESIGN-009)
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-26
 
-**2026-05-26 update.** TRK-TEST-002 closed; all 10 ⚠️ cells in `docs/GHOSTS_PARITY_2026-05-26.md` resolved. Six new ❌ findings filed as child tickets (TRK-DESIGN-005..009 + TRK-DEV-013). DESIGN-001 stays open until those land; flips to `done` when the matrix has zero ❌ for v1 scope.
+**2026-05-26 update (later).** DESIGN-005/007/008 all landed in commit `1dc4ad6`. Import path fixed, recto running header now ALL CAPS, body paragraph indents now rendering throughout (root cause was leaky `#set par(first-line-indent: 0em)` not Typst-version syntax — see TRK-DESIGN-008 resolution). DESIGN-001 stays open until DESIGN-006 (chapter images) and DESIGN-009 (poem/verse) land.
+
+**2026-05-26 update (earlier).** TRK-TEST-002 closed; all 10 ⚠️ cells in `docs/GHOSTS_PARITY_2026-05-26.md` resolved. Six new ❌ findings filed as child tickets (TRK-DESIGN-005..009 + TRK-DEV-013).
 - refs: `docs/GHOSTS_PARITY_2026-05-26.md` (full audit, 25✅/10⚠️/1❌); `reference/GHOSTS.pdf` (136 pages, 353.811 × 546.567 pt = 4.91 × 7.59 in, PDF/X-4, InDesign 21.0); `manuscripts/ghosts/main.typ` (per-chapter Typst sources with `set-story-info()` configured for 9 chapters)
 
 **2026-05-26 audit done (subagent, read-only).** Full matrix in `docs/GHOSTS_PARITY_2026-05-26.md`. Summary: 25 ✅ items match code, 10 ⚠️ need live-compile verification, 1 ❌ (PDF/X-4 — Typst limitation; post-process via Ghostscript possible).
@@ -1057,10 +1077,10 @@ Without resolution, the Ghosts compile will produce ❌ for CJK/Thai cells in th
 ### TRK-DESIGN-005 — Fix `manuscripts/ghosts/main.typ` broken import path
 
 - area: DESIGN
-- status: open
+- status: done 2026-05-26
 - priority: P1
 - created: 2026-05-26 (from TRK-TEST-002)
-- updated: 2026-05-26
+- updated: 2026-05-26 (closed)
 - refs: `manuscripts/ghosts/main.typ:1`; surfaced during TRK-TEST-002 live compile
 
 **Problem.** `main.typ` line 1 imports `"../../templates/series-template.typ"`, which resolves to `<repo-root>/templates/series-template.typ` — a path that doesn't exist. The real template lives at `typesetting/templates/series-template.typ`. Direct `typst compile` from `manuscripts/ghosts/` fails with `cannot read file outside of project root` (until `--root` is widened) and then `file not found` against the wrong path.
@@ -1103,10 +1123,10 @@ Then verify `typst compile --root <repo-root> --font-path typesetting/fonts manu
 ### TRK-DESIGN-007 — Running header title rendered Title Case, should be ALL CAPS
 
 - area: DESIGN
-- status: open
+- status: done 2026-05-26
 - priority: P3
 - created: 2026-05-26 (from TRK-TEST-002)
-- updated: 2026-05-26
+- updated: 2026-05-26 (closed; `upper(title)` on recto grid; verso author already `upper(author)`)
 - refs: `typesetting/templates/series-template.typ::running-header()` (lines ~134-172 per parity doc); compare `scratch/diff-typst/page-010.png` (Typst) vs `scratch/diff-ref/page-015.png` (reference)
 
 **Problem.** Typst running-header shows the story title in Title Case ("Khlongs, Subaks, Beaings"). Reference shows ALL CAPS ("KHLONGS, SUBAKS, BEAINGS"). Author byline (verso) is already correctly upper-cased in Typst output ("SPENCER NITKEY"), so only the title path needs the change.
@@ -1118,10 +1138,12 @@ Then verify `typst compile --root <repo-root> --font-path typesetting/fonts manu
 ### TRK-DESIGN-008 — Body paragraph first-line indent not rendering despite spec
 
 - area: DESIGN
-- status: open
+- status: done 2026-05-26
 - priority: P1
 - created: 2026-05-26 (from TRK-TEST-002)
-- updated: 2026-05-26
+- updated: 2026-05-26 (closed)
+
+**Resolution.** Root cause was **not** Typst-version syntax. The chapter files had `#set par(first-line-indent: 0em)` lines (~line 10 in each, plus 30+ more before list blocks) that persisted for the rest of the file scope, overriding the line-2 `#set par(...first-line-indent: 0.75em)` and killing indent on all body paragraphs. Typst's default behavior already gives "no indent on first paragraph after a block" — those 0em sets were redundant AND destructive. Deleted 42 such lines across 9 chapter files via `perl -i -ne 'print unless /^#set par\(first-line-indent: 0em\)\s*$/'`. Verified visually: page-005 and page-010 of the recompiled output show clean 0.75em indents on every body paragraph (page count 101 → 103 due to slight reflow). Commit `1dc4ad6`.
 - refs: `manuscripts/ghosts/00-intro.typ` and 01-08*.typ (each opens with `#set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)`); `scratch/diff-typst/page-009.png` (no indents visible) vs `scratch/diff-ref/page-015.png` (clear 0.75em indent on body paragraphs)
 
 **Problem.** Every chapter `.typ` file declares `first-line-indent: 0.75em` in its opening `#set par(...)` call. The compiled output shows no first-line indents anywhere in the body — every paragraph flush-left. This is the single most visible perceived-quality regression vs the reference.
