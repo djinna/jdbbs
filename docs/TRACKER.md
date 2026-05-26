@@ -335,14 +335,13 @@ Currently: corrections stored in SQLite + manually exported as YAML + manually f
 ### TRK-MIG-007 — Verify Libertinus Serif on VM (or bundle)
 
 - area: MIG
-- status: open
+- status: done
 - priority: P1
 - created: 2026-05-12
-- updated: 2026-05-12
-- refs: jdbbs/typesetting/fonts/, jdbbs/Dockerfile; MIGRATION_LOG.md §"Open Phase 3" item 4
-- blocks: TRK-MIG-003 (only if absent)
+- updated: 2026-05-25
+- refs: jdbbs/typesetting/fonts/libertinus/, commit d451aa4
 
-Run `fc-list | grep -i libertinus` on VM. If absent: `apt install fonts-libertinus`, or bundle in `typesetting/fonts/libertinus/` for full self-containment (preferred — removes a runtime dependency).
+**Done 2026-05-25.** Audited VM: `fc-list | grep -i libertinus` returned empty, `~/prodcal/typesetting/fonts/` contained only jetbrainsmono + sourcesans. Took the preferred path: bundled `Libertinus-7.040` (alerque/libertinus, OFL) Serif family (Regular/Bold/Italic/BoldItalic/Semibold/SemiboldItalic) into `typesetting/fonts/libertinus/OTF/`. No code change needed — `typst compile --font-path typesetting/fonts` (srv/books.go:282) scans recursively. Live verification deferred to TRK-DEV-002 smoke test.
 
 ### TRK-MIG-008 — Fix scripts/backup-db.sh path
 
@@ -851,13 +850,23 @@ Three plausible patterns for spec → template config override (param to `#book(
 ### TRK-DEV-002 — Wire spec → Typst compile pipeline (CP-1, KEYSTONE)
 
 - area: DEV
-- status: open
+- status: done (pending live smoke)
 - priority: P1
 - created: 2026-05-25
 - updated: 2026-05-25
-- refs: srv/bookspecs.go (handleGenerateConfig already exists), srv/books.go (runConversion needs spec injection), typesetting/templates/series-template.typ (already accepts merge-config); PRODUCTION_ROADMAP_2026-05-25.md (CP-1)
+- refs: srv/books.go:189-321 (runConversion), srv/books.go:455 (buildTypstConfig), srv/bookspecs.go:514 (specToTypstConfig), srv/static/admin.html:2598 (Compile PDF handler)
 
-The keystone gap: `handleGenerateConfig` produces a valid Typst config from book_spec, but `runConversion()` in `books.go` doesn't consume it — spec edits never reach the compiled PDF.
+**Resolution 2026-05-25.** Fresh-session audit showed the 2026-05-25 "current state" section below was stale — the seam was already wired in a prior session and not closed out in the tracker. Verified end-to-end trace:
+
+- `srv/books.go::runConversion` line 232 calls `s.buildTypstConfig(bid, book)`.
+- `buildTypstConfig` (line 455) resolves `book.ProjectID` → `q.GetBookSpec` → returns `specToTypstConfig(data)`.
+- `specToTypstConfig` (srv/bookspecs.go:514) — shared between the existing `handleGenerateConfig` endpoint and `runConversion`, so the optional "refactor to extract a helper" in step 4 is already realized.
+- Result is interpolated into the header replacement (line 232-260) just after the `#import "…series-template.typ": *` line, so the spec's `#let config = merge-config((…))` override takes effect before `#show: book.with(…)`.
+- SPA `ts-compile-pdf` button (admin.html:2598) calls `tsSaveSpec()` first if dirty, then `POST /api/books/{bid}/convert` → triggers the spec-aware path.
+
+**Step 2 (new `POST /api/projects/{id}/book-spec/compile` endpoint) deliberately skipped:** redundant with the per-book convert route which already does spec-driven compile. Adding it would duplicate route plumbing without changing behavior. If a project-scoped "compile all books in this project" batch op is wanted later, file a fresh ticket.
+
+**Remaining = live smoke (folded into TRK-MIG-007 cycle):** push d451aa4 (Libertinus bundle), redeploy, edit a Twitter Years spec value (e.g. base size), recompile, eyeball the diff in the PDF. If the diff is visible and Libertinus renders, mark this fully done.
 
 #### Current state (audited 2026-05-25 — start here, don't re-discover)
 
