@@ -210,10 +210,19 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	// Step 0: apply project's pending corrections to the source docx (no-op
 	// when the book isn't project-linked or has no pending corrections). The
 	// resulting bytes flow through pandoc → typst like any other source.
+	// Also patch in-memory metadata (Title/Author) so the typst template's
+	// title page reflects corrections — the template reads book.Title and
+	// book.Author, not docx content.
 	ctxApply := context.Background()
 	var correctionsSnapshot string
 	if book.ProjectID.Valid {
-		correctionsSnapshot = s.applyCorrectionsIfAny(ctxApply, bid, book.ProjectID.Int64, tmpDir, docxPath)
+		var pairs []correctionPair
+		correctionsSnapshot, pairs = s.applyCorrectionsIfAny(ctxApply, bid, book.ProjectID.Int64, tmpDir, docxPath)
+		if len(pairs) > 0 {
+			book.Title = applyPairsToString(book.Title, pairs)
+			book.Author = applyPairsToString(book.Author, pairs)
+			book.Series = applyPairsToString(book.Series, pairs)
+		}
 	}
 
 	// Step 1: direct pandoc docx -> typst using the bundled lua filter.

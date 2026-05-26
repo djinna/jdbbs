@@ -66,10 +66,18 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 	slog.Info("epub generation starting", "id", bid, "title", book.Title)
 
 	// Apply pending corrections to the source docx before pandoc runs, so the
-	// EPUB inherits the same patches the PDF pipeline does.
+	// EPUB inherits the same patches the PDF pipeline does. Also patch
+	// in-memory metadata — pandoc receives author/title via --metadata flags
+	// pulled from the books table, NOT from docx content, so without this the
+	// EPUB title page renders the unpatched values.
 	var correctionsSnapshot string
+	var correctionPairs []correctionPair
 	if book.ProjectID.Valid {
-		correctionsSnapshot = s.applyCorrectionsIfAny(ctx, bid, book.ProjectID.Int64, tmpDir, docxPath)
+		correctionsSnapshot, correctionPairs = s.applyCorrectionsIfAny(ctx, bid, book.ProjectID.Int64, tmpDir, docxPath)
+		if len(correctionPairs) > 0 {
+			book.Title = applyPairsToString(book.Title, correctionPairs)
+			book.Author = applyPairsToString(book.Author, correctionPairs)
+		}
 	}
 
 	// Load spec if project is linked
@@ -85,6 +93,15 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 		if err == nil {
 			spec = parseEPUBSpec(dbSpec.Data, book)
 			specSnapshot = dbSpec.Data
+			// Spec JSON can override Title/Author with its own (potentially
+			// unpatched) values. Re-apply corrections so the EPUB metadata
+			// pandoc receives is consistent with the patched docx body.
+			if len(correctionPairs) > 0 {
+				spec.Title = applyPairsToString(spec.Title, correctionPairs)
+				spec.Author = applyPairsToString(spec.Author, correctionPairs)
+				spec.Subject = applyPairsToString(spec.Subject, correctionPairs)
+				spec.Description = applyPairsToString(spec.Description, correctionPairs)
+			}
 
 			// Write cover image if available
 			coverRow, err := q.GetBookSpecCover(ctx, book.ProjectID.Int64)

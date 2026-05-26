@@ -64,9 +64,15 @@ except ImportError:
 
 try:
     from docx import Document
+    from docx.oxml.ns import qn
+    from docx.text.paragraph import Paragraph
 except ImportError:
     print("python-docx required: pip install python-docx", file=sys.stderr)
     sys.exit(1)
+
+
+FOOTNOTES_RELTYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes"
+ENDNOTES_RELTYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes"
 
 
 EXAMPLE_CORRECTIONS = """\
@@ -275,41 +281,107 @@ def is_heading(paragraph):
     return style_name.startswith("heading")
 
 
+def _iter_table_paragraphs(tbl):
+    """Yield every paragraph inside a table, recursing into nested tables."""
+    for row in tbl.rows:
+        for cell in row.cells:
+            for p in cell.paragraphs:
+                yield p
+            for sub in cell.tables:
+                yield from _iter_table_paragraphs(sub)
+
+
+def _iter_notes_paragraphs(doc, reltype):
+    """Yield paragraphs from the footnotes or endnotes part, if present.
+
+    Footnote/endnote text lives in a separate OOXML part (word/footnotes.xml,
+    word/endnotes.xml) reached via document relationships — doc.paragraphs
+    never sees them, which is why footnote typos used to slip through.
+    """
+    main_part = doc.part
+    for rel in main_part.rels.values():
+        if rel.reltype != reltype:
+            continue
+        notes_part = rel.target_part
+        root = notes_part.element
+        for p_elem in root.iter(qn("w:p")):
+            yield Paragraph(p_elem, notes_part)
+
+
+def iter_all_paragraphs(doc):
+    """Yield every patchable paragraph in the document, tagged with a scope.
+
+    Scopes:
+      "body"   — main body paragraphs (chapter filter applies)
+      "table"  — table cells in the body (chapter filter does NOT apply)
+      "hf"     — headers/footers (chapter filter does NOT apply)
+      "note"   — footnotes/endnotes (chapter filter does NOT apply)
+
+    The non-body scopes ignore chapter filters because there is no reliable
+    way to attribute a footnote/header/table cell to a body chapter — and the
+    typo-level fixes this tool targets are almost always meant to apply
+    everywhere when unscoped.
+    """
+    for p in doc.paragraphs:
+        yield "body", p
+    for tbl in doc.tables:
+        for p in _iter_table_paragraphs(tbl):
+            yield "table", p
+    for section in doc.sections:
+        for hf in (section.header, section.footer,
+                   section.first_page_header, section.first_page_footer,
+                   section.even_page_header, section.even_page_footer):
+            if hf is None:
+                continue
+            for p in hf.paragraphs:
+                yield "hf", p
+            for tbl in hf.tables:
+                for p in _iter_table_paragraphs(tbl):
+                    yield "hf", p
+    for p in _iter_notes_paragraphs(doc, FOOTNOTES_RELTYPE):
+        yield "note", p
+    for p in _iter_notes_paragraphs(doc, ENDNOTES_RELTYPE):
+        yield "note", p
+
+
 def apply_to_docx(docx_path, corrections, output_path, dry_run=False):
-    """Apply corrections to a Word document."""
+    """Apply corrections to a Word document across body, tables, headers,
+    footers, footnotes, and endnotes."""
     doc = Document(docx_path)
     results = []
 
-    # Build a chapter context map: for each paragraph index, track
-    # the most recent heading text seen above it.
-    paragraphs = doc.paragraphs
+    # Build a chapter-context map for body paragraphs only (the only scope
+    # where chapter filtering is meaningful).
+    body_paragraphs = doc.paragraphs
     current_chapter = None
-    chapter_context = []  # parallel to paragraphs
-    for para in paragraphs:
+    body_chapter = {}  # id(para) -> chapter text
+    for para in body_paragraphs:
         if is_heading(para):
             current_chapter = para.text.strip()
-        chapter_context.append(current_chapter)
+        body_chapter[id(para)] = current_chapter
+
+    # Materialize the full iteration once — we walk it per-correction.
+    all_paragraphs = list(iter_all_paragraphs(doc))
 
     for corr in corrections:
         find_text = corr["find"]
         replace_text = corr["replace"]
         total_replacements = 0
 
-        for pi, para in enumerate(paragraphs):
-            # If chapter filter specified, check the chapter context
+        for scope, para in all_paragraphs:
             if corr["chapter"]:
-                ctx = chapter_context[pi]
+                # Chapter filter applies only to body paragraphs; skip others.
+                if scope != "body":
+                    continue
+                ctx = body_chapter.get(id(para))
                 if ctx is None or corr["chapter"] not in ctx:
                     continue
 
             if dry_run:
-                # For dry run, count matches without modifying
                 full_text = "".join(run.text or "" for run in para.runs)
-                count = full_text.count(find_text)
-                total_replacements += count
+                total_replacements += full_text.count(find_text)
             else:
-                count = replace_in_paragraph(para, find_text, replace_text)
-                total_replacements += count
+                total_replacements += replace_in_paragraph(para, find_text, replace_text)
 
         status = "APPLIED" if total_replacements > 0 else "NOT FOUND"
         if dry_run and total_replacements > 0:
@@ -324,7 +396,6 @@ def apply_to_docx(docx_path, corrections, output_path, dry_run=False):
             "note": corr["note"],
         })
 
-    # Save (only if not dry run and changes were made)
     if not dry_run and any(r["count"] > 0 for r in results):
         doc.save(output_path)
 
