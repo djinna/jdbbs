@@ -10,11 +10,21 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (2026-05-28)
+## 🟢 Resume here — next session (2026-05-29)
 
-**Last touched:** 2026-05-26.
+**Last touched:** 2026-05-28.
 
-**Just shipped this session — TRK-MIG-006 (CP-3) done; TRK-DEV-008 filed:**
+**Just shipped this session — TRK-DEV-007 (diff-vs-previous UI) done:**
+- Compile-history panel rows now show a `diff` link that toggles an inline two-column comparison (spec changes left, corrections changes right) against the immediately-preceding compile of the same format. Empty diffs render explicit copy; legacy pre-snapshot rows degrade gracefully (greyed link + "earlier compile had no spec snapshot" rather than throwing).
+- JS-only landing in `srv/static/admin.html`: helpers `tsSpecDiff` (recursive JSON walk, stable-sorted, flat path list), `tsParseCorrectionsYAML` (parses the `%q`-quoted YAML emitted by `renderCorrectionsYAML` via `JSON.parse('"' + raw + '"')`), `tsCorrectionsDiff` (set-diff keyed on `find`, returns added/removed/changed with per-field deltas). `tsRenderHistory` upgraded to fetch with `?include=spec,corrections` and cache rows in `tsHistoryRows[el.id]` so the diff-toggle handler can look up the older row by index.
+- Unit-tested the three helpers under `node --check` plus a behavioral script before pushing. No API, no Go, no schema changes — pure JS in an embedded static file (Go rebuild on the VM picks it up).
+- TRK-DEV-007 marked `done` in TRACKER.
+
+**Pre-existing context (carried forward from 2026-05-26 — verify before relying on):**
+- TRK-MIG-006 corrections round-trip live on PDF + EPUB; migration 016 (`book_outputs.corrections_snapshot`) applied; snapshots populated since.
+- TRK-DEV-008 filed (P3, patcher ergonomics) — pick when warranted.
+
+**Just shipped 2026-05-26 — TRK-MIG-006 (CP-3) done; TRK-DEV-008 filed:**
 - TRK-MIG-006: corrections pipeline round-trip live on both PDF and EPUB. Pending corrections (`status='pending'`) materialize as YAML in-process, patch the source docx via `apply-corrections-docx.py` before pandoc runs. Patcher extended from body-only to body + tables + headers/footers + footnotes + endnotes (footnotes/endnotes go through a `.blob` round-trip since python-docx models them as plain `Part`, not `XmlPart`). In-memory metadata also patched so the EPUB/PDF title pages reflect corrections (pandoc/typst receive author/title via flags, not from docx content). Migration 016 adds `book_outputs.corrections_snapshot TEXT NULL`; `?include=spec,corrections` returns both per row.
 - Status flips stay manual on purpose: every compile re-applies pending from the original docx, so auto-flipping would silently drop the fix on the next compile. The user marks applied when the canonical Word doc subsumes the fix.
 - Verified live with `Venkatesh → Venkat` (body byline, footnote citation, pandoc metadata) and `alchemy → al-TEST` (body-local). Matching is case-sensitive by design (matches the `iphone → iPhone` example); `Alchemy` needs its own row.
@@ -44,8 +54,7 @@ Expect: `prodcal active`, `OK`, `16/15/14`, `HTTP/2 200`.
 1. **TRK-DESIGN-001 (CP-5)** — Ghosts parity matrix. The release-confidence check after CP-1..CP-4. ~2-3 hours.
 2. **TRK-OPS-006** — drop 12 test/dummy projects from prod DB. ~5-10 min, mechanical (backup → `DELETE FROM projects WHERE id != 7` → verify cascades).
 3. **TRK-DEV-004** — Special-typography preservation class (data model + preflight + pipeline). ~3 sessions; Phase A first.
-4. **TRK-DEV-007** (small) — diff-vs-latest UI for the compile-history panel. The `?include=spec,corrections` API exists; only the renderer is missing.
-5. **TRK-DEV-008** (any single item) — corrections patcher ergonomics; item 1 (case-insensitive flag) is the cheapest unlock if a real correction set surfaces case-mismatch pain.
+4. **TRK-DEV-008** (any single item) — corrections patcher ergonomics; item 1 (case-insensitive flag) is the cheapest unlock if a real correction set surfaces case-mismatch pain.
 
 After CP-5 ships, v1 workflow is "complete." Translation layer (v2) is **TRK-TRANS-001..009** — see `docs/PRODUCTION_ROADMAP_2026-05-25.md`.
 
@@ -1119,11 +1128,14 @@ Follow-ups filed: TRK-DEV-005 (compile-history panel — `book_outputs` already 
 ### TRK-DEV-007 — Diff-vs-previous UI in compile-history panel
 
 - area: DEV
-- status: open
+- status: done
 - priority: P2
 - created: 2026-05-26
-- updated: 2026-05-26
+- updated: 2026-05-28
+- closed: 2026-05-28
 - refs: srv/static/admin.html (compile-history panel under PDF + EPUB Compile buttons); `GET /api/books/{id}/outputs?include=spec,corrections` (already returns both snapshots); commits 56e8256 (DEV-005/006), 9af05ad-10a07c7 (MIG-006 corrections_snapshot)
+
+**Done 2026-05-28.** JS-only landing in `srv/static/admin.html`. `tsRenderHistory` now fetches with `?include=spec,corrections` and caches each panel's rows in `tsHistoryRows[el.id]`. Each row except the oldest visible gets a `diff` link that toggles an inline two-column panel (spec diff left, corrections diff right). Helpers: `tsSpecDiff` walks two JSON objects recursively emitting `{path, before, after}` for changed leaves with stable sort; `tsParseCorrectionsYAML` parses the `%q`-quoted YAML emitted by `renderCorrectionsYAML` via `JSON.parse('"' + raw + '"')`; `tsCorrectionsDiff` keys on `find` and returns `{added, removed, changed}` with per-field deltas. Empty-diff state renders explicit copy ("no spec changes" / "no corrections changes" / "no spec or corrections changes since … (no snapshots recorded)"). Legacy pre-snapshot rows: diff link greys out via opacity and the renderer emits "earlier compile had no spec snapshot" rather than throwing. Unit-tested the three helpers under node before pushing. No new API, no Go changes, no schema change.
 
 **Context.** Both `spec_snapshot` (DEV-006, migration 015) and `corrections_snapshot` (MIG-006, migration 016) are now persisted per compile. The history panel lists rows + lets you download artifacts but nothing surfaces *what changed* between two compiles. Right now: user compiles twice, downloads both PDFs, opens them side-by-side, tries to remember which spec edits and which corrections were active. The data exists; only the UI gap is left.
 

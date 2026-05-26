@@ -2604,24 +2604,210 @@ function fmtTs(s) {
   try { return new Date(s).toLocaleString(); } catch(e) { return s; }
 }
 
+// Walk two JSON objects recursively, emit a flat list of {path, before, after}.
+// Treats arrays and primitives as leaf values (stringified for equality).
+function tsSpecDiff(a, b, path, out) {
+  out = out || [];
+  path = path || '';
+  const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+  if (!isObj(a) || !isObj(b)) {
+    if (JSON.stringify(a) !== JSON.stringify(b)) {
+      out.push({ path: path || '(root)', before: a, after: b });
+    }
+    return out;
+  }
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  // Sort for stable diff output
+  const sorted = [...keys].sort();
+  for (const k of sorted) {
+    const sub = path ? `${path}.${k}` : k;
+    tsSpecDiff(a[k], b[k], sub, out);
+  }
+  return out;
+}
+
+// Parse the YAML format emitted by renderCorrectionsYAML in srv/corrections_apply.go.
+// Each entry starts with `- find: "..."` and has optional replace/chapter/note keys.
+// Strings are Go %q-quoted; JSON.parse handles the common escape subset.
+function tsParseCorrectionsYAML(text) {
+  if (!text || !text.trim()) return [];
+  const out = [];
+  let cur = null;
+  for (const line of text.split('\n')) {
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    if (/^corrections:\s*$/.test(line)) continue;
+    const m = line.match(/^\s*(-\s+)?(find|replace|chapter|note):\s*"((?:[^"\\]|\\.)*)"\s*$/);
+    if (!m) continue;
+    let val;
+    try { val = JSON.parse('"' + m[3] + '"'); } catch(e) { val = m[3]; }
+    if (m[1]) { // new entry starts at `- find:`
+      if (cur) out.push(cur);
+      cur = {};
+    }
+    if (!cur) cur = {};
+    cur[m[2]] = val;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+// Set-diff corrections keyed by `find`. Returns {added, removed, changed}.
+function tsCorrectionsDiff(prev, next) {
+  const mp = new Map(prev.map(c => [c.find, c]));
+  const mn = new Map(next.map(c => [c.find, c]));
+  const added = [], removed = [], changed = [];
+  for (const [k, v] of mn) {
+    if (!mp.has(k)) { added.push(v); continue; }
+    const p = mp.get(k);
+    const fields = [];
+    for (const f of ['replace', 'chapter', 'note']) {
+      if ((p[f] || '') !== (v[f] || '')) fields.push({ field: f, before: p[f] || '', after: v[f] || '' });
+    }
+    if (fields.length) changed.push({ find: k, fields });
+  }
+  for (const [k, v] of mp) {
+    if (!mn.has(k)) removed.push(v);
+  }
+  return { added, removed, changed };
+}
+
+function tsFmtSpecVal(v) {
+  if (v === undefined) return '(unset)';
+  if (v === null) return 'null';
+  if (typeof v === 'string') return JSON.stringify(v);
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+function tsRenderSpecDiff(prevSpec, nextSpec) {
+  if (!prevSpec && !nextSpec) return '<div style="opacity:0.6">no spec snapshot recorded</div>';
+  if (!prevSpec) return '<div style="opacity:0.6">earlier compile had no spec snapshot</div>';
+  if (!nextSpec) return '<div style="opacity:0.6">this compile had no spec snapshot</div>';
+  let a, b;
+  try { a = JSON.parse(prevSpec); b = JSON.parse(nextSpec); } catch(e) {
+    return `<div style="color:var(--red)">spec parse error: ${esc(e.message)}</div>`;
+  }
+  const diffs = tsSpecDiff(a, b);
+  if (diffs.length === 0) return '<div style="opacity:0.6">no spec changes</div>';
+  return diffs.map(d =>
+    `<div style="font-family:ui-monospace,monospace;padding:0.1rem 0">
+      <span style="color:var(--accent)">${esc(d.path)}:</span>
+      <span style="color:var(--red)">${esc(tsFmtSpecVal(d.before))}</span>
+      <span style="opacity:0.5"> → </span>
+      <span style="color:var(--green)">${esc(tsFmtSpecVal(d.after))}</span>
+    </div>`
+  ).join('');
+}
+
+function tsFmtCorrEntry(c) {
+  const parts = [];
+  if (c.find !== undefined) parts.push(`find: ${JSON.stringify(c.find)}`);
+  if (c.replace !== undefined) parts.push(`replace: ${JSON.stringify(c.replace)}`);
+  if (c.chapter) parts.push(`chapter: ${JSON.stringify(c.chapter)}`);
+  if (c.note) parts.push(`note: ${JSON.stringify(c.note)}`);
+  return '{ ' + parts.join(', ') + ' }';
+}
+
+function tsRenderCorrectionsDiff(prevSnap, nextSnap) {
+  const prev = tsParseCorrectionsYAML(prevSnap || '');
+  const next = tsParseCorrectionsYAML(nextSnap || '');
+  if (prev.length === 0 && next.length === 0) {
+    return '<div style="opacity:0.6">no corrections in either compile</div>';
+  }
+  const { added, removed, changed } = tsCorrectionsDiff(prev, next);
+  if (added.length === 0 && removed.length === 0 && changed.length === 0) {
+    return '<div style="opacity:0.6">no corrections changes</div>';
+  }
+  const blocks = [];
+  for (const c of added) {
+    blocks.push(`<div style="font-family:ui-monospace,monospace;color:var(--green)">+ added: ${esc(tsFmtCorrEntry(c))}</div>`);
+  }
+  for (const c of removed) {
+    blocks.push(`<div style="font-family:ui-monospace,monospace;color:var(--red)">- removed: ${esc(tsFmtCorrEntry(c))}</div>`);
+  }
+  for (const c of changed) {
+    const fieldLines = c.fields.map(f =>
+      `<div style="margin-left:1rem;opacity:0.85">${esc(f.field)}: ${esc(JSON.stringify(f.before))} → ${esc(JSON.stringify(f.after))}</div>`
+    ).join('');
+    blocks.push(`<div style="font-family:ui-monospace,monospace;color:var(--yellow)">~ changed: find=${esc(JSON.stringify(c.find))}${fieldLines}</div>`);
+  }
+  return blocks.join('');
+}
+
+// rowsByEl[el.id] holds the most recent fetched rows for each history panel
+// so the diff-button click handler can look up the older row by index.
+const tsHistoryRows = {};
+
+window.tsToggleDiff = function(elId, idx) {
+  const rows = tsHistoryRows[elId];
+  if (!rows) return;
+  const cur = rows[idx];
+  const prev = rows[idx + 1]; // rows are newest-first; previous compile is at idx+1
+  if (!cur || !prev) return;
+  const panel = document.getElementById(`${elId}-diff-${idx}`);
+  if (!panel) return;
+  if (panel.style.display === 'block') {
+    panel.style.display = 'none';
+    return;
+  }
+  const since = `since ${fmtTs(prev.created_at)}`;
+  let body;
+  if (cur.spec_snapshot === undefined && cur.corrections_snapshot === undefined &&
+      prev.spec_snapshot === undefined && prev.corrections_snapshot === undefined) {
+    body = `<div style="opacity:0.6">no spec or corrections changes ${esc(since)} (no snapshots recorded)</div>`;
+  } else {
+    const specHTML = tsRenderSpecDiff(prev.spec_snapshot, cur.spec_snapshot);
+    const corrHTML = tsRenderCorrectionsDiff(prev.corrections_snapshot, cur.corrections_snapshot);
+    body = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.3rem">
+      <div>
+        <div style="font-weight:500;margin-bottom:0.2rem">Spec changes</div>
+        ${specHTML}
+      </div>
+      <div>
+        <div style="font-weight:500;margin-bottom:0.2rem">Corrections changes</div>
+        ${corrHTML}
+      </div>
+    </div>
+    <div style="opacity:0.5;margin-top:0.3rem;font-size:0.68rem">vs compile from ${esc(fmtTs(prev.created_at))}</div>`;
+  }
+  panel.innerHTML = body;
+  panel.style.display = 'block';
+};
+
 async function tsRenderHistory(bid, format, el) {
   if (!el) return;
-  if (!bid) { el.innerHTML = ''; return; }
+  if (!bid) { el.innerHTML = ''; delete tsHistoryRows[el.id]; return; }
   try {
-    const r = await fetch(`/api/books/${bid}/outputs`);
+    const r = await fetch(`/api/books/${bid}/outputs?include=spec,corrections`);
     if (!r.ok) { el.innerHTML = ''; return; }
     const rows = (await r.json()).filter(o => o.output_format === format);
     if (rows.length === 0) {
       el.innerHTML = '<div style="opacity:0.7">No compiles yet.</div>';
+      delete tsHistoryRows[el.id];
       return;
     }
-    const items = rows.map(o => {
+    tsHistoryRows[el.id] = rows;
+    const items = rows.map((o, i) => {
       const href = absoluteURL(`/api/books/${bid}/outputs/${o.id}/download`);
-      return `<div style="display:flex;gap:0.5rem;align-items:baseline;padding:0.1rem 0">
-        <span style="color:var(--text)">${esc(fmtTs(o.created_at))}</span>
-        <span style="opacity:0.6">${esc(o.output_format)}</span>
-        <span style="opacity:0.6">${esc(fmtBytes(o.size_bytes))}</span>
-        <a href="${href}" style="color:var(--accent)">download</a>
+      const prev = rows[i + 1];
+      let diffBtn = '';
+      if (prev) {
+        const disabled = (o.spec_snapshot === undefined && o.corrections_snapshot === undefined &&
+                          prev.spec_snapshot === undefined && prev.corrections_snapshot === undefined);
+        const title = disabled ? 'no snapshot recorded' : 'show spec + corrections changes vs previous compile';
+        diffBtn = `<a href="javascript:void(0)" onclick="tsToggleDiff('${el.id}', ${i})" title="${esc(title)}" style="color:var(--accent);opacity:${disabled ? 0.4 : 1}">diff</a>`;
+      } else {
+        diffBtn = `<span style="opacity:0.3" title="no earlier compile to diff against">diff</span>`;
+      }
+      return `<div style="padding:0.1rem 0">
+        <div style="display:flex;gap:0.5rem;align-items:baseline">
+          <span style="color:var(--text)">${esc(fmtTs(o.created_at))}</span>
+          <span style="opacity:0.6">${esc(o.output_format)}</span>
+          <span style="opacity:0.6">${esc(fmtBytes(o.size_bytes))}</span>
+          <a href="${href}" style="color:var(--accent)">download</a>
+          ${diffBtn}
+        </div>
+        <div id="${el.id}-diff-${i}" style="display:none;margin:0.2rem 0 0.4rem 0;padding:0.4rem 0.55rem;border:1px solid var(--border);border-radius:3px;background:var(--bg)"></div>
       </div>`;
     }).join('');
     el.innerHTML = `<div style="font-weight:500;margin-bottom:0.25rem">Recent compiles (${rows.length})</div>${items}`;
