@@ -81,7 +81,7 @@ Printed in Argentina | October 2025
 
 // Chapter 0: Introduction (Khlongs)
 #pagebreak(to: "odd")
-#image("ghosts_00_SBAcover.png", width: 100% + 1.3in, height: 100% + 1.5in, fit: "cover")
+#image("ghosts_00_SBAcover.png", width: 100%)
 #pagebreak()
 #no-header()
 #set-story-info(title: "Khlongs, Subaks, Beaings", author: "Sam Chua")
