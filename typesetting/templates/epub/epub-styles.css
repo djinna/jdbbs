@@ -6,6 +6,36 @@
  *   - Menlo → JetBrains Mono
  */
 
+/* === Bundled font faces (CJK + Thai)
+ * Loaded when pandoc is invoked with --epub-embed-font for the matching .otf/.ttf
+ * files under typesetting/fonts/noto/. On readers without the embedded copy
+ * available the family stack below falls through to OS-installed alternatives.
+ */
+@font-face {
+  font-family: "Noto Serif TC";
+  font-weight: normal;
+  font-style: normal;
+  src: url(NotoSerifTC-Regular.otf);
+}
+@font-face {
+  font-family: "Noto Serif TC";
+  font-weight: bold;
+  font-style: normal;
+  src: url(NotoSerifTC-Bold.otf);
+}
+@font-face {
+  font-family: "Noto Serif Thai";
+  font-weight: normal;
+  font-style: normal;
+  src: url(NotoSerifThai-Regular.ttf);
+}
+@font-face {
+  font-family: "Noto Serif Thai";
+  font-weight: bold;
+  font-style: normal;
+  src: url(NotoSerifThai-Bold.ttf);
+}
+
 /* === Reset === */
 body, div, dl, dt, dd, h1, h2, h3, h4, h5, h6, p, pre, code, blockquote, figure {
   margin: 0;
@@ -15,7 +45,7 @@ body, div, dl, dt, dd, h1, h2, h3, h4, h5, h6, p, pre, code, blockquote, figure 
 
 /* === Base Typography === */
 body {
-  font-family: "Libertinus Serif", Georgia, serif;
+  font-family: "Libertinus Serif", "Noto Serif TC", "Noto Serif Thai", Georgia, serif;
   font-size: 1em;
   line-height: 1.2;
   text-align: justify;
@@ -26,7 +56,7 @@ body {
 
 /* === Paragraphs (Basic-para) === */
 p {
-  font-family: "Libertinus Serif", Georgia, serif;
+  font-family: "Libertinus Serif", "Noto Serif TC", "Noto Serif Thai", Georgia, serif;
   font-size: 0.833em;
   line-height: 1.2;
   text-align: justify;
@@ -113,7 +143,7 @@ p.Chap-author-epub {
 /* === Section Breaks (Break) === */
 .section-break,
 p.Break {
-  font-family: "Libertinus Serif", Georgia, serif;
+  font-family: "Libertinus Serif", "Noto Serif TC", "Noto Serif Thai", Georgia, serif;
   font-size: 0.833em;
   line-height: 1.2;
   margin-top: 0.5em;
@@ -207,7 +237,7 @@ blockquote p {
 /* === Epigraph (Epi) === */
 .epigraph,
 p.Epi {
-  font-family: "Libertinus Serif", Georgia, serif;
+  font-family: "Libertinus Serif", "Noto Serif TC", "Noto Serif Thai", Georgia, serif;
   font-size: 0.833em;
   font-style: italic;
   line-height: 1.2;
@@ -341,12 +371,12 @@ span.Bold,
 
 /* === Multilingual (CJK, Thai) === */
 .chinese {
-  font-family: "Hiragino Kaku Gothic Pro", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Noto Serif TC", "Hiragino Mincho ProN", "Hiragino Kaku Gothic Pro", "PingFang TC", "PingFang SC", "Microsoft YaHei", serif;
   text-align: center;
 }
 
 .thai {
-  font-family: "Thonburi", "Leelawadee", sans-serif;
+  font-family: "Noto Serif Thai", "Thonburi", "Leelawadee", serif;
   font-size: 0.75em;
   line-height: 1.111;
   text-align: center;

@@ -230,6 +230,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-DEV-009 — Per-chapter author in EPUB spec + pipeline (anthology critical-path)](#trk-dev-009--per-chapter-author-in-epub-spec--pipeline-anthology-critical-path)
   - [TRK-DEV-005 — Compile-history panel in admin SPA](#trk-dev-005--compile-history-panel-in-admin-spa)
   - [TRK-DEV-006 — Snapshot spec JSON into book_outputs per compile](#trk-dev-006--snapshot-spec-json-into-book_outputs-per-compile)
+  - [TRK-DEV-010 — Wire `--epub-embed-font` into pandoc invocation for Noto CJK/Thai bundle](#trk-dev-010--wire---epub-embed-font-into-pandoc-invocation-for-noto-cjkthai-bundle)
   - [TRK-DEV-008 — Corrections patcher ergonomics](#trk-dev-008--corrections-patcher-ergonomics)
 - [Translation (TRANS) — v2](#translation-trans--v2)
   - [TRK-TRANS-001..009 — see PRODUCTION_ROADMAP_2026-05-25.md](#translation-trans--v2)
@@ -972,13 +973,37 @@ Fold into the same session as TRK-DEV-003 (now closed) — or schedule independe
 ### TRK-DESIGN-004 — CJK/Thai font bundling & fallback strategy
 
 - area: DESIGN
-- status: open
+- status: done (2026-05-25, VM smoke pending; EPUB embed-font wiring deferred to TRK-DEV-010)
 - priority: P1
 - created: 2026-05-26
-- updated: 2026-05-26
-- refs: TRK-DESIGN-001, TRK-DESIGN-002, `docs/GHOSTS_PARITY_2026-05-26.md` §"CJK Glyphs" / "Thai Glyphs"; `typesetting/templates/epub/epub-styles.css` (lines 344-353 — `.chinese` / `.thai` classes already declared); `manuscripts/ghosts/` (contains CJK + Thai content per parity audit)
+- updated: 2026-05-25
+- refs: TRK-DESIGN-001, TRK-DESIGN-002, `docs/GHOSTS_PARITY_2026-05-26.md` §"CJK Glyphs" / "Thai Glyphs"; `typesetting/templates/epub/epub-styles.css`; `typesetting/templates/series-template.typ`; `typesetting/fonts/noto/`; `manuscripts/ghosts/08 Loyalty.md`
 
-**Problem.** Reference GHOSTS.pdf embeds HiraKakuPro-W3 (Japanese) and Thonburi (Thai) fonts for multilingual content (the Khlongs chapter and other passages). Current state:
+**Resolution (2026-05-25).**
+
+*Audit.* Scanned `manuscripts/ghosts/*.md` for CJK + Thai codepoints. **Only one chapter has multilingual content:** `08 Loyalty.md` line 39 — `**Lin Store 47---林家商店47號---ร้านยามาลิน สาขา ๔๗**`. Five Han characters (Traditional Chinese — `林家商店` Lin Family Store, Taiwanese setting; **no hiragana/katakana**, so the parity doc's "Japanese" framing was wrong) and 17 Thai characters including digits `๔๗`. Bundled TC + Thai serif only — no Japanese, no SC, no Korean.
+
+*Bundled fonts under `typesetting/fonts/noto/`:*
+- `CJK-TC/NotoSerifTC-{Regular,Bold}.otf` — Noto Serif TC v2.003 (Adobe/Google OFL), ~16MB total. Source: https://github.com/notofonts/noto-cjk/releases/tag/Serif2.003 (15_NotoSerifTC.zip → SubsetOTF/TC/).
+- `Thai/NotoSerifThai-{Regular,Bold}.ttf` — Noto Serif Thai v2.002 (OFL), uncondensed Regular + Bold, ~180KB. Source: https://github.com/notofonts/thai/releases/tag/NotoSerifThai-v2.002.
+- `OFL.txt` license shipped alongside each family.
+
+*Typst wiring.* `typesetting/templates/series-template.typ` base typography `set text` now passes a font array — primary `config.body-font` (Libertinus Serif) with `"Noto Serif TC"` and `"Noto Serif Thai"` as fallbacks. Typst's `--font-path typesetting/fonts` recursive scan (`srv/books.go::runConversion`) discovers `noto/CJK-TC/*.otf` + `noto/Thai/*.ttf` automatically — no Go change required.
+
+*EPUB wiring.* `typesetting/templates/epub/epub-styles.css`: added four `@font-face` declarations at top of file (`src: url(NotoSerifTC-Regular.otf)` etc — pandoc convention is to embed by basename). Updated `.chinese` family to lead with `Noto Serif TC` (then existing Hiragino / PingFang / Microsoft YaHei). Updated `.thai` to lead with `Noto Serif Thai` (then Thonburi / Leelawadee). Body and `p` stacks now include the Noto families between Libertinus and Georgia so inline multilingual runs (the Ghosts ch. 8 line is bold body text mixing English + TC + Thai without a wrapping `.chinese`/`.thai` class) cascade correctly.
+
+*Deferred — pandoc `--epub-embed-font` flags (filed as TRK-DEV-010).* To make EPUBs self-contained on readers without OS-installed Noto, `srv/epub.go` needs `--epub-embed-font=<path>` args for each bundled font (4 lines near line 144). Not done in this session because TRK-DEV-009 was concurrent on the same file. Until then EPUB rendering relies on OS-installed Noto / Hiragino / Thonburi fallback — works on macOS readers and on Linux readers with `fonts-noto-cjk` + `fonts-noto-thai` packages installed (the prodcal VM does not currently have these — Docker / VM provisioning may want them as belt-and-suspenders).
+
+*Smoke test status.* No local `typst` binary on this Mac; the Typst smoke specified in the session prompt (step 3) was deferred to deploy. Verify on VM with:
+```bash
+ssh exedev@jdbbs.exe.xyz 'cat > /tmp/font-smoke.typ <<EOF
+#set text(font: ("Libertinus Serif", "Noto Serif TC", "Noto Serif Thai"))
+English. 林家商店. ภาษาไทย.
+EOF
+cd /home/exedev/prodcal && typst compile --font-path typesetting/fonts /tmp/font-smoke.typ /tmp/font-smoke.pdf'
+```
+
+**Original problem.** Reference GHOSTS.pdf embeds HiraKakuPro-W3 (Japanese) and Thonburi (Thai) fonts for multilingual content (the Khlongs chapter and other passages). Current state:
 - **Typst:** no CJK/Thai font bundled in `typesetting/fonts/`; would fall back to OS defaults (works on macOS, unpredictable on Linux/VM)
 - **EPUB:** CSS classes `.chinese` / `.thai` reference Hiragino/Thonburi by name with fallback stacks; e-reader rendering depends on whether the user's device has the fonts
 
@@ -1333,6 +1358,32 @@ For corrections:
 **Non-goals deferred (per session prompt):** font bundling (TRK-DESIGN-004, concurrent); smart-punctuation (TRK-DESIGN-003); live visual regression with Ghosts manuscript (TRK-TEST-002); auto-detecting chapters from DOCX heading runs; transmittal → spec.epub.chapters mapping (the `handlePullTransmittalToSpec` extension noted in §2 above remains open as a follow-up if/when transmittals start carrying structured chapter data).
 
 **Smoke validation:** Go isn't installed on the Mac dev box; correctness validation is unit-test coverage + post-deploy `go build` on the VM. Visual confirmation against `reference/GHOSTS.epub` deferred to TRK-TEST-002 (which is the natural follow-up now that this is in).
+
+### TRK-DEV-010 — Wire `--epub-embed-font` into pandoc invocation for Noto CJK/Thai bundle
+
+- area: DEV
+- status: open
+- priority: P2
+- created: 2026-05-25
+- updated: 2026-05-25
+- refs: TRK-DESIGN-004 (parent — bundled the fonts but deferred this wiring to avoid concurrent-edit conflict with TRK-DEV-009); `srv/epub.go` line ~144; `typesetting/fonts/noto/`
+
+**Problem.** TRK-DESIGN-004 landed Noto Serif TC + Noto Serif Thai under `typesetting/fonts/noto/` and added `@font-face url(NotoSerifTC-Regular.otf)` etc. to `epub-styles.css`. The CSS expects the font files to live inside the generated EPUB package (pandoc's convention is to reference by basename when `--epub-embed-font` packages them). Without the flag, the `@font-face` declarations point to missing files inside the EPUB and readers fall through to the family-stack OS fallbacks (Hiragino on macOS, system Noto if installed on Linux, possibly tofu otherwise).
+
+**Action.** Add four flags to the pandoc `args` slice in `srv/epub.go::handleGenerateEPUB`, near where `--css=` is appended (~line 144):
+
+```go
+args = append(args,
+    "--epub-embed-font=typesetting/fonts/noto/CJK-TC/NotoSerifTC-Regular.otf",
+    "--epub-embed-font=typesetting/fonts/noto/CJK-TC/NotoSerifTC-Bold.otf",
+    "--epub-embed-font=typesetting/fonts/noto/Thai/NotoSerifThai-Regular.ttf",
+    "--epub-embed-font=typesetting/fonts/noto/Thai/NotoSerifThai-Bold.ttf",
+)
+```
+
+Verify path resolution — pandoc resolves relative to `cmd.Dir` (currently `tmpDir`). May need absolute paths via `filepath.Join(repoRoot, ...)` or chdir to repo root. Smoke: compile any book to EPUB, unzip and confirm `EPUB/fonts/*.otf` are present and CSS resolves.
+
+**Effort:** ~15 min including smoke. **Pickup:** as soon as TRK-DEV-009 lands (concurrent file). **Closes:** the "Deferred" item in TRK-DESIGN-004.
 
 ### TRK-DEV-008 — Corrections patcher ergonomics
 

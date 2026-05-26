@@ -478,8 +478,11 @@
   )
   
   // Base typography - JUSTIFIED text (matches original)
+  // CJK (Traditional Chinese) + Thai bundled as fallback so multilingual
+  // passages (e.g. Ghosts ch. 8 "林家商店47號---ร้านยามาลิน สาขา ๔๗") render
+  // correctly on hosts without OS-installed CJK/Thai fonts.
   set text(
-    font: config.body-font,
+    font: (config.body-font, "Noto Serif TC", "Noto Serif Thai"),
     size: config.base-size,
     lang: "en",
     hyphenate: config.hyphenate,
