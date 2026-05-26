@@ -1406,7 +1406,9 @@ User feedback while creating a new project + uploading manuscript revealed three
 
 3. **Transmittal Date field doesn't propagate to Calendar tab.** Setting "Transmittal Date" in either Book Information or Production sections of the transmittal does not appear in the project's Calendar tab. Also: there are TWO Transmittal Date fields on the transmittal page (one under Book Information, one under Production) — unclear which is canonical, and neither hooks into Calendar. Investigate which field the Calendar tab reads from (or whether it reads at all); fix the wire-up; consider collapsing the two fields if they represent the same concept.
 
-**Effort estimates:** item 1 ~30 min, item 2 ~1-2 hours (depends on how much existing Files-tab plumbing is reused), item 3 ~30-60 min (investigation + fix). None are blocking the v1 release-confidence track; pick as ergonomics warrant.
+4. **No way to create a new series during book upload.** The book-upload form on the top-level Files tab has a Series field that requires an existing series. For a first book in a never-before-used series, the user has to pre-create the series elsewhere (or leave blank and edit later). Add an "Add new series…" option in the Series dropdown that pops a small inline create form, or accept a free-text series name and create-on-save. Common shape: combobox with "+ create new" sentinel.
+
+**Effort estimates:** item 1 ~30 min, item 2 ~1-2 hours (depends on how much existing Files-tab plumbing is reused), item 3 ~30-60 min (investigation + fix), item 4 ~30-45 min. None are blocking the v1 release-confidence track; pick as ergonomics warrant.
 
 ### TRK-DEV-008 — Corrections patcher ergonomics
 

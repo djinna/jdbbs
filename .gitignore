@@ -10,3 +10,4 @@ TEAM-UPDATE.txt
 
 # Claude Code local state — bootstrap per CLAUDE.md instructions
 .claude/
+scratch/
