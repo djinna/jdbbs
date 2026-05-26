@@ -363,6 +363,14 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 
 	format := r.PathValue("format")
 
+	// updated_at distinguishes back-to-back compiles in the download filename.
+	bookMeta, err := q.GetBook(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+	ts := bookMeta.UpdatedAt.UTC().Format("20060102-150405")
+
 	switch format {
 	case "pdf":
 		row, err := q.GetBookPDF(r.Context(), bid)
@@ -374,7 +382,7 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 			jsonErr(w, "PDF not generated yet", 404)
 			return
 		}
-		filename := sanitizeFilename(row.Title) + ".pdf"
+		filename := fmt.Sprintf("%s-%s.pdf", sanitizeFilename(row.Title), ts)
 		w.Header().Set("Content-Type", "application/pdf")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		w.Header().Set("Content-Length", strconv.Itoa(len(row.PdfData)))
@@ -391,10 +399,11 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 			jsonErr(w, "EPUB not generated yet", 404)
 			return
 		}
-		filename := sanitizeFilename(row.Title) + ".epub"
+		filename := fmt.Sprintf("%s-%s.epub", sanitizeFilename(row.Title), ts)
 		w.Header().Set("Content-Type", "application/epub+zip")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		w.Header().Set("Content-Length", strconv.Itoa(len(row.EpubData)))
+		w.Header().Set("Cache-Control", "no-store")
 		w.Write(row.EpubData)
 
 	default:
