@@ -10,9 +10,20 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (2026-05-29)
+## 🟢 Resume here — next session (2026-05-30)
 
-**Last touched:** 2026-05-26 (orchestrator fan-out: DEV-007 in a fresh Claude Code session + OPS-006 and DESIGN-001 audit in the orchestrator).
+**Last touched:** 2026-05-29 (TRK-DEV-009 — per-chapter EPUB author bylines — landed; TRK-DESIGN-004 fontwork landed in the parallel session if its TRACKER section is also updated).
+
+**Just shipped 2026-05-29 — TRK-DEV-009 done:**
+- `srv/epub.go`: `epubSpec.Chapters` + `injectChapterAuthors` post-pandoc zip rewrite. Splices `<p class="chapter-author">{author}</p>` after the first `<h1>` of each chapter XHTML, matched in spine order. `mimetype` invariant preserved; XML escapes; nav/toc/title/cover skipped.
+- `srv/epub_chapter_test.go`: five unit tests + a `parseEPUBSpec` chapters test.
+- `srv/static/admin.html`: "Chapters (anthology bylines)" repeating-row editor in the EPUB card.
+- Empty/missing `data.epub.chapters` → byte-identical EPUB to today's output. No migration (schema is JSON).
+- **Next:** TRK-TEST-002 (live Ghosts visual regression) is now meaningful — EPUB diff against `reference/GHOSTS.epub` was previously blocked on this. Or TRK-DESIGN-003 (smart punctuation / body alignment), same `srv/epub.go` pandoc invocation, was deliberately deferred so it didn't conflict with this session.
+
+---
+
+**Earlier 2026-05-26 — three concurrent workstreams landed:**
 
 **Just shipped 2026-05-26 — three concurrent workstreams landed:**
 
@@ -46,8 +57,8 @@ Expect: `prodcal active`, `OK`, `16/15/14`, `HTTP/2 200`.
 
 **Next priorities — release-confidence track for Ghosts-like anthologies:**
 
-1. **TRK-DEV-009 (P1, ~3-4 hours)** — Per-chapter author in EPUB spec + pipeline. The single biggest gap from the Ghosts parity audit. Extend `book_specs.data.epub` with a chapters array (`{ title, author }[]`) and wire pandoc EPUB generation to use it. Without this, all multi-author anthologies (Ghosts, Librarians, future titles) fail in EPUB.
-2. **TRK-TEST-002 (P1, ~2-3 hours)** — Live Ghosts compilation + visual regression. Run `manuscripts/ghosts/main.typ` through Typst on VM (or local), pandoc-compile the same source to EPUB, diff page-by-page against `reference/GHOSTS.pdf`/`.epub`. Closes the 10 ⚠️ cells in the parity matrix. After DEV-009 lands so the EPUB diff is meaningful.
+1. ~~**TRK-DEV-009**~~ — DONE 2026-05-29.
+2. **TRK-TEST-002 (P1, ~2-3 hours)** — Live Ghosts compilation + visual regression. Run `manuscripts/ghosts/main.typ` through Typst on VM (or local), pandoc-compile the same source to EPUB, diff page-by-page against `reference/GHOSTS.pdf`/`.epub`. Closes the 10 ⚠️ cells in the parity matrix. Now unblocked (DEV-009 + DESIGN-004 both in).
 3. **TRK-DESIGN-004 (P1, ~2-3 hours)** — CJK/Thai font bundling decision. Ghosts has CJK (Hiragino) and Thai (Thonburi) content; current code has CSS rules but no Typst fallback. Decide: bundle commercial fonts (TRK-DESIGN-002 covers licensing) or pick OFL alternatives.
 4. **TRK-DESIGN-003 (P2, ~2-3 hours)** — Typography drift audit + smart-punctuation conversion. Body alignment (justify vs ragged-right) is the one confirmed CSS drift item; smart-punctuation conversion not yet wired in pandoc invocations. Likely fold in during a TEST-002 visual-diff session.
 
@@ -1262,10 +1273,11 @@ For corrections:
 ### TRK-DEV-009 — Per-chapter author in EPUB spec + pipeline (anthology critical-path)
 
 - area: DEV
-- status: open
+- status: done
 - priority: P1
 - created: 2026-05-26
-- updated: 2026-05-26
+- updated: 2026-05-29
+- closed: 2026-05-29
 - refs: `docs/GHOSTS_PARITY_2026-05-26.md` §"Single Biggest Gap"; `srv/epub.go::handleGenerateEPUB` (`buildEPUBMetadata`, line ~85+); `srv/bookspecs.go` (`parseEPUBSpec`); `manuscripts/ghosts/main.typ` (Typst-side reference: `set-story-info(title:, author:)` per chapter); `typesetting/templates/series-template.typ` (per-chapter rendering already supported); `db/migrations/008-book-specs.sql` (where `book_specs.data` schema lives)
 
 **The single biggest gap from the Ghosts parity audit.**
@@ -1310,6 +1322,17 @@ For corrections:
 - Round-trip with Ghosts source produces an EPUB whose chapter-by-chapter author bylines match the reference GHOSTS.epub.
 
 **Effort:** ~3-4 hours. **Blocks:** TRK-TEST-002 visual regression (EPUB diff is meaningless without this). **Related:** TRK-DEV-004 (anthology-aware spec is also where special-typography per-chapter declarations might live — schema design should consider how they'd nest).
+
+**Closed 2026-05-29.** Implemented all three layers (schema → backend → UI). No migration: `book_specs.data.epub.chapters` is just a new JSON field; empty/missing array preserves today's single-author behavior exactly (Twitter Years untouched).
+
+**Call trace:**
+- `srv/epub.go`: added `epubChapter` struct + `Chapters` slice on `epubSpec`. `parseEPUBSpec` reads `data.epub.chapters[]` and drops fully-empty rows. After `pandoc` completes and the EPUB is read, if `len(spec.Chapters) > 0`, `injectChapterAuthors` rewrites the zip: for each XHTML entry (skipping `nav.xhtml`/`toc.xhtml`/`title_page.xhtml`/`cover.xhtml`) that contains an `<h1>`, splice `<p class="chapter-author">{author}</p>` immediately after the first `</h1>`. Match is by *spine order* (zip order), one-to-one with `spec.Chapters[i]`. Surplus entries on either side are left alone. `mimetype` stays first and `zip.Store`d. Bylines XML-escape author names. A default `.chapter-author` CSS rule is emitted only when chapters are configured.
+- `srv/epub_chapter_test.go`: five unit tests covering the happy path, no-chapters no-op, nav-skip, XML escaping, and `mimetype`-first invariant. Plus a `parseEPUBSpec` test for the new `chapters` field.
+- `srv/static/admin.html`: new "Chapters (anthology bylines)" subsection in the EPUB card, above "Layout". Repeating-row editor (title / author / file) following the `tsRenderCustomStyles` pattern: `tsRenderEpubChapters` renders + wires input/remove handlers; "+ Add chapter" appends and re-renders. `tsPopulateForm` calls the render. Auto-save piggybacks on `tsMarkDirty` → debounced `tsSaveSpec` (no separate endpoint).
+
+**Non-goals deferred (per session prompt):** font bundling (TRK-DESIGN-004, concurrent); smart-punctuation (TRK-DESIGN-003); live visual regression with Ghosts manuscript (TRK-TEST-002); auto-detecting chapters from DOCX heading runs; transmittal → spec.epub.chapters mapping (the `handlePullTransmittalToSpec` extension noted in §2 above remains open as a follow-up if/when transmittals start carrying structured chapter data).
+
+**Smoke validation:** Go isn't installed on the Mac dev box; correctness validation is unit-test coverage + post-deploy `go build` on the VM. Visual confirmation against `reference/GHOSTS.epub` deferred to TRK-TEST-002 (which is the natural follow-up now that this is in).
 
 ### TRK-DEV-008 — Corrections patcher ergonomics
 

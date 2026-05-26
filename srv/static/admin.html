@@ -591,6 +591,15 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
               <div class="ts-field"><label>Landmark Nav<select data-path="epub.landmarks"><option value="true">Yes</option><option value="false">No</option></select></label></div>
             </div>
 
+            <div class="ts-subsection-title">Chapters (anthology bylines)</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.4rem">
+              For multi-author anthologies. Each row injects a per-chapter byline after
+              the chapter's <code>&lt;h1&gt;</code>, matched in source order. Leave empty for
+              single-author books — output is unchanged.
+            </div>
+            <div id="ts-epub-chapters" style="display:flex;flex-direction:column;gap:0.3rem;margin-bottom:0.4rem"></div>
+            <button class="btn-link" id="ts-epub-add-chapter" type="button" style="font-size:0.78rem">+ Add chapter</button>
+
             <div class="ts-subsection-title">Layout</div>
             <div class="ts-fields">
               <div class="ts-field"><label>Chapter Break
@@ -1889,6 +1898,45 @@ function tsPopulateForm() {
   tsUpdatePagePreview();
   tsUpdateLeadingHint();
   tsRenderCustomStyles();
+  tsRenderEpubChapters();
+}
+
+function tsRenderEpubChapters() {
+  const container = document.getElementById('ts-epub-chapters');
+  if (!container) return;
+  if (!tsSpec.epub) tsSpec.epub = {};
+  const chapters = tsSpec.epub.chapters || [];
+  container.innerHTML = '';
+  if (chapters.length === 0) {
+    container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);padding:0.25rem 0">No chapters configured. Single book-level author only.</div>';
+    return;
+  }
+  chapters.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.3rem;align-items:center';
+    row.innerHTML = `
+      <input type="text" value="${esc(c.title || '')}" placeholder="Chapter title" data-cidx="${i}" data-cfield="title" style="font-size:0.78rem;padding:0.25rem 0.4rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text)">
+      <input type="text" value="${esc(c.author || '')}" placeholder="Author byline" data-cidx="${i}" data-cfield="author" style="font-size:0.78rem;padding:0.25rem 0.4rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text)">
+      <input type="text" value="${esc(c.file || '')}" placeholder="Source file (optional)" data-cidx="${i}" data-cfield="file" style="font-size:0.78rem;padding:0.25rem 0.4rem;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text)">
+      <button type="button" class="ts-epub-chapter-remove" data-cidx="${i}" style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--text-muted);width:1.6rem;height:1.6rem;cursor:pointer">×</button>
+    `;
+    container.appendChild(row);
+  });
+  container.querySelectorAll('input').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = parseInt(el.dataset.cidx);
+      if (!tsSpec.epub.chapters[idx]) tsSpec.epub.chapters[idx] = {};
+      tsSpec.epub.chapters[idx][el.dataset.cfield] = el.value;
+      tsMarkDirty();
+    });
+  });
+  container.querySelectorAll('.ts-epub-chapter-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      tsSpec.epub.chapters.splice(parseInt(btn.dataset.cidx), 1);
+      tsRenderEpubChapters();
+      tsMarkDirty();
+    });
+  });
 }
 
 function tsGetPath(obj, path) {
@@ -2440,6 +2488,15 @@ document.getElementById('ts-add-style').addEventListener('click', () => {
   if (!tsSpec.custom_styles) tsSpec.custom_styles = [];
   tsSpec.custom_styles.push({ name: '', type: 'paragraph', preset: 'generic-paragraph', typst: '', word_style: '', description: '' });
   tsRenderCustomStyles();
+  tsMarkDirty();
+});
+
+document.getElementById('ts-epub-add-chapter').addEventListener('click', () => {
+  if (!tsSpec) return;
+  if (!tsSpec.epub) tsSpec.epub = {};
+  if (!tsSpec.epub.chapters) tsSpec.epub.chapters = [];
+  tsSpec.epub.chapters.push({ title: '', author: '', file: '' });
+  tsRenderEpubChapters();
   tsMarkDirty();
 });
 
