@@ -193,7 +193,7 @@ After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TR
   - [TRK-REV-001 — `prodcal` binary committed to djinna/prodcal repo (16.5 MB)](#trk-rev-001--prodcal-binary-committed-to-djinnaprodcal-repo-165-mb)
 - [Design / Typography (DESIGN)](#design--typography-design)
   - [TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix](#trk-design-001--ghosts-indesign--typst-parity-matrix)
-  - [TRK-DESIGN-003 — EPUB typography drift audit](#trk-design-003--epub-typography-drift-audit-vs-typography_refinement_prompt)
+  - [TRK-DESIGN-003 — Typography drift audit + smart-punctuation conversion](#trk-design-003--typography-drift-audit--smart-punctuation-conversion-epub-and-typst)
   - [TRK-DESIGN-002 — Commercial font licensing & bundling](#trk-design-002--commercial-font-licensing--bundling)
 - [Dev (DEV)](#dev-dev)
   - [TRK-DEV-001 — `series-template.typ` config override mechanism (consolidate)](#trk-dev-001--series-templatetyp-config-override-mechanism-consolidate)
@@ -851,18 +851,37 @@ The published Ghosts PDF is the golden parity target. Embedded fonts: Plantin MT
 
 **Action:** spend a focused pass with InDesign PDF + a rendered Typst PDF side-by-side; fill remaining `❓` cells; produce a final cant-have list.
 
-### TRK-DESIGN-003 — EPUB typography drift audit vs TYPOGRAPHY_REFINEMENT_PROMPT
+### TRK-DESIGN-003 — Typography drift audit + smart-punctuation conversion (EPUB and Typst)
 
 - area: DESIGN
 - status: open
 - priority: P2
 - created: 2026-05-25
-- updated: 2026-05-25
-- refs: typesetting/templates/epub/epub-styles.css; book-prod-archived-2026-05-25/TYPOGRAPHY_REFINEMENT_PROMPT.md; PRODUCTION_ROADMAP_2026-05-25.md (CP-6)
+- updated: 2026-05-26
+- refs: typesetting/templates/epub/epub-styles.css; book-prod-archived-2026-05-25/TYPOGRAPHY_REFINEMENT_PROMPT.md; PRODUCTION_ROADMAP_2026-05-25.md (CP-6); srv/books.go:230 + srv/epub.go:132 (pandoc invocations); typesetting/scripts/{docx2epub.sh,build.sh}
 
-Audit current EPUB CSS vs the InDesign-derived spec in the (archived) refinement prompt. Confirmed gap: body text is `text-align: justify` in current CSS; prompt specifies left-aligned ("originals use ragged right"). Other potential drift (margins, indent values, line-heights) — needs systematic walk-through. **Decision per-style:** change CSS, expose as a toggle in book_specs, or leave (and update the spec doc).
+Two related typography-polish concerns, same session.
 
-Fold into CP-2 (TRK-DEV-003) session for atomic ship.
+**Part A — CSS drift audit.** Audit current EPUB CSS vs the InDesign-derived spec in the (archived) refinement prompt. Confirmed gap: body text is `text-align: justify` in current CSS; prompt specifies left-aligned ("originals use ragged right"). Other potential drift (margins, indent values, line-heights) — needs systematic walk-through. **Decision per-style:** change CSS, expose as a toggle in book_specs, or leave (and update the spec doc).
+
+**Part B — Smart-punctuation conversion (added 2026-05-26).** Neither pandoc invocation (`srv/books.go:230` for DOCX→Typst, `srv/epub.go:132` for DOCX→EPUB) has `+smart` on the input format; same for the shell-script variants. So straight quotes pass through verbatim, `--` stays as two hyphens, `...` stays as three dots. Fix: add `+smart` to the `--from` extension list in both Go invocations (and the shell scripts if they're still on a code path). Specifically converts:
+
+- `'` (apostrophe + open/close single) → `'` / `'`
+- `"` (open/close double) → `"` / `"`
+- `--` → en-dash `–`
+- `---` → em-dash `—`
+- `...` → ellipsis `…`
+
+Verify the conversion doesn't bleed into declared special-typography blocks (TRK-DEV-004) — preformatted content with literal `--` or `...` (terminal transcripts, tweet handles, ASCII art) must NOT be smart-converted. Pandoc's `smart` extension applies broadly, so the Lua filter or a downstream pass may need to detect preserved blocks and revert. Coordinate with TRK-DEV-004 Phase C/D.
+
+**v2 locale wrinkle (for awareness, not for this ticket):** Pandoc's `smart` is locale-aware via `--metadata=lang:fr` etc. — French gets « », German „ ", etc. The per-language Typst templates (TRK-TRANS-004) and per-language EPUB stylesheets (TRK-TRANS-005) will need this metadata wired through from the spec. TRK-TRANS-006 (validators) will need to verify locale-appropriate punctuation is actually present in output.
+
+**Acceptance:**
+- A manuscript with straight quotes and `--` produces curly quotes and em-dash in both PDF and EPUB.
+- A declared special-typography block (e.g. terminal transcript) preserves literal characters.
+- EPUB CSS audit produces a documented list of drift items with per-item decisions.
+
+Fold into the same session as TRK-DEV-003 (now closed) — or schedule independently after the diagnostic loop (TRK-DEV-005/006) lands.
 
 ### TRK-DESIGN-002 — Commercial font licensing & bundling
 
