@@ -1,7 +1,7 @@
 # Next session — 2026-05-25
 
-> Snapshot of `TRACKER.md` "Resume here" block as of 2026-05-25.
-> Canonical state lives in `TRACKER.md` (this repo, root). Open that first.
+> Snapshot of `docs/TRACKER.md` "Resume here" block as of 2026-05-25.
+> Canonical state lives in `docs/TRACKER.md`. Open that first, or run `jpull` (which prints it).
 
 ## Just shipped — TRK-MIG-009 (canonical repo cutover)
 

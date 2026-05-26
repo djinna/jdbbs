@@ -47,11 +47,15 @@ curl -sI https://jdbbs.exe.xyz | head -1
 jbackup-pull   # only on Macs where this function is configured
 ```
 
-**Next priorities (pick one and start):**
+**Next priorities (see `docs/PRODUCTION_ROADMAP_2026-05-25.md` for the full v1→v2 path):**
 
-1. **TRK-OPS-006** — drop the 12 test/dummy projects so production reflects only Twitter Years (~5-10 min, mechanical). Has 4 backup copies of pre-state, low risk.
-2. **TRK-DESIGN-001 Ghosts parity** — compile `manuscripts/ghosts/` on the VM, diff vs `reference/GHOSTS.pdf`. The actual "does Typst work" milestone — first creative-leverage win.
-3. **Phase 1 review** — bottom-up walkthrough of `typesetting/templates/series-template.typ` and the rest of the typesetting subsystem. Educational; lower urgency.
+1. **TRK-DEV-002 (CP-1) + TRK-MIG-007 (CP-4)** — Wire spec→compile pipeline for Typst, verify Libertinus on VM. The keystone session: makes the admin SPA actually produce books. ~3-4 hours. Unblocks DESIGN-001 and TEST-001.
+2. **TRK-DEV-003 (CP-2) + TRK-DESIGN-003 (CP-6)** — Same for EPUB + audit typography drift (e.g. body-text alignment). ~3 hours.
+3. **TRK-MIG-006 (CP-3)** — Expose corrections API + round-trip a real correction through to a regenerated artifact. ~3 hours.
+4. **TRK-DESIGN-001 (CP-5)** — Ghosts parity matrix. Release-confidence check after CP-1..CP-4. ~2-3 hours.
+5. **TRK-OPS-006** — warm-up: drop 12 test/dummy projects from prod DB. ~5-10 min, mechanical.
+
+After CP-1..CP-5 ship, v1 workflow is "complete." Translation layer (v2) is **TRK-TRANS-001..009** — see `docs/PRODUCTION_ROADMAP_2026-05-25.md` for the v2 phases and `docs/translation layer 2026-05-25.md` for the original design discussion.
 
 **Open questions for the user:**
 
@@ -143,9 +147,14 @@ jbackup-pull   # only on Macs where this function is configured
   - [TRK-REV-001 — `prodcal` binary committed to djinna/prodcal repo (16.5 MB)](#trk-rev-001--prodcal-binary-committed-to-djinnaprodcal-repo-165-mb)
 - [Design / Typography (DESIGN)](#design--typography-design)
   - [TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix](#trk-design-001--ghosts-indesign--typst-parity-matrix)
+  - [TRK-DESIGN-003 — EPUB typography drift audit](#trk-design-003--epub-typography-drift-audit-vs-typography_refinement_prompt)
   - [TRK-DESIGN-002 — Commercial font licensing & bundling](#trk-design-002--commercial-font-licensing--bundling)
 - [Dev (DEV)](#dev-dev)
   - [TRK-DEV-001 — `series-template.typ` config override mechanism (consolidate)](#trk-dev-001--series-templatetyp-config-override-mechanism-consolidate)
+  - [TRK-DEV-002 — Wire spec → Typst compile pipeline (CP-1, KEYSTONE)](#trk-dev-002--wire-spec--typst-compile-pipeline-cp-1-keystone)
+  - [TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)](#trk-dev-003--wire-spec--epub-compile-pipeline-cp-2)
+- [Translation (TRANS) — v2](#translation-trans--v2)
+  - [TRK-TRANS-001..009 — see PRODUCTION_ROADMAP_2026-05-25.md](#translation-trans--v2)
 - [Test (TEST)](#test-test)
   - [TRK-TEST-001 — End-to-end fixture pipeline (DOCX/MD → PDF + EPUB)](#trk-test-001--end-to-end-fixture-pipeline-docxmd--pdf--epub)
   - [TRK-TEST-002 — Visual regression for Ghosts golden](#trk-test-002--visual-regression-for-ghosts-golden)
@@ -794,6 +803,19 @@ The published Ghosts PDF is the golden parity target. Embedded fonts: Plantin MT
 
 **Action:** spend a focused pass with InDesign PDF + a rendered Typst PDF side-by-side; fill remaining `❓` cells; produce a final cant-have list.
 
+### TRK-DESIGN-003 — EPUB typography drift audit vs TYPOGRAPHY_REFINEMENT_PROMPT
+
+- area: DESIGN
+- status: open
+- priority: P2
+- created: 2026-05-25
+- updated: 2026-05-25
+- refs: typesetting/templates/epub/epub-styles.css; book-prod-archived-2026-05-25/TYPOGRAPHY_REFINEMENT_PROMPT.md; PRODUCTION_ROADMAP_2026-05-25.md (CP-6)
+
+Audit current EPUB CSS vs the InDesign-derived spec in the (archived) refinement prompt. Confirmed gap: body text is `text-align: justify` in current CSS; prompt specifies left-aligned ("originals use ragged right"). Other potential drift (margins, indent values, line-heights) — needs systematic walk-through. **Decision per-style:** change CSS, expose as a toggle in book_specs, or leave (and update the spec doc).
+
+Fold into CP-2 (TRK-DEV-003) session for atomic ship.
+
 ### TRK-DESIGN-002 — Commercial font licensing & bundling
 
 - area: DESIGN
@@ -825,6 +847,47 @@ User has licenses for Plantin MT Pro + Proxima Nova. **Action:**
 - refs: jdbbs/typesetting/templates/series-template.typ; TYPST_FRONTEND_PLAN.md (archived) §"Open Questions" #1
 
 Three plausible patterns for spec → template config override (param to `#book()`, separate `config.typ`, shadowed `#let`). The trim-registry phase landed a partial pattern via `merge-config`. **Action:** read the current state, document the chosen pattern in `docs/TYPOGRAPHY.md`, kill any duplicate plumbing.
+
+### TRK-DEV-002 — Wire spec → Typst compile pipeline (CP-1, KEYSTONE)
+
+- area: DEV
+- status: open
+- priority: P1
+- created: 2026-05-25
+- updated: 2026-05-25
+- refs: srv/bookspecs.go (handleGenerateConfig already exists), srv/books.go (runConversion needs spec injection), typesetting/templates/series-template.typ (already accepts merge-config); PRODUCTION_ROADMAP_2026-05-25.md (CP-1)
+
+The keystone gap: `handleGenerateConfig` produces a valid Typst config from book_spec, but `runConversion()` in `books.go` doesn't consume it — spec edits never reach the compiled PDF. **Action:**
+
+1. In `runConversion()`: load the project's book_spec (via `book.project_id`), render `config.typ` next to generated `main.typ`, prepend an import to main.typ.
+2. New endpoint `POST /api/projects/{id}/book-spec/compile` that orchestrates: load spec → load source manuscript → write config.typ + main.typ → invoke typst → return PDF artifact + log.
+3. Wire the existing admin SPA "Compile PDF" button to the new endpoint.
+4. Smoke test with one real book end-to-end (Twitter Years or Ghosts).
+
+**Effort:** 3-4 hours. **Blocks:** TRK-DESIGN-001 (Ghosts parity needs working compile), TRK-TEST-001 (compile fixtures need working compile). **Fold in:** TRK-MIG-007 (verify/bundle Libertinus on VM during this session).
+
+### TRK-DEV-003 — Wire spec → EPUB compile pipeline (CP-2)
+
+- area: DEV
+- status: open
+- priority: P1
+- created: 2026-05-25
+- updated: 2026-05-25
+- refs: typesetting/scripts/docx2epub.sh, md2epub.sh; srv/server.go (generate-epub endpoint exists but spec-unaware); PRODUCTION_ROADMAP_2026-05-25.md (CP-2)
+
+Same shape as TRK-DEV-002, for EPUB. `docx2epub.sh` and `md2epub.sh` currently produce a generic EPUB; need to consume the project's book_spec.
+
+**Approach (resolves TRK-MIG-005):** keep shell scripts; have Go render a CSS overlay from the spec and pass it as a Pandoc `--css` arg. Alternative: render a full epub-styles.css from spec and pass directly.
+
+**Action:**
+
+1. Decide overlay vs full-CSS approach (overlay is less invasive but harder to debug).
+2. Implement spec→CSS renderer in Go (similar shape to handleGenerateConfig for Typst).
+3. New endpoint `POST /api/projects/{id}/book-spec/compile-epub` (or extend existing generate-epub endpoint).
+4. Wire admin SPA "Compile EPUB" button.
+5. Smoke test end-to-end.
+
+**Effort:** 2-3 hours. **Fold in:** TRK-DESIGN-003 (audit CSS drift while we're touching CSS rendering).
 
 ---
 
@@ -869,6 +932,117 @@ Build Ghosts Typst PDF, render each page to PNG via `pdftoppm`, diff against pre
 
 ---
 
+## Translation (TRANS) — v2
+
+Translation-layer tickets per `docs/PRODUCTION_ROADMAP_2026-05-25.md` §"v2". All P3 (post-v1). Source design discussion: `docs/translation layer 2026-05-25.md`. Recommended architecture: Variant E (orchestrator) + Variant F (cross-lingual consistency). Skip Variant G (MT-with-rubber-stamp).
+
+### TRK-TRANS-001 — Per-title manifest schema (translation section)
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+Design `manifest.yaml` translations section: `translations.{lang}.{status, translator, reviewer, glossary, style_guide, mt_engine, llm_pass, target_pub_date, locked_at}`. Treat `zh-Hans` and `zh-Hant` as separate. Document es-ES vs es-419 policy. Add `translations` DB table linked to `book_id`. ~1 session.
+
+### TRK-TRANS-002 — Bilingual side-by-side output format prototype
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+Per the source doc: the format translators receive determines whether they tolerate the workflow or route around it. Prototype Markdown table layout vs XLIFF; ship to one real translator for feedback before locking in. ~1 session for prototype, ~1 for refinement.
+
+### TRK-TRANS-003 — MT + LLM draft pipeline (fr first)
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+- blocked-by: TRK-TRANS-001, TRK-TRANS-002
+
+Pick `fr` first (best MT pair, easiest reviewer recruitment). End-to-end: chapter-aware chunker, glossary loader, DeepL call, Claude pass with glossary + style guide + prior-chunk context, bilingual output writer. ~2 sessions per language.
+
+### TRK-TRANS-004 — Per-language Typst templates
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+`series-template-fr.typ` (nbsp before `;:?!`, guillemets, em-dash dialogue, hyphenation, accented capitals). Then `-es.typ` (¡¿, dialogue dashes), then `-zh-Hans.typ` (CJK fonts, fullwidth punctuation, line-breaking). Each ~1 session; zh is much larger.
+
+### TRK-TRANS-005 — Per-language EPUB stylesheets
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+`epub-styles-{fr,es,zh-Hans}.css` with appropriate font stacks (Source Han Serif / Noto Serif CJK for zh) and `<html lang="…">` tagging. ~1 session per language.
+
+### TRK-TRANS-006 — Per-language automated validators
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+Regex-based checks (not LLM job): French bare `:;?!` without nbsp; Spanish `?` without leading `¿`; Chinese halfwidth punctuation in CJK runs. Run as part of compile. ~1 session.
+
+### TRK-TRANS-007 — ISBN/ONIX/cover registry per language
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+At 20-50 books × 3 langs × 2 formats = 60-200 ISBNs/year + ONIX records. DB schema, admin UI, ONIX generator per distributor. ~2-3 sessions; meaningful design surface.
+
+### TRK-TRANS-008 — Cross-lingual glossary system
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+Per-series glossary in git (`glossaries/{series}-{lang}.yaml`). Hermes/orchestrator commits updates with translator attribution. Backlist re-translation flagging. Terminology drift detection across volumes. ~2 sessions.
+
+### TRK-TRANS-009 — Translation orchestrator agent
+
+- area: TRANS
+- status: open
+- priority: P3
+- created: 2026-05-25
+- updated: 2026-05-25
+
+The hermes-style coordinator: spawns translation jobs on `ms:final`, posts to Slack on draft-ready ("87k words, ~40-60hr review, side-by-side at translations/fr/draft-v1.md"), diffs MTPE vs LLM draft (flags hotspots for native reviewer), weekly digest cron. Significant agent-design work — start with a separate planning session before any code.
+
+### TRK-TRANS-OQ — Open questions before v2 starts
+
+- area: TRANS
+- status: open
+- priority: P2 (decision before any v2 build work)
+- created: 2026-05-25
+- updated: 2026-05-25
+
+Source doc identifies these as load-bearing before building:
+1. **Source-author contracts** — verify they permit MT-then-edit workflow. Older contracts often silent; newer ones may explicitly prohibit. Check before building, not after.
+2. **MTPE industry politics** — IAPTI, European/national translator orgs have evolving positions and rates. Talk to your translators about how they want to work; don't impose MTPE top-down.
+3. **Chinese MT engine choice** — DeepL/Google/Baidu/DeepSeek/Qwen — get zh translators to A/B before locking in.
+4. **Language priority** — which target first? Doc recommends `fr`; user has not chosen.
+
+---
+
 ## Decisions log
 
 (Append-only. Each decision is dated, summarized, and refs the entries it locks down.)
@@ -877,3 +1051,7 @@ Build Ghosts Typst PDF, render each page to PNG via `pdftoppm`, diff against pre
 - **2026-05-12** — Commercial fonts (Plantin MT Pro, Proxima Nova) will be bundled in `typesetting/fonts/` with license docs (per user). Open substitutes remain as fallback.
 - **2026-05-12** — **Strategy reversal**: reconcile in `prodcal` (the live, substantive repo), not in `jdbbs`. The VM's prodcal has ~30 commits + significant uncommitted work that's missing from jdbbs (including security hardening commit `3c2256d`, preflight system, email notifications, archive lifecycle, custom-style hardening, API docs). jdbbs has only 3 substantive commits worth porting (typesetting subdir import, Phase 2 path fixes, Phase 3.1 trim registry). Doing the reconciliation in prodcal is strictly fewer ports. Final rename `prodcal → jdbbs` is deferred (TRK-MIG-009).
 - **2026-05-12** — Cutover style: "just do it" — minutes of downtime acceptable, deploy and fix-forward, no parallel staging.
+- **2026-05-25** — Single canonical repo: prodcal and book-prod archived, jdbbs becomes the only live repo (TRK-MIG-009 done). VM dir/service rename deferred (TRK-OPS-008).
+- **2026-05-25** — v1 critical path consolidated in `docs/PRODUCTION_ROADMAP_2026-05-25.md`. The three older planning docs (TEST_PLAN_2026-03-09, TYPOGRAPHY_REFINEMENT_PROMPT, TYPST_FRONTEND_PLAN) are superseded by it. Originals preserved in `book-prod-archived-2026-05-25/`.
+- **2026-05-25** — Translation layer architecture: Variant E (orchestrator) + Variant F (cross-lingual consistency). Skip Variant G (MT-with-rubber-stamp). Tracked as TRK-TRANS-001..009 (v2, all P3).
+- **2026-05-25** — Working notes moved from repo root to `docs/` for tidiness (TRACKER.md, MIGRATION_LOG.md, NEXT_SESSION_PROMPT_*.md, etc.). `scripts/jpull.sh` updated to read from either location.

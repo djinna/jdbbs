@@ -29,5 +29,8 @@ jpull() {
     print -P "%F{green}up to date%f (ahead $ahead, dirty $dirty)"
   fi
   print -P "%F{cyan}=== TRACKER Resume here ===%f"
-  sed -n '/^## .*Resume here/,/^---$/p' "$dir/TRACKER.md" 2>/dev/null | head -60
+  local tracker
+  for tracker in "$dir/docs/TRACKER.md" "$dir/TRACKER.md"; do
+    [[ -f "$tracker" ]] && { sed -n '/^## .*Resume here/,/^---$/p' "$tracker" | head -60; break; }
+  done
 }
