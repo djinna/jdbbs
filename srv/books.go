@@ -369,7 +369,7 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "not found", 404)
 		return
 	}
-	ts := bookMeta.UpdatedAt.UTC().Format("20060102-150405")
+	ts := bookMeta.UpdatedAt.UTC().Format("20060102-1504")
 
 	switch format {
 	case "pdf":

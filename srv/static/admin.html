@@ -546,7 +546,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
         <div class="ts-fields">
           <div class="ts-field full">
             <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-              <select id="ts-preflight-book" class="ts-select" style="min-width:180px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <select id="ts-preflight-book" class="ts-select" style="min-width:180px;font-size:0.78rem"><option value="">Select MS…</option></select>
               <button class="btn btn-sm btn-secondary" id="ts-run-preflight" disabled>Inspect Manuscript</button>
               <span id="ts-preflight-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
               <a id="ts-preflight-report-link" href="#" target="_blank" style="display:none;font-size:0.72rem">Open latest report</a>
@@ -635,7 +635,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
             </div>
 
             <div class="ts-output-actions">
-              <select id="ts-epub-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <select id="ts-epub-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select MS…</option></select>
               <button class="btn btn-sm" id="ts-generate-epub" disabled style="border-color:var(--green);color:var(--green)">Generate EPUB</button>
               <span id="ts-epub-status" style="font-size:0.72rem;color:var(--text-muted)"></span>
             </div>
@@ -797,7 +797,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
             <div id="ts-custom-styles" class="ts-custom-styles ts-origin-panel"></div>
 
             <div class="ts-output-actions">
-              <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select book…</option></select>
+              <select id="ts-pdf-book" class="ts-select" style="min-width:140px;font-size:0.78rem"><option value="">Select MS…</option></select>
               <button class="btn btn-sm" id="ts-compile-pdf" disabled style="border-color:var(--accent);color:var(--accent)">Compile PDF</button>
               <span id="ts-compile-status" class="ts-status-line"></span>
             </div>
@@ -2459,7 +2459,7 @@ const tsPreflightImages = document.getElementById('ts-preflight-images');
 function tsPopulateBookSelects(pool, sels) {
   sels.forEach(sel => {
     const prev = sel.value;
-    sel.innerHTML = '<option value="">Select book…</option>';
+    sel.innerHTML = '<option value="">Select MS…</option>';
     pool.forEach(b => {
       const o = document.createElement('option');
       o.value = b.ID;
