@@ -134,7 +134,7 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 	// Build pandoc command
 	epubPath := filepath.Join(tmpDir, "output.epub")
 	args := []string{
-		"--from=docx+styles",
+		"--from=docx+styles+smart",
 		"--to=epub3",
 		fmt.Sprintf("--metadata=title:%s", spec.Title),
 		fmt.Sprintf("--metadata=author:%s", spec.Author),
@@ -519,6 +519,12 @@ func escapeXMLText(s string) string {
 // buildCSS generates the EPUB custom stylesheet from spec settings.
 func (s *epubSpec) buildCSS() string {
 	var parts []string
+
+	// TRK-DESIGN-003: pandoc's default epub stylesheet sets body to justified;
+	// InDesign reference for the in-flight memoirs is ragged-right, and
+	// reflowable EPUB readers handle justification poorly without good
+	// hyphenation. Override to left-aligned.
+	parts = append(parts, "body, p { text-align: left; }")
 
 	if s.BodyFontSize != "" && s.BodyFontSize != "inherit" {
 		parts = append(parts, fmt.Sprintf("body { font-size: %s; }", s.BodyFontSize))

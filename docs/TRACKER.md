@@ -10,26 +10,18 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (after 2026-05-26 DESIGN-006+009)
+## 🟢 Resume here — next session (after 2026-05-26 DESIGN-003)
 
-**Last touched:** 2026-05-26 — TRK-DESIGN-006 + 009 landed. All 9 chapter/intro images render, and chapter-1 verse is now centered italic body-font (was unstyled mono-font justified body). 103 pages. **DESIGN-001 close criteria all green.**
+**Last touched:** 2026-05-26 — TRK-DESIGN-003 landed. Both pandoc invocations now do smart-punctuation conversion; EPUB body forced ragged-left to override pandoc's justified default.
 
-**Just shipped 2026-05-26 — TRK-DESIGN-006 + 009 done:**
-- **TRK-DESIGN-006 done.** Two fixes: chapters 1-8 (`#image(..., width: 100%)`) were silently fixed by DESIGN-005's import-path correction (they had been failing because the staging-tree workaround didn't carry image siblings). The intro `ghosts_00_SBAcover.png` separately required dropping its oversized bleed args (`width: 100% + 1.3in, height: 100% + 1.5in, fit: "cover"` → `width: 100%`) — Typst silently swallows images whose declared dimensions exceed the page frame. All 9 images verified rendering. Commits `bfc7967` (placeholder), `9e621c0` (intro fix).
-- **TRK-DESIGN-009 done.** Two-part. (a) `poem()` in `typesetting/templates/series-template.typ:243` rewritten from `code-font + left-pad` to `body-font italic + center-align + 0.8em leading`. (b) Chapter 1 verse in `manuscripts/ghosts/01-soda.typ:84-90` wrapped in `#poem[...]` with explicit `\` line breaks. Required importing `poem` at top of the chapter file (`#include`'d files don't share the parent's scope). Other chapters scanned (`grep -n "^_.*_$"`) — only single-line italic lines (e.g., chapter 3 location stamp); no other verse blocks to wrap. Commits `bfc7967`, `c2bfcbc` (import fixup).
+**Just shipped 2026-05-26 — TRK-DESIGN-003 done:**
+- **Part A (smart punctuation).** Added `+smart` to `--from=docx+styles+smart` in both pandoc invocations: `srv/books.go:231` (DOCX→Typst) and `srv/epub.go:137` (DOCX→EPUB). Straight quotes → curly, `--` → en-dash, `---` → em-dash, `...` → ellipsis. Idempotent on already-curly content. No preserved-block content in Ghosts or Twitter Years, so no `+smart` bleed risk; file DEV-004 follow-up if future manuscripts include terminal transcripts / ASCII art.
+- **Part B (ragged-left body, option a chosen).** `srv/epub.go::buildCSS` now always emits `body, p { text-align: left; }` to override pandoc's default justified epub3 stylesheet. Picked (a) over per-book toggle because both in-flight titles (Ghosts memoir, Twitter Years single-author memoir) want ragged per InDesign reference, and reflowable EPUB readers handle justification poorly without good hyphenation. Toggle can be added later if a real need emerges.
 
-**DESIGN-001 close gating (TEST-002 parity matrix):**
-- Only remaining ❌ was DEV-013 (epubcheck PKG-005 mimetype extra-field) — landed 2026-05-26 commit `bf878da`.
-- All DESIGN-001 child tickets (DESIGN-004 fonts, DESIGN-005 import, DESIGN-006 images, DESIGN-007 header case, DESIGN-008 body indent, DESIGN-009 poem) closed.
-- **TRK-DESIGN-001 is ready to close.** Final step: flip the parity-matrix doc cells to ✅ and write the close note on DESIGN-001 itself.
-
-**Next session — close DESIGN-001 + queue forward:**
-1. Update `docs/GHOSTS_PARITY_2026-05-26.md` — flip DESIGN-006 + 009 cells to ✅.
-2. Close TRK-DESIGN-001 in this tracker (status, close note).
-3. Pick next from open queue:
-   - **TRK-DESIGN-003** (smart-punctuation + ragged-vs-justified audit).
-   - **TRK-DEV-012 Phase C** (chapter auto-detection on upload).
-   - Verse on the EPUB side (separate ticket — needs pandoc class-markup work; out of scope for the Typst-side fixes that just landed).
+**Next session — open queue:**
+1. **TRK-DEV-012 Phase C** (chapter auto-detection on upload).
+2. **EPUB-side verse styling** (separate ticket — needs pandoc class-markup work).
+3. **TRK-DEV-004 Phase C/D** (preserved-block protection) — file if a future manuscript hits the `+smart` bleed pitfall.
 
 ---
 
@@ -997,10 +989,20 @@ The published Ghosts PDF is the golden parity target. Embedded fonts: Plantin MT
 ### TRK-DESIGN-003 — Typography drift audit + smart-punctuation conversion (EPUB and Typst)
 
 - area: DESIGN
-- status: open
+- status: done (2026-05-26)
 - priority: P2
 - created: 2026-05-25
 - updated: 2026-05-26
+
+**Resolution (2026-05-26).**
+
+*Part A — smart punctuation.* Added `+smart` to the pandoc `--from` extension list in both Go invocations: `srv/books.go:231` (`--from=docx+styles+smart`, DOCX→Typst) and `srv/epub.go:137` (same shape, DOCX→EPUB). Pandoc handles all five conversions (single/double curly quotes, en-dash, em-dash, ellipsis) and is idempotent on already-curly content. Neither Ghosts nor Twitter Years has preserved-block content (terminal transcripts, ASCII art) that would be damaged by `+smart` bleed — file TRK-DEV-004 Phase C/D follow-up if future manuscripts add that content type.
+
+*Part B — body alignment.* Picked option (a): flipped EPUB CSS default to left-aligned for everyone, instead of exposing a per-book toggle. `srv/epub.go::buildCSS` now unconditionally prepends `body, p { text-align: left; }` to the generated stylesheet — this overrides pandoc's default epub3 stylesheet which sets justified. Rationale: both in-flight titles (Ghosts memoir, Twitter Years single-author memoir) want ragged per InDesign reference, and reflowable EPUB readers handle justification poorly without good hyphenation. Per-book toggle can be added later as `epub.justify` in spec if a justified-default title arrives.
+
+*Pitfalls deferred.* The `+smart` extension also smart-converts content inside preserved blocks (Markdown fenced code, ASCII art, terminal transcripts). No such content exists in Ghosts or Twitter Years today. If/when a future manuscript adds it, the Lua filter (or a downstream pass) needs to detect preserved blocks and revert — TRK-DEV-004 Phase C/D territory.
+
+
 - refs: typesetting/templates/epub/epub-styles.css; book-prod-archived-2026-05-25/TYPOGRAPHY_REFINEMENT_PROMPT.md; PRODUCTION_ROADMAP_2026-05-25.md (CP-6); srv/books.go:230 + srv/epub.go:132 (pandoc invocations); typesetting/scripts/{docx2epub.sh,build.sh}
 
 Two related typography-polish concerns, same session.
