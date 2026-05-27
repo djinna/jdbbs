@@ -134,8 +134,8 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 	// Build pandoc command
 	epubPath := filepath.Join(tmpDir, "output.epub")
 	args := []string{
-		"--from=docx+styles+smart",
-		"--to=epub3",
+		"--from=docx+styles",
+		"--to=epub3+smart",
 		fmt.Sprintf("--metadata=title:%s", spec.Title),
 		fmt.Sprintf("--metadata=author:%s", spec.Author),
 		fmt.Sprintf("--metadata=lang:%s", spec.Language),

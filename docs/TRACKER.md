@@ -15,13 +15,14 @@ Edit only from a clean working tree, push before someone else pulls.
 **Last touched:** 2026-05-26 — TRK-DESIGN-003 landed. Both pandoc invocations now do smart-punctuation conversion; EPUB body forced ragged-left to override pandoc's justified default.
 
 **Just shipped 2026-05-26 — TRK-DESIGN-003 done:**
-- **Part A (smart punctuation).** Added `+smart` to `--from=docx+styles+smart` in both pandoc invocations: `srv/books.go:231` (DOCX→Typst) and `srv/epub.go:137` (DOCX→EPUB). Straight quotes → curly, `--` → en-dash, `---` → em-dash, `...` → ellipsis. Idempotent on already-curly content. No preserved-block content in Ghosts or Twitter Years, so no `+smart` bleed risk; file DEV-004 follow-up if future manuscripts include terminal transcripts / ASCII art.
+- **Part A (smart punctuation).** Added `+smart` to the pandoc **writer** in both invocations: `srv/books.go:235` (`-t typst+smart`, DOCX→Typst) and `srv/epub.go:138` (`--to=epub3+smart`, DOCX→EPUB). First attempt mis-placed `+smart` on the reader side (`docx+smart`), which pandoc rejects with `exit 23: The extension smart is not supported for docx` — fixed to writer-side and re-deployed. Straight quotes → curly, `--` → en-dash, `---` → em-dash, `...` → ellipsis. Idempotent on already-curly content. No preserved-block content in Ghosts or Twitter Years, so no `+smart` bleed risk; file DEV-004 follow-up if future manuscripts include terminal transcripts / ASCII art.
 - **Part B (ragged-left body, option a chosen).** `srv/epub.go::buildCSS` now always emits `body, p { text-align: left; }` to override pandoc's default justified epub3 stylesheet. Picked (a) over per-book toggle because both in-flight titles (Ghosts memoir, Twitter Years single-author memoir) want ragged per InDesign reference, and reflowable EPUB readers handle justification poorly without good hyphenation. Toggle can be added later if a real need emerges.
 
 **Next session — open queue:**
 1. **TRK-DEV-012 Phase C** (chapter auto-detection on upload).
 2. **EPUB-side verse styling** (separate ticket — needs pandoc class-markup work).
 3. **TRK-DEV-004 Phase C/D** (preserved-block protection) — file if a future manuscript hits the `+smart` bleed pitfall.
+4. **TRK-OPS-010** — Remove dormant `srv.service` unit (root-caused the empty-DB incident during DESIGN-003 session 2026-05-26). P2, ~20 min.
 
 ---
 
@@ -746,6 +747,42 @@ Not urgent — backups are still under 300MB gzipped, R2 cost is trivial — but
 
 **Recommendation:** option 2, but file as a small implementation ticket only when DB size hits ~1GB or backup duration becomes noticeable. Until then, this is just a watch item.
 
+### TRK-OPS-010 — Remove dormant `srv.service` unit (race-cause: 2026-05-26)
+
+- area: OPS
+- status: open
+- priority: P2
+- created: 2026-05-26
+- updated: 2026-05-26
+- refs: `/etc/systemd/system/srv.service`, `/etc/systemd/system/prodcal.service`; TRK-OPS-005 (orphan-race fix)
+
+**Incident.** During TRK-DESIGN-003 session on 2026-05-26 ~00:27 UTC, a restart cycle on `prodcal.service` released :8000 momentarily and `srv.service` (older Feb-23 unit, `Restart=always`, `Type=simple`) won the bind race against `prodcal.service` (`Type=notify`, slower handshake). Both units were enabled and pointed at the same `/home/exedev/prodcal/prodcal` binary on `:8000`, but with different `WorkingDirectory` values:
+
+- `srv.service`: `WorkingDirectory=/home/exedev` → SQLite opened a 4 KB stub `/home/exedev/db.sqlite3` (essentially empty).
+- `prodcal.service`: `WorkingDirectory=/home/exedev/prodcal` → SQLite opens the real 354 MB `/home/exedev/prodcal/db.sqlite3`.
+
+Net effect: the running API served from an empty DB for hours. `/api/books` returned `[]`; `/api/books/9` returned 404; the DESIGN-003 session couldn't exercise the smart-punctuation path against real manuscripts. Diagnosed by inspecting `/proc/$MainPID/cwd` and `lsof` on the listening process.
+
+**Immediate fix (already applied 2026-05-26).** `sudo systemctl stop srv.service && sudo systemctl disable srv.service && sudo systemctl start prodcal.service`. Verified API now returns book 9 from the canonical DB.
+
+**Residual risk.** `srv.service` is still on disk and not deleted. If a future operator runs `systemctl enable srv` (intentionally or otherwise), the race recurs. The stub DB at `/home/exedev/db.sqlite3` + its WAL also remain on disk — could mislead later diagnostics.
+
+**Decisions needed:**
+1. Delete `/etc/systemd/system/srv.service` outright? — cleanest; removes the foot-gun. Recommended.
+2. Or keep it as a documented "do not enable" fallback with `[Install]` stripped (no `WantedBy=`) — defensible only if there's a real reason to retain it. There isn't one we know of.
+3. Archive then delete `/home/exedev/db.sqlite3` and its WAL — likely contains only init-time schema writes from the stub-DB period, but worth a `sqlite3` peek before deletion to confirm no real data leaked there.
+
+**Recommendation:** option 1 + option 3. Single short session.
+
+**Acceptance:**
+- `srv.service` no longer present in `/etc/systemd/system/`.
+- `sudo systemctl daemon-reload` clean.
+- `systemctl list-unit-files | grep -iE "srv|prodcal"` shows only `prodcal.service`.
+- `/home/exedev/db.sqlite3*` removed (after archive snapshot to `~/backups/srv-service-stub-<date>.sqlite3.gz`).
+- Reboot test: `sudo reboot` then verify only `prodcal.service` comes up on :8000 with cwd `/home/exedev/prodcal`.
+
+**Effort:** ~20 min including the reboot verification.
+
 ### TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/
 
 - area: OPS / SEC
@@ -996,7 +1033,7 @@ The published Ghosts PDF is the golden parity target. Embedded fonts: Plantin MT
 
 **Resolution (2026-05-26).**
 
-*Part A — smart punctuation.* Added `+smart` to the pandoc `--from` extension list in both Go invocations: `srv/books.go:231` (`--from=docx+styles+smart`, DOCX→Typst) and `srv/epub.go:137` (same shape, DOCX→EPUB). Pandoc handles all five conversions (single/double curly quotes, en-dash, em-dash, ellipsis) and is idempotent on already-curly content. Neither Ghosts nor Twitter Years has preserved-block content (terminal transcripts, ASCII art) that would be damaged by `+smart` bleed — file TRK-DEV-004 Phase C/D follow-up if future manuscripts add that content type.
+*Part A — smart punctuation.* Added `+smart` to the pandoc **writer** in both Go invocations: `srv/books.go:235` (`-t typst+smart`, DOCX→Typst) and `srv/epub.go:138` (`--to=epub3+smart`, DOCX→EPUB). Initial attempt put `+smart` on the docx reader (`--from=docx+styles+smart`); pandoc's docx reader does not support the smart extension and rejected with `exit 23: The extension smart is not supported for docx`. Move to writer-side does the conversion at output emit time, which is what we want anyway (apply uniformly regardless of source format). Pandoc handles all five conversions (single/double curly quotes, en-dash, em-dash, ellipsis) and is idempotent on already-curly content. Neither Ghosts nor Twitter Years has preserved-block content (terminal transcripts, ASCII art) that would be damaged by `+smart` bleed — file TRK-DEV-004 Phase C/D follow-up if future manuscripts add that content type.
 
 *Part B — body alignment.* Picked option (a): flipped EPUB CSS default to left-aligned for everyone, instead of exposing a per-book toggle. `srv/epub.go::buildCSS` now unconditionally prepends `body, p { text-align: left; }` to the generated stylesheet — this overrides pandoc's default epub3 stylesheet which sets justified. Rationale: both in-flight titles (Ghosts memoir, Twitter Years single-author memoir) want ragged per InDesign reference, and reflowable EPUB readers handle justification poorly without good hyphenation. Per-book toggle can be added later as `epub.justify` in spec if a justified-default title arrives.
 

@@ -228,11 +228,11 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	// Step 1: direct pandoc docx -> typst using the bundled lua filter.
 	typPath := filepath.Join(tmpDir, "book.typ")
 	pandocArgs := []string{
-		"--from=docx+styles+smart",
+		"--from=docx+styles",
 		docxPath,
 		"--lua-filter=" + typstFilterPath(),
 		"--extract-media=" + filepath.Join(tmpDir, "media"),
-		"-t", "typst",
+		"-t", "typst+smart",
 		"-o", typPath,
 	}
 
