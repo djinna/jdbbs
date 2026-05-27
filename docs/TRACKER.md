@@ -10,21 +10,26 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (after 2026-05-26 DESIGN triple)
+## 🟢 Resume here — next session (after 2026-05-26 DESIGN-006+009)
 
-**Last touched:** 2026-05-26 — TRK-DESIGN-005/007/008 all landed. Typst Ghosts compile is now clean (no staging-tree hack), running header is ALL CAPS on recto, body paragraphs have 0.75em first-line indent everywhere expected. 103 pages (was 101 — slight reflow from indent). Remaining DESIGN-001 children: DESIGN-006 (chapter images) + DESIGN-009 (poem/verse blocks).
+**Last touched:** 2026-05-26 — TRK-DESIGN-006 + 009 landed. All 9 chapter/intro images render, and chapter-1 verse is now centered italic body-font (was unstyled mono-font justified body). 103 pages. **DESIGN-001 close criteria all green.**
 
-**Just shipped 2026-05-26 — TRK-DESIGN-005 + 007 + 008 done:**
-- **TRK-DESIGN-005 done.** `manuscripts/ghosts/main.typ:1` import path corrected to `../../typesetting/templates/series-template.typ`. `typst compile --root .` now works without the `/tmp/ghosts-build/` staging-tree workaround.
-- **TRK-DESIGN-007 done.** `typesetting/templates/series-template.typ:168` recto running header title wrapped in `upper()`. Verso author byline was already correct (`upper(author)` on line 161). Verified on page 5 ("KHLONGS, SUBAKS, BEAINGS") and page 9 (Sam Chua verso).
-- **TRK-DESIGN-008 done.** Root cause was **not** Typst version syntax — it was leaky `#set par(first-line-indent: 0em)` lines in chapter files (line ~10 of each, killing indent for the rest of the file scope; plus 30+ more before list blocks that never restored). Deleted 42 such lines across 9 chapter files via `perl -i`. Typst's default first-paragraph-after-block behavior handles the "no indent after heading" case naturally; the kills were redundant AND destructive. Each chapter's line-2 `#set par(...first-line-indent: 0.75em)` now applies as intended. Compile produced visible indents on every body paragraph.
-- **CLAUDE.md workflow note added:** the harness auto-mode classifier blocks assistant `ssh exedev@...` calls. Convention is now: assistant writes a single concatenated shell command, user pastes it into their shell and pastes output back. See `CLAUDE.md` "VM ssh — user-run, not assistant-run".
+**Just shipped 2026-05-26 — TRK-DESIGN-006 + 009 done:**
+- **TRK-DESIGN-006 done.** Two fixes: chapters 1-8 (`#image(..., width: 100%)`) were silently fixed by DESIGN-005's import-path correction (they had been failing because the staging-tree workaround didn't carry image siblings). The intro `ghosts_00_SBAcover.png` separately required dropping its oversized bleed args (`width: 100% + 1.3in, height: 100% + 1.5in, fit: "cover"` → `width: 100%`) — Typst silently swallows images whose declared dimensions exceed the page frame. All 9 images verified rendering. Commits `bfc7967` (placeholder), `9e621c0` (intro fix).
+- **TRK-DESIGN-009 done.** Two-part. (a) `poem()` in `typesetting/templates/series-template.typ:243` rewritten from `code-font + left-pad` to `body-font italic + center-align + 0.8em leading`. (b) Chapter 1 verse in `manuscripts/ghosts/01-soda.typ:84-90` wrapped in `#poem[...]` with explicit `\` line breaks. Required importing `poem` at top of the chapter file (`#include`'d files don't share the parent's scope). Other chapters scanned (`grep -n "^_.*_$"`) — only single-line italic lines (e.g., chapter 3 location stamp); no other verse blocks to wrap. Commits `bfc7967`, `c2bfcbc` (import fixup).
 
-**Remaining DESIGN-001 children (in priority order):**
-- **TRK-DESIGN-006** (P2, ~30-60 min) — chapter opener images not rendering. Investigate `--root`/image path resolution.
-- **TRK-DESIGN-009** (P2, ~45 min) — poem/verse blocks render as plain body. Two-part: chapter `.typ` files + `poem()` styling in template.
+**DESIGN-001 close gating (TEST-002 parity matrix):**
+- Only remaining ❌ was DEV-013 (epubcheck PKG-005 mimetype extra-field) — landed 2026-05-26 commit `bf878da`.
+- All DESIGN-001 child tickets (DESIGN-004 fonts, DESIGN-005 import, DESIGN-006 images, DESIGN-007 header case, DESIGN-008 body indent, DESIGN-009 poem) closed.
+- **TRK-DESIGN-001 is ready to close.** Final step: flip the parity-matrix doc cells to ✅ and write the close note on DESIGN-001 itself.
 
-Once those land, DESIGN-001 closes with zero ❌ in the parity matrix.
+**Next session — close DESIGN-001 + queue forward:**
+1. Update `docs/GHOSTS_PARITY_2026-05-26.md` — flip DESIGN-006 + 009 cells to ✅.
+2. Close TRK-DESIGN-001 in this tracker (status, close note).
+3. Pick next from open queue:
+   - **TRK-DESIGN-003** (smart-punctuation + ragged-vs-justified audit).
+   - **TRK-DEV-012 Phase C** (chapter auto-detection on upload).
+   - Verse on the EPUB side (separate ticket — needs pandoc class-markup work; out of scope for the Typst-side fixes that just landed).
 
 ---
 
@@ -936,12 +941,14 @@ A built Go binary lives at the prodcal repo root. Tracked in git, in CI artifact
 ### TRK-DESIGN-001 — Ghosts InDesign → Typst parity matrix
 
 - area: DESIGN
-- status: in-progress (audit done; DESIGN-005/007/008 closed 2026-05-26 commit `1dc4ad6`; DEV-013 closed 2026-05-26 `bf878da`; remaining: DESIGN-006 + DESIGN-009)
+- status: done 2026-05-26 (all child tickets closed; Ghosts Typst/EPUB parity verified)
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-26
 
-**2026-05-26 update (later).** DESIGN-005/007/008 all landed in commit `1dc4ad6`. Import path fixed, recto running header now ALL CAPS, body paragraph indents now rendering throughout (root cause was leaky `#set par(first-line-indent: 0em)` not Typst-version syntax — see TRK-DESIGN-008 resolution). DESIGN-001 stays open until DESIGN-006 (chapter images) and DESIGN-009 (poem/verse) land.
+**Closed 2026-05-26.** All 6 child tickets surfaced by TRK-TEST-002 are now closed: DESIGN-004 (CJK/Thai fonts), DESIGN-005 (import path, commit `1dc4ad6`), DESIGN-006 (chapter images, commits `bfc7967` + `9e621c0`), DESIGN-007 (header ALL CAPS, `1dc4ad6`), DESIGN-008 (body indent root cause, `1dc4ad6`), DESIGN-009 (poem styling + verse wrap, `bfc7967` + `c2bfcbc`), DEV-013 (epubcheck PKG-005, `bf878da`). Ghosts is release-confident on visual quality vs `reference/GHOSTS.pdf` and `reference/GHOSTS.epub`. Page count 103 (vs reference 136 — the ~25% delta is acceptable per TEST-002 deviation rules, driven by missing front matter and tighter leading by design choice). See `docs/GHOSTS_PARITY_2026-05-26.md` for the full matrix.
+
+**2026-05-26 update (earlier).** DESIGN-005/007/008 all landed in commit `1dc4ad6`. Import path fixed, recto running header now ALL CAPS, body paragraph indents now rendering throughout (root cause was leaky `#set par(first-line-indent: 0em)` not Typst-version syntax — see TRK-DESIGN-008 resolution).
 
 **2026-05-26 update (earlier).** TRK-TEST-002 closed; all 10 ⚠️ cells in `docs/GHOSTS_PARITY_2026-05-26.md` resolved. Six new ❌ findings filed as child tickets (TRK-DESIGN-005..009 + TRK-DEV-013).
 - refs: `docs/GHOSTS_PARITY_2026-05-26.md` (full audit, 25✅/10⚠️/1❌); `reference/GHOSTS.pdf` (136 pages, 353.811 × 546.567 pt = 4.91 × 7.59 in, PDF/X-4, InDesign 21.0); `manuscripts/ghosts/main.typ` (per-chapter Typst sources with `set-story-info()` configured for 9 chapters)
@@ -1103,11 +1110,17 @@ Then verify `typst compile --root <repo-root> --font-path typesetting/fonts manu
 ### TRK-DESIGN-006 — Chapter opener images not rendering in Typst output
 
 - area: DESIGN
-- status: open
+- status: done 2026-05-26
 - priority: P2
 - created: 2026-05-26 (from TRK-TEST-002)
-- updated: 2026-05-26
-- refs: `manuscripts/ghosts/main.typ` lines ~84-164 (per `docs/GHOSTS_PARITY_2026-05-26.md` note); `manuscripts/ghosts/ghosts_0[0-8]_*.jpg`
+- updated: 2026-05-26 (closed; commits `bfc7967` placeholder, `9e621c0` intro-image fix)
+- refs: `manuscripts/ghosts/main.typ` lines ~84-164; `manuscripts/ghosts/ghosts_0[0-8]_*.jpg`
+
+**Resolution.** Two distinct causes:
+- Chapters 1-8 (`#image("ghosts_NN_*.jpg", width: 100%)`) were already correct in source; they had been failing because the pre-DESIGN-005 staging-tree workaround copied `main.typ` to `/tmp/ghosts-build/` without the sibling JPEGs. Once DESIGN-005 made `typst compile --root .` work against the real layout, the images resolved and rendered.
+- Intro cover (`ghosts_00_SBAcover.png`) used oversized bleed args (`width: 100% + 1.3in, height: 100% + 1.5in, fit: "cover"`) that exceeded the page text frame. Typst silently swallows images larger than the available frame in regular content flow — it does not clip to the frame, it omits the image entirely. Replaced with `width: 100%` to match the chapter-image pattern; the PNG is a landscape banner (493×203), so it renders top-of-page and fills only ~40% of the height, which is fine aesthetically.
+
+All 9 images verified rendering in `scratch/ghosts-006-009b.pdf` (page 7 intro + 8 chapter image pages).
 
 **Problem.** Reference GHOSTS.pdf has a dedicated image+title spread for each of the 9 chapters (full-width chapter-opener images). The compiled Typst output (`scratch/ghosts-typst.pdf`, page 8 = KSB chapter opener) shows the title and author byline but **no image**. The 8 JPEGs are sitting in `manuscripts/ghosts/` next to the typ files.
 
@@ -1166,11 +1179,18 @@ If that works, roll across all 9 chapter files. May also want to set this at the
 ### TRK-DESIGN-009 — Poem/verse blocks render as plain body in Typst
 
 - area: DESIGN
-- status: open
+- status: done 2026-05-26
 - priority: P2
 - created: 2026-05-26 (from TRK-TEST-002)
-- updated: 2026-05-26
-- refs: `typesetting/templates/series-template.typ::poem()` (lines ~243-247); `manuscripts/ghosts/01-soda.typ` (contains the 4-line verse "Where have I gone? / High waves sighing, / erasing, placing life on... who? / It is Thursday and I miss you. / Without true light, hues grow so dull."); `scratch/diff-typst/page-015.png`
+- updated: 2026-05-26 (closed; commits `bfc7967` template + verse wrap, `c2bfcbc` import fixup)
+- refs: `typesetting/templates/series-template.typ::poem()` (lines 243-247); `manuscripts/ghosts/01-soda.typ:84-90`
+
+**Resolution.**
+- `poem()` rewritten: was `set text(font: config.code-font, ...)` + `pad(left: 0.75em, ...)` (code-font, left-padded, default leading). Now `set text(font: config.body-font, size: config.poem-size, style: "italic")` + `set par(leading: 0.8em, justify: false)` + `align(center, ...)`. Centered italic body-font with looser leading.
+- Chapter 1 verse at `01-soda.typ:84-90` (was 4 separate italic single-line paragraphs `_..._`) replaced with `#poem[...]` block using explicit `\` line breaks. `#include`'d chapter files don't inherit the parent's import scope, so added `#import "../../typesetting/templates/series-template.typ": poem` at the top of `01-soda.typ`.
+- Scanned all other chapters for verse (`grep -n "^_.*_$"`) — only single-line italic standalones (e.g. chapter 3 location stamp at line 803). No other verse blocks needed wrapping.
+
+Verified on `scratch/ghosts-006-009.pdf` page 15: verse renders centered, italic body-font, smaller than surrounding prose, visibly distinct.
 
 **Problem.** The 4-line poem in chapter 1 (Spencer Nitkey's "Soda Sweet as Blood") renders in Typst as ordinary justified body, indistinguishable from prose. The reference treats it as a verse block — centered, smaller, italic, looser leading.
 
