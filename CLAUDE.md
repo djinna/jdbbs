@@ -31,6 +31,8 @@ For throwaway intermediate files (assembled DOCX for testing, downloaded PDFs fo
 
 ## Health Stack
 
+**New machine?** `brew install go shellcheck && bash scripts/dev-setup.sh` activates the git hook and verifies the toolchain. Full guide: [`docs/DEV-SETUP.md`](docs/DEV-SETUP.md).
+
 Used by `/health` and as the local dev inner loop:
 
 - typecheck: go build ./...
