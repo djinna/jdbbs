@@ -1288,22 +1288,57 @@ Recommend option 1.
 
 **Effort:** ~30-60 min including a regression test (epubcheck call in `srv/epub_chapter_test.go` or similar).
 
-### TRK-DESIGN-002 — Commercial font licensing & bundling
+### TRK-DESIGN-002 — Commercial font wiring (print PDF only; EPUB stays OFL)
 
 - area: DESIGN
 - status: open
 - priority: P1
 - created: 2026-05-12
-- updated: 2026-05-12
+- updated: 2026-05-31
 - refs: TRK-DESIGN-001
 
-User has licenses for Plantin MT Pro + Proxima Nova. **Action:**
+**Scope (re-confirmed 2026-05-31).** Print PDFs only. EPUB continues to embed OFL fonts (Libertinus / Noto / Source Sans 3) — distributing licensed font files inside an EPUB zip is redistribution, not covered by standard desktop licenses. Print-PDF embedding (subset, rendered output) is covered under the same desktop-license model the user has used for decades in InDesign/Quark/PageMaker.
 
-1. Locate license documents.
-2. Confirm permitted distribution mode (server-side embedded? per-output PDF embedded? bundled in repo?).
-3. Add fonts to `jdbbs/typesetting/fonts/{plantin,proximanova}/` with a `LICENSE.txt` per family.
-4. Update `series-template.typ` defaults to use licensed names when present, fall back to open subs otherwise.
-5. Update `Dockerfile` to skip `fonts-libertinus` if Plantin is present.
+User owns Plantin MT Pro + Proxima Nova outright (perpetual desktop licenses).
+
+**Design principles:**
+- Font files NEVER committed to git (private repo or otherwise — GitHub is a recipient).
+- Present on Mac (for local `typst compile`) and VM (for SPA pipeline). Synced manually via rsync.
+- EPUB pipeline cannot see them: hard separation by directory.
+- Per-title spec selects font family by name; defaults to OFL so fresh clones without licensed fonts still compile.
+
+**Implementation:**
+
+1. **Layout + gitignore.** Add `typesetting/fonts/licensed/` to `.gitignore`. Commit a `typesetting/fonts/licensed/README.md` explaining the convention. Drop OTF/TTF files into `licensed/plantin-mt-pro/` and `licensed/proxima-nova/` locally.
+
+2. **Sync script `scripts/sync-licensed-fonts.sh`:** rsync `~/jd-projects/jdbbs/typesetting/fonts/licensed/` → `exedev@jdbbs.exe.xyz:/home/exedev/prodcal/typesetting/fonts/licensed/`. Run on demand.
+
+3. **Typst pickup.** No code change. `typst compile --font-path typesetting/fonts` already scans recursively; family name lookup is automatic. `fc-query` each file once to confirm exact family names Typst will see.
+
+4. **Spec fields.** Add `pdf.body_font` + `pdf.heading_font` to `book_specs.data` (JSON, no migration). Default empty → falls back to current OFL defaults. Admin UI: two text inputs in a new "Print fonts" subsection of the Typesetting card.
+
+5. **`series-template.typ`.** Read spec values when present, fallback to current OFL defaults:
+   ```typst
+   #let body-font = if pdf-body-font != none and pdf-body-font != "" { pdf-body-font } else { "Libertinus Serif" }
+   ```
+
+6. **EPUB hard-separation.** `srv/epub.go::handleGenerateEPUB` — add runtime assertion that any path containing `/licensed/` is rejected when assembling `--epub-embed-font` list:
+   ```go
+   if strings.Contains(p, "/licensed/") {
+       return fmt.Errorf("refusing to embed licensed font in EPUB: %s", p)
+   }
+   ```
+   EPUB CSS continues referencing OFL family names only — no Plantin even as a fallback.
+
+7. **Backup hygiene note.** Licensed fonts not in git → not covered by GitHub backup. Mac local + offsite (Time Machine / cloud) covers it; VM copy is replaceable from Mac via sync script. Note in TRK-OPS-007 if not already covered.
+
+**Acceptance:**
+- Compile Ghosts (or Twitter Years) PDF with `pdf.body_font = "Plantin MT Pro"` → embedded subsetted Plantin in output PDF (verify with `pdffonts ghosts.pdf`).
+- Same book's EPUB compile → no Plantin in `EPUB/fonts/` directory; CSS contains no Plantin family reference.
+- Fresh clone without `licensed/` populated → PDF compile still succeeds with Libertinus fallback (no errors).
+- `typesetting/fonts/licensed/` exists in `.gitignore`; `git status` after dropping fonts shows clean.
+
+**Effort:** ~1-2h once user has the OTF/TTF files staged locally.
 
 ---
 
