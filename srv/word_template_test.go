@@ -74,15 +74,15 @@ func TestWordTemplateGenerationRejectsDuplicateCustomStyleNames(t *testing.T) {
 
 	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/book-spec", map[string]any{
 		"data": map[string]any{
-			"metadata": map[string]any{"title": "Test", "author": "Tester"},
-			"typography": map[string]any{},
-			"headings": map[string]any{},
-			"elements": map[string]any{},
-			"front_matter": map[string]any{},
-			"back_matter": map[string]any{},
-			"page": map[string]any{},
+			"metadata":      map[string]any{"title": "Test", "author": "Tester"},
+			"typography":    map[string]any{},
+			"headings":      map[string]any{},
+			"elements":      map[string]any{},
+			"front_matter":  map[string]any{},
+			"back_matter":   map[string]any{},
+			"page":          map[string]any{},
 			"running_heads": map[string]any{},
-			"epub": map[string]any{},
+			"epub":          map[string]any{},
 			"custom_styles": []map[string]any{
 				{"name": "metadata", "word_style": "metadata", "type": "character", "description": "meta char"},
 				{"name": "metadata", "word_style": "metadata", "type": "paragraph", "description": "meta para"},
@@ -125,15 +125,15 @@ func TestWordTemplateGenerationAllowsUniqueCustomStyleNames(t *testing.T) {
 
 	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/book-spec", map[string]any{
 		"data": map[string]any{
-			"metadata": map[string]any{"title": "Test", "author": "Tester"},
-			"typography": map[string]any{},
-			"headings": map[string]any{},
-			"elements": map[string]any{},
-			"front_matter": map[string]any{},
-			"back_matter": map[string]any{},
-			"page": map[string]any{},
+			"metadata":      map[string]any{"title": "Test", "author": "Tester"},
+			"typography":    map[string]any{},
+			"headings":      map[string]any{},
+			"elements":      map[string]any{},
+			"front_matter":  map[string]any{},
+			"back_matter":   map[string]any{},
+			"page":          map[string]any{},
 			"running_heads": map[string]any{},
-			"epub": map[string]any{},
+			"epub":          map[string]any{},
 			"custom_styles": []map[string]any{
 				{"name": "metadata-c", "word_style": "metadata-c", "type": "character", "description": "meta char"},
 				{"name": "metadata-p", "word_style": "metadata-p", "type": "paragraph", "description": "meta para"},

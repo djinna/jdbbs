@@ -939,13 +939,13 @@ func seedProjectWithStandardWorkflow(ctx context.Context, q *dbgen.Queries, proj
 			ProjectID: projectID, SortOrder: int64(t.SortOrder),
 			Assignee: t.Assignee, Title: t.Task,
 			IsMilestone: milestone,
-			OrigWeeks: t.OrigWeeks, CurrWeeks: t.CurrWeeks,
+			OrigWeeks:   t.OrigWeeks, CurrWeeks: t.CurrWeeks,
 			OrigDue: t.OrigDue, CurrDue: t.CurrDue,
 			ActualDone: t.ActualDone, Status: status,
 			Words: int64(t.Words), WordsPerHour: int64(t.WordsPerHour),
 			Hours: t.Hours, Rate: t.Rate,
 			BudgetNotes: t.BudgetNotes,
-			OrigBudget: t.OrigBudget, CurrBudget: t.CurrBudget,
+			OrigBudget:  t.OrigBudget, CurrBudget: t.CurrBudget,
 			ActualBudget: t.ActualBudget,
 		}); err != nil {
 			return err

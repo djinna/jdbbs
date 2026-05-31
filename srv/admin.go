@@ -213,9 +213,9 @@ func (s *Server) handleAdminCreateClient(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(map[string]any{
-		"slug":      body.Slug,
-		"name":      body.Name,
-		"has_auth":  passwordHash != "",
+		"slug":       body.Slug,
+		"name":       body.Name,
+		"has_auth":   passwordHash != "",
 		"created_ok": true,
 	})
 }
