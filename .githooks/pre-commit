@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Versioned pre-commit hook. Activate per clone with:
+#   git config core.hooksPath .githooks   (scripts/dev-setup.sh does this for you)
+#
+# Blocks a commit only on problems in the change being committed:
+#   1. staged Go files that aren't gofmt-clean  (scoped to staged files, never the
+#      whole tree — so pre-existing un-gofmt'd files elsewhere don't block you)
+#   2. a go vet failure in the module
+# Bypass once: git commit --no-verify
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"   # arm64 + intel Homebrew
+
+command -v go >/dev/null 2>&1 || { echo "pre-commit: go not on PATH — skipping Go checks"; exit 0; }
+
+# 1. gofmt — only the staged .go files (added/copied/modified)
+staged_go=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
+if [ -n "$staged_go" ]; then
+  unformatted=$(gofmt -l $staged_go 2>/dev/null)
+  if [ -n "$unformatted" ]; then
+    echo "pre-commit: gofmt needed on staged files:"
+    echo "$unformatted" | sed 's/^/  /'
+    echo "  fix: gofmt -w $unformatted && git add $unformatted"
+    exit 1
+  fi
+fi
+
+# 2. go vet — module-wide (correctness, not formatting; safe on un-gofmt'd trees)
+go vet ./... || { echo "pre-commit: go vet failed (or bypass once: git commit --no-verify)"; exit 1; }
+
+echo "pre-commit: gofmt(staged) + go vet clean"
