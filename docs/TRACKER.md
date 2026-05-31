@@ -750,10 +750,10 @@ Not urgent — backups are still under 300MB gzipped, R2 cost is trivial — but
 ### TRK-OPS-010 — Remove dormant `srv.service` unit (race-cause: 2026-05-26)
 
 - area: OPS
-- status: open
+- status: done 2026-05-31
 - priority: P2
 - created: 2026-05-26
-- updated: 2026-05-26
+- updated: 2026-05-31
 - refs: `/etc/systemd/system/srv.service`, `/etc/systemd/system/prodcal.service`; TRK-OPS-005 (orphan-race fix)
 
 **Incident.** During TRK-DESIGN-003 session on 2026-05-26 ~00:27 UTC, a restart cycle on `prodcal.service` released :8000 momentarily and `srv.service` (older Feb-23 unit, `Restart=always`, `Type=simple`) won the bind race against `prodcal.service` (`Type=notify`, slower handshake). Both units were enabled and pointed at the same `/home/exedev/prodcal/prodcal` binary on `:8000`, but with different `WorkingDirectory` values:
@@ -782,6 +782,10 @@ Net effect: the running API served from an empty DB for hours. `/api/books` retu
 - Reboot test: `sudo reboot` then verify only `prodcal.service` comes up on :8000 with cwd `/home/exedev/prodcal`.
 
 **Effort:** ~20 min including the reboot verification.
+
+**Closure (2026-05-31).** Two-stage close:
+- **Stage 1 (inline during DESIGN-003, 2026-05-26):** `srv.service` stopped + disabled. Immediate foot-gun defused — disabled unit cannot auto-start on reboot.
+- **Stage 2 (orchestrator-driven, 2026-05-31):** stub DB archived to `~/backups/srv-service-stub-2026-05-31.sqlite3.gz` (100 bytes gzipped — essentially empty). Then removed: `/home/exedev/db.sqlite3`, `/home/exedev/db.sqlite3-shm`, `/home/exedev/db.sqlite3-wal`, `/etc/systemd/system/srv.service`. `sudo systemctl daemon-reload` clean. `prodcal.service` still `active`. Reboot test skipped — disabled+deleted unit cannot return.
 
 ### TRK-OPS-004 — `.env` on disk in /home/exedev/prodcal/
 
