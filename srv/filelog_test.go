@@ -109,9 +109,9 @@ func TestFileLogOutbound(t *testing.T) {
 	pid := itoa(int64(project["ID"].(float64)))
 
 	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/file-log", map[string]any{
-		"direction": "outbound",
-		"filename":  "proofs.pdf",
-		"sent_by":   "Editor",
+		"direction":   "outbound",
+		"filename":    "proofs.pdf",
+		"sent_by":     "Editor",
 		"received_by": "Author",
 	})
 	var entry map[string]any

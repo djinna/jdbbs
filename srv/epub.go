@@ -366,9 +366,9 @@ func injectChapterAuthors(epubData []byte, chapters []epubChapter) ([]byte, erro
 
 	// First pass: collect entry order and identify chapter files (xhtml with <h1>).
 	type entry struct {
-		f       *zip.File
-		body    []byte
-		isChap  bool
+		f      *zip.File
+		body   []byte
+		isChap bool
 	}
 	entries := make([]*entry, 0, len(zr.File))
 	chapIdxs := make([]int, 0, len(chapters))

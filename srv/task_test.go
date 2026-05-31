@@ -127,9 +127,9 @@ func TestTaskMilestone(t *testing.T) {
 
 	// Create milestone task
 	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/tasks", map[string]any{
-		"title":       "Big Milestone",
+		"title":        "Big Milestone",
 		"is_milestone": 1,
-		"sort_order":  1,
+		"sort_order":   1,
 	})
 	var task map[string]any
 	decodeJSON(t, resp, &task)

@@ -90,11 +90,11 @@ type transmittalEmailData struct {
 		ISBNCloth string `json:"isbn_cloth"`
 	} `json:"book"`
 	Production struct {
-		TransmittalDate  string `json:"transmittal_date"`
-		MechsDelivery    string `json:"mechs_delivery"`
-		WeeksInProd      string `json:"weeks_in_production"`
-		BoundBookDate    string `json:"bound_book_date"`
-		PrintRun         string `json:"print_run"`
+		TransmittalDate string `json:"transmittal_date"`
+		MechsDelivery   string `json:"mechs_delivery"`
+		WeeksInProd     string `json:"weeks_in_production"`
+		BoundBookDate   string `json:"bound_book_date"`
+		PrintRun        string `json:"print_run"`
 	} `json:"production"`
 	ChecklistStats struct {
 		Parts      string `json:"parts"`
@@ -448,9 +448,9 @@ func (s *Server) handleSendTransmittalEmail(w http.ResponseWriter, r *http.Reque
 	}
 
 	jsonOK(w, map[string]any{
-		"ok":         true,
-		"sent_to":    body.Recipients,
-		"subject":    subject,
+		"ok":      true,
+		"sent_to": body.Recipients,
+		"subject": subject,
 	})
 }
 

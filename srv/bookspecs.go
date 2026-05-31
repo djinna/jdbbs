@@ -419,12 +419,12 @@ func listTypstFonts() []map[string]string {
 
 	// Fonts to skip (symbols, emoji, etc.)
 	skip := map[string]bool{
-		"D050000L":            true,
-		"FontAwesome":         true,
-		"Standard Symbols PS": true,
-		"Symbola":             true,
-		"Noto Color Emoji":    true,
-		"Z003":                true,
+		"D050000L":                 true,
+		"FontAwesome":              true,
+		"Standard Symbols PS":      true,
+		"Symbola":                  true,
+		"Noto Color Emoji":         true,
+		"Z003":                     true,
 		"New Computer Modern Math": true,
 	}
 
@@ -586,8 +586,6 @@ func specToTypstConfig(data map[string]any) string {
 		}
 	}
 
-
-
 	// Headings
 	if hdg, ok := data["headings"].(map[string]any); ok {
 		lines = append(lines, "  // Headings")
@@ -686,7 +684,6 @@ func specToTypstConfig(data map[string]any) string {
 	}
 
 	lines = append(lines, "))")
-
 
 	// Custom styles
 	if styles, ok := data["custom_styles"].([]any); ok {
@@ -911,8 +908,8 @@ var trimRegistry = map[string]trimPreset{
 	"jis-b6":       {"jis-b6", 128.0 / 25.4, 182.0 / 25.4},    // 128×182 mm
 	"us-letter":    {"us-letter", 8.5, 11.0},
 	"us-legal":     {"us-legal", 8.5, 14.0},
-	"us-executive": {"us-executive", 7.25, 10.5},              // 184.15×266.7 mm
-	"us-statement": {"us-statement", 5.5, 8.5},                // same as digest
+	"us-executive": {"us-executive", 7.25, 10.5}, // 184.15×266.7 mm
+	"us-statement": {"us-statement", 5.5, 8.5},   // same as digest
 
 	// Publisher presets (no Typst built-in — emit explicit width/height)
 	// protocolized: Protocolized Anthology series trim (Ghosts, TT, Librarians).
