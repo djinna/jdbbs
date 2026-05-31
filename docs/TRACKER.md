@@ -12,7 +12,7 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ## 🟢 Resume here — next session (after 2026-05-31 DEV-012 Phase C)
 
-**Last touched:** 2026-05-31 — TRK-DEV-012 Phase C landed (chapter auto-detection on upload). DEV-012 now fully done (A+B+C). Code written; **not yet built/tested/deployed** — Go isn't on the Mac dev box, so the build+test+deploy step is pending a VM run (command below).
+**Last touched:** 2026-05-31 — TRK-DEV-012 Phase C **shipped & verified in prod** (commit `40cb5ec`). DEV-012 fully done (A+B+C). Built ✓ / `go vet` ✓ / `go test ./srv/...` ✓ (incl. the 4 `json_set` round-trips — modernc SQLite has JSON1, no fallback needed) / deployed ✓ / live-smoked ✓.
 
 **Just shipped 2026-05-31 — TRK-DEV-012 Phase C done:**
 - **Detection (`srv/chapter_detect.go`, new).** On DOCX upload, runs `pandoc --from=docx+styles -t json` once and walks the AST in Go for level-1 headings + adjacent author bylines. Chose the AST-walk over the Lua-filter pre-pass (the earlier prompt's #3): detection runs at *upload*, where the pipeline doesn't otherwise invoke pandoc, so "reuse the existing pandoc call" doesn't apply — and JSON-in-Go is deterministic, dependency-free, and unit-testable without DOCX fixtures.
@@ -22,11 +22,11 @@ Edit only from a clean working tree, push before someone else pulls.
 - **Admin UI (`srv/static/admin.html`):** Anthology card shows a persistent "N chapters detected" banner (collapsible preview list) with **Apply** (replace `chapters[]`, with confirm when non-empty — never merge/append) and **Dismiss**, plus a "⟳ Re-scan manuscript" button that targets the project's most-recently-uploaded book.
 - **Tests (`srv/chapter_detect_test.go`):** 15-case table test for `detectChaptersFromAST` (by-prefix, italic, Word style, intro/front-matter title-only, no-h1, epigraph-vs-byline priority, length/dash/window guards, formatted-title flatten) + 4 DB round-trip tests for `json_set` (creates/stores, leaves `chapters[]` + unrelated keys untouched, no-spec-no-create, clears-stale).
 
-**⚠️ Pending VM step (run, then paste output):**
-```
-ssh exedev@jdbbs.exe.xyz 'cd /home/exedev/prodcal && git pull --ff-only && go vet ./... && go build -o prodcal ./cmd/srv && go test ./srv/... 2>&1 | tail -30'
-```
-Then deploy: `&& sudo systemctl restart prodcal`. After deploy, re-scan Ghosts (project 14, book 9) from the Anthology card to confirm the 9 chapters + bylines detect, and confirm Twitter Years (project 7) yields no banner.
+**✅ Verified in prod 2026-05-31** (commit `40cb5ec`, deployed via `git pull && go build -o prodcal ./cmd/srv && sudo systemctl restart prodcal`):
+- `POST /api/books/9/detect-chapters` (Ghosts) → `200`, `count: 9`, all titles correct incl. comma/long titles, **all authors `""`** (Ghosts carries no in-body bylines — authors are config-only — so title-only is the correct result; it auto-fills the 9 title fields, you add authors). Intro chapter `"Khlongs, Subaks, Beaings"` → title-only (graceful no-byline path confirmed).
+- Zero false positives on the two adversarial cases: `"Latency"` (body "By the time she reached her floor…") and `"The House That Paid Its Own Bills"` (h3 "Recollected by Dorian Ames…") both → author `""`.
+- Byline heuristics ("By X" / italic / Word custom-style) are unit-test-covered; not exercised live because no current manuscript carries byline markup. A live byline check needs a synthetic anthology DOCX — optional follow-up.
+- Not yet done: Twitter Years empty-banner spot-check (expected `count: 0`); SPA banner/Apply UI dogfood (backend verified via API).
 
 **Decision (2026-05-31): detection failures log to slog only, not the project journal.** `srv/client_digest_email.go:122` pulls *all* journal `entry_type`s with no filter, so a `system` note would reach clients in digest emails. Rationale for dropping (not filtering): the journal is a client-visible activity log, not an operator-info channel; slog is already the prodcal `journalctl` diagnosis stream; and the empty Anthology card + "Re-scan manuscript" button is the right user-facing prompt for manual entry. Filtering journal entry types by audience is a separate product decision — file its own ticket if internal-only journal entries become a pattern.
 
@@ -1714,7 +1714,7 @@ Verify path resolution — pandoc resolves relative to `cmd.Dir` (currently `tmp
 ### TRK-DEV-012 — Anthology chapters as top-level spec + PDF pipeline integration + auto-detection
 
 - area: DEV
-- status: **done** (Phase A + B landed 2026-05-26; Phase C landed 2026-05-31) — pending VM build/test/deploy
+- status: **done** (Phase A + B landed 2026-05-26; Phase C shipped & prod-verified 2026-05-31, commit `40cb5ec`)
 - priority: P1
 - created: 2026-05-26
 - updated: 2026-05-31
