@@ -209,6 +209,66 @@ func TestDetectChaptersFromAST(t *testing.T) {
 			),
 			want: []detectedChapter{{Title: "Chapter Nine", Author: "Spencer Nitkey"}},
 		},
+
+		// --- Real DOCX shape: `--from=docx+styles` wraps every paragraph in a
+		// Div tagged with its Word paragraph style. Byline paras are therefore
+		// nested inside style Divs, never top-level Paras. These lock the
+		// regression the live Ghosts/synthetic test surfaced.
+		{
+			name: "docx-wrapped By byline (First Paragraph style div)",
+			ast: astDoc(
+				header(1, words("Soda Sweet as Blood")...),
+				customStyleDiv("First Paragraph", para(words("By Spencer Nitkey")...)),
+				customStyleDiv("Body Text", para(words("Body paragraph one.")...)),
+			),
+			want: []detectedChapter{{Title: "Soda Sweet as Blood", Author: "Spencer Nitkey"}},
+		},
+		{
+			name: "docx-wrapped italic byline (First Paragraph style div)",
+			ast: astDoc(
+				header(1, words("In Every Lifetime")...),
+				customStyleDiv("First Paragraph", para(emph(words("Claire Pichelin")...))),
+				customStyleDiv("Body Text", para(words("Body text.")...)),
+			),
+			want: []detectedChapter{{Title: "In Every Lifetime", Author: "Claire Pichelin"}},
+		},
+		{
+			name: "docx-wrapped Word Author style div",
+			ast: astDoc(
+				header(1, words("The House")...),
+				customStyleDiv("Author", para(words("Daniel Fernández")...)),
+				customStyleDiv("Body Text", para(words("Body text.")...)),
+			),
+			want: []detectedChapter{{Title: "The House", Author: "Daniel Fernández"}},
+		},
+		{
+			name: "docx-wrapped: Author style outranks an earlier italic line",
+			ast: astDoc(
+				header(1, words("Chapter X")...),
+				customStyleDiv("First Paragraph", para(emph(words("An Italic Epigraph")...))),
+				customStyleDiv("Author", para(words("Real Author")...)),
+			),
+			want: []detectedChapter{{Title: "Chapter X", Author: "Real Author"}},
+		},
+		{
+			name: "docx-wrapped body prose (Body Text div) → title-only",
+			ast: astDoc(
+				header(1, words("Latency")...),
+				customStyleDiv("Body Text", para(words("By the time she reached her floor, six had cleared.")...)),
+			),
+			want: []detectedChapter{{Title: "Latency", Author: ""}},
+		},
+		{
+			name: "docx-wrapped byline beyond the window is ignored",
+			ast: astDoc(
+				header(1, words("Chapter Y")...),
+				customStyleDiv("Body Text", para(words("First body paragraph.")...)),
+				customStyleDiv("Body Text", para(words("Second body paragraph.")...)),
+				customStyleDiv("Body Text", para(words("Third body paragraph.")...)),
+				customStyleDiv("First Paragraph", para(words("By Too Late")...)),
+			),
+			want: []detectedChapter{{Title: "Chapter Y", Author: ""}},
+		},
 	}
 
 	for _, tc := range tests {

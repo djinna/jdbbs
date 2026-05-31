@@ -204,14 +204,6 @@ func headerLevelTitle(b astBlock) (int, string, bool) {
 	return level, inlinesText(parts[2]), true
 }
 
-// paraText returns the flattened text of a Para/Plain block (else "").
-func paraText(b astBlock) (string, bool) {
-	if b.T != "Para" && b.T != "Plain" {
-		return "", false
-	}
-	return inlinesText(b.C), true
-}
-
 // bylineFromBy extracts the name from a "By <Name>" line, applying the length
 // cap and an em-/en-dash rejection (a dash signals an epigraph attribution,
 // not a byline). Returns ("", false) when the text is not a byline.
@@ -263,98 +255,115 @@ func emphByline(b astBlock) (string, bool) {
 	return text, true
 }
 
-// divStyleByline extracts a byline from a Div carrying a Word custom-style of
-// Author/Byline/etc. Highest-confidence signal. A leading "By " inside the
-// styled paragraph is stripped.
-func divStyleByline(b astBlock) (string, bool) {
-	if b.T != "Div" {
-		return "", false
-	}
-	// c = [attr, [blocks]] ; attr = [id, [classes], [[k,v]...]]
-	var parts []json.RawMessage
-	if json.Unmarshal(b.C, &parts) != nil || len(parts) != 2 {
-		return "", false
-	}
-	var attr []json.RawMessage
-	if json.Unmarshal(parts[0], &attr) != nil || len(attr) != 3 {
-		return "", false
-	}
-	var kvs [][]string
-	_ = json.Unmarshal(attr[2], &kvs)
-	style := ""
-	for _, kv := range kvs {
-		if len(kv) == 2 && strings.EqualFold(kv[0], "custom-style") {
-			style = kv[1]
-		}
-	}
-	if !authorStyleNames[normStyleName(style)] {
-		return "", false
-	}
-	var inner []astBlock
-	if json.Unmarshal(parts[1], &inner) != nil {
-		return "", false
-	}
-	var sb strings.Builder
-	for _, ib := range inner {
-		if t, ok := paraText(ib); ok {
-			if sb.Len() > 0 {
-				sb.WriteString(" ")
-			}
-			sb.WriteString(t)
-		}
-	}
-	text := strings.TrimSpace(sb.String())
-	if text == "" {
-		return "", false
-	}
-	if name, ok := bylineFromBy(text); ok {
-		return name, true
-	}
-	return text, true
+// bylineCandidate is a Para/Plain block surfaced for byline inspection, tagged
+// with the Word custom-style of its nearest wrapping Div (if any).
+type bylineCandidate struct {
+	style string
+	block astBlock
 }
 
-// bylineWindow is how many content blocks after an h1 we inspect for a byline.
-// The byline (or a verse epigraph that precedes it) sits right under the
-// heading; a small window keeps us anchored to the chapter opener and avoids
-// matching "By <Name>" deep in body prose.
+// divStyleAndInner pulls a Div's custom-style and its inner blocks.
+// c = [attr, [blocks]] ; attr = [id, [classes], [[k,v]...]].
+func divStyleAndInner(b astBlock) (string, []astBlock) {
+	var parts []json.RawMessage
+	if json.Unmarshal(b.C, &parts) != nil || len(parts) != 2 {
+		return "", nil
+	}
+	style := ""
+	var attr []json.RawMessage
+	if json.Unmarshal(parts[0], &attr) == nil && len(attr) == 3 {
+		var kvs [][]string
+		_ = json.Unmarshal(attr[2], &kvs)
+		for _, kv := range kvs {
+			if len(kv) == 2 && strings.EqualFold(kv[0], "custom-style") {
+				style = kv[1]
+			}
+		}
+	}
+	var inner []astBlock
+	_ = json.Unmarshal(parts[1], &inner)
+	return style, inner
+}
+
+func isAuthorStyle(style string) bool {
+	return authorStyleNames[normStyleName(style)]
+}
+
+// collectCandidates appends Para/Plain byline candidates from b, descending
+// through Divs and carrying the nearest custom-style down. This is what makes
+// detection work on real DOCX input: `pandoc --from=docx+styles` wraps every
+// paragraph in a Div tagged with its Word paragraph style ("First Paragraph",
+// "Body Text", "Author", …), so byline paragraphs are never top-level Paras.
+// Blank paragraphs are skipped so they don't consume the window.
+func collectCandidates(b astBlock, style string, out *[]bylineCandidate) {
+	switch b.T {
+	case "Para", "Plain":
+		if strings.TrimSpace(inlinesText(b.C)) == "" {
+			return
+		}
+		*out = append(*out, bylineCandidate{style: style, block: b})
+	case "Div":
+		s, inner := divStyleAndInner(b)
+		ds := style
+		if s != "" {
+			ds = s
+		}
+		for _, ib := range inner {
+			collectCandidates(ib, ds, out)
+		}
+	}
+	// Other block types (Header, BlockQuote, lists, tables, …) are not byline
+	// candidates and are ignored here.
+}
+
+// bylineWindow is how many content paragraphs after an h1 we inspect for a
+// byline. The byline (or a verse epigraph that precedes it) sits right under
+// the heading; a small window keeps us anchored to the chapter opener and
+// avoids matching "By <Name>" deep in body prose.
 const bylineWindow = 3
 
-// scanByline looks at the content blocks following an h1 (start = h1 index + 1)
-// up to the next h1 or the window limit, and returns the best byline by
-// *confidence*, not by position: Word custom-style first, then "By <Name>",
-// then short-italic. This ordering is what lets a "By Spencer Nitkey" line win
-// over a preceding italic epigraph within the same opener.
+// scanByline returns the best byline among the first few content paragraphs
+// after an h1 (start = h1 index + 1), stopping at the next h1. Selection is by
+// *confidence*, not position: Word custom-style (Author/Byline/…) first, then
+// "By <Name>", then short all-italic. Confidence-ordering is what lets a real
+// "By Spencer Nitkey" line win over a preceding italic verse epigraph in the
+// same opener.
 func scanByline(blocks []astBlock, start int) string {
-	var window []astBlock
-	for j := start; j < len(blocks) && len(window) < bylineWindow; j++ {
+	var cands []bylineCandidate
+	for j := start; j < len(blocks) && len(cands) < bylineWindow; j++ {
 		b := blocks[j]
 		if lvl, _, ok := headerLevelTitle(b); ok && lvl == 1 {
 			break // next chapter — stop
 		}
-		if t, ok := paraText(b); ok && strings.TrimSpace(t) == "" {
-			continue // blank paragraph doesn't consume the window
-		}
-		window = append(window, b)
+		collectCandidates(b, "", &cands)
+	}
+	if len(cands) > bylineWindow {
+		cands = cands[:bylineWindow]
 	}
 
 	// 1) Word custom-style byline (highest confidence).
-	for _, b := range window {
-		if a, ok := divStyleByline(b); ok {
-			return a
+	for _, c := range cands {
+		if isAuthorStyle(c.style) {
+			text := strings.TrimSpace(inlinesText(c.block.C))
+			if text == "" {
+				continue
+			}
+			if name, ok := bylineFromBy(text); ok {
+				return name
+			}
+			return text
 		}
 	}
 	// 2) "By <Name>" prefix.
-	for _, b := range window {
-		if t, ok := paraText(b); ok {
-			if a, ok := bylineFromBy(t); ok {
-				return a
-			}
+	for _, c := range cands {
+		if name, ok := bylineFromBy(strings.TrimSpace(inlinesText(c.block.C))); ok {
+			return name
 		}
 	}
 	// 3) Short all-italic paragraph (lowest confidence).
-	for _, b := range window {
-		if a, ok := emphByline(b); ok {
-			return a
+	for _, c := range cands {
+		if name, ok := emphByline(c.block); ok {
+			return name
 		}
 	}
 	return ""
