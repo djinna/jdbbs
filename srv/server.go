@@ -122,6 +122,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/books/{id}/outputs", s.handleListBookOutputs)
 	mux.HandleFunc("GET /api/books/{id}/outputs/{output_id}/download", s.handleDownloadBookOutput)
 	mux.HandleFunc("PUT /api/books/{id}/project", s.handleLinkBookProject)
+	mux.HandleFunc("POST /api/books/{id}/detect-chapters", s.handleDetectChapters)
 	mux.HandleFunc("DELETE /api/books/{id}", s.handleDeleteBook)
 
 	// Book Spec API

@@ -143,12 +143,64 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TRK-DEV-012 Phase C: auto-detect chapter title/author pairs from the
+	// manuscript and stage them as spec.chapters_suggested[]. Runs in the
+	// background (project-linked books only) so it never delays or fails the
+	// upload — see detectChaptersAsync. The admin Anthology card surfaces the
+	// result behind an Apply button.
+	if book.ProjectID.Valid {
+		go s.detectChaptersAsync(book)
+	}
+
 	w.WriteHeader(201)
 	jsonOK(w, map[string]any{
 		"id":     book.ID,
 		"title":  book.Title,
 		"author": book.Author,
 		"status": book.Status,
+	})
+}
+
+// handleDetectChapters re-runs chapter auto-detection for an already-uploaded
+// book and returns the staged suggestions. This is the "re-scan" path for
+// DOCXs uploaded before Phase C, or after a manuscript is re-uploaded. Unlike
+// the upload trigger it runs synchronously so the admin UI gets the result
+// back immediately to render.
+//
+// TRK-DEV-012 Phase C.
+func (s *Server) handleDetectChapters(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+
+	q := dbgen.New(s.DB)
+	book, err := q.GetBook(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+	if !book.ProjectID.Valid {
+		jsonErr(w, "book is not linked to a project; link it first so suggestions have a spec to land in", 400)
+		return
+	}
+	if len(book.SourceData) == 0 {
+		jsonErr(w, "no source file", 400)
+		return
+	}
+
+	chs, err := s.detectAndStoreChapterSuggestions(r.Context(), book)
+	if err != nil {
+		jsonErr(w, "detection failed: "+err.Error(), 500)
+		return
+	}
+	jsonOK(w, map[string]any{
+		"chapters_suggested": chs,
+		"count":              len(chs),
 	})
 }
 

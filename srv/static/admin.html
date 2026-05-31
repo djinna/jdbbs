@@ -567,8 +567,14 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
           into both PDF and EPUB outputs, matched in source order. Leave empty
           for single-author books — output is unchanged.
         </div>
+        <!-- TRK-DEV-012 Phase C: auto-detected chapter suggestions banner -->
+        <div id="ts-anthology-suggestions" style="display:none"></div>
         <div id="ts-anthology-chapters" style="display:flex;flex-direction:column;gap:0.3rem;margin-bottom:0.4rem"></div>
-        <button class="btn-link" id="ts-anthology-add-chapter" type="button" style="font-size:0.78rem">+ Add chapter</button>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.25rem">
+          <button class="btn-link" id="ts-anthology-add-chapter" type="button" style="font-size:0.78rem">+ Add chapter</button>
+          <button class="btn-link" id="ts-anthology-rescan" type="button" style="font-size:0.78rem;margin-left:0.75rem">⟳ Re-scan manuscript</button>
+          <span id="ts-anthology-rescan-status" style="font-size:0.72rem;color:var(--text-muted);margin-left:0.5rem"></span>
+        </div>
       </div>
 
       <!-- ═══ EPUB / DIGITAL ═══ -->
@@ -1904,6 +1910,7 @@ function tsPopulateForm() {
   tsRenderCustomStyles();
   tsMigrateChaptersFromEpub();
   tsRenderChapters();
+  tsRenderSuggestions();
 }
 
 // TRK-DEV-012: one-time migration from spec.epub.chapters[] (DEV-009 location)
@@ -1958,6 +1965,73 @@ function tsRenderChapters() {
       tsMarkDirty();
     });
   });
+}
+
+// TRK-DEV-012 Phase C: render the auto-detected chapter suggestions banner.
+// Suggestions live in spec.chapters_suggested[] (written by the upload/re-scan
+// detection pass). The banner persists until the user Applies or Dismisses, so
+// an anthology's chapter list doesn't silently stay empty. The detail list is
+// collapsed by default so it doesn't crowd the spec form fields.
+function tsRenderSuggestions() {
+  const el = document.getElementById('ts-anthology-suggestions');
+  if (!el) return;
+  const sug = (tsSpec && Array.isArray(tsSpec.chapters_suggested)) ? tsSpec.chapters_suggested : [];
+  if (sug.length === 0) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  const n = sug.length;
+  const withAuthor = sug.filter(c => (c.author || '').trim()).length;
+  const detail = sug.map(c => `
+    <div style="display:flex;gap:0.5rem;font-size:0.72rem;padding:0.1rem 0;border-top:1px solid var(--border)">
+      <span style="flex:1;color:var(--text)">${esc(c.title || '(untitled)')}</span>
+      <span style="flex:1;color:var(--text-muted)">${(c.author || '').trim() ? esc(c.author) : '<em>no byline detected</em>'}</span>
+    </div>`).join('');
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="border:1px solid var(--accent);border-left-width:3px;border-radius:4px;padding:0.5rem 0.6rem;margin-bottom:0.5rem;background:var(--surface)">
+      <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+        <span style="font-size:0.8rem">📖 <strong>${n} chapter${n === 1 ? '' : 's'} detected</strong> from the manuscript${withAuthor < n ? ` · ${withAuthor} with a byline` : ''}.</span>
+        <span style="flex:1"></span>
+        <button type="button" id="ts-suggestions-apply" class="btn-link" style="font-size:0.78rem;font-weight:600">Apply</button>
+        <button type="button" id="ts-suggestions-dismiss" class="btn-link" style="font-size:0.78rem;color:var(--text-muted)">Dismiss</button>
+      </div>
+      <details style="margin-top:0.35rem">
+        <summary style="font-size:0.72rem;color:var(--text-muted);cursor:pointer">Review detected chapters</summary>
+        <div style="margin-top:0.25rem">${detail}</div>
+      </details>
+    </div>`;
+  document.getElementById('ts-suggestions-apply').addEventListener('click', tsApplySuggestions);
+  document.getElementById('ts-suggestions-dismiss').addEventListener('click', tsDismissSuggestions);
+}
+
+// Apply REPLACES spec.chapters[] with the suggestions (never merge/append —
+// index-merging mismatches titles against authors when counts differ). Clears
+// the suggestion list so the banner doesn't reappear.
+function tsApplySuggestions() {
+  if (!tsSpec) return;
+  const sug = Array.isArray(tsSpec.chapters_suggested) ? tsSpec.chapters_suggested : [];
+  if (sug.length === 0) return;
+  const existing = Array.isArray(tsSpec.chapters) ? tsSpec.chapters : [];
+  if (existing.length > 0 &&
+      !confirm(`Replace the ${existing.length} existing chapter row(s) with ${sug.length} detected chapter(s)?\n\nThis overwrites the current Anthology list.`)) {
+    return;
+  }
+  tsSpec.chapters = sug.map(c => ({ title: c.title || '', author: c.author || '', file: '' }));
+  delete tsSpec.chapters_suggested;
+  tsRenderChapters();
+  tsRenderSuggestions();
+  tsMarkDirty();
+}
+
+// Dismiss drops the suggestions without touching spec.chapters[]. The pending
+// PUT (autosave) persists the removal server-side.
+function tsDismissSuggestions() {
+  if (!tsSpec) return;
+  delete tsSpec.chapters_suggested;
+  tsRenderSuggestions();
+  tsMarkDirty();
 }
 
 function tsGetPath(obj, path) {
@@ -2518,6 +2592,44 @@ document.getElementById('ts-anthology-add-chapter').addEventListener('click', ()
   tsSpec.chapters.push({ title: '', author: '', file: '' });
   tsRenderChapters();
   tsMarkDirty();
+});
+
+// TRK-DEV-012 Phase C: re-scan the project's latest manuscript for chapters.
+// Books are listed created_at DESC, so the most-recently-uploaded row for this
+// project is the current source (older rows are stale compile iterations).
+document.getElementById('ts-anthology-rescan').addEventListener('click', async () => {
+  const pid = tsProject.value;
+  if (!pid) return;
+  const statusEl = document.getElementById('ts-anthology-rescan-status');
+  statusEl.textContent = 'Finding latest manuscript…';
+  try {
+    const r = await fetch('/api/books');
+    const books = await r.json();
+    const mine = (books || []).filter(b => b.ProjectID && b.ProjectID.Valid && b.ProjectID.Int64 == pid);
+    if (mine.length === 0) {
+      statusEl.textContent = 'No manuscript uploaded for this project yet.';
+      return;
+    }
+    const bookId = mine[0].ID;
+    statusEl.textContent = 'Scanning…';
+    const res = await fetch(`/api/books/${bookId}/detect-chapters`, { method: 'POST' });
+    const json = await res.json();
+    if (!res.ok) {
+      statusEl.textContent = json.error || 'Scan failed';
+      return;
+    }
+    // Server already persisted the suggestions (json_set); mirror them into the
+    // in-memory spec so the banner updates without a reload. No markDirty — the
+    // server is already the source of truth for chapters_suggested.
+    tsSpec.chapters_suggested = json.chapters_suggested || [];
+    tsRenderSuggestions();
+    const n = (json.chapters_suggested || []).length;
+    statusEl.textContent = n > 0
+      ? `Found ${n} chapter${n === 1 ? '' : 's'}.`
+      : 'No chapters detected in this manuscript.';
+  } catch (e) {
+    statusEl.textContent = 'Scan error';
+  }
 });
 
 // ─── Compile / Generate from Typesetting tab ───

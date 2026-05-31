@@ -10,7 +10,33 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (after 2026-05-26 DESIGN-003)
+## 🟢 Resume here — next session (after 2026-05-31 DEV-012 Phase C)
+
+**Last touched:** 2026-05-31 — TRK-DEV-012 Phase C landed (chapter auto-detection on upload). DEV-012 now fully done (A+B+C). Code written; **not yet built/tested/deployed** — Go isn't on the Mac dev box, so the build+test+deploy step is pending a VM run (command below).
+
+**Just shipped 2026-05-31 — TRK-DEV-012 Phase C done:**
+- **Detection (`srv/chapter_detect.go`, new).** On DOCX upload, runs `pandoc --from=docx+styles -t json` once and walks the AST in Go for level-1 headings + adjacent author bylines. Chose the AST-walk over the Lua-filter pre-pass (the earlier prompt's #3): detection runs at *upload*, where the pipeline doesn't otherwise invoke pandoc, so "reuse the existing pandoc call" doesn't apply — and JSON-in-Go is deterministic, dependency-free, and unit-testable without DOCX fixtures.
+- **Byline heuristics, confidence-ordered (not position-ordered):** Word custom-style `Author`/`Byline`/`Contributor`/… (highest) → `^[Bb]y <Capitalized…>` prefix → short all-italic paragraph (lowest). Guards: ≤60-char cap, recursive line-break rejection, em-/en-dash rejection, capital-initial requirement. This is what stops Ch.1's italic verse epigraph from masquerading as a byline and stops prose openers like "By the time he arrived…" from false-matching. Anchored to the first ≤3 content blocks after each h1.
+- **Storage:** suggestions land in `spec.chapters_suggested[]` via an **atomic SQLite `json_set`** — never read-modify-writes the spec, never touches the user-owned `spec.chapters[]`. h1-without-byline → title-only suggestion (handles Ghosts "00 CHUA Introduction" gracefully). No h1s (Twitter Years) → empty, no UI noise. Zero detections don't create a spec row; they only clear stale suggestions on a row that already exists.
+- **Triggers:** async goroutine from `handleUploadBook` (project-linked books only) that never fails the upload — errors log to **slog only** (see decision below); plus a synchronous re-scan endpoint `POST /api/books/{id}/detect-chapters` for already-uploaded/re-uploaded DOCXs.
+- **Admin UI (`srv/static/admin.html`):** Anthology card shows a persistent "N chapters detected" banner (collapsible preview list) with **Apply** (replace `chapters[]`, with confirm when non-empty — never merge/append) and **Dismiss**, plus a "⟳ Re-scan manuscript" button that targets the project's most-recently-uploaded book.
+- **Tests (`srv/chapter_detect_test.go`):** 15-case table test for `detectChaptersFromAST` (by-prefix, italic, Word style, intro/front-matter title-only, no-h1, epigraph-vs-byline priority, length/dash/window guards, formatted-title flatten) + 4 DB round-trip tests for `json_set` (creates/stores, leaves `chapters[]` + unrelated keys untouched, no-spec-no-create, clears-stale).
+
+**⚠️ Pending VM step (run, then paste output):**
+```
+ssh exedev@jdbbs.exe.xyz 'cd /home/exedev/prodcal && git pull --ff-only && go vet ./... && go build -o prodcal ./cmd/srv && go test ./srv/... 2>&1 | tail -30'
+```
+Then deploy: `&& sudo systemctl restart prodcal`. After deploy, re-scan Ghosts (project 14, book 9) from the Anthology card to confirm the 9 chapters + bylines detect, and confirm Twitter Years (project 7) yields no banner.
+
+**Decision (2026-05-31): detection failures log to slog only, not the project journal.** `srv/client_digest_email.go:122` pulls *all* journal `entry_type`s with no filter, so a `system` note would reach clients in digest emails. Rationale for dropping (not filtering): the journal is a client-visible activity log, not an operator-info channel; slog is already the prodcal `journalctl` diagnosis stream; and the empty Anthology card + "Re-scan manuscript" button is the right user-facing prompt for manual entry. Filtering journal entry types by audience is a separate product decision — file its own ticket if internal-only journal entries become a pattern.
+
+**Open queue:**
+1. **EPUB-side verse styling** (separate ticket — needs pandoc class-markup work).
+2. **TRK-DEV-004 Phase C/D** (preserved-block protection) — file if a future manuscript hits the `+smart` bleed pitfall.
+
+---
+
+## 🗂 Earlier resume block — 2026-05-26 (DESIGN-003)
 
 **Last touched:** 2026-05-26 — TRK-DESIGN-003 landed. Both pandoc invocations now do smart-punctuation conversion; EPUB body forced ragged-left to override pandoc's justified default.
 
@@ -1688,10 +1714,17 @@ Verify path resolution — pandoc resolves relative to `cmd.Dir` (currently `tmp
 ### TRK-DEV-012 — Anthology chapters as top-level spec + PDF pipeline integration + auto-detection
 
 - area: DEV
-- status: in-progress (Phase A + B landed 2026-05-26; Phase C deferred)
+- status: **done** (Phase A + B landed 2026-05-26; Phase C landed 2026-05-31) — pending VM build/test/deploy
 - priority: P1
 - created: 2026-05-26
-- updated: 2026-05-26
+- updated: 2026-05-31
+
+**Phase C landed 2026-05-31** (chapter auto-detection on upload):
+- `srv/chapter_detect.go` (new): `pandoc --from=docx+styles -t json` → Go AST walk. `detectChaptersFromAST` emits one suggestion per level-1 heading; `scanByline` picks a byline from the first ≤3 content blocks after each h1 by *confidence* (Word custom-style → `By <Name>` → short all-italic), with ≤60-char cap + recursive line-break + em-/en-dash guards so a verse epigraph or a "By the time…" prose opener can't false-match. `storeChapterSuggestions` writes `spec.chapters_suggested[]` via atomic `json_set` (never touches `spec.chapters[]`); zero detections only clear a pre-existing list, they don't create a spec row.
+- `srv/books.go`: `handleUploadBook` fires `detectChaptersAsync` (goroutine, project-linked only) which never fails the upload — errors → slog only (not the project journal, which feeds client digests). New `handleDetectChapters` (synchronous re-scan) at `POST /api/books/{id}/detect-chapters`; route registered in `srv/server.go`.
+- `srv/static/admin.html`: Anthology card gains a persistent "N chapters detected" banner (collapsible preview) with Apply (replace-with-confirm, never merge) + Dismiss, and a "⟳ Re-scan manuscript" button (targets the project's latest book).
+- `srv/chapter_detect_test.go`: 15 AST table cases + 4 `json_set` DB round-trip tests.
+- Decision: AST-walk over Lua pre-pass — detection runs at upload (no existing pandoc call to reuse there), and JSON-in-Go is deterministic + unit-testable without DOCX fixtures. h1-without-byline → title-only (Ghosts intro); no-h1 → empty (Twitter Years).
 
 **Phase A landed 2026-05-26:**
 - `srv/epub.go::parseEPUBSpec`: reads from top-level `spec.chapters[]` first; falls back to legacy `spec.epub.chapters[]` (DEV-009 location) for back-compat. Logs the fallback path.
@@ -1703,7 +1736,7 @@ Verify path resolution — pandoc resolves relative to `cmd.Dir` (currently `tmp
 - `typesetting/filters/docx-to-typst-enhanced.lua`: `Meta()` reads `meta.chapters` into a Lua table; new `Header()` filter pass emits `#set-story-info(title: "<title>", author: "<author>")` as a Typst RawBlock immediately before each level-1 heading, indexed by source-order h1 count. Single-author books (no metadata) flow through unchanged — Twitter Years output is byte-identical to today's.
 - Quote/backslash escaping in titles/authors (tested via the Fernández smoke name in the Ghosts spec).
 
-**Still open (Phase C):** auto-detect chapter title + author from the manuscript on upload so manual SPA entry isn't required. Pick later when manual-entry friction warrants — deferred per the DEV-012 session prompt.
+**~~Phase C~~ done 2026-05-31:** auto-detect chapter title + author from the manuscript on upload so manual SPA entry isn't required. See the Phase C closure block above and the top-of-file resume block.
 - refs: TRK-DEV-009 (filed the EPUB side as `spec.epub.chapters`); `srv/static/admin.html` line ~594 (current Chapters editor inside EPUB card); `srv/epub.go::injectChapterAuthors`; `typesetting/filters/docx-to-typst-enhanced.lua`; `manuscripts/ghosts/main.typ` (reference: per-chapter `set-story-info(title:, author:)` calls — what the SPA pipeline currently doesn't emit)
 
 **Three concerns surfaced during TRK-TEST-002 setup (2026-05-26):**
