@@ -32,6 +32,8 @@ Edit only from a clean working tree, push before someone else pulls.
 
 **Decision (2026-05-31): detection failures log to slog only, not the project journal.** `srv/client_digest_email.go:122` pulls *all* journal `entry_type`s with no filter, so a `system` note would reach clients in digest emails. Rationale for dropping (not filtering): the journal is a client-visible activity log, not an operator-info channel; slog is already the prodcal `journalctl` diagnosis stream; and the empty Anthology card + "Re-scan manuscript" button is the right user-facing prompt for manual entry. Filtering journal entry types by audience is a separate product decision — file its own ticket if internal-only journal entries become a pattern.
 
+**Also shipped 2026-05-31 (DESIGN-002 fan session):** TRK-DESIGN-002 print-only licensed-font wiring — done. Reused the existing `typography.body_font`/`heading_font` selects (already print-only + auto-list `licensed/` fonts) instead of adding the proposed `pdf.*` fields. Shipped: gitignored `licensed/` (+ tracked README), `scripts/sync-licensed-fonts.sh`, EPUB `/licensed/` guard (`epubEmbedFontArgs` + tests), body-font fallback chain, font categorization, admin note. **User-side next:** drop OTF/TTF locally → run the sync script → pick the family in the admin Body/Heading Font menu → recompile. See TRK-DESIGN-002 for the verify checklist.
+
 **Open queue:**
 1. **EPUB-side verse styling** (separate ticket — needs pandoc class-markup work).
 2. **TRK-DEV-004 Phase C/D** (preserved-block protection) — file if a future manuscript hits the `+smart` bleed pitfall.
@@ -1319,11 +1321,24 @@ Recommend option 1.
 ### TRK-DESIGN-002 — Commercial font wiring (print PDF only; EPUB stays OFL)
 
 - area: DESIGN
-- status: open
+- status: done
 - priority: P1
 - created: 2026-05-12
 - updated: 2026-05-31
-- refs: TRK-DESIGN-001
+- refs: TRK-DESIGN-001; `.gitignore`, `typesetting/fonts/licensed/README.md`, `scripts/sync-licensed-fonts.sh`, `srv/epub.go::epubEmbedFontArgs`, `srv/epub_fonts_test.go`, `srv/bookspecs.go` (font categories), `srv/static/admin.html` (Typography note), `typesetting/templates/series-template.typ` (body fallback chain)
+
+**Closed 2026-05-31 (DESIGN-002 fan session).** Shipped the infrastructure; **font selection reused the existing pipeline rather than adding the ticket's proposed `pdf.body_font`/`pdf.heading_font` fields.** Key finding: the spec→Typst font wiring the ticket envisioned (steps 4–5) already exists. Since TRK-DEV-002 landed (2026-05-25/26), `typography.body_font`/`heading_font` selects in the admin Typesetting → PDF/Print card flow through `specToTypstConfig` → `merge-config` → `config.body-font`/`heading-font` into the Typst compile, and the EPUB pipeline (`parseEPUBSpec`) reads only `metadata.*`/`epub.*` — so those fields are *already* print-only. The font menus are populated by `typst fonts --font-path typesetting/fonts` (recursive), so a family dropped into `licensed/` and synced **auto-appears** in the dropdowns. Adding `pdf.*` fields would have created a second mechanism writing the same Typst keys (last-writer-wins conflict). User chose the reuse path (Option A) over the literal prompt.
+
+**What shipped:**
+- **`.gitignore`** — `typesetting/fonts/licensed/*` + `!…/README.md` negation (ignores the font files, keeps the convention doc tracked). The plain trailing-slash form the prompt suggested would have blocked committing the README.
+- **`typesetting/fonts/licensed/README.md`** — per-family layout, license rationale, how-it's-used, populate steps.
+- **`scripts/sync-licensed-fonts.sh`** (exec, shellcheck-clean) — rsync `~/jd-projects/jdbbs/typesetting/fonts/licensed/` → VM, `--exclude README.md`, no-op when only the README is present.
+- **EPUB hard-separation guard** — `epubEmbedFontArgs(paths) ([]string, error)` is the single chokepoint for `--epub-embed-font`; hard-errors on any `/licensed/` path (fail-closed, even mixed with valid paths), skips non-existent OFL paths. Covered by `srv/epub_fonts_test.go` (3 cases). The current embed list is OFL-only, so the guard is defensive future-proofing.
+- **`series-template.typ`** body fallback chain → `(config.body-font, "Libertinus Serif", "Noto Serif TC", "Noto Serif Thai")` — a missing/typo'd licensed family degrades to a real serif instead of a CJK face; CJK+Thai stay last.
+- **`srv/bookspecs.go`** — `Plantin MT Pro`→serif, `Proxima Nova`→sans in the font-category map (best-effort; exact name from `fc-query`, else falls to "Other" harmlessly).
+- **`srv/static/admin.html`** — note under Typography: print-only, licensed families in `licensed/` appear automatically, synced via the script.
+
+Verified locally: `go build`/`go vet`/`gofmt`/`shellcheck` clean; new guard tests + existing EPUB packaging test pass; gitignore confirmed (font ignored, README tracked). EPUB CSS (`buildCSS`) confirmed OFL-only (no Plantin/Proxima). **User-side remaining (non-blocking):** drop the OTF/TTF locally → `scripts/sync-licensed-fonts.sh` → pick the family in the admin Body/Heading Font menu → recompile PDF → `pdffonts` shows subsetted Plantin embedded; EPUB shows zero Plantin (`unzip -l` + CSS grep). Confirm the licenses are perpetual-desktop (not subscription) before relying on archival PDFs.
 
 **Scope (re-confirmed 2026-05-31).** Print PDFs only. EPUB continues to embed OFL fonts (Libertinus / Noto / Source Sans 3) — distributing licensed font files inside an EPUB zip is redistribution, not covered by standard desktop licenses. Print-PDF embedding (subset, rendered output) is covered under the same desktop-license model the user has used for decades in InDesign/Quark/PageMaker.
 

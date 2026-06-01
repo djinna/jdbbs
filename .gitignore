@@ -12,3 +12,10 @@ TEAM-UPDATE.txt
 .claude/
 scratch/
 .gstack/
+
+# Licensed fonts — print-only, never committed (TRK-DESIGN-002).
+# Repo/GitHub is a distribution channel; standard desktop licenses don't
+# cover redistributing the font files. Keep README so the convention is
+# documented (the /* + negation form ignores the fonts but tracks the README).
+typesetting/fonts/licensed/*
+!typesetting/fonts/licensed/README.md

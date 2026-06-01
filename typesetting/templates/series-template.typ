@@ -478,11 +478,14 @@
   )
   
   // Base typography - JUSTIFIED text (matches original)
-  // CJK (Traditional Chinese) + Thai bundled as fallback so multilingual
+  // Fallback chain: licensed/selected body-font first, then OFL Libertinus so
+  // a print-only licensed family (TRK-DESIGN-002) that is missing on disk
+  // (fresh checkout, family-name typo) degrades to a real serif instead of a
+  // CJK face. CJK (Traditional Chinese) + Thai stay last so multilingual
   // passages (e.g. Ghosts ch. 8 "林家商店47號---ร้านยามาลิน สาขา ๔๗") render
   // correctly on hosts without OS-installed CJK/Thai fonts.
   set text(
-    font: (config.body-font, "Noto Serif TC", "Noto Serif Thai"),
+    font: (config.body-font, "Libertinus Serif", "Noto Serif TC", "Noto Serif Thai"),
     size: config.base-size,
     lang: "en",
     hyphenate: config.hyphenate,

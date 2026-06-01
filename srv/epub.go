@@ -159,18 +159,24 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 
 	// Embed bundled multilingual fonts so EPUBs render CJK/Thai correctly on
 	// readers that don't have Noto installed (Kindle, older Adobe Digital
-	// Editions, sideloaded devices).
+	// Editions, sideloaded devices). epubEmbedFontArgs hard-refuses any
+	// /licensed/ path, so print-only licensed fonts (TRK-DESIGN-002) can
+	// never enter the EPUB zip even if a future change adds them to this list.
+	fontPaths := make([]string, 0, 4)
 	for _, rel := range []string{
 		"noto/CJK-TC/NotoSerifTC-Regular.otf",
 		"noto/CJK-TC/NotoSerifTC-Bold.otf",
 		"noto/Thai/NotoSerifThai-Regular.ttf",
 		"noto/Thai/NotoSerifThai-Bold.ttf",
 	} {
-		fp := filepath.Join(fontsDirPath(), rel)
-		if _, err := os.Stat(fp); err == nil {
-			args = append(args, "--epub-embed-font="+fp)
-		}
+		fontPaths = append(fontPaths, filepath.Join(fontsDirPath(), rel))
 	}
+	fontArgs, ferr := epubEmbedFontArgs(fontPaths)
+	if ferr != nil {
+		slog.Error("epub: licensed-font guard tripped, aborting generation", "id", bid, "err", ferr)
+		return
+	}
+	args = append(args, fontArgs...)
 
 	args = append(args, docxPath)
 
@@ -514,6 +520,26 @@ func escapeXMLText(s string) string {
 	s = strings.ReplaceAll(s, "<", "&lt;")
 	s = strings.ReplaceAll(s, ">", "&gt;")
 	return s
+}
+
+// epubEmbedFontArgs turns absolute font paths into pandoc --epub-embed-font
+// arguments. It HARD-REFUSES any path under a licensed/ directory: licensed
+// fonts are print-only (TRK-DESIGN-002) and embedding one in the EPUB zip
+// would be redistribution the standard desktop license doesn't cover. This is
+// the single chokepoint — keep all EPUB font embedding flowing through here.
+// Paths that don't exist on disk are silently skipped (bundled OFL fonts may
+// be absent in a fresh checkout); only a /licensed/ path is a hard error.
+func epubEmbedFontArgs(paths []string) ([]string, error) {
+	var args []string
+	for _, p := range paths {
+		if strings.Contains(filepath.ToSlash(p), "/licensed/") {
+			return nil, fmt.Errorf("refusing to embed licensed font in EPUB: %s", p)
+		}
+		if _, err := os.Stat(p); err == nil {
+			args = append(args, "--epub-embed-font="+p)
+		}
+	}
+	return args, nil
 }
 
 // buildCSS generates the EPUB custom stylesheet from spec settings.

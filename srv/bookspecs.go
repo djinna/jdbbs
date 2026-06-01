@@ -415,6 +415,13 @@ func listTypstFonts() []map[string]string {
 		"Noto Sans Mono":      "monospace",
 		"DejaVu Sans Mono":    "monospace",
 		"Nimbus Mono PS":      "monospace",
+		// Licensed print fonts (TRK-DESIGN-002). Categorized so they group
+		// under Serif/Sans in the admin font menus instead of "Other" once
+		// dropped into fonts/licensed/ and synced. The exact family name Typst
+		// reports is confirmed via fc-query; if it differs the font still
+		// lists, just under "Other".
+		"Plantin MT Pro": "serif",
+		"Proxima Nova":   "sans-serif",
 	}
 
 	// Fonts to skip (symbols, emoji, etc.)
