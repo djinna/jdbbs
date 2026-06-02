@@ -962,6 +962,22 @@ html.dark .gantt-bar.done {
   border-bottom: none;
 }
 
+.settings-save-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.settings-save-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.settings-save-status.saving { color: var(--accent); }
+.settings-save-status.saved { color: var(--green); }
+.settings-save-status.error { color: var(--red); }
+
 .today-line {
   position: absolute;
   top: 0;

@@ -22,9 +22,12 @@ const api = async (url, opts = {}) => {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
     ...opts,
   });
-  const data = await r.json();
-  if (!r.ok && data.error === 'unauthorized') throw new Error('unauthorized');
-  if (!r.ok) throw new Error(data.error || r.statusText);
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (e) {}
+  if (!r.ok && data && data.error === 'unauthorized') throw new Error('unauthorized');
+  if (!r.ok) throw new Error((data && data.error) || r.statusText || ('HTTP ' + r.status));
+  if (!data) throw new Error('Expected JSON response from server');
   return data;
 };
 
@@ -691,19 +694,46 @@ function showSettings() {
               '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/'),
           )
         : null,
-      h('button', { className: 'btn btn-primary btn-sm', onClick: async () => {
-        const cs = $('#setting-client').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-        const ps = $('#setting-proj').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-        await api('/api/projects/' + state.projectId, {
-          method: 'PUT',
-          body: JSON.stringify({ name: $('#setting-name').value, start_date: $('#setting-start').value, client_slug: cs, project_slug: ps }),
-        });
-        state.project.Name = $('#setting-name').value;
-        state.project.StartDate = $('#setting-start').value;
-        state.project.ClientSlug = cs;
-        state.project.ProjectSlug = ps;
-        el.remove(); render();
-      }}, 'Save Project'),
+      h('div', { className: 'settings-save-row' },
+        h('button', { className: 'btn btn-primary btn-sm', id: 'settings-save-project', onClick: async () => {
+          const btn = $('#settings-save-project', el);
+          const msg = $('#settings-save-status', el);
+          const name = $('#setting-name', el).value.trim();
+          const startDate = $('#setting-start', el).value;
+          const cs = $('#setting-client', el).value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          const ps = $('#setting-proj', el).value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          if (!name || !cs || !ps) {
+            msg.className = 'settings-save-status error';
+            msg.textContent = 'Project name, client slug, and project slug are required.';
+            return;
+          }
+          btn.disabled = true;
+          msg.className = 'settings-save-status saving';
+          msg.textContent = 'Saving…';
+          try {
+            await api('/api/projects/' + state.projectId, {
+              method: 'PUT',
+              body: JSON.stringify({ name, start_date: startDate, client_slug: cs, project_slug: ps }),
+            });
+            state.project.Name = name;
+            state.project.StartDate = startDate;
+            state.project.ClientSlug = cs;
+            state.project.ProjectSlug = ps;
+            msg.className = 'settings-save-status saved';
+            msg.textContent = 'Saved ✓';
+            setTimeout(() => {
+              const newPath = '/' + cs + '/' + ps + '/';
+              if (window.location.pathname !== newPath) window.location.href = newPath;
+              else { el.remove(); render(); }
+            }, 350);
+          } catch (e) {
+            msg.className = 'settings-save-status error';
+            msg.textContent = 'Could not save: ' + e.message;
+            btn.disabled = false;
+          }
+        }}, 'Save Project'),
+        h('span', { id: 'settings-save-status', className: 'settings-save-status', role: 'status' }),
+      ),
       h('hr', { style: 'margin:16px 0;border-color:var(--border)' }),
       h('h3', { style: 'font-size:14px;margin-bottom:8px' }, 'Password Protection'),
       h('div', { className: 'form-row' },
