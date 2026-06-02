@@ -1,5 +1,3 @@
-#set text(font: "Plantin MT Pro", size: 10pt)
-#set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
 #text(font: "Proxima Nova", size: 1.667em, weight: "bold")[We Shape Our Tools and Then Our Tools Shape Us]
 

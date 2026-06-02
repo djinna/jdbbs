@@ -38,10 +38,11 @@
   // Base font size (0.833em relative to 12pt = ~10pt)
   base-size: 10pt,
   
-  // Paragraph: leading is the gap between line bounding boxes.
-  // At 10pt, leading: 4pt gives visual rhythm close to traditional 10/12.
-  leading: 4pt,
-  paragraph-spacing: 4pt,  // match leading — no extra gap between paragraphs
+  // Paragraph: leading is the gap between line bounding boxes. Tuned to the
+  // InDesign golden — 10pt body + 6.8pt leading ≈ 13.2pt baseline ≈ 32 lines/page
+  // (was 0.6em/6pt per-chapter overrides → 34 lines, now centralized here).
+  leading: 6.8pt,
+  paragraph-spacing: 6.8pt,  // == leading: continuous text, no extra paragraph gap
   paragraph-indent: 0.75em,
 
   // Text flow

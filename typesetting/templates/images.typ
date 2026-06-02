@@ -3,6 +3,30 @@
 // =============================================================================
 // Flexible image handling for various book layouts.
 // Covers frontispiece, chapter openers, inline figures, full-bleed, etc.
+//
+// -----------------------------------------------------------------------------
+// IMAGE REQUIREMENTS (print) — read before preparing art
+// -----------------------------------------------------------------------------
+// Frontispiece and chapter-opener art are OPTIONAL per book. A title that ships
+// without them simply omits the image calls in its main.typ — no code change.
+// When you DO supply art, prepare files to these specs:
+//
+//   Trim size .......... 4.914 x 7.591 in  (353.811 x 546.567 pt)
+//   Resolution ......... 300 DPI for print. NOTE: Typst scales an image to the
+//                        width/height you give it and ignores the file's embedded
+//                        DPI metadata — what matters is the PIXEL count vs the
+//                        placed size. "300 DPI" below just means pixels = inches x 300.
+//   Full-bleed (cover) . trim + 0.125in bleed all sides = 5.16 x 7.84 in
+//                        => at least ~1550 x 2353 px. Supply at the PAGE aspect
+//                        (~0.65:1, portrait); off-aspect art is cropped (fit:"cover").
+//                        (Ghosts' opener art is 1:1 square, so cover crops its sides.)
+//   Full-page (contain)  trim x 300 => at least ~1474 x 2277 px; whole image shown,
+//                        letterboxed if off-aspect (use full-page-image, fit:"contain").
+//   Inline figure ...... full measure ~3.3in x 300 => at least ~990 px wide.
+//   Format ............. PNG for line art / flats / transparency; high-quality
+//                        JPEG for photographs. Never upscale a small source.
+//   Color .............. sRGB. Typst emits an RGB PDF; there is no CMYK / PDF-X
+//                        path (TRK-DESIGN-001) — final press CMYK conversion is downstream.
 
 // -----------------------------------------------------------------------------
 // CONFIGURATION (can be overridden per-book)
@@ -27,14 +51,16 @@
   alt: none,
   fit: "cover",
 ) = {
-  // Negative margins to extend to bleed
+  // Negative offsets push the image out to the trim edges. KEEP IN SYNC with the
+  // series-template margins (inside 59.8pt / outside 56.8pt / top+bottom 0.75in,
+  // matched to the InDesign golden). Assumes a recto opener (inside on the left).
   place(
     top + left,
-    dx: -0.7in,   // margin-inside
-    dy: -0.75in,  // margin-top
-    image(path, 
-      width: 100% + 1.3in,  // inside + outside margins
-      height: 100% + 1.5in, // top + bottom margins
+    dx: -59.8pt,  // -margin-inside
+    dy: -0.75in,  // -margin-top
+    image(path,
+      width: 100% + 116.6pt,  // + margin-inside + margin-outside
+      height: 100% + 1.5in,   // + margin-top + margin-bottom
       fit: fit,
       alt: alt,
     )
@@ -107,20 +133,21 @@
   alt: none,
 ) = {
   pagebreak(weak: true, to: "odd")  // Recto page for chapter start
-  
-  // Full page, no margins
+
+  // Full-bleed to the trim. KEEP IN SYNC with the series-template margins
+  // (inside 59.8pt / outside 56.8pt / top+bottom 0.75in, matched to the golden).
   place(
     top + left,
-    dx: -0.7in,
-    dy: -0.75in,
+    dx: -59.8pt,  // -margin-inside
+    dy: -0.75in,  // -margin-top
     image(path,
-      width: 100% + 1.3in,
-      height: 100% + 1.5in,
+      width: 100% + 116.6pt,  // + margin-inside + margin-outside
+      height: 100% + 1.5in,   // + margin-top + margin-bottom
       fit: "cover",
       alt: alt,
     )
   )
-  
+
   // Force page break after image
   pagebreak()
 }
