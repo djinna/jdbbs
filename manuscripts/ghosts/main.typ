@@ -73,10 +73,12 @@ Printed in Argentina | October 2025
 #pagebreak()
 
 // ============================================================================
-// BODY - Enable page numbering
+// BODY - reset folio to 1. The running header (running-header()) draws the
+// page number itself; do NOT set page numbering here or Typst also renders a
+// default footer folio (duplicate, not in the InDesign golden).
 // ============================================================================
 
-#set page(numbering: "1")
+#set page(numbering: none)
 #counter(page).update(1)
 
 // Chapter 0: Introduction (Khlongs)

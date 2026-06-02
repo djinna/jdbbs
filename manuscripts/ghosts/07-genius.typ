@@ -1,21 +1,21 @@
-#set text(font: "Libertinus Serif", size: 10pt)
+#set text(font: "Plantin MT Pro", size: 10pt)
 #set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
-#text(font: "Source Sans 3", size: 1.667em, weight: "bold")[Genius in the Bottle]
+#text(font: "Proxima Nova", size: 1.667em, weight: "bold")[Genius in the Bottle]
 
-#text(font: "Source Sans 3", size: 1.333em, weight: "medium")[Claire Pichelin]
+#text(font: "Proxima Nova", size: 1.333em, weight: "medium")[Claire Pichelin]
 
 #v(2em)
 
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[An Omega Metafiction Protocol]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[An Omega Metafiction Protocol]
 #v(0.5em)
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Unexpected Transmission]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Unexpected Transmission]
 #v(0.5em)
 
 In the control room of the European Space Center, on-call engineer
@@ -107,7 +107,7 @@ science!"
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Protocols in Conflict]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Protocols in Conflict]
 #v(0.5em)
 
 Three hours later, Marcus had assembled the full crisis team. The
@@ -180,7 +180,7 @@ avant-garde."
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Houston, We Have a (Methodological) Problem]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Houston, We Have a (Methodological) Problem]
 #v(0.5em)
 
 "Let's talk about real problems," said Marcus. "Francesca, what's the
@@ -292,7 +292,7 @@ experiments?"
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Experimental Audit]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Experimental Audit]
 #v(0.5em)
 
 Around the table, the engineers, ethicists and supervisors looked like
@@ -399,7 +399,7 @@ disorientation: a single case study.'"
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Survival Protocols]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Survival Protocols]
 #v(0.5em)
 
 "Alright," said Marcus after taking several painkillers, "let's talk
@@ -486,7 +486,7 @@ Dimitri.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Final Protocol]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Final Protocol]
 #v(0.5em)
 
 "Very well," Marcus declared after consulting his superiors, "we have a
@@ -577,7 +577,7 @@ insanity!"
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Epilogue: Data Transmission]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Epilogue: Data Transmission]
 #v(0.5em)
 
 Six months later, Marcus was receiving daily experimental reports from

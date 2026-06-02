@@ -1,11 +1,11 @@
 #import "../../typesetting/templates/series-template.typ": poem
 
-#set text(font: "Libertinus Serif", size: 10pt)
+#set text(font: "Plantin MT Pro", size: 10pt)
 #set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
-#text(font: "Source Sans 3", size: 1.667em, weight: "bold")[Soda Sweet as Blood]
+#text(font: "Proxima Nova", size: 1.667em, weight: "bold")[Soda Sweet as Blood]
 
-#text(font: "Source Sans 3", size: 1.333em, weight: "medium")[Spencer Nitkey]
+#text(font: "Proxima Nova", size: 1.333em, weight: "medium")[Spencer Nitkey]
 
 #v(2em)
 

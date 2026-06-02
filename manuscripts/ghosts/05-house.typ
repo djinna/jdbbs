@@ -1,21 +1,21 @@
-#set text(font: "Libertinus Serif", size: 10pt)
+#set text(font: "Plantin MT Pro", size: 10pt)
 #set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
-#text(font: "Source Sans 3", size: 1.667em, weight: "bold")[The House That Paid Its Own Bills]
+#text(font: "Proxima Nova", size: 1.667em, weight: "bold")[The House That Paid Its Own Bills]
 
-#text(font: "Source Sans 3", size: 1.333em, weight: "medium")[Elizabeth Maher]
+#text(font: "Proxima Nova", size: 1.333em, weight: "medium")[Elizabeth Maher]
 
 #v(2em)
 
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Recollected by Dorian Ames, C.I.A.---Certified Inquiry Agent, Ret.]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Recollected by Dorian Ames, C.I.A.---Certified Inquiry Agent, Ret.]
 #v(0.5em)
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Prologue: Now]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Prologue: Now]
 #v(0.5em)
 
 Nobody dies as long as their data pays rent. Call it cynical, but it's
@@ -43,7 +43,7 @@ Sometimes I wonder if we were right to feel it.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Contract]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Contract]
 #v(0.5em)
 
 March winds clawed at Michigan Avenue like something desperate and
@@ -144,7 +144,7 @@ the growing dusk.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Arrival on Tillman Street]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Arrival on Tillman Street]
 #v(0.5em)
 
 Detroit looked like an art-deco cathedral someone had tried to fold into
@@ -197,7 +197,7 @@ The pattern itself became suspicious.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[First Glitch]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[First Glitch]
 #v(0.5em)
 
 Thursday morning, clouds bruising the river like old wounds, the porch
@@ -238,7 +238,7 @@ He didn't finish, but his expression said enough.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Upstairs Room]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Upstairs Room]
 #v(0.5em)
 
 The kitchen gleamed with the kind of cleanliness that only comes from
@@ -290,7 +290,7 @@ community theater, and we\'d all been fooled by the stage lighting.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Digital Autopsy]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Digital Autopsy]
 #v(0.5em)
 
 The coroner's team worked with quiet efficiency; Pearl left in a zipped
@@ -349,7 +349,7 @@ tomb. "It's everyone's problem now."
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Nieces]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Nieces]
 #v(0.5em)
 
 We met on video that night. Claire's apartment light flickered—old
@@ -385,7 +385,7 @@ But her voice carried doubt, and I understood why.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Funeral]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Funeral]
 #v(0.5em)
 
 Rain gave way to bright cold the morning they buried Pearl. Small
@@ -406,7 +406,7 @@ The weight of it felt like responsibility.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Echoes in the System]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Echoes in the System]
 #v(0.5em)
 
 Detroit city council fast-tracked a hearing on "digital survivorship and
@@ -430,7 +430,7 @@ splinter I couldn't quite reach.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Coda: Radio Night]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Coda: Radio Night]
 #v(0.5em)
 
 Late October, I drove west on a contract that had finished faster than

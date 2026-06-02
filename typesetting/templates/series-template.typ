@@ -17,18 +17,21 @@
   page-width: 353.811pt,
   page-height: 546.567pt,
   
-  // Margins (from spec)
+  // Margins — matched to the InDesign golden (reference/GHOSTS.pdf). Measured on
+  // verso+recto body pages via parity-check.sh: inside>outside (binding gutter),
+  // giving a 237pt measure. Was 0.7in/0.6in (measure 262pt, ~25pt too wide).
   margin-top: 0.75in,
   margin-bottom: 0.75in,
-  margin-inside: 0.7in,
-  margin-outside: 0.6in,
-  
-  // Font families (open-source alternatives)
-  // Original: Plantin MT Pro → Libertinus Serif
-  // Original: Proxima Nova → Source Sans 3  
-  // Original: Menlo → JetBrains Mono
-  body-font: "Libertinus Serif",
-  heading-font: "Source Sans 3",
+  margin-inside: 59.8pt,
+  margin-outside: 56.8pt,
+
+  // Font families — licensed print fonts (TRK-DESIGN-002) in typesetting/fonts/licensed/.
+  // The open-source faces (Libertinus Serif / Source Sans 3) remain in the text
+  // fallback chain below so a fresh checkout without the licensed files degrades
+  // gracefully instead of substituting silently.
+  // Original (print): Plantin MT Pro (body), Proxima Nova (display), Menlo → JetBrains Mono.
+  body-font: "Plantin MT Pro",
+  heading-font: "Proxima Nova",
   tweet-font: "Source Sans 3",
   code-font: "JetBrains Mono",
   

@@ -1,16 +1,16 @@
-#set text(font: "Libertinus Serif", size: 10pt)
+#set text(font: "Plantin MT Pro", size: 10pt)
 #set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
-#text(font: "Source Sans 3", size: 1.667em, weight: "bold")[We Shape Our Tools and Then Our Tools Shape Us]
+#text(font: "Proxima Nova", size: 1.667em, weight: "bold")[We Shape Our Tools and Then Our Tools Shape Us]
 
-#text(font: "Source Sans 3", size: 1.333em, weight: "medium")[Tongzhou Yu]
+#text(font: "Proxima Nova", size: 1.333em, weight: "medium")[Tongzhou Yu]
 
 #v(2em)
 
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Troublemaker Shanghai, Pudong, Yanlord Riverside City, 2017]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Troublemaker Shanghai, Pudong, Yanlord Riverside City, 2017]
 #v(0.5em)
 
 A typical war, sparked by a bottle of soy sauce, erupted at the tail end
@@ -88,7 +88,7 @@ of their lives.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[The Third Party Shanghai, Pudong, Yanlord Riverside City (After Smart System Upgrade), 2027]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[The Third Party Shanghai, Pudong, Yanlord Riverside City (After Smart System Upgrade), 2027]
 #v(0.5em)
 
 Ten years is long enough for the Lujiazui skyline to grow a few inches

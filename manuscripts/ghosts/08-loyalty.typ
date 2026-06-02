@@ -1,9 +1,9 @@
-#set text(font: "Libertinus Serif", size: 10pt)
+#set text(font: "Plantin MT Pro", size: 10pt)
 #set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
-#text(font: "Source Sans 3", size: 1.667em, weight: "bold")[Loyalty]
+#text(font: "Proxima Nova", size: 1.667em, weight: "bold")[Loyalty]
 
-#text(font: "Source Sans 3", size: 1.333em, weight: "medium")[Zach Hyman]
+#text(font: "Proxima Nova", size: 1.333em, weight: "medium")[Zach Hyman]
 
 #v(2em)
 
@@ -413,7 +413,7 @@ around her grandmother, as the lights cut out.
 
 
 #v(1em)
-#text(font: "Source Sans 3", size: 1em, weight: "semibold")[Epilogue]
+#text(font: "Proxima Nova", size: 1em, weight: "semibold")[Epilogue]
 #v(0.5em)
 
 In the following weeks, Ping would activate the Airloom and suddenly
