@@ -14,16 +14,18 @@
   // Page: named paper or explicit dimensions
   // If page-paper is set (e.g. "us-trade"), width/height are ignored.
   page-paper: none,
-  page-width: 353.811pt,
-  page-height: 546.567pt,
-  
-  // Margins — matched to the InDesign golden (reference/GHOSTS.pdf). Measured on
-  // verso+recto body pages via parity-check.sh: inside>outside (binding gutter),
-  // giving a 237pt measure. Was 0.7in/0.6in (measure 262pt, ~25pt too wide).
-  margin-top: 0.75in,
-  margin-bottom: 0.75in,
-  margin-inside: 59.8pt,
-  margin-outside: 56.8pt,
+  page-width: 311.81pt,   // 110mm — the golden's TRIM (TrimBox). Was 353.811pt,
+  page-height: 504.57pt,  // 178mm — which was the MediaBox (trim + 21pt bleed/crop).
+                          // 110x178mm = UK A-format paperback.
+
+  // Margins — measured from the golden's TRIM, not its media box. reference/GHOSTS.pdf
+  // is a print PDF: MediaBox 353.811x546.567, BleedBox inset 13pt, TrimBox inset 21pt.
+  // Text-block position (verso L=57 / recto L=60 etc., in media coords) minus the 21pt
+  // trim offset gives these. Measure stays 237pt (311.81 - 38.8 - 35.8).
+  margin-top: 39.8pt,
+  margin-bottom: 57.2pt,
+  margin-inside: 38.8pt,
+  margin-outside: 35.8pt,
 
   // Font families — licensed print fonts (TRK-DESIGN-002) in typesetting/fonts/licensed/.
   // The open-source faces (Libertinus Serif / Source Sans 3) remain in the text
@@ -38,11 +40,10 @@
   // Base font size (0.833em relative to 12pt = ~10pt)
   base-size: 10pt,
   
-  // Paragraph: leading is the gap between line bounding boxes. Tuned to the
-  // InDesign golden — 10pt body + 6.8pt leading ≈ 13.2pt baseline ≈ 32 lines/page
-  // (was 0.6em/6pt per-chapter overrides → 34 lines, now centralized here).
-  leading: 6.8pt,
-  paragraph-spacing: 6.8pt,  // == leading: continuous text, no extra paragraph gap
+  // Paragraph: leading is the gap between line bounding boxes. Tuned so the
+  // baseline-to-baseline matches the golden's measured 12pt (classic 10/12).
+  leading: 4.8pt,
+  paragraph-spacing: 4.8pt,  // == leading: continuous text, no extra paragraph gap
   paragraph-indent: 0.75em,
 
   // Text flow
@@ -68,7 +69,7 @@
 
   // Running heads
   running-heads-enabled: true,
-  running-heads-size: 0.75em,
+  running-heads-size: 0.9em,  // matched to the golden (bold folio + tracked caps)
   running-heads-verso: "author",
   running-heads-recto: "title",
 
@@ -157,21 +158,12 @@
   set text(font: config.heading-font, size: config.running-heads-size, weight: "medium")
   
   if is-even {
-    // Verso (left/even): page number left, AUTHOR right
-    grid(
-      columns: (auto, 1fr),
-      align: (left, right),
-      [#page-num],
-      upper(author),
-    )
+    // Verso (even): folio + AUTHOR grouped at the outside (left), matching the golden:
+    // bold folio, tracked caps for the name.
+    [#text(weight: "bold")[#page-num] #h(1.5em) #text(tracking: 0.08em)[#upper(author)]]
   } else {
-    // Recto (right/odd): TITLE left, page number right
-    grid(
-      columns: (1fr, auto),
-      align: (left, right),
-      upper(title),
-      [#page-num],
-    )
+    // Recto (odd): TITLE + folio grouped at the outside (right)
+    align(right)[#text(tracking: 0.08em)[#upper(title)] #h(1.5em) #text(weight: "bold")[#page-num]]
   }
 }
 

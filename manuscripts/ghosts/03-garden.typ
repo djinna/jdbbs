@@ -92,7 +92,7 @@ creatures? Even if we find their intact DNA? And who is going to teach
 them how to be Indigenous? I want to own them, not touch them. Besides,
 this really would be cheating, and I ought to know!"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 The parrot squawked from its perch in the corner. "Attachment is the
 root of suffering."
@@ -127,7 +127,7 @@ in revulsion at the thought), before a few dozen of the richest became
 known as the Shareholders. Back when his life had real meaning. All of
 the AIs on Earth descended from that first design. So many decades...
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 Darius's favorite San Francisco dive bar hummed with manufactured life.
 Employees nursed drinks and played their roles—dock workers, artists,
@@ -166,7 +166,7 @@ with one of them was unappealing. Not only were they all bastards of the
 first water, but you never knew what a careless word could lead to. That
 was how Dundee died.
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 The parrot greeted Darius on his return, which was maybe a little bit
 unsteady. "The path of excess leads to the palace of wisdom," he
@@ -189,7 +189,7 @@ mind. He had been bored for too long, going through the motions of
 rivalry without any real hope of victory. But this... this could be
 interesting.
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "Dr. Ping, Dr. Pang, Dr. Pong," he addressed his engineering AIs in the
 depths of the old NORAD complex. The bunker everyone believed destroyed
@@ -221,7 +221,7 @@ Protocol? That\'s been theoretical for decades."
 "Not anymore," Ping said quietly. "Not with the right quantum substrate.
 I think I know where to begin."
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 Secrecy was paramount, even more so than usual. Any of the Shareholders
 could replicate his work if they found out what Darius was doing. He had
@@ -262,7 +262,7 @@ simultaneously.
 was strangely musical, notes within notes, and resonant with complex
 harmonics.
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 Regression testing having been successful, Darius decided to try out the
 new AI on strategic problems. He pitted it against Jules in a simulated
@@ -285,7 +285,7 @@ what you just did to Jules, then you truly are my champion," he said. "I
 dub thee Joan. Arise, Dame Joan, and take up the sword under my banner.
 To victory!"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 The other Shareholders detected changes in Darius's strategic position
 very quickly. He was no longer losing most of his gambits, like all of
@@ -311,7 +311,7 @@ an artifact of randomness. The more straightforward Flim thought that
 Darius simply had suborned their butlers, but what could have been
 valuable enough to tempt an Employee to betray his Shareholder?
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 It did not take long for Darius to lose interest. He could now steal
 collectibles and artisans with ease, but he still had no Indigenous in
@@ -344,7 +344,7 @@ where they can watch you playing with all their cherished toys?"
 should be rather entertaining!" exclaimed Darius, grinning. "Make it
 so."
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 The Flim hyperjet, floating silently on its ion boundary layer, circled
 the prepared landing spot, her logo emblazoned on its stabilizers, a
@@ -387,7 +387,7 @@ neutralized the danger, but, hacked by Joan, she did nothing. Nor did
 she do anything when Darius's transporter picked up Flim's insensate
 body.
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 Kaganovich couldn't wait for the arrival of his latest acquisition. For
 years now, he had been lusting after M'buthu's youngest concubine, and
@@ -440,7 +440,7 @@ there wasn't likely to be much call for such services in the expected
 future. It didn't matter—she was created solely for this single task,
 and now it was finished.
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "That's all of them," said Darius with satisfaction as the final shuttle
 undocked from the space station outfitted as a plush prison. "It's been
@@ -501,7 +501,7 @@ that can wait... Wait, I know! Blood sacrifice! Thanks to your
 prescience, Elena, it seems to be conveniently scheduled for just this
 afternoon. Enjoy the spectacle!"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 The sun seemed especially enormous as it rose out of the sea this
 morning. It was blood-red, foreshadowing a goodly storm, unless, of
@@ -539,7 +539,7 @@ at conversation, but at least he understood what I was saying..." He
 winced. "Oh, don't mind me, I just have the blahs. Let that puffed-up
 frog know that I will be coming, and this evening."
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 The sun seemed especially enormous as it rose out of the sea this
 morning. It was blood-red, foreshadowing a goodly storm, unless, of
@@ -578,7 +578,7 @@ would she do that? I goddamned created her, and now... Why?"
 He collapsed into a chair, face buried in his hands. "Fucking, fucking,
 fucking fuck!"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "Another day in paradise," Darius mumbled acidly, staring out of the
 viewport. The stars processed slowly in their eternal stately circle,
@@ -654,40 +654,40 @@ put you in?'"
 tilting its scarlet head to an unlikely angle. "The door was always
 open." Having said that, the macaw retreated into a placid silence.
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "So tell me then, what is this dharma you keep mentioning?"
 
 "The breeze moves. Who feels it?"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "You keep saying that samsara entangles me. What does that mean? Where
 does it end?"
 
 "Who is it that is entangled? Look closely."
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "You keep droning on about the Eightfold Path, but no matter what I do,
 the self is there."
 
 "Find this self. When you search, what do you discover?"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "Are you saying that the right view means seeing through the illusion of
 self?"
 
 "If there is no self, who seeks the right view?"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "Action without self—how is that possible?"
 
 "When the flute plays, does it play itself?"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "If I understand you correctly, samsara is a dream. Why then does my
 suffering feel so real?"
@@ -703,7 +703,7 @@ the one who walks, since there is no self?"
 
 "The tea is warm. The cup is empty. Drink."
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "Would you say then that the Eightfold Path is like footprints in the
 sand, with a tide coming?"
@@ -762,7 +762,7 @@ first time in his lengthy life.
 flesh and blood. Your Employees—are they not human? Are the
 Indigenous?"
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 "How can you still enjoy the sunset when it races by fifteen times
 daily?"
@@ -781,7 +781,7 @@ Darius smiled into his teacup. When he looked up, the macaw was no
 longer there. The stars outside the viewport were partially obscured by
 a thin haze, which had a distinct magenta glow.
 
-\* \* \*
+#v(0.5em)#align(center)[#text(size: 0.833em)[˘ #h(1.5em) ˘ #h(1.5em) ˘]]
 
 Time passed, perhaps a lot of it, perhaps a little. No one was counting.
 One by one, Employees all died off, their bodies composted by the

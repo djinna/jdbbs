@@ -80,6 +80,16 @@ Printed in Argentina | October 2025
 
 #set page(numbering: none)
 #counter(page).update(1)
+// Restore body paragraph style. Front-matter pages set par locally (the copyright
+// page sets first-line-indent: 0em + leading: 0.6em) and, being top-level #set
+// rules, those leak into the body and kill the chapter paragraph indents. Re-assert
+// config here so the body owns its typography regardless of front-matter overrides.
+#set par(
+  justify: config.justify,
+  leading: config.leading,
+  spacing: config.paragraph-spacing,
+  first-line-indent: config.paragraph-indent,
+)
 
 // Chapter 0: Introduction (Khlongs)
 #pagebreak(to: "odd")
