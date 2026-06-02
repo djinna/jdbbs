@@ -5,7 +5,7 @@
       "Status": "Enabled",
       "Filter": {
         "And": {
-          "Prefix": "db/prodcal-"
+          "Prefix": "db/prodcal-20"
         }
       },
       "Expiration": {

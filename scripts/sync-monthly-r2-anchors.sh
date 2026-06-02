@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Copy one local ProdCal backup per calendar month to a non-expiring R2 prefix.
+# Copy one local ProdCal backup per calendar month to a non-expiring R2 key.
 #
-# Pair with an R2 lifecycle rule that expires daily backups under db/ after
-# 180 days. Monthly anchors live under db-monthly/ and are not matched by
-# that lifecycle rule.
+# Pair with an R2 lifecycle rule that expires daily backups matching
+# db/prodcal-20* after 180 days. Monthly anchors are named
+# db/prodcal-monthly-* so they remain outside that lifecycle rule while still
+# fitting the existing restricted R2 token's db/prodcal-* write scope.
 
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"
 R2_REMOTE="${R2_REMOTE:-r2}"
 R2_BUCKET="${R2_BUCKET:-jdbbs-backups}"
-R2_MONTHLY_PREFIX="${R2_MONTHLY_PREFIX:-db-monthly}"
+R2_MONTHLY_PREFIX="${R2_MONTHLY_PREFIX:-db}"
+MONTHLY_NAME_PREFIX="${MONTHLY_NAME_PREFIX:-prodcal-monthly-}"
 LOCK_FILE="${BACKUP_DIR}/.r2-monthly-lock"
 SUCCESS_FLAG="${BACKUP_DIR}/.LAST-R2-MONTHLY-SUCCESS"
 FAILURE_FLAG="${BACKUP_DIR}/.LAST-R2-MONTHLY-FAILURE"
@@ -48,7 +50,8 @@ for ym in "${months[@]}"; do
   anchor="$(find "$BACKUP_DIR" -maxdepth 1 -type f -name "prodcal-${ym}*.sqlite3.gz" -printf '%f\n' | sort | head -1)"
   [ -n "$anchor" ] || continue
   src="$BACKUP_DIR/$anchor"
-  dst="${R2_REMOTE}:${R2_BUCKET}/${R2_MONTHLY_PREFIX}/${anchor}"
+  monthly_name="${anchor/prodcal-/$MONTHLY_NAME_PREFIX}"
+  dst="${R2_REMOTE}:${R2_BUCKET}/${R2_MONTHLY_PREFIX}/${monthly_name}"
   log "copying monthly anchor $anchor -> $dst"
   rclone copyto "$src" "$dst" --stats=0 2>&1 | sed 's/^/  rclone: /' || die "rclone copyto failed for $anchor"
   copied=$((copied + 1))
