@@ -35,6 +35,21 @@ function absoluteURL(path) {
   return new URL(path, window.location.origin + '/').toString();
 }
 
+function showToast(message, type = 'saved', duration = 4500) {
+  let box = document.getElementById('toast-stack');
+  if (!box) {
+    box = h('div', { id: 'toast-stack', className: 'toast-stack', 'aria-live': 'polite' });
+    document.body.appendChild(box);
+  }
+  const toast = h('div', { className: 'toast toast-' + type, role: 'status' }, message);
+  box.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 250);
+  }, duration);
+}
+
 const fmt = {
   date(s) { if (!s) return '—'; const d = new Date(s + 'T00:00:00'); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); },
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
@@ -721,11 +736,12 @@ function showSettings() {
             state.project.ProjectSlug = ps;
             msg.className = 'settings-save-status saved';
             msg.textContent = 'Saved ✓';
+            showToast('Project settings saved ✓');
             setTimeout(() => {
               const newPath = '/' + cs + '/' + ps + '/';
               if (window.location.pathname !== newPath) window.location.href = newPath;
               else { el.remove(); render(); }
-            }, 350);
+            }, 900);
           } catch (e) {
             msg.className = 'settings-save-status error';
             msg.textContent = 'Could not save: ' + e.message;
