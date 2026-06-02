@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Prune local ProdCal SQLite backups without affecting off-VM R2 copies.
+#
+# Default policy:
+#   * keep the newest 10 local backups for fast restores;
+#   * keep the first backup from each calendar month as a local anchor;
+#   * delete only files matching prodcal-*.sqlite3.gz in BACKUP_DIR.
+#
+# Intended to run weekly from cron. It is also safe to run manually:
+#   DRY_RUN=1 scripts/prune-backups.sh
+
+set -euo pipefail
+
+BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"
+KEEP_RECENT="${KEEP_RECENT:-10}"
+KEEP_MONTHLY="${KEEP_MONTHLY:-1}"
+DRY_RUN="${DRY_RUN:-0}"
+LOCK_FILE="${BACKUP_DIR}/.prune-lock"
+
+log() { printf '[%s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
+die() { log "FAIL: $*" >&2; exit 1; }
+
+[ -d "$BACKUP_DIR" ] || die "backup dir not found: $BACKUP_DIR"
+[[ "$KEEP_RECENT" =~ ^[0-9]+$ ]] || die "KEEP_RECENT must be an integer"
+
+exec 9>"$LOCK_FILE"
+flock -n 9 || die "another prune is already running (lock: $LOCK_FILE)"
+
+mapfile -t backups < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'prodcal-*.sqlite3.gz' -printf '%f\n' | sort)
+if [ "${#backups[@]}" -eq 0 ]; then
+  log "no prodcal backup files found in $BACKUP_DIR"
+  exit 0
+fi
+
+preserve_file="$(mktemp -t prodcal-prune-preserve.XXXXXX)"
+all_file="$(mktemp -t prodcal-prune-all.XXXXXX)"
+trap 'rm -f "$preserve_file" "$all_file"' EXIT
+
+printf '%s\n' "${backups[@]/#/$BACKUP_DIR/}" > "$all_file"
+
+# Keep newest N backups by timestamped filename.
+if [ "$KEEP_RECENT" -gt 0 ]; then
+  printf '%s\n' "${backups[@]}" \
+    | sort -r \
+    | head -n "$KEEP_RECENT" \
+    | sed "s#^#$BACKUP_DIR/#" \
+    >> "$preserve_file"
+fi
+
+# Keep the first backup from each calendar month as an anchor.
+if [ "$KEEP_MONTHLY" = "1" ]; then
+  printf '%s\n' "${backups[@]}" \
+    | sed -E 's/^prodcal-([0-9]{6}).*$/\1/' \
+    | sort -u \
+    | while IFS= read -r ym; do
+        anchor="$(printf '%s\n' "${backups[@]}" | grep -E "^prodcal-${ym}[0-9]{2}-[0-9]{6}\.sqlite3\.gz$" | sort | head -1 || true)"
+        [ -n "$anchor" ] && printf '%s/%s\n' "$BACKUP_DIR" "$anchor"
+      done \
+    >> "$preserve_file"
+fi
+
+sort -u -o "$preserve_file" "$preserve_file"
+
+kept=0
+deleted=0
+freed=0
+while IFS= read -r f; do
+  if grep -qxF "$f" "$preserve_file"; then
+    kept=$((kept + 1))
+    continue
+  fi
+
+  size="$(stat -c '%s' "$f" 2>/dev/null || echo 0)"
+  if [ "$DRY_RUN" = "1" ]; then
+    log "would remove $(basename "$f") (${size} bytes)"
+  else
+    log "removing $(basename "$f") (${size} bytes)"
+    rm -f -- "$f"
+  fi
+  deleted=$((deleted + 1))
+  freed=$((freed + size))
+done < "$all_file"
+
+if [ "$DRY_RUN" = "1" ]; then
+  log "DRY RUN complete: would_delete=$deleted would_free_bytes=$freed keep=$kept total=${#backups[@]}"
+else
+  log "OK deleted=$deleted freed_bytes=$freed keep=$kept total=${#backups[@]}"
+fi
