@@ -1,11 +1,3 @@
-
-#text(font: "Proxima Nova", size: 1.667em, weight: "bold")[In the Garden of Eden, Baby]
-
-#text(font: "Proxima Nova", size: 1.333em, weight: "medium")[Sisyphus]
-
-#v(2em)
-
-
 Moodily, Darius was contemplating his latest acquisition, a mahogany
 writing desk that had belonged to Charles Dickens. The desk was perfect:
 authenticated provenance, immaculate restoration by his master
