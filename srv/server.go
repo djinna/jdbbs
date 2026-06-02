@@ -85,6 +85,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /admin/", s.handleAdminDashboard)
 	mux.HandleFunc("GET /api/admin/projects", s.handleAdminProjectList)
 	mux.HandleFunc("GET /api/admin/clients", s.handleAdminClientList)
+	mux.HandleFunc("GET /api/admin/backup-status", s.handleAdminBackupStatus)
 	mux.HandleFunc("POST /api/admin/clients", s.handleAdminCreateClient)
 
 	// API routes (global, no path prefix)

@@ -396,6 +396,12 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
   color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
 }
 .colophon a:hover { color: var(--text); }
+.backup-status-line { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem 0.7rem; align-items: center; font-size: 0.74rem; }
+.backup-status-line .backup-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: var(--text-muted); }
+.backup-status-line.ok .backup-dot { background: var(--green); }
+.backup-status-line.warn .backup-dot { background: var(--yellow); }
+.backup-status-line.error .backup-dot { background: var(--red); }
+.backup-status-line .backup-detail { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -866,6 +872,10 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 
   <footer class="colophon">
     <p>Set in a randomized selection from <a href="https://github.com/googlefonts/literata" target="_blank">Literata</a> by TypeTogether, <a href="https://github.com/IBM/plex" target="_blank">IBM Plex</a> by Mike Abbink & Bold Monday, and <a href="https://en.wikipedia.org/wiki/Menlo_(typeface)" target="_blank">Menlo</a>. Font preference resets on each visit; only dark mode persists.</p>
+    <div id="backup-status-line" class="backup-status-line warn">
+      <span class="backup-dot"></span>
+      <span>Backups: checking…</span>
+    </div>
   </footer>
 
 </div>
@@ -964,6 +974,39 @@ function setStatus(level) {
   dot.style.background = colors[level];
   label.textContent = labels[level];
   tip.textContent = statusMessages[level];
+}
+
+function formatBytes(n) {
+  if (!Number.isFinite(n)) return 'n/a';
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return (i === 0 ? String(v) : v.toFixed(1)) + ' ' + units[i];
+}
+
+async function loadBackupStatus() {
+  const el = document.getElementById('backup-status-line');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/admin/backup-status');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    el.classList.remove('ok', 'warn', 'error');
+    el.classList.add(d.ok ? 'ok' : 'error');
+    const newest = d.newest_local ? `${d.newest_local}, ${d.newest_local_age_hours}h old` : 'none';
+    el.innerHTML = `
+      <span class="backup-dot"></span>
+      <span>Backups: ${d.ok ? 'OK' : 'ACTION NEEDED'}</span>
+      <span class="backup-detail">local ${d.local_count} / ${formatBytes(d.local_bytes)}; newest ${esc(newest)}; R2 ${esc(d.r2_last_success || 'unknown')}</span>
+    `;
+    el.title = (d.problems && d.problems.length) ? d.problems.join('\n') : 'Local and R2 backup sentinels are current.';
+  } catch(e) {
+    el.classList.remove('ok', 'warn');
+    el.classList.add('error');
+    el.innerHTML = '<span class="backup-dot"></span><span>Backups: status unavailable</span>';
+    el.title = e.message;
+  }
 }
 
 // ─── Projects ───
@@ -3257,9 +3300,10 @@ document.getElementById('corr-export-yaml').addEventListener('click', async () =
 
 // ─── Init ───
 checkHealth();
+loadBackupStatus();
 loadClients();
 loadProjects();
-setInterval(() => { checkHealth(); loadClients(); loadProjects(); }, 30000);
+setInterval(() => { checkHealth(); loadBackupStatus(); loadClients(); loadProjects(); }, 30000);
 </script>
 </body>
 </html>
