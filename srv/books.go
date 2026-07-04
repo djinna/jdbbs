@@ -380,7 +380,8 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		return
 	}
 
-	// Store PDF in DB
+	// Store PDF in DB (book_outputs is the single artifact store; 018 dropped
+	// the duplicate books.pdf_data column).
 	ctx := context.Background()
 	if _, err := q.CreateBookOutput(ctx, dbgen.CreateBookOutputParams{
 		BookID:              bid,
@@ -390,14 +391,11 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		SpecSnapshot:        nullStringFrom(specSnapshot),
 		CorrectionsSnapshot: nullStringFrom(correctionsSnapshot),
 	}); err != nil {
-		s.failConversion(bid, "persist pdf history: "+err.Error())
+		s.failConversion(bid, "store pdf: "+err.Error())
 		return
 	}
-	if err := q.UpdateBookPDF(ctx, dbgen.UpdateBookPDFParams{
-		PdfData: pdfData,
-		ID:      bid,
-	}); err != nil {
-		s.failConversion(bid, "store pdf: "+err.Error())
+	if err := q.UpdateBookStatusReady(ctx, bid); err != nil {
+		s.failConversion(bid, "mark ready: "+err.Error())
 		return
 	}
 
@@ -560,7 +558,7 @@ func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
 			BookID:         row.BookID,
 			OutputFormat:   row.OutputFormat,
 			SourceFilename: row.SourceFilename,
-			SizeBytes:      row.SizeBytes,
+			SizeBytes:      row.SizeBytes.Int64, // length() of a NOT NULL blob; sqlc types it nullable
 			CreatedAt:      row.CreatedAt,
 		}
 		if includeSpec && row.SpecSnapshot.Valid {

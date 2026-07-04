@@ -203,11 +203,17 @@ func TestDownloadBookRequiresAuth(t *testing.T) {
 	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+itoa(pid)+"/auth", map[string]string{"password": "secret"})
 	resp.Body.Close()
 
-	// Insert a book linked to the project
-	_, err := s.DB.Exec(`INSERT INTO books (title, author, pdf_data, status, project_id) VALUES (?, ?, ?, ?, ?)`,
-		"Test Book", "Author", []byte("fakepdf"), "ready", pid)
+	// Insert a book linked to the project, with its compiled PDF in
+	// book_outputs (the single artifact store since migration 018).
+	_, err := s.DB.Exec(`INSERT INTO books (title, author, status, project_id) VALUES (?, ?, ?, ?)`,
+		"Test Book", "Author", "ready", pid)
 	if err != nil {
 		t.Fatalf("insert book: %v", err)
+	}
+	_, err = s.DB.Exec(`INSERT INTO book_outputs (book_id, output_format, output_data) VALUES (1, 'pdf', ?)`,
+		[]byte("fakepdf"))
+	if err != nil {
+		t.Fatalf("insert book output: %v", err)
 	}
 
 	// Download without auth should fail

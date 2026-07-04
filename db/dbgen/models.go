@@ -24,8 +24,6 @@ type Book struct {
 	Series         string
 	SourceFilename string
 	SourceData     []byte
-	PdfData        []byte
-	EpubData       []byte
 	Status         string
 	ErrorMsg       string
 	CreatedAt      time.Time
@@ -39,9 +37,9 @@ type BookOutput struct {
 	OutputFormat        string
 	OutputData          []byte
 	SourceFilename      string
+	CreatedAt           time.Time
 	SpecSnapshot        sql.NullString
 	CorrectionsSnapshot sql.NullString
-	CreatedAt           time.Time
 }
 
 type BookSpec struct {

@@ -216,7 +216,9 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 		epubData = stripped
 	}
 
-	// Store in DB
+	// Store in DB (book_outputs is the single artifact store; 018 dropped the
+	// duplicate books.epub_data column). Bump updated_at so the download
+	// filename timestamp distinguishes back-to-back compiles.
 	if _, err := q.CreateBookOutput(ctx, dbgen.CreateBookOutputParams{
 		BookID:              bid,
 		OutputFormat:        "epub",
@@ -225,14 +227,11 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 		SpecSnapshot:        nullStringFrom(specSnapshot),
 		CorrectionsSnapshot: nullStringFrom(correctionsSnapshot),
 	}); err != nil {
-		slog.Error("epub: persist history", "id", bid, "err", err)
+		slog.Error("epub: store", "id", bid, "err", err)
 		return
 	}
-	if err := q.UpdateBookEPUB(ctx, dbgen.UpdateBookEPUBParams{
-		EpubData: epubData,
-		ID:       bid,
-	}); err != nil {
-		slog.Error("epub: store", "id", bid, "err", err)
+	if err := q.TouchBook(ctx, bid); err != nil {
+		slog.Error("epub: touch book", "id", bid, "err", err)
 		return
 	}
 

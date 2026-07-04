@@ -13,11 +13,11 @@ RETURNING *;
 -- name: UpdateBookStatus :exec
 UPDATE books SET status = ?, error_msg = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
--- name: UpdateBookPDF :exec
-UPDATE books SET pdf_data = ?, status = 'ready', updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+-- name: UpdateBookStatusReady :exec
+UPDATE books SET status = 'ready', updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
--- name: UpdateBookEPUB :exec
-UPDATE books SET epub_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+-- name: TouchBook :exec
+UPDATE books SET updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
 -- name: UpdateBookProject :exec
 UPDATE books SET project_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
@@ -26,10 +26,20 @@ UPDATE books SET project_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 DELETE FROM books WHERE id = ?;
 
 -- name: GetBookPDF :one
-SELECT id, title, pdf_data FROM books WHERE id = ?;
+SELECT b.id, b.title, o.output_data AS pdf_data
+FROM books b
+LEFT JOIN book_outputs o ON o.book_id = b.id AND o.output_format = 'pdf'
+WHERE b.id = ?
+ORDER BY o.created_at DESC, o.id DESC
+LIMIT 1;
 
 -- name: GetBookEPUB :one
-SELECT id, title, epub_data FROM books WHERE id = ?;
+SELECT b.id, b.title, o.output_data AS epub_data
+FROM books b
+LEFT JOIN book_outputs o ON o.book_id = b.id AND o.output_format = 'epub'
+WHERE b.id = ?
+ORDER BY o.created_at DESC, o.id DESC
+LIMIT 1;
 
 -- name: GetBooksByProject :many
 SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at

@@ -29,7 +29,18 @@ type CreateBookOutputParams struct {
 	CorrectionsSnapshot sql.NullString
 }
 
-func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputParams) (BookOutput, error) {
+type CreateBookOutputRow struct {
+	ID                  int64
+	BookID              int64
+	OutputFormat        string
+	OutputData          []byte
+	SourceFilename      string
+	SpecSnapshot        sql.NullString
+	CorrectionsSnapshot sql.NullString
+	CreatedAt           time.Time
+}
+
+func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputParams) (CreateBookOutputRow, error) {
 	row := q.db.QueryRowContext(ctx, createBookOutput,
 		arg.BookID,
 		arg.OutputFormat,
@@ -38,7 +49,45 @@ func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputPara
 		arg.SpecSnapshot,
 		arg.CorrectionsSnapshot,
 	)
-	var i BookOutput
+	var i CreateBookOutputRow
+	err := row.Scan(
+		&i.ID,
+		&i.BookID,
+		&i.OutputFormat,
+		&i.OutputData,
+		&i.SourceFilename,
+		&i.SpecSnapshot,
+		&i.CorrectionsSnapshot,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getBookOutput = `-- name: GetBookOutput :one
+SELECT id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at
+FROM book_outputs
+WHERE id = ? AND book_id = ?
+`
+
+type GetBookOutputParams struct {
+	ID     int64
+	BookID int64
+}
+
+type GetBookOutputRow struct {
+	ID                  int64
+	BookID              int64
+	OutputFormat        string
+	OutputData          []byte
+	SourceFilename      string
+	SpecSnapshot        sql.NullString
+	CorrectionsSnapshot sql.NullString
+	CreatedAt           time.Time
+}
+
+func (q *Queries) GetBookOutput(ctx context.Context, arg GetBookOutputParams) (GetBookOutputRow, error) {
+	row := q.db.QueryRowContext(ctx, getBookOutput, arg.ID, arg.BookID)
+	var i GetBookOutputRow
 	err := row.Scan(
 		&i.ID,
 		&i.BookID,
@@ -70,7 +119,7 @@ type ListBookOutputsRow struct {
 	BookID              int64
 	OutputFormat        string
 	SourceFilename      string
-	SizeBytes           int64
+	SizeBytes           sql.NullInt64
 	SpecSnapshot        sql.NullString
 	CorrectionsSnapshot sql.NullString
 	CreatedAt           time.Time
@@ -106,31 +155,4 @@ func (q *Queries) ListBookOutputs(ctx context.Context, arg ListBookOutputsParams
 		return nil, err
 	}
 	return items, nil
-}
-
-const getBookOutput = `-- name: GetBookOutput :one
-SELECT id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at
-FROM book_outputs
-WHERE id = ? AND book_id = ?
-`
-
-type GetBookOutputParams struct {
-	ID     int64
-	BookID int64
-}
-
-func (q *Queries) GetBookOutput(ctx context.Context, arg GetBookOutputParams) (BookOutput, error) {
-	row := q.db.QueryRowContext(ctx, getBookOutput, arg.ID, arg.BookID)
-	var i BookOutput
-	err := row.Scan(
-		&i.ID,
-		&i.BookID,
-		&i.OutputFormat,
-		&i.OutputData,
-		&i.SourceFilename,
-		&i.SpecSnapshot,
-		&i.CorrectionsSnapshot,
-		&i.CreatedAt,
-	)
-	return i, err
 }
