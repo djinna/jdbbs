@@ -175,9 +175,19 @@ func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) 
 		cc = body.Recipients[1:]
 	}
 
-	if err := s.Email.sendEmail(to, cc, subject, textBody, htmlBody); err != nil {
+	// The digest is the recurring pathway: advertise an unsubscribe route
+	// (RFC 2369) via AgentMail's generic headers map.
+	unsubAddr := s.Email.ReplyTo
+	if unsubAddr == "" {
+		unsubAddr = s.Email.InboxID
+	}
+	unsubHeaders := map[string]string{
+		"List-Unsubscribe": fmt.Sprintf("<mailto:%s?subject=unsubscribe>", unsubAddr),
+	}
+
+	if err := s.Email.sendEmailWithHeaders(to, cc, subject, textBody, htmlBody, unsubHeaders); err != nil {
 		slog.Error("send client digest email", "error", err)
-		jsonErr(w, "failed to send email: "+err.Error(), 500)
+		jsonErr(w, "email send failed", 500)
 		return
 	}
 
@@ -325,6 +335,7 @@ func buildClientDigestHTML(p clientDigestParams) string {
 	b.WriteString(fmt.Sprintf(`<p style="margin:0 0 6px;font-size:12px;color:#aaa;">Generated %s</p>`, html.EscapeString(p.Generated)))
 	clientURL := fmt.Sprintf("%s/%s/", p.BaseURL, p.ClientSlug)
 	b.WriteString(fmt.Sprintf(`<p style="margin:0;"><a href="%s" style="font-size:13px;color:#6c63ff;text-decoration:none;font-weight:600;">View Client Portal \u2192</a></p>`, clientURL))
+	b.WriteString(`<p style="margin:6px 0 0;font-size:11px;color:#bbb;">Reply to this email to stop receiving digests.</p>`)
 	b.WriteString(`</div>`)
 	b.WriteString(`</td></tr>`)
 
@@ -389,6 +400,7 @@ func buildClientDigestText(p clientDigestParams) string {
 	b.WriteString(fmt.Sprintf("Sent: %s\n", p.Generated))
 	clientURL := fmt.Sprintf("%s/%s/", p.BaseURL, p.ClientSlug)
 	b.WriteString(fmt.Sprintf("View portal: %s\n", clientURL))
+	b.WriteString("Reply to this email to stop receiving digests.\n")
 
 	return b.String()
 }

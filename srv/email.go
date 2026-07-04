@@ -16,11 +16,15 @@ import (
 
 // AgentMail config — set via environment variables:
 //
-//	AGENTMAIL_API_KEY  — Bearer token
-//	AGENTMAIL_INBOX_ID — inbox ID for jdbb@agentmail.to
+//	AGENTMAIL_API_KEY       — Bearer token
+//	AGENTMAIL_INBOX_ID      — inbox ID for jdbb@agentmail.to (also the sending address)
+//	PRODCAL_MAIL_FROM_NAME  — sender display name (default "ProdCal"; set empty to disable)
+//	PRODCAL_MAIL_REPLY_TO   — Reply-To address (default "j@djinna.com"; set empty to disable)
 type EmailConfig struct {
-	APIKey  string
-	InboxID string
+	APIKey   string
+	InboxID  string
+	FromName string
+	ReplyTo  string
 }
 
 func LoadEmailConfig() *EmailConfig {
@@ -29,12 +33,26 @@ func LoadEmailConfig() *EmailConfig {
 	if key == "" || inbox == "" {
 		return nil
 	}
-	return &EmailConfig{APIKey: key, InboxID: inbox}
+	fromName := "ProdCal"
+	if v, ok := os.LookupEnv("PRODCAL_MAIL_FROM_NAME"); ok {
+		fromName = v
+	}
+	replyTo := "j@djinna.com"
+	if v, ok := os.LookupEnv("PRODCAL_MAIL_REPLY_TO"); ok {
+		replyTo = v
+	}
+	return &EmailConfig{APIKey: key, InboxID: inbox, FromName: fromName, ReplyTo: replyTo}
 }
 
 // sendEmail sends via AgentMail API.
 // POST https://api.agentmail.to/v0/inboxes/:inbox_id/messages/send
 func (cfg *EmailConfig) sendEmail(to []string, cc []string, subject, textBody, htmlBody string) error {
+	return cfg.sendEmailWithHeaders(to, cc, subject, textBody, htmlBody, nil)
+}
+
+// sendEmailWithHeaders is sendEmail plus extra MIME headers via the AgentMail
+// generic "headers" map (e.g. List-Unsubscribe for the recurring digest).
+func (cfg *EmailConfig) sendEmailWithHeaders(to []string, cc []string, subject, textBody, htmlBody string, extraHeaders map[string]string) error {
 	url := fmt.Sprintf("https://api.agentmail.to/v0/inboxes/%s/messages/send", cfg.InboxID)
 
 	body := map[string]any{
@@ -49,6 +67,22 @@ func (cfg *EmailConfig) sendEmail(to []string, cc []string, subject, textBody, h
 	}
 	if htmlBody != "" {
 		body["html"] = htmlBody
+	}
+	if cfg.ReplyTo != "" {
+		body["reply_to"] = cfg.ReplyTo // native SendMessageRequest field
+	}
+	headers := map[string]string{}
+	if cfg.FromName != "" {
+		// AgentMail has no per-message from-name field; the sender is always
+		// the inbox. Pass a From header (same inbox address, plus display
+		// name) through the generic headers map instead.
+		headers["From"] = fmt.Sprintf("%q <%s>", cfg.FromName, cfg.InboxID)
+	}
+	for k, v := range extraHeaders {
+		headers[k] = v
+	}
+	if len(headers) > 0 {
+		body["headers"] = headers
 	}
 
 	jsonBody, err := json.Marshal(body)
@@ -72,7 +106,10 @@ func (cfg *EmailConfig) sendEmail(to []string, cc []string, subject, textBody, h
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("agentmail API error %d: %s", resp.StatusCode, string(respBody))
+		// Log the full response body server-side only. Handlers surface this
+		// error's message to end users, so keep the body out of it.
+		slog.Error("agentmail API error", "status", resp.StatusCode, "body", string(respBody), "to", to, "subject", subject)
+		return fmt.Errorf("agentmail API error: status %d", resp.StatusCode)
 	}
 
 	slog.Info("email sent", "to", to, "cc", cc, "subject", subject, "status", resp.StatusCode)
@@ -263,38 +300,43 @@ func buildTransmittalTextSummary(status string, data *transmittalEmailData) stri
 
 func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, projectURL string) string {
 	var b strings.Builder
-	b.WriteString(`<!DOCTYPE html><html><head><style>
-		body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-		h1 { color: #6c63ff; font-size: 20px; border-bottom: 2px solid #6c63ff; padding-bottom: 8px; }
-		h2 { color: #555; font-size: 15px; margin-top: 24px; margin-bottom: 8px; }
-		table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-		td { padding: 4px 8px; font-size: 14px; vertical-align: top; }
-		td:first-child { color: #888; width: 140px; white-space: nowrap; }
-		.check { font-size: 14px; padding: 3px 0; }
-		.check-yes { color: #10b981; }
-		.check-no { color: #ccc; }
-		.footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 12px; color: #999; }
-		.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-		.badge-final { background: #d1fae5; color: #065f46; }
-		.badge-draft { background: #fef3c7; color: #92400e; }
-		a { color: #6c63ff; }
-	</style></head><body>`)
 
-	badgeClass := "badge-draft"
+	// Gmail strips <style> blocks, so all styling is inline (see EMAIL_SYSTEM.md).
+	const h2Style = `color:#555;font-size:15px;margin:24px 0 8px;`
+	const tableStyle = `width:100%;border-collapse:collapse;margin:8px 0;`
+	const labelStyle = `padding:4px 8px;font-size:14px;vertical-align:top;color:#888;width:140px;white-space:nowrap;`
+	const valueStyle = `padding:4px 8px;font-size:14px;vertical-align:top;`
+
+	// writeSection emits an <h2> plus a label/value table, skipping empty rows.
+	writeSection := func(heading string, rows [][2]string) {
+		b.WriteString(fmt.Sprintf(`<h2 style="%s">%s</h2><table style="%s">`, h2Style, heading, tableStyle))
+		for _, r := range rows {
+			if r[1] != "" {
+				b.WriteString(fmt.Sprintf(`<tr><td style="%s">%s</td><td style="%s"><strong>%s</strong></td></tr>`,
+					labelStyle, r[0], valueStyle, html.EscapeString(r[1])))
+			}
+		}
+		b.WriteString(`</table>`)
+	}
+
+	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
+	b.WriteString(`<body style="margin:0;padding:20px;font-family:-apple-system,Helvetica,Arial,sans-serif;color:#333;">`)
+	b.WriteString(`<div style="max-width:600px;margin:0 auto;">`)
+
+	badgeStyle := `display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#fef3c7;color:#92400e;`
 	if strings.ToLower(status) == "final" {
-		badgeClass = "badge-final"
+		badgeStyle = `display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#d1fae5;color:#065f46;`
 	}
 
 	title := data.Book.Title
 	if title == "" {
 		title = "Untitled"
 	}
-	b.WriteString(fmt.Sprintf(`<h1>📋 Manuscript Transmittal: %s</h1>`, html.EscapeString(title)))
-	b.WriteString(fmt.Sprintf(`<span class="badge %s">%s</span>`, badgeClass, html.EscapeString(strings.ToUpper(status))))
+	b.WriteString(fmt.Sprintf(`<h1 style="color:#6c63ff;font-size:20px;border-bottom:2px solid #6c63ff;padding-bottom:8px;margin:0 0 12px;">📋 Manuscript Transmittal: %s</h1>`, html.EscapeString(title)))
+	b.WriteString(fmt.Sprintf(`<span style="%s">%s</span>`, badgeStyle, html.EscapeString(strings.ToUpper(status))))
 
 	// Book info table
-	b.WriteString(`<h2>Book Information</h2><table>`)
-	rows := [][2]string{
+	writeSection("Book Information", [][2]string{
 		{"Title", data.Book.Title},
 		{"Subtitle", data.Book.Subtitle},
 		{"Author", data.Book.Author},
@@ -302,66 +344,80 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 		{"Editor", data.Book.Editor},
 		{"ISBN (paper)", data.Book.ISBNPaper},
 		{"ISBN (cloth)", data.Book.ISBNCloth},
-	}
-	for _, r := range rows {
-		if r[1] != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td><strong>%s</strong></td></tr>`, r[0], html.EscapeString(r[1])))
-		}
-	}
-	b.WriteString(`</table>`)
+	})
 
 	// Production table
-	b.WriteString(`<h2>Production</h2><table>`)
-	prodRows := [][2]string{
+	writeSection("Production", [][2]string{
 		{"Transmittal date", data.Production.TransmittalDate},
 		{"Mechs delivery", data.Production.MechsDelivery},
 		{"Weeks in prod", data.Production.WeeksInProd},
 		{"Bound book date", data.Production.BoundBookDate},
 		{"Print run", data.Production.PrintRun},
+	})
+
+	// Manuscript stats (same gate as the text version)
+	if data.ChecklistStats.Parts != "" || data.ChecklistStats.Chapters != "" {
+		writeSection("Manuscript", [][2]string{
+			{"Parts", data.ChecklistStats.Parts},
+			{"Chapters", data.ChecklistStats.Chapters},
+			{"Words", data.ChecklistStats.WordsChars},
+			{"MS pages", data.ChecklistStats.MSPP},
+			{"Est pages", data.ChecklistStats.EstBookPP},
+		})
 	}
-	for _, r := range prodRows {
-		if r[1] != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td><strong>%s</strong></td></tr>`, r[0], html.EscapeString(r[1])))
-		}
-	}
-	b.WriteString(`</table>`)
 
 	// Checklist
-	b.WriteString(`<h2>Component Checklist</h2>`)
+	b.WriteString(fmt.Sprintf(`<h2 style="%s">Component Checklist</h2>`, h2Style))
 	for _, item := range data.Checklist {
-		cls := "check-no"
+		color := "#ccc"
 		sym := "☐"
 		if item.HereNow {
-			cls = "check-yes"
+			color = "#10b981"
 			sym = "☑"
 		}
 		extra := ""
 		if item.ToComeWhen != "" {
 			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, html.EscapeString(item.ToComeWhen))
 		}
-		b.WriteString(fmt.Sprintf(`<div class="check %s">%s %s%s</div>`, cls, sym, html.EscapeString(item.Component), extra))
+		b.WriteString(fmt.Sprintf(`<div style="font-size:14px;padding:3px 0;color:%s;">%s %s%s</div>`, color, sym, html.EscapeString(item.Component), extra))
 	}
 	for _, item := range data.Backmatter {
-		cls := "check-no"
+		color := "#ccc"
 		sym := "☐"
 		if item.HereNow {
-			cls = "check-yes"
+			color = "#10b981"
 			sym = "☑"
 		}
 		extra := ""
 		if item.ToComeWhen != "" {
 			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, html.EscapeString(item.ToComeWhen))
 		}
-		b.WriteString(fmt.Sprintf(`<div class="check %s">%s %s%s</div>`, cls, sym, html.EscapeString(item.Component), extra))
+		b.WriteString(fmt.Sprintf(`<div style="font-size:14px;padding:3px 0;color:%s;">%s %s%s</div>`, color, sym, html.EscapeString(item.Component), extra))
+	}
+
+	// Design (same gate as the text version)
+	if data.Design.Trim != "" || data.Design.EstPages != "" {
+		writeSection("Design", [][2]string{
+			{"Trim", data.Design.Trim},
+			{"Est pages", data.Design.EstPages},
+			{"Complexity", data.Design.Complexity},
+		})
+	}
+
+	// Other instructions (same gate as the text version)
+	if data.OtherInstructions != "" {
+		b.WriteString(fmt.Sprintf(`<h2 style="%s">Other Instructions</h2>`, h2Style))
+		b.WriteString(fmt.Sprintf(`<p style="font-size:14px;margin:8px 0;">%s</p>`,
+			strings.ReplaceAll(html.EscapeString(data.OtherInstructions), "\n", "<br>")))
 	}
 
 	// Footer
-	b.WriteString(`<div class="footer">`)
+	b.WriteString(`<div style="margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:12px;color:#999;">`)
 	b.WriteString(fmt.Sprintf(`Sent %s`, time.Now().Format("January 2, 2006 at 3:04 PM MST")))
 	if projectURL != "" {
-		b.WriteString(fmt.Sprintf(` · <a href="%s">View transmittal online</a>`, projectURL))
+		b.WriteString(fmt.Sprintf(` · <a href="%s" style="color:#6c63ff;">View transmittal online</a>`, projectURL))
 	}
-	b.WriteString(`</div></body></html>`)
+	b.WriteString(`</div></div></body></html>`)
 
 	return b.String()
 }
@@ -510,7 +566,7 @@ func (s *Server) handleSendTransmittalEmail(w http.ResponseWriter, r *http.Reque
 
 	if err := s.Email.sendEmail(to, cc, subject, textBody, htmlBody); err != nil {
 		slog.Error("send transmittal email", "error", err)
-		jsonErr(w, "failed to send email: "+err.Error(), 500)
+		jsonErr(w, "email send failed", 500)
 		return
 	}
 

@@ -242,7 +242,7 @@ func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Reques
 
 	if err := s.Email.sendEmail(to, cc, subject, textBody, htmlBody); err != nil {
 		slog.Error("send snapshot email", "error", err)
-		jsonErr(w, "failed to send email: "+err.Error(), 500)
+		jsonErr(w, "email send failed", 500)
 		return
 	}
 
@@ -339,7 +339,10 @@ func snapshotFormatDate(d string) string {
 		// Try with time component
 		t, err = time.Parse("2006-01-02T15:04:05", d)
 		if err != nil {
-			return d
+			// Unparseable input flows into HTML builders unescaped (here, in
+			// activity_email.go and client_digest_email.go), so return an
+			// HTML-escaped form to keep malformed values from carrying markup.
+			return html.EscapeString(d)
 		}
 	}
 	return t.Format("Jan 2, 2006")

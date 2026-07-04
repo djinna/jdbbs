@@ -1,6 +1,7 @@
 package srv
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -248,6 +249,84 @@ func TestActivityJournalEmoji(t *testing.T) {
 		got := activityJournalEmoji(tt.entryType)
 		if got != tt.want {
 			t.Errorf("activityJournalEmoji(%q) = %q, want %q", tt.entryType, got, tt.want)
+		}
+	}
+}
+
+// --- Transmittal builder parity (text vs HTML) ---
+
+func TestTransmittalTextHTMLParity(t *testing.T) {
+	var data transmittalEmailData
+	if err := json.Unmarshal([]byte(`{
+		"book": {"title": "The <Great> Book", "subtitle": "A Tale", "author": "A. Author",
+			"publisher": "Pub House", "editor": "E. Editor", "isbn_paper": "978-1", "isbn_cloth": "978-2"},
+		"production": {"transmittal_date": "2026-01-15", "mechs_delivery": "2026-03-01",
+			"weeks_in_production": "10", "bound_book_date": "2026-06-01", "print_run": "5000"},
+		"checklist_stats": {"parts": "3", "chapters": "12", "words_chars": "90,000", "ms_pp": "310", "est_book_pp": "288"},
+		"checklist": [{"component": "Front matter", "here_now": true, "to_come_when": ""}],
+		"backmatter": [{"component": "Index", "here_now": false, "to_come_when": "with pages"}],
+		"design": {"trim": "6 x 9", "est_pages": "288", "complexity": "simple"},
+		"other_instructions": "Handle <b>with care</b>"
+	}`), &data); err != nil {
+		t.Fatalf("unmarshal fixture: %v", err)
+	}
+
+	text := buildTransmittalTextSummary("final", &data)
+	htmlOut := buildTransmittalHTMLSummary("final", &data, "https://example.com/c/p/transmittal/")
+
+	// Every section heading in the text version must have an HTML counterpart.
+	sections := [][2]string{
+		{"BOOK INFORMATION", "Book Information"},
+		{"PRODUCTION", "Production"},
+		{"MANUSCRIPT", "Manuscript"},
+		{"COMPONENT CHECKLIST", "Component Checklist"},
+		{"DESIGN", "Design"},
+		{"OTHER INSTRUCTIONS", "Other Instructions"},
+	}
+	for _, s := range sections {
+		if !strings.Contains(text, s[0]) {
+			t.Errorf("text summary missing section %q", s[0])
+		}
+		if !strings.Contains(htmlOut, ">"+s[1]+"</h2>") {
+			t.Errorf("HTML summary missing section heading %q", s[1])
+		}
+	}
+
+	// Gmail strips <style> blocks — styling must be inline only.
+	if strings.Contains(htmlOut, "<style") {
+		t.Error("HTML summary contains a <style> block; all styles must be inline")
+	}
+
+	// Interpolated values must stay escaped.
+	if strings.Contains(htmlOut, "<Great>") || !strings.Contains(htmlOut, "&lt;Great&gt;") {
+		t.Error("book title not HTML-escaped")
+	}
+	if strings.Contains(htmlOut, "<b>with care</b>") {
+		t.Error("other instructions not HTML-escaped")
+	}
+}
+
+// --- snapshotFormatDate fallback ---
+
+func TestSnapshotFormatDateFallback(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"2026-03-05", "Mar 5, 2026"},
+		{"2026-03-05T14:30:00", "Mar 5, 2026"},
+		{"", "—"},
+		{"not-a-date", "not-a-date"},
+		// Malformed input must not carry markup into HTML call sites.
+		{`<img src=x onerror=alert(1)>`, "&lt;img src=x onerror=alert(1)&gt;"},
+	}
+	for _, tt := range tests {
+		got := snapshotFormatDate(tt.in)
+		if got != tt.want {
+			t.Errorf("snapshotFormatDate(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+		if strings.ContainsAny(got, "<>") {
+			t.Errorf("snapshotFormatDate(%q) = %q contains raw angle brackets", tt.in, got)
 		}
 	}
 }
