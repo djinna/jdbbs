@@ -22,6 +22,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -119,7 +120,30 @@ func Start(opts Options) (*Instance, error) {
 		}
 	}()
 
+	// Surface missing manuscript-pipeline tools now, at startup, instead of as
+	// mysterious mid-conversion 500s. Never fatal: everything else still works.
+	warnMissingPipelineDeps()
+
 	return &Instance{URL: frontURL, DataDir: dataDir, DBPath: dbPath, front: front, internal: internal}, nil
+}
+
+// warnMissingPipelineDeps logs one clear WARNING per missing external tool the
+// manuscript pipeline shells out to. Feature impact per tool:
+//   - pandoc:      DOCX→EPUB and DOCX→print-PDF conversion
+//   - typst:       print-PDF typesetting
+//   - python-docx: preflight, corrections-apply, Word-template generation
+func warnMissingPipelineDeps() {
+	if _, err := exec.LookPath("pandoc"); err != nil {
+		log.Printf("localrun: WARNING: pandoc not found on PATH — EPUB and print-PDF conversion will fail (brew install pandoc)")
+	}
+	if _, err := exec.LookPath("typst"); err != nil {
+		log.Printf("localrun: WARNING: typst not found on PATH — print-PDF typesetting will fail (brew install typst)")
+	}
+	if _, err := exec.LookPath("python3"); err != nil {
+		log.Printf("localrun: WARNING: python3 not found on PATH — preflight, corrections-apply, and Word-template generation will fail")
+	} else if err := exec.Command("python3", "-c", "import docx").Run(); err != nil {
+		log.Printf("localrun: WARNING: python-docx not importable by python3 — preflight, corrections-apply, and Word-template generation will fail (python3 -m pip install python-docx)")
+	}
 }
 
 // Shutdown gracefully stops both servers.
