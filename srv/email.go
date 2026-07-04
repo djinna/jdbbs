@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -287,8 +289,8 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 	if title == "" {
 		title = "Untitled"
 	}
-	b.WriteString(fmt.Sprintf(`<h1>📋 Manuscript Transmittal: %s</h1>`, title))
-	b.WriteString(fmt.Sprintf(`<span class="badge %s">%s</span>`, badgeClass, strings.ToUpper(status)))
+	b.WriteString(fmt.Sprintf(`<h1>📋 Manuscript Transmittal: %s</h1>`, html.EscapeString(title)))
+	b.WriteString(fmt.Sprintf(`<span class="badge %s">%s</span>`, badgeClass, html.EscapeString(strings.ToUpper(status))))
 
 	// Book info table
 	b.WriteString(`<h2>Book Information</h2><table>`)
@@ -303,7 +305,7 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 	}
 	for _, r := range rows {
 		if r[1] != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td><strong>%s</strong></td></tr>`, r[0], r[1]))
+			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td><strong>%s</strong></td></tr>`, r[0], html.EscapeString(r[1])))
 		}
 	}
 	b.WriteString(`</table>`)
@@ -319,7 +321,7 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 	}
 	for _, r := range prodRows {
 		if r[1] != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td><strong>%s</strong></td></tr>`, r[0], r[1]))
+			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td><strong>%s</strong></td></tr>`, r[0], html.EscapeString(r[1])))
 		}
 	}
 	b.WriteString(`</table>`)
@@ -335,9 +337,9 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 		}
 		extra := ""
 		if item.ToComeWhen != "" {
-			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, item.ToComeWhen)
+			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, html.EscapeString(item.ToComeWhen))
 		}
-		b.WriteString(fmt.Sprintf(`<div class="check %s">%s %s%s</div>`, cls, sym, item.Component, extra))
+		b.WriteString(fmt.Sprintf(`<div class="check %s">%s %s%s</div>`, cls, sym, html.EscapeString(item.Component), extra))
 	}
 	for _, item := range data.Backmatter {
 		cls := "check-no"
@@ -348,9 +350,9 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 		}
 		extra := ""
 		if item.ToComeWhen != "" {
-			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, item.ToComeWhen)
+			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, html.EscapeString(item.ToComeWhen))
 		}
-		b.WriteString(fmt.Sprintf(`<div class="check %s">%s %s%s</div>`, cls, sym, item.Component, extra))
+		b.WriteString(fmt.Sprintf(`<div class="check %s">%s %s%s</div>`, cls, sym, html.EscapeString(item.Component), extra))
 	}
 
 	// Footer
@@ -362,6 +364,67 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 	b.WriteString(`</div></body></html>`)
 
 	return b.String()
+}
+
+// ─── Manual-send guardrails (H8) ───
+
+// maxEmailRecipients caps how many addresses a single manual send may target,
+// preventing the endpoints from being abused as a spam relay.
+const maxEmailRecipients = 10
+
+// Manual sends are rate limited to emailSendLimit per key per emailSendWindow.
+const (
+	emailSendLimit  = 5
+	emailSendWindow = time.Hour
+)
+
+// emailRateLimiter throttles the manual email-send handlers, keyed by project
+// id or client slug. Modeled on transmittalNotifier.
+type emailRateLimiter struct {
+	mu   sync.Mutex
+	hits map[string][]time.Time // key -> recent send timestamps
+}
+
+var emailLimiter = &emailRateLimiter{hits: make(map[string][]time.Time)}
+
+// allow records a send attempt for key and reports whether it stays within the
+// rate limit. A false return means the caller MUST reject with 429.
+func (l *emailRateLimiter) allow(key string) bool {
+	now := time.Now()
+	cutoff := now.Add(-emailSendWindow)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	// Keep only timestamps inside the window (in-place filter).
+	recent := l.hits[key][:0]
+	for _, t := range l.hits[key] {
+		if t.After(cutoff) {
+			recent = append(recent, t)
+		}
+	}
+	if len(recent) >= emailSendLimit {
+		l.hits[key] = recent
+		return false
+	}
+	l.hits[key] = append(recent, now)
+	return true
+}
+
+// enforceEmailSendLimits applies the recipient cap and per-key rate limit to a
+// manual email send. It writes a JSON error and returns false when the request
+// must be rejected (400 for too many recipients, 429 when rate limited); a true
+// return consumes one send slot for key.
+func enforceEmailSendLimits(w http.ResponseWriter, key string, recipients []string) bool {
+	if len(recipients) > maxEmailRecipients {
+		jsonErr(w, fmt.Sprintf("too many recipients (max %d)", maxEmailRecipients), 400)
+		return false
+	}
+	if !emailLimiter.allow(key) {
+		jsonErr(w, fmt.Sprintf("rate limit exceeded: at most %d sends per hour", emailSendLimit), 429)
+		return false
+	}
+	return true
 }
 
 // ─── HTTP handler ───
@@ -400,6 +463,10 @@ func (s *Server) handleSendTransmittalEmail(w http.ResponseWriter, r *http.Reque
 			jsonErr(w, fmt.Sprintf("invalid email: %s", addr), 400)
 			return
 		}
+	}
+
+	if !enforceEmailSendLimits(w, fmt.Sprintf("project:%d", pid), body.Recipients) {
+		return
 	}
 
 	// Load transmittal data

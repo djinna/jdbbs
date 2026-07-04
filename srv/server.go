@@ -112,6 +112,16 @@ func (s *Server) Handler() http.Handler {
 	// Public landing summary (non-sensitive aggregate counts)
 	mux.HandleFunc("GET /api/public/summary", s.handlePublicSummary)
 
+	// Well-known paths that must not fall through to the SPA catch-all (which
+	// would otherwise return 200 HTML to crawlers / uptime probes).
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/favicon.svg", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte("User-agent: *\nDisallow: /admin/\nDisallow: /api/\n"))
+	})
+
 	// Admin dashboard
 	mux.HandleFunc("GET /admin/", s.handleAdminDashboard)
 	mux.HandleFunc("GET /api/admin/projects", s.handleAdminProjectList)
@@ -332,9 +342,15 @@ func (s *Server) serveIndex(w http.ResponseWriter) {
 // No identifying info is exposed.
 func (s *Server) handlePublicSummary(w http.ResponseWriter, r *http.Request) {
 	var projectsActive, projectsTotal, clients int
-	_ = s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM projects WHERE COALESCE(archived,0)=0`).Scan(&projectsActive)
-	_ = s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM projects`).Scan(&projectsTotal)
-	_ = s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM clients`).Scan(&clients)
+	if err := s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM projects WHERE archived_at IS NULL`).Scan(&projectsActive); err != nil {
+		slog.Error("public summary: active count", "err", err)
+	}
+	if err := s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM projects`).Scan(&projectsTotal); err != nil {
+		slog.Error("public summary: total count", "err", err)
+	}
+	if err := s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM clients`).Scan(&clients); err != nil {
+		slog.Error("public summary: client count", "err", err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "public, max-age=60")
 	json.NewEncoder(w).Encode(map[string]int{
@@ -485,6 +501,14 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	q := dbgen.New(tx)
+	// Auto-create the client row for a brand-new slug so the project is not
+	// orphaned (otherwise the portal 404s and the client is invisible in admin).
+	if _, err := tx.ExecContext(r.Context(),
+		`INSERT OR IGNORE INTO clients (slug, name, password_hash) VALUES (?, ?, '')`,
+		body.ClientSlug, body.ClientSlug); err != nil {
+		jsonErr(w, "ensure client: "+err.Error(), 500)
+		return
+	}
 	p, err := q.CreateProject(r.Context(), dbgen.CreateProjectParams{
 		Name:        body.Name,
 		StartDate:   body.StartDate,

@@ -216,6 +216,7 @@ html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
 .book-title { font-size: 0.95rem; color: var(--text); }
 .book-author { font-size: 0.8rem; color: var(--text-secondary); }
 .book-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+.book-error { font-size: 0.72rem; color: var(--red); margin-top: 0.25rem; white-space: pre-wrap; word-break: break-word; }
 .book-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .book-actions a, .book-actions button { font-size: 0.78rem; padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
 .book-actions a:hover, .book-actions button:hover { background: var(--progress-bg); }
@@ -223,6 +224,8 @@ html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
 .book-actions .dl-epub { color: var(--accent); border-color: var(--accent); }
 .book-actions .del { color: var(--red); border-color: transparent; }
 .book-actions .del:hover { border-color: var(--red); }
+.book-actions .convert { color: var(--accent); border-color: var(--accent); }
+.book-actions .retry { color: var(--yellow); border-color: var(--yellow); }
 .book-project-link { flex-shrink: 0; }
 .book-project-sel { font-size: 0.72rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; max-width: 140px; cursor: pointer; }
 .book-project-sel:focus { outline: none; border-color: var(--accent); }
@@ -856,6 +859,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
             <div style="display:flex;gap:0.3rem">
               <button class="btn btn-sm" id="corr-save">Save</button>
               <button class="btn btn-sm btn-secondary" id="corr-cancel">Cancel</button>
+              <span id="corr-error" style="color:var(--red);font-size:0.75rem;align-self:center"></span>
             </div>
           </div>
         </div>
@@ -1023,8 +1027,8 @@ async function loadProjects() {
   $loading.textContent = 'Loading…';
   try {
     const r = await fetch('/api/admin/projects');
-    if (r.status === 403) {
-      $loading.innerHTML = `Forbidden — exe.dev login required. <a href="${adminBaseURL()}" style="color:var(--accent)">Go to home</a>`;
+    if (!r.ok) {
+      $loading.innerHTML = `Login required — your exe.dev session may have expired. <a href="${adminBaseURL()}" style="color:var(--accent)">Go to home</a>`;
       return;
     }
     const projects = await r.json();
@@ -1607,6 +1611,12 @@ function renderBooks(books) {
       actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/pdf`)}" class="dl-pdf">PDF</a>`;
       actions += `<a href="${absoluteURL(`/api/books/${b.ID}/download/epub`)}" class="dl-epub" title="Download EPUB (generate first if needed)" onclick="event.preventDefault(); downloadOrGenerateEPUB(${b.ID})">EPUB</a>`;
     }
+    if (b.Status === 'uploaded') {
+      actions += `<button class="convert" onclick="startConvert(${b.ID})">Convert</button>`;
+    }
+    if (b.Status === 'error') {
+      actions += `<button class="retry" onclick="retryConvert(${b.ID})">Retry</button>`;
+    }
     actions += `<button class="del" onclick="deleteBook(${b.ID})">Delete</button>`;
 
     return `<div class="book">
@@ -1614,6 +1624,7 @@ function renderBooks(books) {
         <div class="book-title">${esc(b.Title)}</div>
         <div class="book-author">${esc(b.Author)}${b.Series ? ' \u00b7 ' + esc(b.Series) : ''}</div>
         <div class="book-meta">${esc(b.SourceFilename)} \u00b7 ${ago}</div>
+        ${b.Status === 'error' && b.ErrorMsg ? `<div class="book-error">${esc(b.ErrorMsg)}</div>` : ''}
       </div>
       <div class="book-project-link">
         <select class="book-project-sel" data-book-id="${b.ID}" onchange="linkBookToProject(${b.ID}, this.value)" title="Link to project">${projectOpts}</select>
@@ -2506,14 +2517,22 @@ function tsRenderCustomStyles() {
       const oldTypst = style.typst || '';
       const oldSuggested = tsDefaultCustomStyleTypstForPreset(oldName, oldType, oldPreset);
       tsSpec.custom_styles[idx][el.dataset.field] = el.value;
+      const row = el.closest('.ts-style-row');
       if (el.dataset.field === 'name') {
-        if (!style.word_style || style.word_style === oldName) style.word_style = el.value;
+        if (!style.word_style || style.word_style === oldName) {
+          style.word_style = el.value;
+          // Reflect the synced Word style in place — never rebuild inside an input handler.
+          const wsInput = row && row.querySelector('input[data-field="word_style"]');
+          if (wsInput && wsInput !== el && document.activeElement !== wsInput) wsInput.value = el.value;
+        }
       }
       if (el.dataset.field === 'name' || el.dataset.field === 'type') {
         const nextName = tsSpec.custom_styles[idx].name || '';
         const nextType = tsSpec.custom_styles[idx].type || 'paragraph';
         if (!tsSpec.custom_styles[idx].preset || tsSpec.custom_styles[idx].preset === oldPreset) {
           tsSpec.custom_styles[idx].preset = tsDefaultCustomStylePreset(nextName, nextType);
+          const presetSel = row && row.querySelector('select[data-field="preset"]');
+          if (presetSel) presetSel.value = tsSpec.custom_styles[idx].preset;
         }
       }
       if (el.dataset.field === 'name' || el.dataset.field === 'type' || el.dataset.field === 'preset') {
@@ -2521,9 +2540,16 @@ function tsRenderCustomStyles() {
         const nextType = tsSpec.custom_styles[idx].type || 'paragraph';
         const nextPreset = tsSpec.custom_styles[idx].preset || tsDefaultCustomStylePreset(nextName, nextType);
         const nextSuggested = tsDefaultCustomStyleTypstForPreset(nextName, nextType, nextPreset);
+        // Update only this row's suggestion label/field in place — a full container
+        // rebuild from an input handler destroys focus on every keystroke.
+        if (row) {
+          const label = row.querySelector('.ts-style-typst-head span');
+          if (label) label.textContent = tsSuggestedTypstLabel(nextName, nextType, nextPreset);
+        }
         if (!oldTypst.trim() || oldTypst === oldSuggested) {
           tsSpec.custom_styles[idx].typst = nextSuggested;
-          tsRenderCustomStyles();
+          const typstArea = row && row.querySelector('textarea[data-field="typst"]');
+          if (typstArea && document.activeElement !== typstArea) typstArea.value = nextSuggested;
         }
       }
       tsMarkDirty();
@@ -3223,11 +3249,16 @@ function corrRender() {
       const current = el.textContent.trim();
       const next = current === 'pending' ? 'applied' : current === 'applied' ? 'skipped' : 'pending';
       try {
-        await fetch(`/api/corrections/${id}/status`, {
+        const res = await fetch(`/api/corrections/${id}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: next }),
         });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          alert('Failed to update status: ' + (json.error || res.statusText));
+          return;
+        }
         corrLoad();
       } catch(e) { console.error(e); }
     });
@@ -3240,7 +3271,12 @@ function corrRender() {
       const pid = tsProject.value;
       if (!pid || !confirm('Delete this correction?')) return;
       try {
-        await fetch(`/api/projects/${pid}/corrections/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/projects/${pid}/corrections/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          alert('Failed to delete correction: ' + (json.error || res.statusText));
+          return;
+        }
         corrLoad();
       } catch(e) { console.error(e); }
     });
@@ -3259,6 +3295,7 @@ document.getElementById('corr-cancel').addEventListener('click', () => {
   document.getElementById('corr-replace').value = '';
   document.getElementById('corr-chapter').value = '';
   document.getElementById('corr-note').value = '';
+  document.getElementById('corr-error').textContent = '';
 });
 
 document.getElementById('corr-save').addEventListener('click', async () => {
@@ -3269,12 +3306,19 @@ document.getElementById('corr-save').addEventListener('click', async () => {
   const chapter = document.getElementById('corr-chapter').value.trim();
   const note = document.getElementById('corr-note').value.trim();
   if (!find) { alert('Find text is required'); return; }
+  const errEl = document.getElementById('corr-error');
+  errEl.textContent = '';
   try {
-    await fetch(`/api/projects/${pid}/corrections`, {
+    const res = await fetch(`/api/projects/${pid}/corrections`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ find_text: find, replace_text: replace, chapter: chapter || undefined, note: note || undefined }),
     });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      errEl.textContent = json.error || ('Save failed (' + res.status + ')');
+      return;
+    }
     document.getElementById('corr-add-form').style.display = 'none';
     document.getElementById('corr-find').value = '';
     document.getElementById('corr-replace').value = '';
@@ -3282,7 +3326,7 @@ document.getElementById('corr-save').addEventListener('click', async () => {
     document.getElementById('corr-note').value = '';
     corrLoad();
   } catch(e) {
-    alert('Error saving correction: ' + e.message);
+    errEl.textContent = 'Error saving correction: ' + e.message;
   }
 });
 

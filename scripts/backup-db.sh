@@ -41,6 +41,17 @@ DRIFT_WARN_PCT="${DRIFT_WARN_PCT:-50}"    # warn only; legitimate growth can exc
 die() {
   local msg="$1"
   printf '[%s] FAIL: %s\n' "$(date -u +%FT%TZ)" "$msg" >&2
+  # Quarantine any partially-produced artifact. A backup that reaches die()
+  # has passed no (or not all) probes, so it must never remain as a valid
+  # prodcal-*.sqlite3.gz that sync-to-r2 / restore-drill / prune / backup_status
+  # would treat as the newest good backup. Renaming to .BAD drops it from the
+  # prodcal-*.sqlite3.gz glob; also clear the uncompressed intermediate.
+  if [ -n "${GZ_FILE:-}" ] && [ -f "$GZ_FILE" ]; then
+    mv -f "$GZ_FILE" "${GZ_FILE}.BAD" 2>/dev/null || true
+  fi
+  if [ -n "${BACKUP_FILE:-}" ] && [ -f "$BACKUP_FILE" ]; then
+    rm -f "$BACKUP_FILE" 2>/dev/null || true
+  fi
   mkdir -p "$(dirname "$FAILURE_FLAG")"
   {
     printf 'time:        %s\n' "$(date -u +%FT%TZ)"
@@ -93,7 +104,6 @@ log "wrote $GZ_FILE ($(numfmt --to=iec --suffix=B "$gz_bytes" 2>/dev/null || ech
 
 # ---------------- size probe ----------------
 if [ "$gz_bytes" -lt "$MIN_GZ_BYTES" ]; then
-  rm -f "$GZ_FILE"
   die "backup size ${gz_bytes}B < MIN_GZ_BYTES (${MIN_GZ_BYTES}B). The DB or its path is likely wrong."
 fi
 

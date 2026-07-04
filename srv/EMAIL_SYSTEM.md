@@ -18,7 +18,7 @@ All handlers check `s.Email == nil` and return 503 if not configured.
 
 ## Email Pathways
 
-There are **6 email pathways** in two categories:
+There are **5 email pathways** in two categories (4 manual + 1 automatic):
 
 ### Manual (button-triggered, user picks recipients)
 

@@ -44,6 +44,10 @@ func (s *Server) handleSendActivityEmail(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	if !enforceEmailSendLimits(w, fmt.Sprintf("project:%d", pid), body.Recipients) {
+		return
+	}
+
 	// Days parameter
 	days := 7
 	if d, err := strconv.Atoi(r.URL.Query().Get("days")); err == nil && d > 0 && d <= 90 {

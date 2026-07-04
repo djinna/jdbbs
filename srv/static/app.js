@@ -780,11 +780,14 @@ function showSettings() {
         el.remove(); render();
       }}, '📥 Import JSON'),
       h('div', { className: 'modal-actions' },
-        h('button', { className: 'btn btn-danger btn-sm', onClick: async () => {
-          if (!confirm('Delete this project and all tasks?')) return;
-          await api('/api/projects/' + state.projectId, { method: 'DELETE' });
-          state.view = 'projects'; el.remove(); loadProjects();
-        }}, 'Delete Project'),
+        h('button', { className: 'btn btn-sm', onClick: async () => {
+          if (!confirm('Archive this project? It will be hidden from the active list (you can restore it later).')) return;
+          try {
+            await api('/api/projects/' + state.projectId + '/archive', { method: 'POST' });
+            showToast('Project archived', 'saved');
+            state.view = 'projects'; el.remove(); loadProjects();
+          } catch (e) { alert('Error: ' + e.message); }
+        }}, 'Archive Project'),
         h('div', { style: 'flex:1' }),
         h('button', { className: 'btn', onClick: () => el.remove() }, 'Close'),
       ),
@@ -1332,8 +1335,25 @@ function renderJournalModal() {
       render();
       loadSiblingProjects();
     } catch (e) {
-      if (e.message === 'unauthorized') { state.view = 'auth'; render(); }
-      else { state.view = 'projects'; loadProjects(); }
+      if (e.message === 'unauthorized') { state.view = 'auth'; render(); return; }
+      // Stale/renamed slug (404) or other lookup failure: show a clear message
+      // instead of a blank page. Don't fall through to loadProjects() (admin-only,
+      // would 401/404 here and leave #app empty).
+      const app = $('#app');
+      if (app) {
+        app.innerHTML = '';
+        app.appendChild(
+          h('div', { className: 'empty-state' },
+            h('h3', null, 'Project not found'),
+            h('p', null, 'This project may have been renamed or moved, so this link is no longer valid.'),
+            h('div', { style: 'margin-top:16px;display:flex;gap:8px;justify-content:center' },
+              h('a', { href: '/' + state.pathClient + '/', className: 'btn btn-primary' }, 'Back to ' + state.pathClient + ' portal'),
+              h('a', { href: '/', className: 'btn' }, 'Home'),
+            ),
+          )
+        );
+        _applyTheme();
+      }
     }
   } else {
     loadProjects();

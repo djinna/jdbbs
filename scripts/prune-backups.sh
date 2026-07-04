@@ -12,10 +12,16 @@
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"
+# KEEP_RECENT is a LOCAL fast-restore cache size, NOT the retention policy.
+# Authoritative retention is owned by backup-db.sh (daily backups kept 30 days
+# + the first backup of each month indefinitely) and mirrored off-VM in R2.
+# This prune only trims the on-disk copy: 10 recent + monthly anchors is enough
+# for a quick local restore without pinning the full 30-day set to this VM.
 KEEP_RECENT="${KEEP_RECENT:-10}"
 KEEP_MONTHLY="${KEEP_MONTHLY:-1}"
 DRY_RUN="${DRY_RUN:-0}"
 LOCK_FILE="${BACKUP_DIR}/.prune-lock"
+FAILURE_FLAG="${BACKUP_DIR}/.LAST-FAILURE"
 
 log() { printf '[%s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "FAIL: $*" >&2; exit 1; }
@@ -23,10 +29,22 @@ die() { log "FAIL: $*" >&2; exit 1; }
 [ -d "$BACKUP_DIR" ] || die "backup dir not found: $BACKUP_DIR"
 [[ "$KEEP_RECENT" =~ ^[0-9]+$ ]] || die "KEEP_RECENT must be an integer"
 
+# Never prune during a backup failure streak. backup-db.sh drops a
+# .LAST-FAILURE sentinel when a run fails its probes; aging out the last
+# known-good local daily while fresh backups are broken could leave no local
+# restore point. Bail out cleanly until the next good backup clears the flag.
+if [ -f "$FAILURE_FLAG" ]; then
+  log "refusing to prune: $FAILURE_FLAG present (backup failure streak); leaving local backups intact"
+  exit 0
+fi
+
 exec 9>"$LOCK_FILE"
 flock -n 9 || die "another prune is already running (lock: $LOCK_FILE)"
 
-mapfile -t backups < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'prodcal-*.sqlite3.gz' -printf '%f\n' | sort)
+# Deletion candidates: ONLY auto-generated, timestamped backups
+# (prodcal-YYYYMMDD-HHMMSS.sqlite3.gz). Manual snapshots such as
+# prodcal-pre-migration.sqlite3.gz do not match this pattern and are never swept.
+mapfile -t backups < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'prodcal-*.sqlite3.gz' -printf '%f\n' | grep -E '^prodcal-[0-9]{8}-[0-9]{6}\.sqlite3\.gz$' | sort)
 if [ "${#backups[@]}" -eq 0 ]; then
   log "no prodcal backup files found in $BACKUP_DIR"
   exit 0

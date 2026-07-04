@@ -196,7 +196,7 @@ const $ = (s) => document.querySelector(s);
 const api = async (url, opts = {}) => {
   const r = await fetch(url, { headers: {'Content-Type':'application/json', ...opts.headers}, ...opts });
   const data = await r.json();
-  if (!r.ok) throw new Error(data.error || r.statusText);
+  if (!r.ok) { const err = new Error(data.error || r.statusText); err.status = r.status; throw err; }
   return data;
 };
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -320,6 +320,17 @@ function render() {
         window.location.href = 'mailto:j@djinna.com?subject=' + subject + '&body=' + body;
       });
     }
+  } else if (state.view === 'notfound') {
+    app.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'auth-box';
+    box.innerHTML = `
+      <h2>We don't recognize that client code</h2>
+      <p class="auth-sub">There's no portal at <code>/${esc(clientSlug)}/</code>. Double-check the link or client code you were given — a small typo is the usual cause.</p>
+      <div class="back-link"><a href="/">← Back to start</a></div>
+    `;
+    app.appendChild(box);
+    applyTheme(getTheme());
   } else if (state.view === 'portal') {
     app.innerHTML = '';
     const div = document.createElement('div');
@@ -340,7 +351,7 @@ function render() {
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-sm" id="new-project-btn" style="font-size:12px">New Project</button>
-          <button class="btn btn-sm" id="digest-btn" style="font-size:12px" title="Email weekly digest">Weekly Digest</button>
+          ${state.projects.length > 0 ? '<button class="btn btn-sm" id="digest-btn" style="font-size:12px" title="Email weekly digest">Weekly Digest</button>' : ''}
         </div>
       </div>
       <div class="stats-row" id="stats"></div>
@@ -356,7 +367,8 @@ function render() {
       state.projectCreate = { name: '', start_date: '', project_slug: '', error: '', saving: false };
       render();
     });
-    document.getElementById('digest-btn').addEventListener('click', () => { state.showDigestEmail = true; state.digestResult = null; render(); });
+    const digestBtn = document.getElementById('digest-btn');
+    if (digestBtn) digestBtn.addEventListener('click', () => { state.showDigestEmail = true; state.digestResult = null; render(); });
 
     // Stats cards
     const statsEl = div.querySelector('#stats');
@@ -924,6 +936,9 @@ async function boot() {
     if (e.message === 'unauthorized') {
       state.view = 'auth';
       state.client = state.client || {};
+    } else if (e.status === 404 || !state.client) {
+      state.view = 'notfound';
+      state.error = e.message;
     } else {
       state.view = 'portal';
       state.error = e.message;

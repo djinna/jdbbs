@@ -57,6 +57,10 @@ func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	if !enforceEmailSendLimits(w, "client:"+clientSlug, body.Recipients) {
+		return
+	}
+
 	now := time.Now()
 	days := 7
 	since := now.AddDate(0, 0, -days).Format("2006-01-02")

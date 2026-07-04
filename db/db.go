@@ -95,7 +95,7 @@ func RunMigrations(db *sql.DB) error {
 		if executed[n] {
 			continue
 		}
-		if err := executeMigration(db, m); err != nil {
+		if err := executeMigration(db, m, n); err != nil {
 			return fmt.Errorf("execute %s: %w", m, err)
 		}
 		slog.Info("db: applied migration", "file", m, "number", n)
@@ -103,13 +103,29 @@ func RunMigrations(db *sql.DB) error {
 	return nil
 }
 
-func executeMigration(db *sql.DB, filename string) error {
+func executeMigration(db *sql.DB, filename string, number int) error {
 	content, err := migrationFS.ReadFile("migrations/" + filename)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", filename, err)
 	}
-	if _, err := db.Exec(string(content)); err != nil {
+	// Run each migration in its own transaction so a mid-file failure rolls back
+	// cleanly and is never recorded as applied. Without this, a partial apply
+	// (e.g. a bare ALTER that half-ran) makes the re-run fail and bricks startup.
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin %s: %w", filename, err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(string(content)); err != nil {
 		return fmt.Errorf("exec %s: %w", filename, err)
 	}
-	return nil
+	// Record from the runner too (idempotent on the PK), so a file that omits its
+	// own INSERT is still tracked, and recording commits atomically with the DDL.
+	if _, err := tx.Exec(
+		`INSERT OR IGNORE INTO migrations (migration_number, migration_name) VALUES (?, ?)`,
+		number, filename,
+	); err != nil {
+		return fmt.Errorf("record %s: %w", filename, err)
+	}
+	return tx.Commit()
 }

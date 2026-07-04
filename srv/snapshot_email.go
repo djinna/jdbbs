@@ -44,6 +44,10 @@ func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
+	if !enforceEmailSendLimits(w, fmt.Sprintf("project:%d", pid), body.Recipients) {
+		return
+	}
+
 	// ── Load project ──
 	var projID int64
 	var projName, startDate, clientSlug, projectSlug string
