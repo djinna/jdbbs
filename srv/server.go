@@ -111,6 +111,7 @@ func (s *Server) Handler() http.Handler {
 
 	// Public landing summary (non-sensitive aggregate counts)
 	mux.HandleFunc("GET /api/public/summary", s.handlePublicSummary)
+	mux.HandleFunc("GET /api/public/config", s.handlePublicConfig)
 
 	// Well-known paths that must not fall through to the SPA catch-all (which
 	// would otherwise return 200 HTML to crawlers / uptime probes).
@@ -148,7 +149,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
 	mux.HandleFunc("GET /api/project-by-path/{client}/{project}", s.handleGetProjectByPath)
 
-	// Transmittal API
+	// Transmittal API.
+	// NB: {id} in the /api/transmittals/... routes is the PROJECT id, not a
+	// transmittal row id — a project has at most one transmittal, so every
+	// handler resolves it via projectIDFromPath. Kept as-is for URL stability.
 	mux.HandleFunc("GET /api/projects/{id}/transmittal", s.handleGetTransmittal)
 	mux.HandleFunc("PUT /api/projects/{id}/transmittal", s.handleUpdateTransmittal)
 	mux.HandleFunc("GET /api/transmittals/{id}/versions", s.handleListTransmittalVersions)
@@ -360,6 +364,19 @@ func (s *Server) handlePublicSummary(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handlePublicConfig exposes non-sensitive deployment config to client-facing
+// pages so they need no hardcoded prod URLs or addresses (keeps the local /
+// desktop-app deployments correct too).
+func (s *Server) handlePublicConfig(w http.ResponseWriter, r *http.Request) {
+	contact := strings.TrimSpace(os.Getenv("CONTACT_EMAIL"))
+	if contact == "" {
+		contact = "j@djinna.com"
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	json.NewEncoder(w).Encode(map[string]string{"contact_email": contact})
+}
+
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	var n int
 	err := s.DB.QueryRowContext(r.Context(), "SELECT 1").Scan(&n)
@@ -393,6 +410,11 @@ func jsonErr(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
+// isUniqueErr reports whether err is a SQLite UNIQUE-constraint violation.
+func isUniqueErr(err error) bool {
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), "unique")
 }
 
 func jsonOK(w http.ResponseWriter, v any) {
@@ -516,6 +538,10 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		ProjectSlug: body.ProjectSlug,
 	})
 	if err != nil {
+		if isUniqueErr(err) {
+			jsonErr(w, "a project with that client/project slug already exists", 409)
+			return
+		}
 		jsonErr(w, err.Error(), 500)
 		return
 	}
@@ -613,6 +639,10 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 		ClientSlug: body.ClientSlug, ProjectSlug: body.ProjectSlug,
 		ID: pid,
 	}); err != nil {
+		if isUniqueErr(err) {
+			jsonErr(w, "a project with that client/project slug already exists", 409)
+			return
+		}
 		jsonErr(w, err.Error(), 500)
 		return
 	}
@@ -1109,7 +1139,14 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	q := dbgen.New(s.DB)
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		jsonErr(w, "begin tx failed: "+err.Error(), 500)
+		return
+	}
+	defer tx.Rollback()
+
+	q := dbgen.New(tx)
 	srcProject, err := q.GetProject(r.Context(), srcID)
 	if err != nil {
 		jsonErr(w, "source project not found", 404)
@@ -1138,6 +1175,10 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 		ProjectSlug: body.ProjectSlug,
 	})
 	if err != nil {
+		if isUniqueErr(err) {
+			jsonErr(w, "a project with that client/project slug already exists", 409)
+			return
+		}
 		jsonErr(w, "create project: "+err.Error(), 500)
 		return
 	}
@@ -1149,8 +1190,9 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	copied := 0
 	for _, t := range tasks {
-		_, err := q.CreateTask(r.Context(), dbgen.CreateTaskParams{
+		if _, err := q.CreateTask(r.Context(), dbgen.CreateTaskParams{
 			ProjectID:    newProject.ID,
 			SortOrder:    t.SortOrder,
 			Assignee:     t.Assignee,
@@ -1170,14 +1212,21 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 			OrigBudget:   0, // Zero
 			CurrBudget:   0, // Zero
 			ActualBudget: 0, // Zero
-		})
-		if err != nil {
-			slog.Warn("duplicate task", "error", err, "task", t.Title)
+		}); err != nil {
+			// All-or-nothing: a failed task copy rolls back the whole duplicate.
+			jsonErr(w, "copy task "+strconv.Quote(t.Title)+": "+err.Error(), 500)
+			return
 		}
+		copied++
+	}
+
+	if err := tx.Commit(); err != nil {
+		jsonErr(w, "commit failed: "+err.Error(), 500)
+		return
 	}
 
 	jsonOK(w, map[string]any{
 		"project":      newProject,
-		"tasks_copied": len(tasks),
+		"tasks_copied": copied,
 	})
 }

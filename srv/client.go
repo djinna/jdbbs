@@ -294,6 +294,13 @@ func (s *Server) handleClientCreateProject(w http.ResponseWriter, r *http.Reques
 		jsonErr(w, "client login required", http.StatusUnauthorized)
 		return
 	}
+	if passwordHash == "" && r.Header.Get("X-ExeDev-UserID") == "" {
+		// A passwordless client has no gate at all, so portal project creation
+		// would be open to anyone with the URL. Only the admin may create
+		// projects for such clients (or set a client password first).
+		jsonErr(w, "project creation is disabled for this client — contact your production editor", http.StatusForbidden)
+		return
+	}
 
 	var body struct {
 		Name        string `json:"name"`

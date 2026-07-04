@@ -180,3 +180,50 @@ func TestAdminCreateProjectSeedsStandardWorkflow(t *testing.T) {
 		t.Fatalf("expected seeded printer task, got %v", tasks[23]["Title"])
 	}
 }
+
+// TestPortalCreateProjectPasswordlessClientAdminOnly: a passwordless client
+// (empty password_hash) has no auth gate, so portal project creation is
+// forbidden (403) for anonymous requests and creates nothing; the admin
+// header (X-ExeDev-UserID) is still allowed through and gets 201.
+func TestPortalCreateProjectPasswordlessClientAdminOnly(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	if _, err := s.DB.Exec(`INSERT INTO clients (slug, name, password_hash) VALUES ('nopw', 'No Password', '')`); err != nil {
+		t.Fatalf("seed passwordless client: %v", err)
+	}
+
+	resp := apiRequest(t, ts, "POST", "/api/clients/nopw/projects", map[string]string{
+		"name":         "Anon Project",
+		"project_slug": "anon-project",
+		"start_date":   "2025-05-01",
+	})
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("anonymous create for passwordless client: expected 403, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	if n := countRows(t, s, `SELECT COUNT(*) FROM projects WHERE client_slug = 'nopw'`); n != 0 {
+		t.Fatalf("403 must not create a project, found %d rows for client", n)
+	}
+
+	resp = apiRequestAdmin(t, ts, "POST", "/api/clients/nopw/projects", map[string]string{
+		"name":         "Admin Project",
+		"project_slug": "admin-project",
+		"start_date":   "2025-05-01",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("admin create for passwordless client: expected 201, got %d", resp.StatusCode)
+	}
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	if created["ProjectSlug"] != "admin-project" {
+		t.Errorf("expected created project slug \"admin-project\", got %v", created["ProjectSlug"])
+	}
+
+	resp = apiRequest(t, ts, "GET", "/api/project-by-path/nopw/admin-project", nil)
+	if resp.StatusCode != 200 {
+		t.Errorf("created project should resolve by path, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}
