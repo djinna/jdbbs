@@ -4,9 +4,7 @@
       "ID": "expire-prodcal-daily-db-backups-after-180-days",
       "Status": "Enabled",
       "Filter": {
-        "And": {
-          "Prefix": "db/prodcal-20"
-        }
+        "Prefix": "db/prodcal-20"
       },
       "Expiration": {
         "Days": 180

@@ -3,27 +3,44 @@
 #   git config core.hooksPath .githooks   (scripts/dev-setup.sh does this for you)
 #
 # Blocks a commit only on problems in the change being committed:
-#   1. staged Go files that aren't gofmt-clean  (scoped to staged files, never the
+#   1. staged shell scripts that fail shellcheck  (skipped with a notice if
+#      the tool isn't installed — scripts/dev-setup.sh installs it)
+#   2. staged Go files that aren't gofmt-clean  (scoped to staged files, never the
 #      whole tree — so pre-existing un-gofmt'd files elsewhere don't block you)
-#   2. a go vet failure in the module
+#   3. a go vet failure in the module
 # Bypass once: git commit --no-verify
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"   # arm64 + intel Homebrew
 
+# 1. shellcheck — only the staged .sh files (added/copied/modified); zsh
+#    scripts are skipped (shellcheck cannot parse zsh, e.g. scripts/jpull.sh).
+staged_sh=$(git diff --cached --name-only --diff-filter=ACM -- '*.sh' \
+  | while IFS= read -r f; do head -n1 "$f" | grep -q zsh || printf '%s\n' "$f"; done)
+if [ -n "$staged_sh" ]; then
+  if command -v shellcheck >/dev/null 2>&1; then
+    if ! printf '%s\n' "$staged_sh" | xargs shellcheck; then
+      echo "pre-commit: shellcheck failed on staged scripts (or bypass once: git commit --no-verify)"
+      exit 1
+    fi
+  else
+    echo "pre-commit: shellcheck not installed — skipping shell checks (scripts/dev-setup.sh installs it)"
+  fi
+fi
+
 command -v go >/dev/null 2>&1 || { echo "pre-commit: go not on PATH — skipping Go checks"; exit 0; }
 
-# 1. gofmt — only the staged .go files (added/copied/modified)
+# 2. gofmt — only the staged .go files (added/copied/modified)
 staged_go=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
 if [ -n "$staged_go" ]; then
-  unformatted=$(gofmt -l $staged_go 2>/dev/null)
+  unformatted=$(printf '%s\n' "$staged_go" | xargs gofmt -l 2>/dev/null)
   if [ -n "$unformatted" ]; then
     echo "pre-commit: gofmt needed on staged files:"
-    echo "$unformatted" | sed 's/^/  /'
+    while IFS= read -r f; do printf '  %s\n' "$f"; done <<< "$unformatted"
     echo "  fix: gofmt -w $unformatted && git add $unformatted"
     exit 1
   fi
 fi
 
-# 2. go vet — module-wide (correctness, not formatting; safe on un-gofmt'd trees)
+# 3. go vet — module-wide (correctness, not formatting; safe on un-gofmt'd trees)
 go vet ./... || { echo "pre-commit: go vet failed (or bypass once: git commit --no-verify)"; exit 1; }
 
-echo "pre-commit: gofmt(staged) + go vet clean"
+echo "pre-commit: shellcheck(staged) + gofmt(staged) + go vet clean"

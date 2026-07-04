@@ -6,6 +6,15 @@ build:
 clean:
 	rm -f prodcal
 
+stop:
+	sudo systemctl stop prodcal
+
+start:
+	sudo systemctl start prodcal
+
+restart:
+	sudo systemctl restart prodcal
+
 test:
 	go test ./...
 

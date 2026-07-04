@@ -49,7 +49,7 @@ if [ -z "$unfmt" ]; then
   echo "gofmt: clean"
 else
   echo "gofmt: unformatted files ->"
-  echo "$unfmt" | sed 's/^/  /'
+  while IFS= read -r f; do printf '  %s\n' "$f"; done <<< "$unfmt"
   echo "  fix: gofmt -w cmd srv db"
 fi
 

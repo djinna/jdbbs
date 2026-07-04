@@ -69,7 +69,7 @@ func (s *Server) collectBackupStatus() backupStatusResponse {
 		res.HealthLastOK = s["time"]
 	}
 
-	for _, fail := range []string{".LAST-FAILURE", ".LAST-R2-FAILURE", ".HEALTH-FAIL"} {
+	for _, fail := range []string{".LAST-FAILURE", ".LAST-R2-FAILURE", ".HEALTH-FAIL", ".LAST-DRILL-FAILURE", ".LAST-R2-DRILL-FAILURE", ".LAST-R2-MONTHLY-FAILURE"} {
 		if _, err := os.Stat(filepath.Join(backupDir, fail)); err == nil {
 			res.Problems = append(res.Problems, fail+" is present")
 		}
