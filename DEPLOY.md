@@ -5,7 +5,7 @@ Production Calendar + Manuscript Transmittal
 ## Current Setup (exe.dev)
 
 - **URL**: https://jdbbs.exe.xyz/
-- **Service**: systemd unit `srv` on port 8000
+- **Service**: systemd unit `prodcal.service` on port 8000 (unit file `prodcal.service` in the repo root)
 - **Database**: SQLite at `/home/exedev/prodcal/db.sqlite3` (WAL mode)
 - **Backups**: Daily at 3 AM to `~/backups/`, 7-day retention
 - **Binary**: `/home/exedev/prodcal/prodcal`
@@ -15,7 +15,7 @@ Production Calendar + Manuscript Transmittal
 ```bash
 cd /home/exedev/prodcal
 make build
-sudo systemctl restart srv
+sudo systemctl restart prodcal
 ```
 
 ## Database: Migrations
@@ -33,27 +33,35 @@ To add a new migration:
    INSERT OR IGNORE INTO migrations (migration_number, migration_name)
    VALUES (005, '005-description');
    ```
-3. Rebuild and restart: `make build && sudo systemctl restart srv`
+3. Rebuild and restart: `make build && sudo systemctl restart prodcal`
 
 ## Database: Seeding a New Project
+
+Admin-gated API calls need the exe.dev admin header. The proxy injects it for
+logged-in browser sessions, but curl from localhost on the VM must pass it
+explicitly — without `-H 'X-ExeDev-UserID: admin'` these calls return 401.
+(Easier alternative: create and seed projects through the admin UI at `/admin/`.)
 
 1. Create the project via the admin UI or API:
    ```bash
    curl -X POST http://localhost:8000/api/projects \
+     -H 'X-ExeDev-UserID: admin' \
      -H 'Content-Type: application/json' \
      -d '{"name": "My Book", "client_slug": "client", "project_slug": "book", "start_date": "2026-01-01"}'
    ```
 
-2. Seed tasks from `seed_data.json`:
+2. Seed tasks from a JSON task list (`{"tasks": [...], "start_date": "..."}`):
    ```bash
    curl -X POST http://localhost:8000/api/projects/1/seed \
+     -H 'X-ExeDev-UserID: admin' \
      -H 'Content-Type: application/json' \
-     -d @seed_data.json
+     -d @tasks.json
    ```
 
 3. Set the project password:
    ```bash
    curl -X POST http://localhost:8000/api/projects/1/auth \
+     -H 'X-ExeDev-UserID: admin' \
      -H 'Content-Type: application/json' \
      -d '{"password": "mypassword"}'
    ```
@@ -84,6 +92,14 @@ sudo systemctl start prodcal.service
 curl -s http://localhost:8000/healthz   # expect {"status":"ok"}
 ```
 
+## Database: R2 Restore Drill
+
+`scripts/r2-restore-drill.sh` exercises the disaster-recovery path end to end:
+it downloads the latest backup from R2 and integrity-checks it. Run it monthly
+via cron (suggested: `30 4 1 * *`). A failure writes a `.LAST-R2-DRILL-FAILURE`
+sentinel in the backup dir, which surfaces
+as a problem in the admin backup-status endpoint (`/api/admin/backup-status`).
+
 ## Health Check
 
 ```bash
@@ -95,18 +111,6 @@ curl http://localhost:8000/healthz
 
 Accessible at `/admin/` — requires exe.dev login (X-ExeDev-UserID header).
 Shows all projects with task completion, auth status, transmittal status.
-
-## Docker (Portable)
-
-Not used in production currently, but available for portability:
-
-```bash
-docker build -t prodcal .
-docker run -p 8000:8000 -v prodcal-data:/app/data prodcal
-```
-
-Note: When running in Docker, the DB path should be under `/app/data/`
-for persistence. The working directory defaults to `/app`.
 
 ## Architecture
 
@@ -121,12 +125,12 @@ db/migrations/      ← sequential SQL migrations
 db/queries/         ← sqlc query definitions
 db/dbgen/           ← sqlc generated code
 scripts/backup-db.sh ← daily backup script
-seed_data.json      ← template task data
+scripts/sync-to-r2.sh ← offsite R2 sync
 ```
 
 ## Monitoring
 
-- **Logs**: `journalctl -u srv -f`
+- **Logs**: `journalctl -u prodcal -f`
 - **Health**: `curl localhost:8000/healthz`
 - **Backups**: `ls -la ~/backups/`
 - **Cron log**: `cat ~/backups/backup.log`

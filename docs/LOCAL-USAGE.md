@@ -75,6 +75,77 @@ On startup the launcher:
 
 Env vars set the defaults; an explicit flag on the command line wins.
 
+## Manuscript pipeline dependencies (DOCX → EPUB / print PDF)
+
+The operator workflow (upload DOCX → convert → print PDF, generate EPUB, run
+preflight, apply corrections, generate Word templates) shells out to external
+tools. What each feature needs:
+
+| Feature | Tool required |
+|---------|---------------|
+| DOCX/MD → EPUB | `pandoc` |
+| DOCX → print PDF | `pandoc` + `typst` + the fonts in `typesetting/fonts/` |
+| Preflight, corrections-apply, Word-template generation | `python3` + the `python-docx` package |
+
+Install whatever is missing:
+
+```sh
+brew install pandoc typst
+# python-docx must live in the SAME python3 the server invokes (it calls a bare `python3`):
+/opt/homebrew/bin/python3 -m pip install python-docx   # add --break-system-packages if Homebrew's python refuses
+```
+
+Without `python-docx`, EPUB and print-PDF conversion still work, but preflight,
+corrections-apply, and Word-template generation return 500s. The launcher does
+**not** hard-fail on a missing tool — a conversion simply errors when you invoke it.
+
+**Licensed fonts** (`plantin-mt-pro`, `proxima-nova`) are gitignored and live under
+`typesetting/fonts/licensed/`; they must be present locally for print parity. Treat
+the **VM as canonical** for final print-ready output — local `typst`/`pandoc`
+versions can drift from it.
+
+### Where ProdCal looks for `typesetting/`
+
+`srv/books.go` `typesettingRoot()` resolves the typesetting dir (fonts + conversion
+scripts) in order: `JDBBS_TYPESETTING_DIR` env → `./typesetting` relative to the
+working dir → walk up to a sibling `typesetting/`.
+
+- Running `./scripts/run-local.sh` or `./prodcal-local` **from the repo root** finds
+  `./typesetting` automatically — nothing to set.
+- A packaged double-click app (working dir `/`) will **not** find it — set
+  `JDBBS_TYPESETTING_DIR=/absolute/path/to/jdbbs/typesetting` in the app's launch
+  environment (e.g. the `.app`'s `Info.plist`).
+
+## Desktop app — double-clickable ProdCal.app
+
+`cmd/prodcal-app` (darwin-only) wraps the same launcher core in a native WebKit
+window. Two ways to run it:
+
+```sh
+# From a terminal in the repo (finds ./typesetting via cwd):
+go build -o prodcal-app ./cmd/prodcal-app && ./prodcal-app
+
+# As a real double-clickable app bundle:
+./scripts/build-mac-app.sh
+open ProdCal.app        # or double-click in Finder
+```
+
+`scripts/build-mac-app.sh` writes `./ProdCal.app` (gitignored) with an
+`Info.plist` whose `LSEnvironment` bakes in:
+
+- `JDBBS_TYPESETTING_DIR` → this repo's absolute `typesetting/` path, so the
+  Finder launch (cwd `/`) still finds fonts + conversion scripts;
+- `PATH` including `/opt/homebrew/bin`, so `pandoc`/`typst`/`python3` resolve
+  from a Finder launch (Finder apps otherwise get a minimal PATH).
+
+Rebuild the bundle after `git pull` (it embeds the binary), and re-run the
+script if you move the repo (the baked typesetting path is absolute). On
+startup the launcher logs a `WARNING` line for each missing pipeline tool
+(pandoc, typst, python-docx) — check the log if a feature 500s. The app uses
+the same data dir as `prodcal-local` (`~/Library/Application Support/ProdCal`),
+so the window and the headless service see the same projects (don't run both
+against the same data dir at once; SQLite is single-writer).
+
 ## Persistence with launchd (auto-start / keep-alive)
 
 To keep ProdCal running in the background across logins, install the LaunchAgent

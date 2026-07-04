@@ -72,37 +72,37 @@ govulncheck (run by Main): **GO-2026-5039** (`net/textproto`) and **GO-2026-5037
 
 ---
 
-## 🟢 QOL — high-value workflow wins (post-launch OK)
+## 🟢 QOL — high-value workflow wins — ✅ ALL RESOLVED 2026-07-04
 
-**Top 5 operator-daily wins (AdminWorkflowUX ranking):** (1) fix custom-styles focus loss [H10]; (2) flush-or-confirm spec autosave on project switch [B4]; (3) Convert/Retry in Files tab [H9]; (4) **one toast system on the admin dashboard** — `showToast` (`app.js:38-51`, the d4bb543/24dea1b work) exists **only in the calendar SPA**; `admin.html` has none, so archive/restore/upload/link/client-create are silently confirmed or use `alert()`; (5) auto-create client + friendly 409s [H13].
+**Top 5 operator-daily wins (AdminWorkflowUX ranking):** (1) custom-styles focus loss [H10, fixed earlier]; (2) spec autosave flush [B4, fixed earlier]; (3) Convert/Retry in Files tab [H9, fixed earlier]; (4) ✅ **one toast system on the admin dashboard** — `showToast` ported into `admin.html` (inline script + CSS); every routine success/failure `alert()` replaced with toasts, silent successes now confirmed (archive/restore/upload/link/client-create/passwords/corrections); `confirm()` kept only for genuinely destructive decisions; (5) auto-create client [H13, fixed earlier] + ✅ friendly 409s (below).
 
-- Backup "ACTION NEEDED" status is buried in the footer colophon (`admin.html:875`) — mirror a red indicator into the header. — Admin/Data
-- Upload success message erased in the same tick (`admin.html:1544/1517`). — Admin
-- All modals close on backdrop click; no `beforeunload` anywhere → unsaved-changes loss. — Admin
-- Slug collisions surface as raw `UNIQUE constraint failed…` SQLite errors (`server.go:459/553`); map to 409 (pattern exists at `admin.go:214`). — Admin/Data
-- 30 s full dashboard refresh re-renders the list mid-interaction (`admin.html:3304`). — Admin
-- `handleDuplicateProject` is a multi-statement write with **no transaction**; `tasks_copied` reports source count, not successes (`server.go:1024-1125`). — Data
-- Transmittal write paths race (read-snapshot-write, no tx); version-insert errors silently discarded; `transmittal_versions` grows unbounded (`transmittal.go`). — Data
-- Restore-drill & monthly-anchor failures are invisible to monitoring (`.LAST-DRILL-FAILURE` / `.LAST-R2-MONTHLY-FAILURE` unread); **R2 disaster-restore path is never drilled**. — Data
-- Compiled PDF/EPUB blobs stored **twice** (`books.{pdf,epub}_data` AND `book_outputs`), inflating every backup. — Data
-- Random typeface on every page load (landing/client/transmittal/app all pick a random font, incl. Menlo) — brand roulette; font never persisted. — ClientPortal
-- Three inconsistent password screens; transmittal/calendar gates use `alert()` and drop the "forgot" affordance. — ClientPortal
-- Hardcoded prod URLs / personal emails in client-facing pages (`client.html:307` Back → `https://jdbbs.exe.xyz/`; footer Admin → absolute prod login; `jdbb@agentmail.to`/`j@djinna.com` hardcoded). **Also breaks the local/desktop-app case.** — ClientPortal
-- Passwordless clients: anyone can create projects (and, once email is live, send mail) — `client.go:246`. — ClientPortal/Email
-- Email: no Reply-To / display name / List-Unsubscribe; transmittal HTML drops sections the text version has and uses a `<style>` block Gmail strips; 500s forward raw AgentMail error bodies to end users; `snapshotFormatDate` returns unvalidated input raw (secondary injection sink). — Email
-- Docs/ops: `README.md` is unmodified "Go Shelley Template" boilerplate; `.githooks/pre-commit` never runs shellcheck though `dev-setup.sh` requires it; `Makefile` declares phantom `stop/start/restart` targets; `.dockerignore` misses `scratch/`+`reference/` (MBs). — Tests
-- Mobile (390×844): `client.html .dash-header` no-wrap flex + fixed `.theme-bar` likely overlap; only one narrow-viewport rule in `style.css`. *(Needs a visual pass.)* — ClientPortal
+- ✅ Backup "ACTION NEEDED" mirrored into the admin header: red `.backup-alert` badge shown when `/api/admin/backup-status` is not ok (problems in tooltip; click scrolls to footer detail).
+- ✅ Upload success message no longer erased in the same tick — success is a toast that survives the form reset.
+- ✅ Modals with typed input no longer close on bare backdrop click (confirm-if-dirty); `beforeunload` warns on dirty modal forms or unsaved spec (`tsDirty`).
+- ✅ Slug collisions → 409 `"a project with that client/project slug already exists"` via `isUniqueErr` in create/update/duplicate (`server.go`); covered by `TestCreateProjectSlugCollision409` / `TestUpdateProjectSlugCollision409`.
+- ✅ 30 s dashboard refresh skips the list re-render while a modal is open or a form control is focused (health/backup polls still run).
+- ✅ `handleDuplicateProject` wrapped in one transaction; any task-copy failure rolls back the whole duplicate; `tasks_copied` = rows actually inserted (`TestDuplicateProjectReportsTasksCopied`, `TestDuplicateProjectSlugCollisionRollsBack`).
+- ✅ Transmittal update/restore/duplicate each run in a single tx; version-insert errors now fail the request (500 + rollback); `transmittal_versions` capped at 50 per transmittal, pruned in-tx (`TestTransmittalVersionCapEnforced`, `TestTransmittalVersionInsertFailureFailsUpdate`).
+- ✅ `.LAST-DRILL-FAILURE` / `.LAST-R2-MONTHLY-FAILURE` / `.LAST-R2-DRILL-FAILURE` now surface in `/api/admin/backup-status` problems (and the new admin header badge); **R2 restore path now drilled** by new `scripts/r2-restore-drill.sh` (newest R2 object → gunzip → integrity_check → sentinel; monthly cron documented in DEPLOY.md).
+- ✅ Blob double-storage removed: migration 018 backfills `books.pdf_data`/`epub_data` into `book_outputs` then drops the columns; pipelines write once (`CreateBookOutput`), downloads serve the newest output row. Upgrade covered by `TestBlobDedupeMigrationBackfill`; fresh boot 001–018 verified.
+- ✅ Font persisted: first visit still picks a random typeface, then it sticks — `{font, dark}` in `prodcal-theme-v1` shared across landing/portal/calendar/transmittal.
+- ✅ Password screens unified on the portal-gate pattern (same card/wording, inline "Invalid password", forgot-mailto kept, no `alert()`).
+- ✅ Hardcoded prod URLs/emails removed from client-facing pages: relative `/` and `/admin/` links (also fixes the desktop app); human contact fetched from new `GET /api/public/config` (`CONTACT_EMAIL` env, default j@djinna.com) with hardcoded fallback; `jdbb@agentmail.to` archive recipient intentionally kept (system address). Zero `jdbbs.exe.xyz` occurrences remain in static files.
+- ✅ Passwordless clients: portal project creation now 403s unless the caller is admin (`TestPortalCreateProjectPasswordlessClientAdminOnly`); protected-client + cookie flow unchanged.
+- ✅ Email: Reply-To (`PRODCAL_MAIL_REPLY_TO`, default j@djinna.com) + From display name (`PRODCAL_MAIL_FROM_NAME`, default ProdCal, via AgentMail headers map) on all pathways; digest gets `List-Unsubscribe` header + footer line; transmittal HTML brought to text parity with inline styles (Gmail-safe), escaping preserved; AgentMail error bodies logged server-side, callers get generic "email send failed"; `snapshotFormatDate` escapes unparseable input (`TestTransmittalTextHTMLParity`, `TestSnapshotFormatDateFallback`).
+- ✅ Docs/ops: `README.md` rewritten as a real ProdCal readme; `.githooks/pre-commit` now shellchecks staged `.sh` (skips zsh + missing-tool gracefully); `Makefile` `stop/start/restart` implemented as `systemctl … prodcal` wrappers; Docker path deleted (`Dockerfile` + `.dockerignore` removed — see NIT below).
+- ✅ Mobile (390×844): `@media (max-width:480px)` rules — dash-header wraps, theme-bar bottom-anchored (no overlap), toast stack lifted, landing h1 scaled. Verified headless at 390×844.
 
 ---
 
-## ⚪ NIT (batch later)
-- `esc()` defined twice in `admin.html`; `.doc` accepted but pipeline needs `.docx`; `cycleStatus` keeps stale `ActualDone`; `toISOString` UTC ±1-day date shift; New Client password input is `type="text"`; empty-state portal still offers Weekly Digest; landing gives no hint where the client code comes from. — Admin/ClientPortal
-- `/api/transmittals/{id}` route param is actually a **project** id (consistent today, misleading). — Admin/Tests/Data
-- `db/queries/visitors.sql` misnamed (holds projects/tasks/auth queries; no visitors table). — Data
-- `:memory:` test DB + connection pool = separate DB per conn (latent parallel-test flakes). — Data
-- `PRAGMA synchronous=NORMAL` is the recommended WAL pairing; `books(project_id)` unindexed; `r2-lifecycle.json` wraps a single predicate in `Filter.And`. — Data
-- Stale `srv`-unit references (real unit: `prodcal.service`): `AGENTS.md:15-16`, `README.md:21/25/28/31/34/41`, `DEPLOY.md:8/18/36/78/81`, `handoff.md:30/45`, the `srv.service` filename itself, `notes-2026-02-23-*.html:82`. `CLAUDE.md` already correct. — Tests
-- `Dockerfile` can't build (COPYs nonexistent `seed_data.json`; DB not on the `/app/data` VOLUME; runtime image lacks pandoc/typst/python-docx); `DEPLOY.md` seeding curls 401 (missing admin header). Delete Docker path or fix. — Tests
+## ⚪ NIT — ✅ ALL RESOLVED 2026-07-04
+- ✅ single `esc()` in `admin.html` (hardened for null/undefined); ✅ `accept=".docx"` only + validation regex tightened; ✅ `cycleStatus` clears `actual_done` when leaving done; ✅ all `toISOString` date defaults replaced with local-timezone formatters (`todayLocalISO`/`localDateStr`); ✅ New Client password input `type="password"` + `autocomplete="new-password"`; ✅ empty-state portal digest already guarded (verified live); ✅ landing hints where the client code comes from (welcome email / contact link).
+- ✅ `/api/transmittals/{id}` project-id semantics documented at the route registrations (URLs kept stable deliberately; all handlers use `projectIDFromPath`).
+- ✅ `db/queries/visitors.sql` → `db/queries/projects.sql` (dbgen regenerated with sqlc v1.30.0).
+- ✅ `:memory:` test-DB pool flake: moot since B2's `SetMaxOpenConns(1)`.
+- ✅ `synchronous=NORMAL` already in the DSN since B2; ✅ `books(project_id)` indexed (migration 017); ✅ `r2-lifecycle.json` single predicate unwrapped from `Filter.And`.
+- ✅ Stale `srv`-unit refs fixed in `README.md`/`DEPLOY.md`/`handoff.md`; `srv.service` renamed `prodcal.service`; notes html already removed from static in H16.
+- ✅ Docker path deleted (`Dockerfile`, `.dockerignore`); `DEPLOY.md` seeding curls carry `-H 'X-ExeDev-UserID: admin'`.
 
 ---
 
@@ -135,3 +135,11 @@ govulncheck (run by Main): **GO-2026-5039** (`net/textproto`) and **GO-2026-5037
 - **B3** — DEPLOY.md restore runbook rewritten (`prodcal.service`, `zcat` without consuming the backup, clears stale `-wal`/`-shm`).
 - **B4** — spec autosave flushes the outgoing project's save bound to its id on switch; autosave timer bound to the loaded pid.
 - **B5** — Go toolchain → 1.26.4 + `golang.org/x/net@v0.55.0`; govulncheck now reports 0 vulnerabilities.
+
+## QOL + NIT closure session (2026-07-04, post-HIGH)
+
+Entire 🟢 QOL + ⚪ NIT tier resolved (annotated ✅ inline above). Method: 7 parallel fix agents with disjoint file ownership (admin.html / client-facing static / transmittal.go / email / ops-scripts / docs / db-blob-dedupe) + backend edits and integration by Main + a dedicated test agent.
+
+**Verification:** `go build ./...`, `go vet ./...`, `gofmt` clean; `shellcheck` clean on all touched scripts; `go test ./...` fully green locally (incl. `TestWordTemplateGenerationAllowsUniqueCustomStyleNames` — python-docx now installed on the Mac). Browser-smoked at desktop + 390×844: admin (zero console errors, toasts, backup badge, 409 paths, duplicate-tx), landing/portal/calendar/transmittal (font persistence across pages+reloads, unified gates, relative links, transmittal prefill → autosave → reload round-trip). Fresh-DB boot applies migrations 001–018; upgrade path covered by `TestBlobDedupeMigrationBackfill` and exercised live on the desktop-app data dir.
+
+**Also this session (local desktop-app track):** startup WARNINGs for missing pipeline tools (pandoc/typst/python-docx) in `internal/localrun`; `scripts/build-mac-app.sh` producing a double-clickable `ProdCal.app` (Info.plist bakes `JDBBS_TYPESETTING_DIR` + Homebrew `PATH`); LOCAL-USAGE.md app-bundle section; full operator E2E verified locally: DOCX upload → convert → print PDF (26,906 B `%PDF-`) → EPUB (14.1 MB, embedded fonts) → preflight (findings JSON). Note: the untracked repo-root "01 Aster's Story (copyedited).docx" is actually an HTML file, not a DOCX — the pipeline rejects it cleanly; E2E used a real generated DOCX fixture.

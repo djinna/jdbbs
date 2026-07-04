@@ -27,7 +27,7 @@ Each session prepends a brief summary of what was done.
 - Footer year bumped to 2026.
 
 **Build/deploy**
-- Static assets are embedded; rebuild + restart needed: `go build -o prodcal ./cmd/srv && sudo systemctl restart srv`.
+- Static assets are embedded; rebuild + restart needed: `go build -o prodcal ./cmd/srv && sudo systemctl restart prodcal`.
 
 ---
 
@@ -42,7 +42,7 @@ Each session prepends a brief summary of what was done.
 
 **Build / deploy**
 - Static assets are embedded via `//go:embed static/*` in `srv/server.go`, so changes require a rebuild.
-- Rebuilt with `make build` (→ `go build -o prodcal ./cmd/srv`) and restarted the systemd unit: `sudo systemctl restart srv`.
+- Rebuilt with `make build` (→ `go build -o prodcal ./cmd/srv`) and restarted the systemd unit: `sudo systemctl restart prodcal`.
 
 **Process notes**
 - Going forward, prepend a new dated entry at the top of this file at the end of each session, summarizing what we did. The user uses this to hand off context between sessions.
