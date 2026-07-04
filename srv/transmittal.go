@@ -1,6 +1,7 @@
 package srv
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -112,22 +113,47 @@ func (s *Server) handleGetTransmittal(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// maxTransmittalVersions caps stored version history per transmittal; rows
+// beyond the newest N are pruned inside the same transaction as each insert.
+const maxTransmittalVersions = 50
+
+// insertTransmittalVersion snapshots a transmittal state inside tx, then
+// prunes history beyond maxTransmittalVersions for that transmittal.
+func insertTransmittalVersion(ctx context.Context, tx *sql.Tx, transmittalID int64, data, status string) error {
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO transmittal_versions (transmittal_id, data, status) VALUES (?, ?, ?)`,
+		transmittalID, data, status,
+	); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx,
+		`DELETE FROM transmittal_versions
+		 WHERE transmittal_id = ?
+		   AND id NOT IN (
+			SELECT id FROM transmittal_versions
+			WHERE transmittal_id = ?
+			ORDER BY saved_at DESC, id DESC
+			LIMIT ?)`,
+		transmittalID, transmittalID, maxTransmittalVersions,
+	)
+	return err
+}
+
 // maybeSnapshotVersion saves the current transmittal state as a version
 // if no version was saved in the last 5 minutes (throttle auto-save noise).
-func (s *Server) maybeSnapshotVersion(r *http.Request, transmittalID int64, data, status string) {
+func maybeSnapshotVersion(ctx context.Context, tx *sql.Tx, transmittalID int64, data, status string) error {
 	var count int
-	_ = s.DB.QueryRowContext(r.Context(),
+	if err := tx.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM transmittal_versions
 		 WHERE transmittal_id = ? AND saved_at > datetime('now', '-5 minutes')`,
 		transmittalID,
-	).Scan(&count)
-	if count > 0 {
-		return // too recent, skip
+	).Scan(&count); err != nil {
+		return err
 	}
-	s.DB.ExecContext(r.Context(),
-		`INSERT INTO transmittal_versions (transmittal_id, data, status) VALUES (?, ?, ?)`,
-		transmittalID, data, status,
-	)
+	if count > 0 {
+		return nil // too recent, skip
+	}
+	return insertTransmittalVersion(ctx, tx, transmittalID, data, status)
 }
 
 func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request) {
@@ -157,18 +183,32 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 		body.Status = "draft"
 	}
 
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		jsonErr(w, "begin tx failed: "+err.Error(), 500)
+		return
+	}
+	defer tx.Rollback()
+
 	// Snapshot current state as a version before updating
 	var txID int64
 	var oldData, oldStatus string
-	err = s.DB.QueryRowContext(r.Context(),
+	err = tx.QueryRowContext(r.Context(),
 		`SELECT id, data, status FROM transmittals WHERE project_id = ?`, pid,
 	).Scan(&txID, &oldData, &oldStatus)
-	if err == nil {
-		s.maybeSnapshotVersion(r, txID, oldData, oldStatus)
+	switch {
+	case err == nil:
+		if err := maybeSnapshotVersion(r.Context(), tx, txID, oldData, oldStatus); err != nil {
+			jsonErr(w, "version snapshot failed: "+err.Error(), 500)
+			return
+		}
+	case err != sql.ErrNoRows:
+		jsonErr(w, "lookup failed: "+err.Error(), 500)
+		return
 	}
 
 	// Try UPDATE first
-	result, err := s.DB.ExecContext(r.Context(),
+	result, err := tx.ExecContext(r.Context(),
 		`UPDATE transmittals SET data = ?, status = ?, updated_at = CURRENT_TIMESTAMP
 		 WHERE project_id = ?`,
 		dataStr, body.Status, pid,
@@ -180,7 +220,7 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		_, err = s.DB.ExecContext(r.Context(),
+		_, err = tx.ExecContext(r.Context(),
 			`INSERT INTO transmittals (project_id, status, data) VALUES (?, ?, ?)`,
 			pid, body.Status, dataStr,
 		)
@@ -188,6 +228,11 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 			jsonErr(w, "insert failed: "+err.Error(), 500)
 			return
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		jsonErr(w, "commit failed: "+err.Error(), 500)
+		return
 	}
 
 	// Notify admin of client transmittal update (throttled, background)
@@ -307,9 +352,16 @@ func (s *Server) handleRestoreTransmittalVersion(w http.ResponseWriter, r *http.
 		return
 	}
 
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		jsonErr(w, "begin tx failed: "+err.Error(), 500)
+		return
+	}
+	defer tx.Rollback()
+
 	// Get the version data
 	var vData, vStatus string
-	err = s.DB.QueryRowContext(r.Context(),
+	err = tx.QueryRowContext(r.Context(),
 		`SELECT v.data, v.status
 		 FROM transmittal_versions v
 		 JOIN transmittals t ON t.id = v.transmittal_id
@@ -323,23 +375,31 @@ func (s *Server) handleRestoreTransmittalVersion(w http.ResponseWriter, r *http.
 	// Always snapshot current state before restoring (bypass throttle)
 	var txID int64
 	var oldData, oldStatus string
-	err = s.DB.QueryRowContext(r.Context(),
+	err = tx.QueryRowContext(r.Context(),
 		`SELECT id, data, status FROM transmittals WHERE project_id = ?`, pid,
 	).Scan(&txID, &oldData, &oldStatus)
-	if err == nil {
-		s.DB.ExecContext(r.Context(),
-			`INSERT INTO transmittal_versions (transmittal_id, data, status) VALUES (?, ?, ?)`,
-			txID, oldData, oldStatus,
-		)
+	switch {
+	case err == nil:
+		if err := insertTransmittalVersion(r.Context(), tx, txID, oldData, oldStatus); err != nil {
+			jsonErr(w, "version snapshot failed: "+err.Error(), 500)
+			return
+		}
+	case err != sql.ErrNoRows:
+		jsonErr(w, "lookup failed: "+err.Error(), 500)
+		return
 	}
 
 	// Restore
-	_, err = s.DB.ExecContext(r.Context(),
+	_, err = tx.ExecContext(r.Context(),
 		`UPDATE transmittals SET data = ?, status = ?, updated_at = CURRENT_TIMESTAMP
 		 WHERE project_id = ?`, vData, vStatus, pid,
 	)
 	if err != nil {
 		jsonErr(w, "restore failed: "+err.Error(), 500)
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		jsonErr(w, "commit failed: "+err.Error(), 500)
 		return
 	}
 	jsonOK(w, map[string]any{"ok": true})
@@ -370,11 +430,21 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		jsonErr(w, "begin tx failed: "+err.Error(), 500)
+		return
+	}
+	defer tx.Rollback()
+
 	// Check target doesn't already have a transmittal
 	var existingCount int
-	s.DB.QueryRowContext(r.Context(),
+	if err := tx.QueryRowContext(r.Context(),
 		`SELECT COUNT(*) FROM transmittals WHERE project_id = ?`, body.TargetProjectID,
-	).Scan(&existingCount)
+	).Scan(&existingCount); err != nil {
+		jsonErr(w, "lookup failed: "+err.Error(), 500)
+		return
+	}
 	if existingCount > 0 {
 		jsonErr(w, "target project already has a transmittal", 409)
 		return
@@ -382,7 +452,7 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 
 	// Get source transmittal data
 	var srcData string
-	err = s.DB.QueryRowContext(r.Context(),
+	err = tx.QueryRowContext(r.Context(),
 		`SELECT data FROM transmittals WHERE project_id = ?`, pid,
 	).Scan(&srcData)
 	if err != nil {
@@ -458,12 +528,16 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 	// Keep: permissions, page_iv, subrights, editing, design, cover, files
 
 	newData, _ := json.Marshal(d)
-	_, err = s.DB.ExecContext(r.Context(),
+	_, err = tx.ExecContext(r.Context(),
 		`INSERT INTO transmittals (project_id, status, data) VALUES (?, 'draft', ?)`,
 		body.TargetProjectID, string(newData),
 	)
 	if err != nil {
 		jsonErr(w, "duplicate failed: "+err.Error(), 500)
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		jsonErr(w, "commit failed: "+err.Error(), 500)
 		return
 	}
 	jsonOK(w, map[string]any{"ok": true, "target_project_id": body.TargetProjectID})

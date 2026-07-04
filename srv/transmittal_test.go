@@ -1,6 +1,10 @@
 package srv
 
-import "testing"
+import (
+	"encoding/json"
+	"fmt"
+	"testing"
+)
 
 func TestTransmittalDefaultsIncludeEPUBISBNAndChecklistStatus(t *testing.T) {
 	_, ts, cleanup := testServer(t)
@@ -159,5 +163,175 @@ func TestDuplicateTransmittalClearsChecklistStatusesAndDates(t *testing.T) {
 	}
 	if bm["here_now"] != false {
 		t.Fatalf("expected duplicated backmatter here_now to be false, got %v", bm["here_now"])
+	}
+}
+
+// TestTransmittalVersionCapEnforced seeds more versions than the cap, then
+// triggers one more snapshot via PUT and asserts pruning keeps exactly the
+// newest maxTransmittalVersions rows.
+func TestTransmittalVersionCapEnforced(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name":         "Version Cap",
+		"start_date":   "2026-04-08",
+		"client_slug":  "vgr",
+		"project_slug": "version-cap",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: expected 201, got %d", resp.StatusCode)
+	}
+	var project map[string]any
+	decodeJSON(t, resp, &project)
+	pid := itoa(int64(project["ID"].(float64)))
+
+	// First PUT creates the transmittal row (no version yet: nothing to snapshot).
+	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/transmittal", map[string]any{
+		"status": "draft",
+		"data":   map[string]any{"v": "initial"},
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("initial put: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	var txID int64
+	if err := s.DB.QueryRow(`SELECT id FROM transmittals WHERE project_id = ?`, pid).Scan(&txID); err != nil {
+		t.Fatalf("lookup transmittal id: %v", err)
+	}
+
+	// Seed 60 versions, all older than the 5-minute snapshot throttle, with
+	// distinct saved_at so prune ordering is deterministic (seed 59 newest).
+	for i := range 60 {
+		_, err := s.DB.Exec(
+			`INSERT INTO transmittal_versions (transmittal_id, data, status, saved_at)
+			 VALUES (?, ?, 'draft', datetime('now', ?))`,
+			txID, fmt.Sprintf(`{"marker":"seed-%d"}`, i), fmt.Sprintf("-%d minutes", 70-i),
+		)
+		if err != nil {
+			t.Fatalf("seed version %d: %v", i, err)
+		}
+	}
+
+	// Second PUT snapshots the pre-update state (61st version) and must prune
+	// down to the cap in the same transaction.
+	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/transmittal", map[string]any{
+		"status": "draft",
+		"data":   map[string]any{"v": "updated"},
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("second put: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	var count int
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM transmittal_versions WHERE transmittal_id = ?`, txID).Scan(&count); err != nil {
+		t.Fatalf("count versions: %v", err)
+	}
+	if count != maxTransmittalVersions {
+		t.Fatalf("expected %d versions after prune, got %d", maxTransmittalVersions, count)
+	}
+
+	countData := func(data string) int {
+		var n int
+		if err := s.DB.QueryRow(
+			`SELECT COUNT(*) FROM transmittal_versions WHERE transmittal_id = ? AND data = ?`,
+			txID, data,
+		).Scan(&n); err != nil {
+			t.Fatalf("count %q: %v", data, err)
+		}
+		return n
+	}
+	// Newest retained: the fresh snapshot of the pre-update state plus the 49
+	// newest seeds (59 down to 11); seeds 10 and older are pruned.
+	if n := countData(`{"v":"initial"}`); n != 1 {
+		t.Fatalf("expected fresh snapshot to be retained, found %d rows", n)
+	}
+	if n := countData(`{"marker":"seed-11"}`); n != 1 {
+		t.Fatalf("expected seed-11 (within newest 50) retained, found %d rows", n)
+	}
+	if n := countData(`{"marker":"seed-10"}`); n != 0 {
+		t.Fatalf("expected seed-10 (beyond cap) pruned, found %d rows", n)
+	}
+}
+
+// TestTransmittalVersionInsertFailureFailsUpdate forces the version INSERT to
+// fail (RAISE(ABORT) trigger) and asserts the PUT returns 500 and rolls back,
+// leaving the transmittal untouched instead of silently succeeding.
+func TestTransmittalVersionInsertFailureFailsUpdate(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name":         "Version Failure",
+		"start_date":   "2026-04-08",
+		"client_slug":  "vgr",
+		"project_slug": "version-failure",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: expected 201, got %d", resp.StatusCode)
+	}
+	var project map[string]any
+	decodeJSON(t, resp, &project)
+	pid := itoa(int64(project["ID"].(float64)))
+
+	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/transmittal", map[string]any{
+		"status": "draft",
+		"data":   map[string]any{"v": "original"},
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("initial put: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	if _, err := s.DB.Exec(
+		`CREATE TRIGGER fail_version_insert BEFORE INSERT ON transmittal_versions
+		 BEGIN SELECT RAISE(ABORT, 'version insert forced to fail'); END`,
+	); err != nil {
+		t.Fatalf("create trigger: %v", err)
+	}
+
+	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/transmittal", map[string]any{
+		"status": "draft",
+		"data":   map[string]any{"v": "should-not-land"},
+	})
+	if resp.StatusCode != 500 {
+		t.Fatalf("expected 500 when version insert fails, got %d", resp.StatusCode)
+	}
+	var errBody map[string]string
+	decodeJSON(t, resp, &errBody)
+	if errBody["error"] == "" {
+		t.Fatalf("expected error message in 500 body, got %+v", errBody)
+	}
+
+	// The whole write must have rolled back: transmittal keeps original data.
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+pid+"/transmittal", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("get transmittal: expected 200, got %d", resp.StatusCode)
+	}
+	var tx struct {
+		Data json.RawMessage `json:"data"`
+	}
+	decodeJSON(t, resp, &tx)
+	var data map[string]any
+	if err := json.Unmarshal(tx.Data, &data); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	if data["v"] != "original" {
+		t.Fatalf("expected transmittal data unchanged after failed version insert, got %v", data["v"])
+	}
+
+	// No version row may exist either (the snapshot itself failed).
+	var versions int
+	if err := s.DB.QueryRow(
+		`SELECT COUNT(*) FROM transmittal_versions v
+		 JOIN transmittals t ON t.id = v.transmittal_id
+		 WHERE t.project_id = ?`, pid,
+	).Scan(&versions); err != nil {
+		t.Fatalf("count versions: %v", err)
+	}
+	if versions != 0 {
+		t.Fatalf("expected 0 versions after rollback, got %d", versions)
 	}
 }
