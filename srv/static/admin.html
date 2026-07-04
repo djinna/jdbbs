@@ -405,6 +405,35 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 .backup-status-line.warn .backup-dot { background: var(--yellow); }
 .backup-status-line.error .backup-dot { background: var(--red); }
 .backup-status-line .backup-detail { color: var(--text-muted); }
+
+/* ─── Toasts (ported from the calendar SPA; see style.css .toast rules) ─── */
+.toast-stack {
+  position: fixed; right: 24px; bottom: 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 2000; pointer-events: none;
+}
+.toast {
+  min-width: 220px; max-width: min(420px, calc(100vw - 48px));
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--text); font-size: 0.85rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast-saved { border-color: color-mix(in srgb, var(--green) 40%, var(--border)); color: var(--green); }
+.toast-error { border-color: color-mix(in srgb, var(--red) 40%, var(--border)); color: var(--red); }
+
+/* Header backup alert badge (mirrors the footer backup-status-line) */
+.backup-alert {
+  display: none; align-items: center; gap: 6px;
+  font-size: 0.74rem; font-family: inherit; color: var(--red);
+  background: transparent; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--red) 40%, var(--border));
+  border-radius: 4px; padding: 4px 9px;
+}
+.backup-alert.on { display: inline-flex; }
+.backup-alert .backup-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); display: inline-block; }
 </style>
 </head>
 <body>
@@ -427,8 +456,9 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
 
 <div class="content">
   <div class="header">
-    <h1><a href="https://jdbbs.exe.xyz/" style="color:inherit;text-decoration:none">Production</a></h1>
+    <h1><a href="/" style="color:inherit;text-decoration:none">Production</a></h1>
     <div style="display:flex;gap:8px;align-items:center">
+      <button class="backup-alert" id="backup-alert" type="button" title="Backup problem — click for details"><span class="backup-dot"></span> Backups: action needed</button>
       <button class="btn btn-sm" id="new-project-btn">New Project</button>
       <button class="btn btn-sm btn-secondary" id="new-client-btn">New Client</button>
     </div>
@@ -462,7 +492,7 @@ html.dark .ts-output-badge-epub { background: rgba(52,211,153,0.15); }
       <div class="icon">△</div>
       <div>Drop a Word file here or <strong>click to upload</strong></div>
       <div style="font-size:0.78rem;margin-top:0.35rem">.docx files only</div>
-      <input type="file" id="book-file" accept=".docx,.doc">
+      <input type="file" id="book-file" accept=".docx">
     </div>
     <div class="book-form" id="book-form">
       <div>
@@ -980,6 +1010,50 @@ function setStatus(level) {
   tip.textContent = statusMessages[level];
 }
 
+// ─── Toasts ───
+function showToast(message, type = 'saved', duration = 4500) {
+  let box = document.getElementById('toast-stack');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'toast-stack';
+    box.className = 'toast-stack';
+    box.setAttribute('aria-live', 'polite');
+    document.body.appendChild(box);
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.setAttribute('role', 'status');
+  toast.textContent = message;
+  box.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 250);
+  }, duration);
+}
+
+// ─── Modal Guards ───
+function modalIsDirty(card) {
+  return Array.from(card.querySelectorAll('input, textarea, select')).some(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') return el.checked !== el.defaultChecked;
+    return el.value !== el.defaultValue;
+  });
+}
+
+function confirmDiscardIfDirty(card) {
+  return !modalIsDirty(card) || confirm('Discard unsaved changes?');
+}
+
+// Format a Date as YYYY-MM-DD in the viewer's timezone (toISOString shifts ±1 day).
+function localDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+document.getElementById('backup-alert').addEventListener('click', () => {
+  const line = document.getElementById('backup-status-line');
+  if (line) line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
 function formatBytes(n) {
   if (!Number.isFinite(n)) return 'n/a';
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
@@ -991,6 +1065,7 @@ function formatBytes(n) {
 
 async function loadBackupStatus() {
   const el = document.getElementById('backup-status-line');
+  const alertEl = document.getElementById('backup-alert');
   if (!el) return;
   try {
     const r = await fetch('/api/admin/backup-status');
@@ -1005,11 +1080,19 @@ async function loadBackupStatus() {
       <span class="backup-detail">local ${d.local_count} / ${formatBytes(d.local_bytes)}; newest ${esc(newest)}; R2 ${esc(d.r2_last_success || 'unknown')}</span>
     `;
     el.title = (d.problems && d.problems.length) ? d.problems.join('\n') : 'Local and R2 backup sentinels are current.';
+    if (alertEl) {
+      alertEl.classList.toggle('on', !d.ok);
+      alertEl.title = (d.problems && d.problems.length) ? d.problems.join('\n') : '';
+    }
   } catch(e) {
     el.classList.remove('ok', 'warn');
     el.classList.add('error');
     el.innerHTML = '<span class="backup-dot"></span><span>Backups: status unavailable</span>';
     el.title = e.message;
+    if (alertEl) {
+      alertEl.classList.add('on');
+      alertEl.title = 'Backup status unavailable: ' + e.message;
+    }
   }
 }
 
@@ -1105,9 +1188,9 @@ function renderProjects(projects) {
       ? `<span class="badge badge-dim"><span class="status-dot dim"></span> ${esc(p.transmittal_status || 'draft')}</span>`
       : '';
 
-    const created = p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : 'N/A';
+    const created = p.created_at ? localDateStr(new Date(p.created_at)) : 'N/A';
     const start = p.start_date || 'N/A';
-    const updated = p.updated_at ? new Date(p.updated_at).toISOString().split('T')[0] : 'N/A';
+    const updated = p.updated_at ? localDateStr(new Date(p.updated_at)) : 'N/A';
 
     const projectURL = absoluteURL(p.path);
     const transmittalURL = absoluteURL(p.path + 'transmittal/');
@@ -1143,11 +1226,7 @@ function renderProjects(projects) {
   }).join('');
 }
 
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function renderArchivedProjects(projects) {
   if (!projects.length) {
@@ -1185,7 +1264,7 @@ function openNewProjectModal() {
   if (existing) existing.remove();
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop && confirmDiscardIfDirty(modal)) backdrop.remove(); });
   const modal = document.createElement('div');
   modal.className = 'modal-card';
   modal.innerHTML = `
@@ -1227,6 +1306,7 @@ function openNewProjectModal() {
       const json = await r.json();
       if (!r.ok) throw new Error(json.error || r.statusText);
       backdrop.remove();
+      showToast(`Project "${name}" created`);
       await loadProjects();
     } catch (e) {
       errorEl.textContent = e.message;
@@ -1240,7 +1320,7 @@ function openNewClientModal() {
   if (existing) existing.remove();
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop && confirmDiscardIfDirty(modal)) backdrop.remove(); });
   const modal = document.createElement('div');
   modal.className = 'modal-card';
   modal.innerHTML = `
@@ -1249,7 +1329,7 @@ function openNewClientModal() {
     <div class="book-form active" style="margin-bottom:0">
       <div class="full"><label>Client name<input type="text" id="nc-name" placeholder="Client Name"></label></div>
       <div><label>Client slug<input type="text" id="nc-slug" placeholder="client-slug"></label></div>
-      <div><label>Client password (optional)<input type="text" id="nc-password" placeholder="leave blank if handled elsewhere"></label></div>
+      <div><label>Client password (optional)<input type="password" id="nc-password" autocomplete="new-password" placeholder="leave blank if handled elsewhere"></label></div>
       <div class="full" id="nc-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
     </div>
     <div class="modal-actions">
@@ -1279,6 +1359,7 @@ function openNewClientModal() {
       const json = await r.json();
       if (!r.ok) throw new Error(json.error || r.statusText);
       backdrop.remove();
+      showToast(`Client "${name}" created`);
       await loadClients();
       await loadProjects();
     } catch (e) {
@@ -1323,7 +1404,7 @@ function renderEmailModal() {
 
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeEmailModal(); });
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop && confirmDiscardIfDirty(modal)) closeEmailModal(); });
 
   const modal = document.createElement('div');
   modal.className = 'modal-card';
@@ -1491,14 +1572,14 @@ $bookFile.addEventListener('change', () => {
 });
 
 function handleFileSelect(file) {
-  if (!file.name.match(/\.docx?$/i)) {
-    alert('Please select a .docx file');
+  if (!file.name.match(/\.docx$/i)) {
+    showToast('Please select a .docx file', 'error');
     return;
   }
   selectedFile = file;
   $bookForm.classList.add('active');
   $uploadZone.innerHTML = `<div class="icon">\u2713</div><div><strong>${esc(file.name)}</strong> (${(file.size/1024).toFixed(0)} KB)</div>`;
-  const name = file.name.replace(/\.docx?$/i, '').replace(/[-_]/g, ' ');
+  const name = file.name.replace(/\.docx$/i, '').replace(/[-_]/g, ' ');
   if (!$bookTitle.value) $bookTitle.value = name;
   checkUploadReady();
 }
@@ -1520,7 +1601,7 @@ function resetUploadForm() {
   $bookAuthor.value = '';
   $uploadStatus.textContent = '';
   $btnUpload.disabled = true;
-  $uploadZone.innerHTML = `<div class="icon">\u25B3</div><div>Drop a Word file here or <strong>click to upload</strong></div><div style="font-size:0.78rem;margin-top:0.35rem">.docx files only</div><input type="file" id="book-file" accept=".docx,.doc">`;
+  $uploadZone.innerHTML = `<div class="icon">\u25B3</div><div>Drop a Word file here or <strong>click to upload</strong></div><div style="font-size:0.78rem;margin-top:0.35rem">.docx files only</div><input type="file" id="book-file" accept=".docx">`;
   document.getElementById('book-file').addEventListener('change', function() {
     if (this.files.length) handleFileSelect(this.files[0]);
   });
@@ -1546,7 +1627,7 @@ $btnUpload.addEventListener('click', async () => {
       throw new Error(err.error || 'Upload failed');
     }
     await r.json();
-    $uploadStatus.textContent = 'Uploaded!';
+    showToast(`Uploaded "${selectedFile.name}"`);
     resetUploadForm();
     loadBooks();
   } catch(e) {
@@ -1644,8 +1725,9 @@ async function linkBookToProject(bookId, projectId) {
       body: JSON.stringify({ project_id: pid }),
     });
     if (!r.ok) throw new Error('Link failed');
+    showToast(pid ? 'Book linked to project' : 'Book unlinked');
   } catch(e) {
-    alert('Failed to link book: ' + e.message);
+    showToast('Failed to link book: ' + e.message, 'error');
     loadBooks();
   }
 }
@@ -1662,19 +1744,23 @@ function timeAgo(dateStr) {
 
 async function startConvert(id) {
   await fetch(`/api/books/${id}/convert`, { method: 'POST' });
+  showToast('Conversion started');
   loadBooks();
   pollBookStatus(id);
 }
 
 async function retryConvert(id) {
   await fetch(`/api/books/${id}/convert`, { method: 'POST' });
+  showToast('Conversion restarted');
   loadBooks();
   pollBookStatus(id);
 }
 
 async function deleteBook(id) {
   if (!confirm('Delete this book?')) return;
-  await fetch(`/api/books/${id}`, { method: 'DELETE' });
+  const r = await fetch(`/api/books/${id}`, { method: 'DELETE' });
+  if (r.ok) showToast('Book deleted');
+  else showToast('Failed to delete book', 'error');
   loadBooks();
 }
 
@@ -1689,9 +1775,10 @@ async function setProjectPassword(id, name) {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || 'Set password failed');
+    showToast('Project password set');
     await loadProjects();
   } catch (e) {
-    alert('Failed to set project password: ' + e.message);
+    showToast('Failed to set project password: ' + e.message, 'error');
   }
 }
 
@@ -1701,9 +1788,10 @@ async function removeProjectPassword(id, name) {
     const res = await fetch(`/api/projects/${id}/auth`, { method: 'DELETE' });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || 'Remove password failed');
+    showToast('Project password removed');
     await loadProjects();
   } catch (e) {
-    alert('Failed to remove project password: ' + e.message);
+    showToast('Failed to remove project password: ' + e.message, 'error');
   }
 }
 
@@ -1713,6 +1801,7 @@ async function archiveProject(id, name) {
     const res = await fetch(`/api/projects/${id}/archive`, { method: 'POST' });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || 'Archive failed');
+    showToast(`Project "${name}" archived`);
     if (tsProject.value == String(id)) {
       tsProject.value = '';
       tsForm.style.display = 'none';
@@ -1728,7 +1817,7 @@ async function archiveProject(id, name) {
     await loadArchivedProjects();
     await loadBooks();
   } catch (e) {
-    alert('Failed to archive project: ' + e.message);
+    showToast('Failed to archive project: ' + e.message, 'error');
   }
 }
 
@@ -1738,11 +1827,12 @@ async function restoreProject(id, name) {
     const res = await fetch(`/api/projects/${id}/restore`, { method: 'POST' });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || 'Restore failed');
+    showToast(`Project "${name}" restored`);
     await loadProjects();
     await loadArchivedProjects();
     await loadBooks();
   } catch (e) {
-    alert('Failed to restore project: ' + e.message);
+    showToast('Failed to restore project: ' + e.message, 'error');
   }
 }
 
@@ -1762,14 +1852,14 @@ async function downloadOrGenerateEPUB(id) {
     const r = await fetch(`/api/books/${id}/generate-epub`, { method: 'POST' });
     if (!r.ok) {
       const err = await r.json().catch(() => ({ error: r.statusText }));
-      alert('EPUB error: ' + (err.error || 'failed'));
+      showToast('EPUB error: ' + (err.error || 'failed'), 'error');
       return;
     }
     // Poll for availability
     let attempts = 0;
     const iv = setInterval(async () => {
       attempts++;
-      if (attempts > 30) { clearInterval(iv); alert('EPUB generation timed out'); return; }
+      if (attempts > 30) { clearInterval(iv); showToast('EPUB generation timed out', 'error'); return; }
       const epubURL = absoluteURL(`/api/books/${id}/download/epub`);
       const check = await fetch(epubURL, { method: 'HEAD' });
       if (check.ok) {
@@ -1778,7 +1868,7 @@ async function downloadOrGenerateEPUB(id) {
       }
     }, 2000);
   } catch(e) {
-    alert('EPUB error: ' + e.message);
+    showToast('EPUB error: ' + e.message, 'error');
   }
 }
 
@@ -2574,8 +2664,6 @@ function tsRenderCustomStyles() {
   });
 }
 
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
 const tsPreviewConfig = document.getElementById('ts-preview-config');
 document.getElementById('ts-preview-config').addEventListener('click', async () => {
   const pid = tsProject.value;
@@ -2622,7 +2710,7 @@ document.getElementById('ts-download-template').addEventListener('click', async 
     a.click();
     URL.revokeObjectURL(url);
   } catch(e) {
-    alert('Word template error: ' + e.message);
+    showToast('Word template error: ' + e.message, 'error');
   }
   btn.disabled = false;
   btn.textContent = 'Word Template';
@@ -2634,7 +2722,7 @@ document.getElementById('ts-cover-file').addEventListener('change', async (e) =>
   const file = e.target.files[0];
   if (!file) return;
   const pid = tsProject.value;
-  if (!pid) { alert('Select a project first'); return; }
+  if (!pid) { showToast('Select a project first', 'error'); return; }
 
   const fd = new FormData();
   fd.append('cover', file);
@@ -2642,7 +2730,7 @@ document.getElementById('ts-cover-file').addEventListener('change', async (e) =>
     const r = await fetch(`/api/projects/${pid}/book-spec/cover`, { method: 'POST', body: fd });
     if (!r.ok) {
       const err = await r.json().catch(() => ({ error: 'upload failed' }));
-      alert('Cover upload error: ' + (err.error || 'failed'));
+      showToast('Cover upload error: ' + (err.error || 'failed'), 'error');
       return;
     }
     // Show preview from server URL
@@ -2654,7 +2742,7 @@ document.getElementById('ts-cover-file').addEventListener('change', async (e) =>
     tsSaveStatus.style.color = 'var(--green)';
     setTimeout(() => { if (!tsDirty) tsSaveStatus.textContent = ''; }, 2000);
   } catch(e) {
-    alert('Cover upload error: ' + e.message);
+    showToast('Cover upload error: ' + e.message, 'error');
   }
 });
 
@@ -3256,7 +3344,7 @@ function corrRender() {
         });
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
-          alert('Failed to update status: ' + (json.error || res.statusText));
+          showToast('Failed to update status: ' + (json.error || res.statusText), 'error');
           return;
         }
         corrLoad();
@@ -3274,7 +3362,7 @@ function corrRender() {
         const res = await fetch(`/api/projects/${pid}/corrections/${id}`, { method: 'DELETE' });
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
-          alert('Failed to delete correction: ' + (json.error || res.statusText));
+          showToast('Failed to delete correction: ' + (json.error || res.statusText), 'error');
           return;
         }
         corrLoad();
@@ -3305,7 +3393,7 @@ document.getElementById('corr-save').addEventListener('click', async () => {
   const replace = document.getElementById('corr-replace').value;
   const chapter = document.getElementById('corr-chapter').value.trim();
   const note = document.getElementById('corr-note').value.trim();
-  if (!find) { alert('Find text is required'); return; }
+  if (!find) { showToast('Find text is required', 'error'); return; }
   const errEl = document.getElementById('corr-error');
   errEl.textContent = '';
   try {
@@ -3347,7 +3435,16 @@ document.getElementById('corr-export-yaml').addEventListener('click', async () =
     a.click();
     URL.revokeObjectURL(url);
   } catch(e) {
-    alert('Export error: ' + e.message);
+    showToast('Export error: ' + e.message, 'error');
+  }
+});
+
+// Warn before leaving the page with unsaved work (dirty modal form or unsaved spec edits).
+window.addEventListener('beforeunload', (e) => {
+  const card = document.querySelector('.modal-backdrop .modal-card');
+  if (tsDirty || (card && modalIsDirty(card))) {
+    e.preventDefault();
+    e.returnValue = '';
   }
 });
 
@@ -3356,7 +3453,17 @@ checkHealth();
 loadBackupStatus();
 loadClients();
 loadProjects();
-setInterval(() => { checkHealth(); loadBackupStatus(); loadClients(); loadProjects(); }, 30000);
+setInterval(() => {
+  checkHealth();
+  loadBackupStatus();
+  // Don't yank the UI out from under an interaction: skip list re-renders
+  // while a modal is open or a form control has focus.
+  if (document.querySelector('.modal-backdrop')) return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) return;
+  loadClients();
+  loadProjects();
+}, 30000);
 </script>
 </body>
 </html>
