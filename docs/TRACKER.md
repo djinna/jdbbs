@@ -10,7 +10,24 @@ Edit only from a clean working tree, push before someone else pulls.
 
 ---
 
-## 🟢 Resume here — next session (after 2026-05-31 DEV-012 Phase C)
+## 🟢 Resume here — next session (2026-06-02: Ghosts print production flow)
+
+**Full handoff:** [`NEXT_SESSION_PROMPT_2026-06-02.md`](../NEXT_SESSION_PROMPT_2026-06-02.md) — read it first.
+
+**Last landed:** 2026-06-02, commit `a99ea70` (pushed) — Garden chapter opener + golden-matched running heads in `series-template.typ`. Reusable `chapter-opener()` / `chapter-body-start()` + a drop-folio footer state, matched to golden p41/p43. Running-head **sides** now follow physical page parity; running-head **typography** matched to the golden's *rendered* output (caps `0.82em` / folio `0.89em` / Medium / **no tracking** — see the "10pt ≠ 10pt" Adobe-vs-our-cut gotcha in the prompt; do NOT revert these to the .indd's nominal 10/9pt).
+
+**Today's goal — bring the Ghosts print production flow online (a shippable golden-parity PDF):**
+1. Roll the golden opener out to the other **8 chapters** (file/title/author/art table in the prompt; ⚠️ Khlongs/intro art is a 493×203 banner, not a square — check golden p9 before forcing the square template).
+2. **Front matter i–vi** + LC CIP block — `docs/notes/2026-06-01-front-matter-cip-worknotes.md`.
+3. Per-chapter cleanups — **TRK-DESIGN-009** poems, Khlongs CJK/Thai fallback.
+4. **VM compile + verify** (user runs ssh): `pdffonts` shows licensed faces with no substitutions, page count → ~136, spot-check vs golden.
+5. Stretch: Zoothesia drop-in (reuses the Ghosts layout) proves the flow end-to-end.
+
+DESIGN-005/007/008 are already done — don't re-open. Parity status also in auto-memory `ghosts-print-parity-status`.
+
+---
+
+## 🗂 Earlier resume block — 2026-05-31 (DEV-012 Phase C)
 
 **Last touched:** 2026-05-31 — TRK-DEV-012 Phase C **shipped & verified in prod** (commit `40cb5ec`). DEV-012 fully done (A+B+C). Built ✓ / `go vet` ✓ / `go test ./srv/...` ✓ (incl. the 4 `json_set` round-trips — modernc SQLite has JSON1, no fallback needed) / deployed ✓ / live-smoked ✓.
 

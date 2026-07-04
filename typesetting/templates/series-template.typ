@@ -14,16 +14,18 @@
   // Page: named paper or explicit dimensions
   // If page-paper is set (e.g. "us-trade"), width/height are ignored.
   page-paper: none,
-  page-width: 353.811pt,
-  page-height: 546.567pt,
-  
-  // Margins — matched to the InDesign golden (reference/GHOSTS.pdf). Measured on
-  // verso+recto body pages via parity-check.sh: inside>outside (binding gutter),
-  // giving a 237pt measure. Was 0.7in/0.6in (measure 262pt, ~25pt too wide).
-  margin-top: 0.75in,
-  margin-bottom: 0.75in,
-  margin-inside: 59.8pt,
-  margin-outside: 56.8pt,
+  page-width: 311.81pt,   // 110mm — the golden's TRIM (TrimBox). Was 353.811pt,
+  page-height: 504.57pt,  // 178mm — which was the MediaBox (trim + 21pt bleed/crop).
+                          // 110x178mm = UK A-format paperback.
+
+  // Margins — measured from the golden's TRIM, not its media box. reference/GHOSTS.pdf
+  // is a print PDF: MediaBox 353.811x546.567, BleedBox inset 13pt, TrimBox inset 21pt.
+  // Text-block position (verso L=57 / recto L=60 etc., in media coords) minus the 21pt
+  // trim offset gives these. Measure stays 237pt (311.81 - 38.8 - 35.8).
+  margin-top: 39.8pt,
+  margin-bottom: 57.2pt,
+  margin-inside: 38.8pt,
+  margin-outside: 35.8pt,
 
   // Font families — licensed print fonts (TRK-DESIGN-002) in typesetting/fonts/licensed/.
   // The open-source faces (Libertinus Serif / Source Sans 3) remain in the text
@@ -38,10 +40,10 @@
   // Base font size (0.833em relative to 12pt = ~10pt)
   base-size: 10pt,
   
-  // Paragraph: leading is the gap between line bounding boxes.
-  // At 10pt, leading: 4pt gives visual rhythm close to traditional 10/12.
-  leading: 4pt,
-  paragraph-spacing: 4pt,  // match leading — no extra gap between paragraphs
+  // Paragraph: leading is the gap between line bounding boxes. Tuned so the
+  // baseline-to-baseline matches the golden's measured 12pt (classic 10/12).
+  leading: 4.8pt,
+  paragraph-spacing: 4.8pt,  // == leading: continuous text, no extra paragraph gap
   paragraph-indent: 0.75em,
 
   // Text flow
@@ -65,10 +67,17 @@
   h3-above: 0.75em,
   h3-below: 0.25em,
 
-  // Running heads
+  // Running heads — matched to the golden PDF's RENDERED output (reference/GHOSTS.pdf),
+  // not the .indd nominal. The .indd panel reads Proxima Nova Semibold 10pt / 9pt folio,
+  // but the golden PDF renders smaller + lighter (our bought Proxima cut is wider/heavier
+  // than the Adobe cut at the same pt — "10pt ≠ 10pt"). Scaled by the measured cap-height
+  // ratio (golden 5.52 / ours 6.72 ≈ 0.82) and dropped to Medium to match the strokes.
   running-heads-enabled: true,
-  running-heads-size: 0.75em,
-  running-heads-verso: "author",
+  running-heads-size: 0.82em,        // caps ≈ 8.2pt (matches golden cap-height 5.52pt)
+  running-heads-folio-size: 0.89em,  // folio figure-height 6.0pt — in the golden render the
+                                     // page number is slightly LARGER than the caps, not smaller
+  running-heads-weight: 500,         // Medium (golden strokes are lighter than Semibold)
+  running-heads-verso: "author",     // no tracking — our narrower cut stays at natural spacing
   running-heads-recto: "title",
 
   // Elements
@@ -119,6 +128,12 @@
 // We store a set of page numbers to suppress headers on
 #let suppress-header-pages = state("suppress-pages", ())
 
+// State to track pages that should show a centered DROP FOLIO in the footer.
+// Chapter-body-start pages (golden p43) carry a centered folio at the foot and no
+// running head — the inverse of normal body pages (running head draws the folio,
+// no footer).
+#let drop-folio-pages = state("drop-folio-pages", ())
+
 // Call this at start of each chapter to set header info
 #let set-story-info(title: none, author: none) = {
   current-story-title.update(title)
@@ -151,27 +166,40 @@
   if title == none { return }
   
   let page-num = counter(page).get().first()
-  let is-even = calc.rem(page-num, 2) == 0
-  
-  set text(font: config.heading-font, size: config.running-heads-size, weight: "medium")
-  
+  // Side is driven by PHYSICAL page parity (recto/verso), NOT folio parity. Our folio
+  // (reset to 1 at body start) can differ in parity from the physical page, so keying
+  // off the folio flips every running head onto the wrong side. The DISPLAYED number
+  // stays the folio; only the layout side follows the physical page.
+  let is-even = calc.even(current-page)
+
+  // Caps at Semibold 10pt; folio rendered one step down at 9pt (same family/weight).
+  // Size caps and folio INDEPENDENTLY, each relative to the inherited base size (10pt),
+  // so 0.82em = 8.2pt caps and 0.89em = 8.9pt folio. Don't set size on the outer text, or
+  // the folio's em compounds against the caps size and comes out too small.
+  set text(font: config.heading-font, weight: config.running-heads-weight)
+  let folio = text(size: config.running-heads-folio-size)[#page-num]
+  let caps(s) = text(size: config.running-heads-size)[#upper(s)]
+
   if is-even {
-    // Verso (left/even): page number left, AUTHOR right
-    grid(
-      columns: (auto, 1fr),
-      align: (left, right),
-      [#page-num],
-      upper(author),
-    )
+    // Verso (even): folio + AUTHOR grouped at the outside (left).
+    [#folio #h(1.35em) #caps(author)]
   } else {
-    // Recto (right/odd): TITLE left, page number right
-    grid(
-      columns: (1fr, auto),
-      align: (left, right),
-      upper(title),
-      [#page-num],
-    )
+    // Recto (odd): TITLE + folio grouped at the outside (right).
+    align(right)[#caps(title) #h(1.35em) #folio]
   }
+}
+
+// Footer renderer — centered DROP FOLIO, drawn only on chapter-body-start pages.
+// Matches golden p43: bold Proxima folio, centered, in the bottom margin. Same font
+// size as the running-head folio (calibrated: identical bbox height in the golden).
+#let drop-folio-footer() = context {
+  if not config.running-heads-enabled { return }
+  let current-page = here().page()
+  if current-page not in drop-folio-pages.final() { return }
+  // Page number: 9pt Semibold, same as the running-head folio.
+  set text(font: config.heading-font, size: config.running-heads-folio-size,
+           weight: config.running-heads-weight)
+  align(center)[#counter(page).get().first()]
 }
 
 // =============================================================================
@@ -314,10 +342,70 @@
   }
   
   v(2em)
-  
+
   // Chapter body - first para has no indent
   set par(first-line-indent: 0em)
   body
+}
+
+// -----------------------------------------------------------------------------
+// CHAPTER OPENER PAGE (golden GHOSTS layout — "Garden of Eden" standard)
+// -----------------------------------------------------------------------------
+// One recto page: a ~130pt square hero image upper-left, the title set ragged-left
+// in a narrow column to its right, the author below it. Otherwise blank — no running
+// head, no folio. All offsets are MEASURED from golden p41 in TRIM coordinates and
+// expressed as dx/dy from the text-area origin (margin-inside, margin-top).
+//
+//   square: 130x130pt at trim (59.6, 122.5)         -> dx 20.8 / dy 82.7
+//   title : Proxima bold ~20pt, col x=198.75, ~78pt wide, cap-top y=158.4, pitch 21pt
+//   author: Proxima medium ~15pt, cap-top y=266.7
+//
+// `art` is a PROJECT-ROOT-RELATIVE path (e.g. "/manuscripts/ghosts/x.jpg") so the
+// built-in image() resolves it regardless of which file invokes this template.
+#let chapter-opener(title: none, author: none, art: none) = {
+  pagebreak(weak: true, to: "odd")  // openers are recto
+
+  if art != none {
+    place(top + left, dx: 20.8pt, dy: 82.7pt,
+      image(art, width: 130pt, height: 130pt, fit: "cover"))
+  }
+
+  if title != none {
+    // top-edge: cap-height makes the placed box-top coincide with the cap-top, so
+    // dy maps directly to the measured cap-top; leading sets the 21pt baseline pitch.
+    place(top + left, dx: 160pt, dy: 121.1pt,
+      box(width: 78pt)[
+        #set text(font: config.heading-font, size: 2.0em, weight: "bold",
+                  top-edge: "cap-height", bottom-edge: "baseline")
+        #set par(leading: 7.7pt, first-line-indent: 0em, justify: false)
+        #title
+      ])
+  }
+
+  if author != none {
+    place(top + left, dx: 160pt, dy: 228.5pt,
+      box(width: 78pt)[
+        #set text(font: config.heading-font, size: 1.6em, weight: "medium",
+                  top-edge: "cap-height", bottom-edge: "baseline")
+        #set par(first-line-indent: 0em, justify: false)
+        #author
+      ])
+  }
+}
+
+// First body page of a chapter (golden p43): a blank verso precedes it, the body
+// drops ~96pt from the top margin, and a centered drop folio sits at the foot with
+// NO running head. Call between the opener and the chapter body include. Pass the
+// story title/author here (set AFTER the page break so the blank verso stays blank).
+#let chapter-body-start(title: none, author: none) = {
+  pagebreak(weak: true, to: "odd")  // blank verso (even) + land body on recto
+  set-story-info(title: title, author: author)
+  context {
+    let p = here().page()
+    suppress-header-pages.update(s => if p in s { s } else { s + (p,) })
+    drop-folio-pages.update(s => if p in s { s } else { s + (p,) })
+  }
+  v(96pt)  // body sink: first line lands at trim ~135.7 (top margin 39.8 + 95.9)
 }
 
 // =============================================================================
@@ -478,6 +566,7 @@
       outside: config.margin-outside,
     ),
     header: running-header(),
+    footer: drop-folio-footer(),
   )
   
   // Base typography - JUSTIFIED text (matches original)

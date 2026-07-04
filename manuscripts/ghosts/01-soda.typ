@@ -1,7 +1,5 @@
 #import "../../typesetting/templates/series-template.typ": poem
 
-#set text(font: "Plantin MT Pro", size: 10pt)
-#set par(justify: true, leading: 0.6em, first-line-indent: 0.75em)
 
 #text(font: "Proxima Nova", size: 1.667em, weight: "bold")[Soda Sweet as Blood]
 
