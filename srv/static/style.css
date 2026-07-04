@@ -507,16 +507,22 @@ label {
   max-width: 400px;
   margin: 80px auto;
   text-align: center;
+  padding: 40px 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
 }
 
 .auth-screen h2 {
-  margin-bottom: 8px;
+  font-size: 1.4rem;
+  margin-bottom: 4px;
   color: var(--text);
 }
 
-.auth-screen p {
+.auth-screen p,
+.auth-screen .auth-sub {
   color: var(--text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   font-size: 14px;
 }
 
@@ -528,6 +534,30 @@ label {
 .auth-screen .btn {
   width: 100%;
   justify-content: center;
+}
+
+.auth-screen .error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.auth-screen .forgot-link { margin-top: 14px; }
+
+.auth-screen .forgot-link a {
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.auth-screen .forgot-link a:hover { text-decoration: underline; }
+
+.auth-screen .back-link { margin-top: 8px; }
+
+.auth-screen .back-link a {
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-decoration: none;
 }
 
 .tabs {
@@ -1210,4 +1240,14 @@ html.dark .dir-out {
     right: 1rem;
   }
 }
-```
+
+@media (max-width: 480px) {
+  .theme-bar {
+    top: auto;
+    bottom: 0.75rem;
+    right: 0.75rem;
+  }
+  .toast-stack {
+    bottom: 60px;
+  }
+}

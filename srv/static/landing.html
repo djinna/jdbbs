@@ -199,6 +199,8 @@ h1 .amp { font-style: italic; font-weight: 400; color: var(--text-secondary); }
 .portal-card .hint {
   font-size: 0.75rem; color: var(--text-muted); margin-top: 0.65rem;
 }
+.portal-card .hint a { color: var(--accent); text-decoration: none; }
+.portal-card .hint a:hover { text-decoration: underline; }
 .portal-card .err {
   display: none; color: #b91c1c; font-size: 0.8rem; margin-top: 0.55rem;
 }
@@ -267,6 +269,8 @@ html.dark .portal-card .err { color: #fca5a5; }
 @media (max-width: 480px) {
   .portal-row { flex-direction: column; }
   .container { padding: 32px 18px 48px; }
+  h1 { font-size: 1.7rem; }
+  .theme-bar { top: 0.75rem; right: 0.75rem; }
 }
 </style>
 </head>
@@ -303,6 +307,7 @@ html.dark .portal-card .err { color: #fca5a5; }
       <button type="submit" class="btn btn-primary">Open &rarr;</button>
     </div>
     <div class="hint">Enter your client code to view your projects, schedules, and proofs.</div>
+    <div class="hint">Your client code is in your welcome email — or ask <a id="contact-link" href="mailto:j@djinna.com">j@djinna.com</a>.</div>
     <div id="portal-error" class="err"></div>
   </form>
 
@@ -330,7 +335,7 @@ html.dark .portal-card .err { color: #fca5a5; }
   </div>
 
   <div class="footer">
-    <a href="https://jdbbs.exe.xyz/__exe.dev/login?redirect=/admin/">Admin</a>
+    <a href="/admin/">Admin</a>
     <span class="sep">&middot;</span>
     <span>&copy; 2026 JDBB</span>
   </div>
@@ -348,8 +353,13 @@ var fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
 var state = { font: fontKeys[Math.floor(Math.random() * fontKeys.length)], dark: false };
 try {
   var saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-  if (saved) state.dark = saved.dark;
+  if (saved) {
+    state.dark = !!saved.dark;
+    if (fonts[saved.font]) state.font = saved.font;
+  }
 } catch(e) {}
+// Persist the first-visit random pick so the font follows the visitor site-wide.
+saveState();
 
 function applyState() {
   var f = fonts[state.font];
@@ -365,7 +375,7 @@ function applyState() {
 }
 
 function saveState() {
-  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: state.dark })); } catch(e) {}
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: state.font, dark: state.dark })); } catch(e) {}
 }
 
 function setFont(key) { state.font = key; applyState(); saveState(); }
@@ -396,6 +406,15 @@ document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
 });
 
 document.getElementById('dark-btn').addEventListener('click', toggleDark);
+
+var contactEmail = 'j@djinna.com';
+fetch('/api/public/config').then(function(r) { return r.ok ? r.json() : null; }).then(function(c) {
+  if (c && c.contact_email) {
+    contactEmail = c.contact_email;
+    var link = document.getElementById('contact-link');
+    if (link) { link.href = 'mailto:' + contactEmail; link.textContent = contactEmail; }
+  }
+}).catch(function() {});
 
 var portalForm = document.getElementById('portal-form');
 var clientSlugInput = document.getElementById('client-slug');

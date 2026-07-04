@@ -55,6 +55,14 @@ const fmt = {
   money(n) { return n ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'; },
 };
 
+function todayLocalISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+let contactEmail = 'j@djinna.com';
+fetch('/api/public/config').then(r => r.ok ? r.json() : null).then(c => { if (c && c.contact_email) contactEmail = c.contact_email; }).catch(() => {});
+
 let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [], fileLog: [], journal: [], showFileLogModal: false, showJournalModal: false, showActivityEmail: false, activitySending: false, activityResult: null };
 
 // ─── Font + Theme System ───
@@ -66,7 +74,15 @@ var _fonts = {
 };
 var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
 var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: false };
-try { var _saved = JSON.parse(localStorage.getItem('prodcal-theme-v1')); if (_saved) _themeState.dark = _saved.dark; } catch(e) {}
+try {
+  var _saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (_saved) {
+    _themeState.dark = !!_saved.dark;
+    if (_fonts[_saved.font]) _themeState.font = _saved.font;
+  }
+} catch(e) {}
+// Persist the first-visit random pick so the font follows the visitor site-wide.
+try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
 
 function _applyTheme() {
   var f = _fonts[_themeState.font];
@@ -83,7 +99,7 @@ function _applyTheme() {
   if (darkBtn) darkBtn.textContent = _themeState.dark ? '\u2600' : '\u263e';
 }
 function _saveTheme() {
-  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: _themeState.dark })); } catch(e) {}
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
 }
 function _setFont(key) { _themeState.font = key; _applyTheme(); _saveTheme(); }
 function _toggleDark() { _themeState.dark = !_themeState.dark; _applyTheme(); _saveTheme(); }
@@ -188,7 +204,7 @@ function showNewProject() {
       h('div', { className: 'form-row' },
         h('div', { className: 'form-group' },
           h('label', null, 'Start Date'),
-          dateInput = h('input', { type: 'date', value: new Date().toISOString().slice(0, 10) }),
+          dateInput = h('input', { type: 'date', value: todayLocalISO() }),
         ),
       ),
       h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:8px 0;font-size:13px;color:var(--text-secondary)' },
@@ -238,21 +254,38 @@ async function openProject(id) {
 
 // ─── Auth ───
 function renderAuth() {
-  let input;
+  let input, errEl;
+  const label = state.project ? state.project.Name : (state.pathClient || 'this project');
+  const doLogin = async () => {
+    try {
+      await api('/api/projects/' + state.projectId + '/verify', {
+        method: 'POST', body: JSON.stringify({ password: input.value }),
+      });
+      openProject(state.projectId);
+    } catch { errEl.textContent = 'Invalid password'; errEl.style.display = ''; }
+  };
   return h('div', { className: 'auth-screen' },
     h('h2', null, 'Password Required'),
-    h('p', null, state.project ? state.project.Name : 'This project is protected'),
-    input = h('input', { type: 'password', placeholder: 'Enter password' }),
-    h('button', { className: 'btn btn-primary', onClick: async () => {
-      try {
-        await api('/api/projects/' + state.projectId + '/verify', {
-          method: 'POST', body: JSON.stringify({ password: input.value }),
-        });
-        openProject(state.projectId);
-      } catch { alert('Invalid password'); }
-    }}, 'Unlock'),
-    h('br'), h('br'),
-    h('button', { className: 'btn', onClick: () => { state.view = 'projects'; render(); } }, '← Back'),
+    h('p', { className: 'auth-sub' }, state.project ? state.project.Name : 'This project is protected'),
+    input = h('input', { type: 'password', placeholder: 'Enter password', onKeydown: (e) => { if (e.key === 'Enter') doLogin(); } }),
+    h('div', null, h('button', { className: 'btn btn-primary', onClick: doLogin }, 'Unlock')),
+    errEl = h('div', { className: 'error', style: 'display:none' }),
+    h('div', { className: 'forgot-link' },
+      h('a', { href: '#', onClick: (e) => {
+        e.preventDefault();
+        const subject = encodeURIComponent('Portal access — ' + label);
+        const body = encodeURIComponent(
+          'Hi,\n\nI’d like a password reset (or password) for the JDBB client portal.\n\n' +
+          'Project: ' + label + '\n' +
+          'Portal URL: ' + window.location.href + '\n\n' +
+          'Thanks.\n'
+        );
+        window.location.href = 'mailto:' + contactEmail + '?subject=' + subject + '&body=' + body;
+      } }, 'Forgot or need a reset?')),
+    h('div', { className: 'back-link' },
+      state.pathClient
+        ? h('a', { href: '/' + state.pathClient + '/' }, '← Back')
+        : h('a', { href: '#', onClick: (e) => { e.preventDefault(); state.view = 'projects'; render(); } }, '← Back')),
   );
 }
 
@@ -637,7 +670,7 @@ function showDuplicate() {
       h('div', { className: 'form-row' },
         h('div', { className: 'form-group' },
           h('label', null, 'New Start Date (manuscript transmittal)'),
-          dateInput = h('input', { type: 'date', value: new Date().toISOString().slice(0, 10) }),
+          dateInput = h('input', { type: 'date', value: todayLocalISO() }),
         ),
         h('div', { className: 'form-group' },
           h('label', null, 'Original Start'),
@@ -803,7 +836,7 @@ async function cycleStatus(t) {
   const body = {
     sort_order: t.SortOrder || 0, assignee: t.Assignee || '', title: t.Title || '',
     is_milestone: t.IsMilestone || 0, orig_weeks: t.OrigWeeks || 0, curr_weeks: t.CurrWeeks || 0,
-    orig_due: t.OrigDue || '', curr_due: t.CurrDue || '', actual_done: newStatus === 'done' ? new Date().toISOString().slice(0,10) : (t.ActualDone || ''),
+    orig_due: t.OrigDue || '', curr_due: t.CurrDue || '', actual_done: newStatus === 'done' ? todayLocalISO() : (t.Status === 'done' ? '' : (t.ActualDone || '')),
     status: newStatus, words: t.Words || 0, words_per_hour: t.WordsPerHour || 0,
     hours: t.Hours || 0, rate: t.Rate || 0, budget_notes: t.BudgetNotes || '',
     orig_budget: t.OrigBudget || 0, curr_budget: t.CurrBudget || 0, actual_budget: t.ActualBudget || 0,
@@ -816,17 +849,15 @@ async function cycleStatus(t) {
 }
 
 // ─── Snapshot Email Modal ───
-const SNAPSHOT_RECIPIENTS = [
-  { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
-  { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
-];
-
 let snapshotRecipients = null;
 
 function initSnapshotRecipients() {
   if (snapshotRecipients) return;
-  snapshotRecipients = SNAPSHOT_RECIPIENTS.map(r => ({ ...r }));
-  snapshotRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+  snapshotRecipients = [
+    { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+    { email: contactEmail, label: 'Studio', checked: true, editable: false },
+    { email: '', label: 'Other', checked: false, editable: true },
+  ];
 }
 
 async function checkEmailConfigCal() {
@@ -1158,7 +1189,7 @@ function renderFileLogModal() {
         ),
         h('div', { className: 'form-group' },
           h('label', null, 'Transfer Date'),
-          dateInput = h('input', { type: 'date', value: new Date().toISOString().slice(0, 10) }),
+          dateInput = h('input', { type: 'date', value: todayLocalISO() }),
         ),
       ),
       h('div', { className: 'form-row' },

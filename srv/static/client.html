@@ -184,6 +184,13 @@
   .jt-decision { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
   .jt-approval { background: rgba(74, 222, 128, 0.15); color: var(--green, #4ade80); }
   .jt-note { background: var(--badge-dim-bg); color: var(--text-secondary); }
+
+  @media (max-width: 480px) {
+    .dashboard { padding: 1.25rem 1rem; }
+    .dash-header { flex-wrap: wrap; gap: 0.75rem; }
+    .theme-bar { top: auto; bottom: 0.75rem; right: 0.75rem; }
+    .auth-box { margin: 48px auto; padding: 32px 20px; }
+  }
 </style>
 </head>
 <body>
@@ -195,23 +202,23 @@
 const $ = (s) => document.querySelector(s);
 const api = async (url, opts = {}) => {
   const r = await fetch(url, { headers: {'Content-Type':'application/json', ...opts.headers}, ...opts });
-  const data = await r.json();
-  if (!r.ok) { const err = new Error(data.error || r.statusText); err.status = r.status; throw err; }
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch(e) {}
+  if (!r.ok) { const err = new Error((data && data.error) || r.statusText || ('HTTP ' + r.status)); err.status = r.status; throw err; }
+  if (!data) throw new Error('Expected JSON response from server');
   return data;
 };
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function portalBaseURL() { return window.location.origin + '/'; }
 function absoluteURL(path) { return new URL(path, portalBaseURL()).toString(); }
 
+let contactEmail = 'j@djinna.com';
+fetch('/api/public/config').then(r => r.ok ? r.json() : null).then(c => { if (c && c.contact_email) contactEmail = c.contact_email; }).catch(() => {});
+
 function getTheme() { try { var t = JSON.parse(localStorage.getItem('prodcal-theme-v1')); return (t && t.dark) ? 'dark' : 'light'; } catch(e) { return 'light'; } }
 function applyTheme(t) {
   document.documentElement.classList.toggle('dark', t === 'dark');
-}
-function toggleTheme() {
-  const isDark = document.documentElement.classList.contains('dark');
-  const next = isDark ? 'light' : 'dark';
-  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: next === 'dark' })); } catch(e) {}
-  applyTheme(next);
 }
 applyTheme(getTheme());
 
@@ -224,6 +231,17 @@ var _fonts = {
 };
 var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
 var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: document.documentElement.classList.contains('dark') };
+try {
+  var _savedTheme = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (_savedTheme && _fonts[_savedTheme.font]) _themeState.font = _savedTheme.font;
+} catch(e) {}
+function _saveThemeState() {
+  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
+}
+// Persist the first-visit random pick so the font follows the visitor site-wide.
+_saveThemeState();
+// Apply the font immediately so auth/notfound views match the rest of the site.
+_applyThemeBar();
 
 function _applyThemeBar() {
   var f = _fonts[_themeState.font];
@@ -256,14 +274,14 @@ function _ensureThemeBar() {
   document.addEventListener('click', function(e) { if (expanded && !bar.contains(e.target)) { expanded = false; bar.classList.remove('expanded'); } });
   bar.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      _themeState.font = this.dataset.font; _applyThemeBar();
+      _themeState.font = this.dataset.font; _applyThemeBar(); _saveThemeState();
       expanded = false; bar.classList.remove('expanded');
     });
   });
   document.getElementById('dark-btn').addEventListener('click', function() {
     _themeState.dark = !_themeState.dark;
     document.documentElement.classList.toggle('dark', _themeState.dark);
-    try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ dark: _themeState.dark })); } catch(e) {}
+    _saveThemeState();
     _applyThemeBar();
   });
   _applyThemeBar();
@@ -291,7 +309,7 @@ function render() {
       <div><button class="btn btn-primary" id="loginBtn" style="width:100%">Unlock</button></div>
       ${state.error ? '<div class="error">' + esc(state.error) + '</div>' : ''}
       <div class="forgot-link"><a href="#" id="forgotLink">Forgot or need a reset?</a></div>
-      <div class="back-link"><a href="https://jdbbs.exe.xyz/">← Back</a></div>
+      <div class="back-link"><a href="/">← Back</a></div>
     `;
     app.appendChild(box);
     const pw = box.querySelector('#pw');
@@ -317,7 +335,7 @@ function render() {
           'Portal URL: ' + window.location.href + '\n\n' +
           'Thanks.\n'
         );
-        window.location.href = 'mailto:j@djinna.com?subject=' + subject + '&body=' + body;
+        window.location.href = 'mailto:' + contactEmail + '?subject=' + subject + '&body=' + body;
       });
     }
   } else if (state.view === 'notfound') {
@@ -645,7 +663,7 @@ function initProjEmailRecipients() {
   if (projEmailRecipients) return;
   projEmailRecipients = [
     { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
-    { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
+    { email: contactEmail, label: 'Studio', checked: true, editable: false },
     { email: '', label: 'Other', checked: false, editable: true },
   ];
 }
@@ -778,16 +796,15 @@ function renderProjectEmailModal() {
 }
 
 // ─── Digest Email Modal ───
-const DIGEST_RECIPIENTS = [
-  { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
-  { email: 'j@djinna.com', label: 'Jenna', checked: true, editable: false },
-];
 let digestRecipients = null;
 
 function initDigestRecipients() {
   if (digestRecipients) return;
-  digestRecipients = DIGEST_RECIPIENTS.map(r => ({ ...r }));
-  digestRecipients.push({ email: '', label: 'Other', checked: false, editable: true });
+  digestRecipients = [
+    { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
+    { email: contactEmail, label: 'Studio', checked: true, editable: false },
+    { email: '', label: 'Other', checked: false, editable: true },
+  ];
 }
 
 async function checkEmailConfig() {
