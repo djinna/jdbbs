@@ -1797,6 +1797,7 @@ const tsEmpty = document.getElementById('ts-empty');
 let tsSpec = null;
 let tsDirty = false;
 let tsAutoSaveTimer = null;
+let tsCurrentPid = null;
 
 // Populate project selector from existing loaded projects
 function tsPopulateProjects(projects) {
@@ -1811,7 +1812,13 @@ function tsPopulateProjects(projects) {
   if (prev) tsProject.value = prev;
 }
 
-tsProject.addEventListener('change', () => {
+tsProject.addEventListener('change', async () => {
+  // Flush any pending autosave for the project we're leaving, bound to ITS id,
+  // so switching can neither discard edits nor write them onto the new project.
+  clearTimeout(tsAutoSaveTimer);
+  if (tsDirty && tsCurrentPid) {
+    await tsSaveSpec(tsCurrentPid);
+  }
   const pid = tsProject.value;
   if (!pid) {
     tsForm.style.display = 'none';
@@ -1822,12 +1829,14 @@ tsProject.addEventListener('change', () => {
     document.getElementById('ts-preview-config').disabled = true;
     document.getElementById('ts-download-template').disabled = true;
     tsSpec = null;
+    tsCurrentPid = null;
     return;
   }
   tsLoadSpec(pid);
 });
 
 async function tsLoadSpec(pid) {
+  tsCurrentPid = pid;
   try {
     await tsLoadFonts();
     const res = await fetch(`/api/projects/${pid}/book-spec`);
@@ -2133,11 +2142,11 @@ function tsMarkDirty() {
   tsSaveStatus.textContent = 'Unsaved changes';
   tsSaveStatus.style.color = 'var(--yellow)';
   clearTimeout(tsAutoSaveTimer);
-  tsAutoSaveTimer = setTimeout(tsSaveSpec, 2000);
+  tsAutoSaveTimer = setTimeout(() => tsSaveSpec(tsCurrentPid), 2000);
 }
 
-async function tsSaveSpec() {
-  const pid = tsProject.value;
+async function tsSaveSpec(pidArg) {
+  const pid = pidArg || tsProject.value;
   if (!pid || !tsSpec) return;
   tsSaveStatus.textContent = 'Saving…';
   tsSaveStatus.style.color = 'var(--text-muted)';
@@ -2161,7 +2170,7 @@ async function tsSaveSpec() {
     tsSaveStatus.style.color = 'var(--red)';
   }
 }
-tsSave.addEventListener('click', tsSaveSpec);
+tsSave.addEventListener('click', () => tsSaveSpec());
 
 // Pull from transmittal
 tsPullTx.addEventListener('click', async () => {

@@ -75,10 +75,13 @@ sqlite3 db.sqlite3 ".backup /tmp/prodcal-backup.sqlite3"
 ## Database: Restore from Backup
 
 ```bash
-sudo systemctl stop srv
-gunzip ~/backups/prodcal-YYYYMMDD-HHMMSS.sqlite3.gz
-cp ~/backups/prodcal-YYYYMMDD-HHMMSS.sqlite3 /home/exedev/prodcal/db.sqlite3
-sudo systemctl start srv
+sudo systemctl stop prodcal.service
+# decompress WITHOUT consuming the backup (-k keeps the .gz), or use zcat
+zcat ~/backups/prodcal-YYYYMMDD-HHMMSS.sqlite3.gz > /home/exedev/prodcal/db.sqlite3
+# drop stale WAL/shm from the stopped server so SQLite doesn't merge them into the restore
+rm -f /home/exedev/prodcal/db.sqlite3-wal /home/exedev/prodcal/db.sqlite3-shm
+sudo systemctl start prodcal.service
+curl -s http://localhost:8000/healthz   # expect {"status":"ok"}
 ```
 
 ## Health Check

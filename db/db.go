@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -20,23 +21,22 @@ var migrationFS embed.FS
 
 // Open opens an sqlite database and prepares pragmas suitable for a small web app.
 func Open(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", path)
+	// Apply pragmas via the DSN so EVERY pooled connection gets them (a bare
+	// `PRAGMA` via db.Exec only affects one connection). foreign_keys and
+	// busy_timeout are per-connection in SQLite.
+	sep := "?"
+	if strings.Contains(path, "?") {
+		sep = "&"
+	}
+	dsn := path + sep + "_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
-	// Light pragmas similar
-	if _, err := db.Exec("PRAGMA foreign_keys=ON;"); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("enable foreign keys: %w", err)
-	}
-	if _, err := db.Exec("PRAGMA journal_mode=wal;"); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("set WAL: %w", err)
-	}
-	if _, err := db.Exec("PRAGMA busy_timeout=1000;"); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("set busy_timeout: %w", err)
-	}
+	// SQLite allows a single writer; serialize all access through one connection
+	// so concurrent writes queue on busy_timeout instead of failing SQLITE_BUSY,
+	// and so the per-connection pragmas above always apply.
+	db.SetMaxOpenConns(1)
 	return db, nil
 }
 

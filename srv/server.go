@@ -2,8 +2,10 @@ package srv
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -11,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +36,7 @@ type Server struct {
 	BaseURL         string
 	Email           *EmailConfig
 	preflightRunner preflightRunnerFunc
+	secret          []byte
 }
 
 func New(dbPath, hostname string) (*Server, error) {
@@ -46,6 +50,11 @@ func New(dbPath, hostname string) (*Server, error) {
 	}
 	srv.BaseURL = baseURL
 	slog.Info("server base URL configured", "base_url", baseURL)
+	secret, err := loadOrCreateSecret(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	srv.secret = secret
 
 	if err := srv.setUpDatabase(dbPath); err != nil {
 		return nil, err
@@ -69,6 +78,28 @@ func (s *Server) setUpDatabase(dbPath string) error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 	return nil
+}
+
+// loadOrCreateSecret returns the server's HMAC secret, used to derive client
+// session tokens. It prefers PRODCAL_SECRET, else reads/creates a persisted
+// secret file beside the DB so tokens survive restarts.
+func loadOrCreateSecret(dbPath string) ([]byte, error) {
+	if env := strings.TrimSpace(os.Getenv("PRODCAL_SECRET")); env != "" {
+		return []byte(env), nil
+	}
+	secretPath := filepath.Join(filepath.Dir(dbPath), ".prodcal-secret")
+	if b, err := os.ReadFile(secretPath); err == nil && len(b) >= 32 {
+		return b, nil
+	}
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return nil, fmt.Errorf("generate secret: %w", err)
+	}
+	enc := []byte(hex.EncodeToString(buf))
+	if err := os.WriteFile(secretPath, enc, 0o600); err != nil {
+		return nil, fmt.Errorf("persist secret: %w", err)
+	}
+	return enc, nil
 }
 
 // Handler returns the fully configured HTTP handler for the server.
@@ -359,42 +390,46 @@ func (s *Server) projectIDFromPath(r *http.Request) (int64, error) {
 
 // Auth middleware: checks project-level cookie, client-level cookie, or Authorization header
 func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
-	q := dbgen.New(s.DB)
-	// Check if project has any auth tokens at all
-	tokens, err := q.ListAuthTokens(r.Context(), projectID)
-	if err != nil || len(tokens) == 0 {
-		// No auth configured = open access
-		return true
-	}
-
-	// Check project-level cookie
-	var raw string
-	if c, err := r.Cookie(fmt.Sprintf("prodcal_auth_%d", projectID)); err == nil {
-		raw = c.Value
-	}
-	if raw == "" {
-		raw = r.Header.Get("X-Auth-Token")
-	}
-	if raw != "" {
-		for _, tok := range tokens {
-			if checkPassword(raw, tok.TokenHash) {
-				return true
-			}
-		}
-	}
-
-	// Check client-level cookie
-	clientSlug := s.getClientSlugForProject(r, projectID)
-	if clientSlug != "" && s.checkClientAuth(r, clientSlug) {
-		return true
-	}
-
-	// Check exe.dev admin
+	// exe.dev admin bypasses all gates.
 	if r.Header.Get("X-ExeDev-UserID") != "" {
 		return true
 	}
 
-	return false
+	q := dbgen.New(s.DB)
+	tokens, err := q.ListAuthTokens(r.Context(), projectID)
+	if err != nil {
+		// Fail closed on DB error rather than granting open access.
+		return false
+	}
+
+	// 1) Project-level token via cookie or X-Auth-Token header.
+	if len(tokens) > 0 {
+		raw := ""
+		if c, err := r.Cookie(fmt.Sprintf("prodcal_auth_%d", projectID)); err == nil {
+			raw = c.Value
+		}
+		if raw == "" {
+			raw = r.Header.Get("X-Auth-Token")
+		}
+		if raw != "" {
+			for _, tok := range tokens {
+				if checkPassword(raw, tok.TokenHash) {
+					return true
+				}
+			}
+		}
+	}
+
+	// 2) Client-level password (also gates projects that have no project tokens).
+	clientSlug := s.getClientSlugForProject(r, projectID)
+	clientProtected := s.clientHasPassword(r, clientSlug)
+	if clientProtected && s.checkClientAuth(r, clientSlug) {
+		return true
+	}
+
+	// 3) Genuinely open only when there is no gate at all: no project tokens
+	//    AND the client has no password.
+	return len(tokens) == 0 && !clientProtected
 }
 
 func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request, projectID int64) bool {
@@ -485,7 +520,7 @@ func (s *Server) handleGetProjectByPath(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	tokens, _ := q.ListAuthTokens(r.Context(), p.ID)
-	hasAuth := len(tokens) > 0
+	hasAuth := len(tokens) > 0 || s.clientHasPassword(r, client)
 	authed := s.checkAuth(r, p.ID)
 	jsonOK(w, map[string]any{
 		"project":       p,
@@ -509,7 +544,7 @@ func (s *Server) handleGetProject(w http.ResponseWriter, r *http.Request) {
 
 	// Check if auth is required
 	tokens, _ := q.ListAuthTokens(r.Context(), pid)
-	hasAuth := len(tokens) > 0
+	hasAuth := len(tokens) > 0 || s.clientHasPassword(r, s.getClientSlugForProject(r, pid))
 	authed := s.checkAuth(r, pid)
 
 	jsonOK(w, map[string]any{

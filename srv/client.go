@@ -1,7 +1,11 @@
 package srv
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -65,13 +69,36 @@ func (s *Server) checkClientAuth(r *http.Request, clientSlug string) bool {
 		return false // no client or no password set
 	}
 
-	// Check cookie
+	// Check cookie against the derived session token (constant-time).
 	c, err := r.Cookie("prodcal_client_" + clientSlug)
 	if err != nil || c.Value == "" {
 		return false
 	}
+	expected := s.clientAuthToken(clientSlug, passwordHash)
+	return subtle.ConstantTimeCompare([]byte(c.Value), []byte(expected)) == 1
+}
 
-	return checkPassword(c.Value, passwordHash)
+// clientAuthToken derives a stable session token for a client that never reveals
+// the password. It binds to the current password hash, so rotating the password
+// invalidates every previously issued cookie.
+func (s *Server) clientAuthToken(clientSlug, passwordHash string) string {
+	mac := hmac.New(sha256.New, s.secret)
+	mac.Write([]byte("client|" + clientSlug + "|" + passwordHash))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// clientHasPassword reports whether a client slug is password-protected.
+func (s *Server) clientHasPassword(r *http.Request, clientSlug string) bool {
+	if clientSlug == "" {
+		return false
+	}
+	var passwordHash string
+	if err := s.DB.QueryRowContext(r.Context(),
+		`SELECT password_hash FROM clients WHERE slug = ?`, clientSlug,
+	).Scan(&passwordHash); err != nil {
+		return false
+	}
+	return strings.TrimSpace(passwordHash) != ""
 }
 
 // getClientSlugForProject returns the client_slug for a given project ID.
@@ -126,10 +153,11 @@ func (s *Server) handleClientVerify(w http.ResponseWriter, r *http.Request) {
 	// Set client cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "prodcal_client_" + clientSlug,
-		Value:    body.Password,
+		Value:    s.clientAuthToken(clientSlug, passwordHash),
 		Path:     "/",
 		MaxAge:   86400 * 90, // 90 days
 		HttpOnly: true,
+		Secure:   strings.HasPrefix(s.BaseURL, "https://"),
 		SameSite: http.SameSiteLaxMode,
 	})
 
