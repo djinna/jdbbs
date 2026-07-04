@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd LaunchAgent for the ProdCal local single-user service.
+
+  IMPORTANT: launchd does NOT expand "~" or environment variables in these
+  paths. Before installing, replace every "__HOME__" below with your real
+  home directory (e.g. /Users/yourname), or edit the paths to taste.
+
+  Install (see docs/LOCAL-USAGE.md for the full walkthrough):
+    1. go build -o prodcal-local ./cmd/prodcal-local
+    2. cp prodcal-local /usr/local/bin/prodcal-local        # or edit ProgramArguments
+    3. sed "s|__HOME__|$HOME|g" deploy/local/com.jdbb.prodcal-local.plist \
+         > ~/Library/LaunchAgents/com.jdbb.prodcal-local.plist
+    4. launchctl load ~/Library/LaunchAgents/com.jdbb.prodcal-local.plist
+
+  This binds the loopback-only admin proxy on 127.0.0.1:8000 by default and
+  keeps it running (RunAtLoad + KeepAlive). It is unauthenticated by design and
+  MUST never be exposed beyond loopback.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.jdbb.prodcal-local</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/prodcal-local</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Replace __HOME__ with your absolute home directory before installing. -->
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/prodcal-local.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/prodcal-local.log</string>
+</dict>
+</plist>

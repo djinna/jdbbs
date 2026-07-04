@@ -1,4 +1,4 @@
-.PHONY: build clean stop start restart test
+.PHONY: build clean stop start restart test local
 
 build:
 	go build -o prodcal ./cmd/srv
@@ -8,3 +8,6 @@ clean:
 
 test:
 	go test ./...
+
+local:
+	./scripts/run-local.sh

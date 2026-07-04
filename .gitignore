@@ -1,9 +1,12 @@
 prodcal
+/prodcal-local
+/prodcal-app
 db.sqlite3*
 *.db
 seed_data.json
 .env
 *.sqlite3
+.prodcal-secret
 SESSION-SUMMARY.txt
 TEAM-UPDATE.txt
 .hermes/
