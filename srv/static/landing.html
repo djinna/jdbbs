@@ -7,415 +7,492 @@
 <link rel="icon" href="/static/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/theme.css">
 <script>
 (function() {
   try {
     var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-    if (t && t.dark) document.documentElement.classList.add('dark');
+    if (t) {
+      if (t.dark) document.documentElement.classList.add('dark');
+      var legacy = { literata: 'martian', 'ibm-serif': 'plex', menlo: 'jetbrains', 'ibm-sans': 'geist' };
+      var f = legacy[t.font] || t.font;
+      if (f === 'jetbrains' || f === 'martian' || f === 'plex' || f === 'geist') {
+        document.documentElement.setAttribute('data-font', f);
+      }
+    }
   } catch(e) {}
 })();
 </script>
 <style>
+/* Page layout only — all color/type tokens come from /static/theme.css. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
-:root {
-  --bg: #f8f9fa; --surface: #ffffff; --border: #e0e2e6;
-  --text: #111827; --text-secondary: #6b7280; --text-muted: #9ca3af;
-  --accent: #2563eb;
-  --noise-opacity: 0.035; --grid-color: rgba(160,168,180,0.6);
-  --gradient-wash: linear-gradient(to bottom, rgba(230,233,240,0.3) 0%, transparent 60%);
-  --progress-bg: #f1f3f5;
-  --theme-bg: rgba(255,255,255,0.92);
-}
-
-html.dark {
-  --bg: #0f1115; --surface: #1a1d24; --border: #2a2d35;
-  --text: #e4e5e7; --text-secondary: #9ca0a8; --text-muted: #6b7074;
-  --accent: #5b9aff;
-  --noise-opacity: 0.012; --grid-color: rgba(90,96,110,0.7);
-  --gradient-wash: linear-gradient(to bottom, rgba(20,22,28,0.4) 0%, transparent 60%);
-  --progress-bg: #23262e;
-  --theme-bg: rgba(26,29,36,0.92);
-}
 
 body {
   background: var(--bg);
-  font-family: 'IBM Plex Serif', Georgia, serif;
   color: var(--text);
-  min-height: 100vh;
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---- masthead / statusline (chrome classes from theme.css) ---- */
+.jdbb-masthead { flex-wrap: wrap; }
+.jdbb-masthead nav { flex-wrap: wrap; row-gap: 0; }
+.jdbb-masthead nav a { padding: 14px 0; }  /* tap target height */
+.jdbb-statusline { flex-wrap: wrap; }
+
+/* ---- hero ---- */
+.hero { padding: 72px 0 64px; }
+.hero .kicker { display: block; margin-bottom: 28px; }
+.hero h1 {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: clamp(28px, 6vw, 54px);
+  line-height: 1.22;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  max-width: 22ch;
+  margin-bottom: 28px;
+}
+.hero .subhead {
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 62ch;
+}
+.hero .subhead em { font-style: normal; color: var(--text); }
+
+/* ---- pipeline readout: a ruled typographic table, not a box ---- */
+.readout-head {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  transition: background 0.3s, color 0.3s;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  padding: 18px 0 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
 }
-body, body * { font-weight: 400; }
+.readout-head .job { color: var(--text-muted); }
+.readout-head .job .jobname { color: var(--text); }
+.readout-head .live { color: var(--accent); letter-spacing: 0.1em; white-space: nowrap; }
 
-/* Noise texture overlay */
-body::before {
-  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 180px; opacity: var(--noise-opacity);
+.readout-row {
+  display: grid;
+  grid-template-columns: 32px 168px 1fr 92px;
+  column-gap: 20px;
+  align-items: baseline;
+  padding: 15px 0 14px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
 }
-
-/* Gradient wash at top */
-body::after {
-  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 50vh; z-index: 0;
-  pointer-events: none; background: var(--gradient-wash);
-}
-
-/* Dashed grid lines */
-.grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: flex; justify-content: center; }
-.grid-lines-inner { width: 1120px; max-width: 100vw; display: flex; justify-content: space-between; padding: 0; }
-.grid-line {
-  width: 1px;
-  background: repeating-linear-gradient(to bottom, var(--grid-color) 0px, var(--grid-color) 4px, transparent 4px, transparent 10px);
-}
-
-/* Theme bar — matches dashboard exactly */
-.theme-bar {
-  position: fixed; top: 1rem; right: 2rem; z-index: 200;
-  display: flex; align-items: center; gap: 0.25rem;
-  background: var(--theme-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: 14px;
-  padding: 0.2rem 0.3rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: background 0.3s, border-color 0.3s;
+.readout-row .stage { font-weight: 600; font-size: 12px; letter-spacing: 0.1em; }
+.readout-row .detail { color: var(--text-secondary); font-size: 12px; }
+.readout-row .state {
+  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
 }
 
-.theme-bar .font-options {
-  display: flex; gap: 0.15rem; overflow: hidden;
-  max-width: 0; opacity: 0;
-  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+.readout-row.is-done .tick,
+.readout-row.is-done .state { color: var(--green); }
+.readout-row.is-done .stage { color: var(--text); }
+.readout-row.is-active .tick,
+.readout-row.is-active .stage,
+.readout-row.is-active .detail,
+.readout-row.is-active .state { color: var(--accent); }
+.readout-row.is-pending .tick,
+.readout-row.is-pending .stage,
+.readout-row.is-pending .detail,
+.readout-row.is-pending .state { color: var(--text-muted); }
+
+.readout-foot {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  border-top: 1px solid var(--border);
+  padding: 13px 0 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
 }
-.theme-bar.expanded .font-options {
-  max-width: 400px; opacity: 1;
+.readout-foot .pass { color: var(--green); }
+
+/* ---- client portal ---- */
+.portal { padding: 72px 0 80px; }
+.portal .kicker { display: block; margin-bottom: 36px; }
+.portal-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+  max-width: 640px;
+}
+.portal-field {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.portal-field:focus-within { border-bottom-color: var(--accent); }
+.portal-field .prompt { font-family: var(--mono); font-size: 15px; color: var(--accent); }
+.portal-field .input-bare { border-bottom: none; font-size: 15px; padding: 12px 0; }
+.portal .btn-fill { min-height: 44px; }
+.portal-help {
+  margin-top: 22px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.portal-help a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.portal-help a:hover { color: var(--accent); }
+#portal-error {
+  display: none;
+  margin-top: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--red);
 }
 
-.theme-bar .font-name {
-  padding: 0.25rem 0.5rem; font-size: 0.65rem; color: var(--text-secondary);
-  cursor: pointer; white-space: nowrap; transition: color 0.15s;
-  border-radius: 10px;
+/* ---- capabilities ledger ---- */
+.capabilities { padding: 72px 0 0; }
+.cap-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin-bottom: 32px;
 }
-.theme-bar .font-name:hover { color: var(--text); }
-.theme-bar.expanded .font-name { display: none; }
-
-.theme-opt {
-  padding: 0.25rem 0.5rem; border-radius: 10px; border: none;
-  background: transparent; color: var(--text-secondary); font-size: 0.65rem;
-  cursor: pointer; white-space: nowrap; transition: all 0.15s;
-  font-family: inherit;
-}
-.theme-opt:hover { color: var(--text); background: var(--progress-bg); }
-.theme-opt.active { color: var(--accent); background: rgba(37,99,235,0.08); }
-html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
-
-.theme-sep {
-  width: 1px; height: 13px; background: var(--border);
-  margin: 0 0.1rem; flex-shrink: 0; align-self: center;
-}
-
-.dark-btn {
-  width: 20px; height: 20px; padding: 0; border-radius: 50%; border: none;
-  background: transparent; color: var(--text-secondary);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-}
-.dark-btn:hover { color: var(--text); background: var(--progress-bg); }
-
-/* Main content */
-body { align-items: flex-start; padding-top: 6vh; }
-
-.container {
-  position: relative; z-index: 1;
-  text-align: center;
-  max-width: 760px;
-  padding: 48px 24px 64px;
-}
-
-.eyebrow {
-  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
+.cap-head .meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 1.5rem;
-}
-.eyebrow .dot {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent); vertical-align: middle; margin-right: 0.55rem;
-  animation: pulse 2.4s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
-
-h1 {
-  font-family: inherit;
-  font-size: 2.4rem;
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  color: var(--text);
-  margin-bottom: 0.85rem;
-  line-height: 1.1;
-}
-h1 .amp { font-style: italic; font-weight: 400; color: var(--text-secondary); }
-
-.subtitle {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  line-height: 1.65;
-  margin: 0 auto 2.5rem;
-  max-width: 520px;
-}
-
-.portal-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.6rem 1.6rem 1.4rem;
-  margin: 0 auto 2.75rem;
-  max-width: 480px;
-  text-align: left;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-}
-.portal-card .label {
-  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
-  font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--text-secondary); margin-bottom: 0.7rem;
-}
-.portal-row {
-  display: flex; gap: 0.5rem; align-items: stretch;
-}
-.portal-row input {
-  flex: 1; padding: 0.7rem 0.9rem;
-  border: 1px solid var(--border); border-radius: 8px;
-  background: var(--bg); color: var(--text);
-  font: inherit; font-size: 0.95rem;
-  transition: border-color 0.15s, background 0.15s;
-}
-.portal-row input:focus {
-  outline: none; border-color: var(--accent); background: var(--surface);
-}
-.portal-card .hint {
-  font-size: 0.75rem; color: var(--text-muted); margin-top: 0.65rem;
-}
-.portal-card .hint a { color: var(--accent); text-decoration: none; }
-.portal-card .hint a:hover { text-decoration: underline; }
-.portal-card .err {
-  display: none; color: #b91c1c; font-size: 0.8rem; margin-top: 0.55rem;
-}
-html.dark .portal-card .err { color: #fca5a5; }
-
-.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 0.7rem 1.25rem;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.15s;
-  cursor: pointer;
-  border: 1px solid transparent;
   white-space: nowrap;
 }
-.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+.cap-head .meta .ok { color: var(--green); }
 
-/* Feature grid */
-.features {
+.cap-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.85rem;
-  margin: 0 auto 2.5rem;
-  text-align: left;
+  grid-template-columns: 40px 168px 1fr 200px;
+  column-gap: 20px;
+  align-items: baseline;
+  padding: 26px 0 25px;
+  border-top: 1px solid var(--border);
 }
-.feat {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem 1.05rem;
-  transition: border-color 0.18s, transform 0.18s;
-}
-.feat:hover { border-color: var(--accent); transform: translateY(-1px); }
-.feat .icon {
-  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
-  font-size: 0.7rem; letter-spacing: 0.1em;
-  color: var(--accent); margin-bottom: 0.45rem;
-}
-.feat .name {
-  font-weight: 600; font-size: 0.92rem; margin-bottom: 0.2rem;
-  letter-spacing: -0.01em;
-}
-.feat .desc {
-  font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45;
-}
-
-.footer {
-  margin-top: 1rem;
-  font-size: 0.72rem;
+.cap-row:last-of-type { border-bottom: 1px solid var(--border); }
+.cap-row .num {
+  font-family: var(--mono);
+  font-size: 12px;
   color: var(--text-muted);
   letter-spacing: 0.04em;
-  display: flex; gap: 0.9rem; justify-content: center; align-items: center;
 }
-.footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
-.footer a:hover { color: var(--accent); }
-.footer .sep { opacity: 0.5; }
+.cap-row .name {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+.cap-row .desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 52ch;
+}
+.cap-row .cap-tags { text-align: right; }
+.cap-row .cap-tags .tag { color: var(--accent); }
 
-@media (max-width: 720px) {
-  .features { grid-template-columns: repeat(2, 1fr); }
-  h1 { font-size: 1.95rem; }
+/* ---- spec line ---- */
+.specline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 40px;
+  row-gap: 20px;
+  padding: 48px 0;
 }
-@media (max-width: 480px) {
-  .portal-row { flex-direction: column; }
-  .container { padding: 32px 18px 48px; }
-  h1 { font-size: 1.7rem; }
-  .theme-bar { top: 0.75rem; right: 0.75rem; }
+.spec-group { display: grid; row-gap: 8px; }
+.spec-group .spec-key {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.spec-group .spec-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.spec-group .spec-val .op { color: var(--accent); }
+
+/* ---- footer ---- */
+footer.site {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  padding: 24px 0 23px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+footer.site .fm { color: var(--text); font-weight: 700; }
+footer.site .fm .bracket { color: var(--accent); }
+footer.site a {
+  display: inline-block;
+  padding: 12px 0;   /* tap target height */
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+footer.site a:hover { color: var(--text); }
+.footer-close { margin-bottom: 40px; }
+
+/* ---- narrow screens ---- */
+@media (max-width: 720px) {
+  .hero { padding: 56px 0 48px; }
+  .portal, .capabilities { padding-top: 56px; }
+
+  .readout-row {
+    grid-template-columns: 24px 1fr 88px;
+    row-gap: 4px;
+  }
+  .readout-row .detail { grid-column: 2 / -1; grid-row: 2; }
+
+  .cap-row {
+    grid-template-columns: 40px 1fr;
+    row-gap: 6px;
+  }
+  .cap-row .desc,
+  .cap-row .cap-tags { grid-column: 2; text-align: left; }
+
+  .specline { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .portal-line {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+  .portal .btn-fill { width: 100%; }
 }
 </style>
 </head>
 <body>
+<div class="page">
 
-<div class="grid-lines"><div class="grid-lines-inner">
-  <div class="grid-line"></div><div class="grid-line"></div>
-</div></div>
+  <!-- masthead -->
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span>JDBB<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#portal">Client&nbsp;Portal</a>
+      <a href="mailto:j@djinna.com" data-contact-mail>Contact</a>
+      <div id="theme-bar"></div>
+    </nav>
+  </header>
 
-<div class="theme-bar" id="theme-bar">
-  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
-  <div class="font-options" id="font-options">
-    <button class="theme-opt" data-font="literata">Literata</button>
-    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
-    <button class="theme-opt" data-font="menlo">Menlo</button>
-    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
+  <!-- status line -->
+  <div class="jdbb-statusline">
+    <span><span class="ok">&#9679;</span> Studio online &middot; Pipeline nominal</span>
+    <span id="status-date">UTC 2026-07-05 &middot; nominal</span>
   </div>
-  <div class="theme-sep"></div>
-  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
+
+  <!-- hero -->
+  <section class="hero">
+    <span class="kicker">Trade paperback production</span>
+    <h1>Book production, end&#8209;to&#8209;end.</h1>
+    <p class="subhead">A working studio for trade-paperback <em>typesetting</em>, manuscript <em>transmittals</em>, and shared <em>production calendars</em> &mdash; for authors, editors, and small presses.</p>
+  </section>
+
+  <!-- pipeline readout -->
+  <section class="readout" aria-label="Pipeline readout">
+    <hr class="rule-strong">
+    <div class="readout-head">
+      <span class="kicker">Pipeline readout</span>
+      <span class="job">job/<span class="jobname">ghosts&#8209;tp&#8209;01</span> &nbsp;&middot;&nbsp; rev 14 &middot; typ 0.13</span>
+      <span class="live">&#9679; LIVE</span>
+    </div>
+
+    <div class="readout-row is-done">
+      <span class="tick">&#10003;</span>
+      <span class="stage">MANUSCRIPT</span>
+      <span class="detail">docx received &middot; styles mapped &middot; 41,208 words</span>
+      <span class="state">DONE</span>
+    </div>
+
+    <div class="readout-row is-done">
+      <span class="tick">&#10003;</span>
+      <span class="stage">TYPESET</span>
+      <span class="detail">6&times;9 trade &middot; 312 pp &middot; preflight PASS</span>
+      <span class="state">DONE</span>
+    </div>
+
+    <div class="readout-row is-active">
+      <span class="tick">&#9679;</span>
+      <span class="stage">PROOF</span>
+      <span class="detail">galley v2 out &middot; awaiting author sign&#8209;off</span>
+      <span class="state">ACTIVE</span>
+    </div>
+
+    <div class="readout-row is-pending">
+      <span class="tick">&#9675;</span>
+      <span class="stage">PRINT</span>
+      <span class="detail">PDF/X&#8209;1a export &middot; printer upload queued</span>
+      <span class="state">PENDING</span>
+    </div>
+
+    <div class="readout-foot">
+      <span>last event 00:04:12 ago</span>
+      <span>checks <span class="pass">12/12 PASS</span></span>
+    </div>
+    <hr class="rule-strong">
+  </section>
+
+  <!-- client portal -->
+  <section class="portal" id="portal">
+    <span class="kicker">Client portal</span>
+    <form id="portal-form">
+      <div class="portal-line">
+        <div class="portal-field">
+          <span class="prompt">&gt;</span>
+          <input id="client-slug" class="input-bare" type="text" placeholder="Your client code" aria-label="Client code" autocomplete="off" spellcheck="false">
+        </div>
+        <button type="submit" class="btn-fill">Open&nbsp;&rarr;</button>
+      </div>
+      <p class="portal-help">Enter your client code to view your projects, schedules, and proofs.</p>
+      <p class="portal-help">Your client code is in your welcome email &mdash; or ask <a id="contact-link" href="mailto:j@djinna.com" data-contact-mail>j@djinna.com</a>.</p>
+      <div id="portal-error"></div>
+    </form>
+  </section>
+  <hr class="rule">
+
+  <!-- capabilities -->
+  <section class="capabilities" id="capabilities">
+    <div class="cap-head">
+      <span class="kicker">Capabilities</span>
+      <span class="meta">5 subsystems &middot; <span class="ok">all nominal</span></span>
+    </div>
+
+    <div class="cap-row">
+      <span class="num">01</span>
+      <span class="name">Projects</span>
+      <span class="desc">Multi-stage tracking from manuscript to printed book.</span>
+      <span class="cap-tags"><span class="tag">[TRACKING]</span></span>
+    </div>
+
+    <div class="cap-row">
+      <span class="num">02</span>
+      <span class="name">Transmittals</span>
+      <span class="desc">Structured manuscript handoffs with preflight checks.</span>
+      <span class="cap-tags"><span class="tag">[PREFLIGHT]</span></span>
+    </div>
+
+    <div class="cap-row">
+      <span class="num">03</span>
+      <span class="name">Design</span>
+      <span class="desc">Interior &amp; cover design as reusable series templates.</span>
+      <span class="cap-tags"><span class="tag">[TEMPLATES]</span></span>
+    </div>
+
+    <div class="cap-row">
+      <span class="num">04</span>
+      <span class="name">Typesetting</span>
+      <span class="desc">Typst pipeline producing print-ready PDFs &amp; EPUBs.</span>
+      <span class="cap-tags"><span class="tag">[TYPST &middot; PDF/X]</span></span>
+    </div>
+
+    <div class="cap-row">
+      <span class="num">05</span>
+      <span class="name">Calendars</span>
+      <span class="desc">Shared production schedules with scheduled digests.</span>
+      <span class="cap-tags"><span class="tag">[DIGESTS]</span></span>
+    </div>
+  </section>
+
+  <!-- spec line -->
+  <section class="specline" aria-label="Studio specifications">
+    <div class="spec-group">
+      <span class="spec-key">Trim</span>
+      <span class="spec-val">5&times;8 <span class="op">&mdash;</span> 7&times;10 &middot; print + EPUB</span>
+    </div>
+    <div class="spec-group">
+      <span class="spec-key">Pipeline</span>
+      <span class="spec-val">docx <span class="op">&rarr;</span> pandoc&middot;Lua <span class="op">&rarr;</span> Typst <span class="op">&rarr;</span> PDF/X + EPUB</span>
+    </div>
+    <div class="spec-group">
+      <span class="spec-key">Cadence</span>
+      <span class="spec-val">shared calendar &middot; scheduled digests</span>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- footer -->
+  <footer class="site">
+    <span class="fm"><span class="bracket">[</span>JDBB<span class="bracket">]</span></span>
+    <span><a href="/admin/">Admin</a> &nbsp;&middot;&nbsp; &copy; 2026 JDBB</span>
+  </footer>
+  <hr class="rule footer-close">
+
 </div>
 
-<div class="container">
-  <div class="eyebrow"><span class="dot"></span>jdbb studio</div>
-  <h1>Book production, <span class="amp">end&#8209;to&#8209;end</span>.</h1>
-  <p class="subtitle">
-    A working studio for trade-paperback typesetting, manuscript transmittals,
-    and shared production calendars — for authors, editors, and small presses.
-  </p>
-
-  <form id="portal-form" class="portal-card">
-    <div class="label">Client portal</div>
-    <div class="portal-row">
-      <input id="client-slug" type="text" placeholder="Your client code" autocomplete="off" spellcheck="false">
-      <button type="submit" class="btn btn-primary">Open &rarr;</button>
-    </div>
-    <div class="hint">Enter your client code to view your projects, schedules, and proofs.</div>
-    <div class="hint">Your client code is in your welcome email — or ask <a id="contact-link" href="mailto:j@djinna.com">j@djinna.com</a>.</div>
-    <div id="portal-error" class="err"></div>
-  </form>
-
-  <div class="features">
-    <div class="feat">
-      <div class="icon">01</div>
-      <div class="name">Projects</div>
-      <div class="desc">Multi-stage tracking from manuscript to printed book.</div>
-    </div>
-    <div class="feat">
-      <div class="icon">02</div>
-      <div class="name">Typesetting</div>
-      <div class="desc">Typst pipeline producing print-ready PDFs &amp; EPUBs.</div>
-    </div>
-    <div class="feat">
-      <div class="icon">03</div>
-      <div class="name">Transmittals</div>
-      <div class="desc">Structured manuscript handoffs with preflight checks.</div>
-    </div>
-    <div class="feat">
-      <div class="icon">04</div>
-      <div class="name">Calendars</div>
-      <div class="desc">Shared production schedules with email digests.</div>
-    </div>
-  </div>
-
-  <div class="footer">
-    <a href="/admin/">Admin</a>
-    <span class="sep">&middot;</span>
-    <span>&copy; 2026 JDBB</span>
-  </div>
-</div>
-
+<script src="/static/theme.js"></script>
 <script>
-// ─── Font System (matches dashboard) ───
-var fonts = {
-  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
-  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
-  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
-  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
-};
-var fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
-var state = { font: fontKeys[Math.floor(Math.random() * fontKeys.length)], dark: false };
-try {
-  var saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-  if (saved) {
-    state.dark = !!saved.dark;
-    if (fonts[saved.font]) state.font = saved.font;
-  }
-} catch(e) {}
-// Persist the first-visit random pick so the font follows the visitor site-wide.
-saveState();
+// Theme bar (font pairing selector + dark toggle) — canonical state in theme.js.
+JdbbTheme.mount(document.getElementById('theme-bar'));
 
-function applyState() {
-  var f = fonts[state.font];
-  if (f) {
-    document.body.style.fontFamily = f.family;
-    document.getElementById('font-name').textContent = f.label;
-  }
-  document.documentElement.classList.toggle('dark', state.dark);
-  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.font === state.font);
-  });
-  document.getElementById('dark-btn').textContent = state.dark ? '\u2600' : '\u263e';
-}
+// Status line UTC date.
+(function() {
+  var el = document.getElementById('status-date');
+  if (el) el.textContent = 'UTC ' + new Date().toISOString().slice(0, 10) + ' · nominal';
+})();
 
-function saveState() {
-  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: state.font, dark: state.dark })); } catch(e) {}
-}
-
-function setFont(key) { state.font = key; applyState(); saveState(); }
-function toggleDark() { state.dark = !state.dark; applyState(); saveState(); }
-
-var bar = document.getElementById('theme-bar');
-var nameEl = document.getElementById('font-name');
-var expanded = false;
-
-nameEl.addEventListener('click', function() {
-  expanded = !expanded;
-  bar.classList.toggle('expanded', expanded);
-});
-
-document.addEventListener('click', function(e) {
-  if (expanded && !bar.contains(e.target)) {
-    expanded = false;
-    bar.classList.remove('expanded');
-  }
-});
-
-document.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    setFont(this.dataset.font);
-    expanded = false;
-    bar.classList.remove('expanded');
-  });
-});
-
-document.getElementById('dark-btn').addEventListener('click', toggleDark);
-
+// Contact email from public config (fallback baked into the markup).
 var contactEmail = 'j@djinna.com';
 fetch('/api/public/config').then(function(r) { return r.ok ? r.json() : null; }).then(function(c) {
   if (c && c.contact_email) {
     contactEmail = c.contact_email;
     var link = document.getElementById('contact-link');
     if (link) { link.href = 'mailto:' + contactEmail; link.textContent = contactEmail; }
+    document.querySelectorAll('[data-contact-mail]').forEach(function(a) {
+      a.href = 'mailto:' + contactEmail;
+    });
   }
 }).catch(function() {});
 
+// Portal form: normalize slug and jump to the client space.
 var portalForm = document.getElementById('portal-form');
 var clientSlugInput = document.getElementById('client-slug');
 var portalError = document.getElementById('portal-error');
@@ -437,8 +514,6 @@ portalForm.addEventListener('submit', function(e) {
 function absoluteURL(path) {
   return new URL(path, window.location.origin + '/').toString();
 }
-
-applyState();
 </script>
 </body>
 </html>

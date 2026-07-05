@@ -7,23 +7,27 @@
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
 (function() {
+  var LEGACY = { literata: 'martian', 'ibm-serif': 'plex', menlo: 'jetbrains', 'ibm-sans': 'geist' };
   try {
     var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-    if (t && t.dark) document.documentElement.classList.add('dark');
+    if (t) {
+      if (t.dark) document.documentElement.classList.add('dark');
+      var f = LEGACY[t.font] || t.font;
+      if (f) document.documentElement.setAttribute('data-font', f);
+    }
   } catch(e) {}
 })();
 </script>
-<link rel="stylesheet" href="style.css?v=20260704a">
-<link rel="stylesheet" href="transmittal.css?v=20260409c">
+<link rel="stylesheet" href="theme.css?v=20260705a">
+<link rel="stylesheet" href="style.css?v=20260705a">
+<link rel="stylesheet" href="transmittal.css?v=20260705a">
 </head>
 <body>
-<div class="grid-lines"><div class="grid-lines-inner">
-  <div class="grid-line"></div><div class="grid-line"></div>
-</div></div>
 <div id="app"></div>
-<script src="transmittal.js?v=20260704a"></script>
+<script src="theme.js?v=20260705a"></script>
+<script src="transmittal.js?v=20260705a"></script>
 </body>
 </html>

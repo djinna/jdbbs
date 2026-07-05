@@ -65,74 +65,32 @@ fetch('/api/public/config').then(r => r.ok ? r.json() : null).then(c => { if (c 
 
 let state = { view: 'projects', projectId: null, project: null, tasks: [], tab: 'gantt', editingTask: null, pathClient: null, pathProject: null, showSnapshotEmail: false, snapshotSending: false, snapshotResult: null, emailConfigured: null, siblingProjects: [], fileLog: [], journal: [], showFileLogModal: false, showJournalModal: false, showActivityEmail: false, activitySending: false, activityResult: null };
 
-// ─── Font + Theme System ───
-var _fonts = {
-  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
-  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
-  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
-  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
-};
-var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
-var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: false };
-try {
-  var _saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-  if (_saved) {
-    _themeState.dark = !!_saved.dark;
-    if (_fonts[_saved.font]) _themeState.font = _saved.font;
-  }
-} catch(e) {}
-// Persist the first-visit random pick so the font follows the visitor site-wide.
-try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
+// ─── Font + Theme (canonical: /static/theme.js → JdbbTheme) ───
+// The old in-app font/theme system was removed; JdbbTheme owns state,
+// persistence (localStorage 'prodcal-theme-v1'), and the .theme-bar UI.
 
 function _applyTheme() {
-  var f = _fonts[_themeState.font];
-  if (f) {
-    document.body.style.fontFamily = f.family;
-    var nameEl = document.getElementById('font-name');
-    if (nameEl) nameEl.textContent = f.label;
-  }
-  document.documentElement.classList.toggle('dark', _themeState.dark);
-  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.font === _themeState.font);
-  });
-  var darkBtn = document.getElementById('dark-btn');
-  if (darkBtn) darkBtn.textContent = _themeState.dark ? '\u2600' : '\u263e';
+  if (window.JdbbTheme) JdbbTheme.apply(document.getElementById('theme-bar'));
 }
-function _saveTheme() {
-  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
-}
-function _setFont(key) { _themeState.font = key; _applyTheme(); _saveTheme(); }
-function _toggleDark() { _themeState.dark = !_themeState.dark; _applyTheme(); _saveTheme(); }
 
-// Inject theme bar into page (called after render)
+// Mount the shared theme bar (mount point lives in the masthead in index.html;
+// created on the fly if a page lacks it). Safe to call repeatedly.
 function _ensureThemeBar() {
-  if (document.getElementById('theme-bar')) return;
-  var bar = document.createElement('div');
-  bar.className = 'theme-bar';
-  bar.id = 'theme-bar';
-  bar.innerHTML = '<div class="font-name" id="font-name" title="Click to change typeface">' + (_fonts[_themeState.font]?.label || '') + '</div>'
-    + '<div class="font-options" id="font-options">'
-    + '<button class="theme-opt" data-font="literata">Literata</button>'
-    + '<button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>'
-    + '<button class="theme-opt" data-font="menlo">Menlo</button>'
-    + '<button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>'
-    + '</div>'
-    + '<div class="theme-sep"></div>'
-    + '<button class="dark-btn" id="dark-btn" title="Toggle dark mode">\u263e</button>';
-  document.body.appendChild(bar);
-  var expanded = false;
-  var nameEl = document.getElementById('font-name');
-  nameEl.addEventListener('click', function() { expanded = !expanded; bar.classList.toggle('expanded', expanded); });
-  document.addEventListener('click', function(e) { if (expanded && !bar.contains(e.target)) { expanded = false; bar.classList.remove('expanded'); } });
-  bar.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
-    btn.addEventListener('click', function() { _setFont(this.dataset.font); expanded = false; bar.classList.remove('expanded'); });
-  });
-  document.getElementById('dark-btn').addEventListener('click', _toggleDark);
-  _applyTheme();
+  if (!window.JdbbTheme) return;
+  var bar = document.getElementById('theme-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'theme-bar';
+    document.body.appendChild(bar);
+  }
+  if (!bar.dataset.mounted) {
+    bar.dataset.mounted = '1';
+    JdbbTheme.mount(bar);
+  }
 }
 // Legacy compat
 function themeBtn() { return h('span'); }
-function getTheme() { return _themeState.dark ? 'dark' : 'light'; }
+function getTheme() { return window.JdbbTheme && JdbbTheme.state.dark ? 'dark' : 'light'; }
 
 function render() {
   const app = $('#app');
@@ -167,7 +125,7 @@ function renderProjectList() {
               else openProject(p.ID);
             } },
               h('h3', null, p.Name),
-              path ? h('div', { className: 'meta', style: 'color:var(--accent2);font-family:monospace' }, path) : null,
+              path ? h('div', { className: 'meta', style: 'color:var(--accent2)' }, path) : null,
               h('div', { className: 'meta' }, 'Start: ' + (p.StartDate || 'Not set')),
               h('div', { className: 'meta' }, 'Updated: ' + new Date(p.UpdatedAt).toLocaleDateString()),
             );
@@ -184,7 +142,7 @@ function showNewProject() {
   let nameInput, clientInput, projInput, dateInput;
   const el = h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === el) el.remove(); } },
     h('div', { className: 'modal' },
-      h('h2', null, '+ New Project'),
+      h('h2', null, 'New Project'),
       h('div', { className: 'form-row' },
         h('div', { className: 'form-group' },
           h('label', null, 'Project Title'),
@@ -207,8 +165,8 @@ function showNewProject() {
           dateInput = h('input', { type: 'date', value: todayLocalISO() }),
         ),
       ),
-      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:8px 0;font-size:13px;color:var(--text-secondary)' },
-        'URL will be: ', h('strong', { style: 'color:var(--accent2);font-family:monospace' }, '/‹client›/‹project›/'),
+      h('div', { className: 'form-note' },
+        'URL will be: ', h('strong', { style: 'color:var(--accent2);font-family:var(--mono)' }, '/‹client›/‹project›/'),
       ),
       h('div', { className: 'modal-actions' },
         h('button', { className: 'btn', onClick: () => el.remove() }, 'Cancel'),
@@ -317,7 +275,7 @@ function renderProject() {
       h('div', { className: 'page-header-sub' },
         h('button', { className: 'page-header-back', onClick: () => { window.location.href = clientUrl; } }, '← ' + (state.project.ClientSlug || 'Projects').toUpperCase()),
         renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text-secondary)' }, state.project.Name),
-        txUrl ? h('a', { href: txUrl, style: 'font-size:0.8rem;color:var(--accent);text-decoration:none' }, 'Transmittal') : null,
+        txUrl ? h('a', { href: txUrl, style: 'color:var(--accent)' }, 'Transmittal') : null,
         h('span', { className: 'page-status' + (done === t.length && t.length > 0 ? ' page-status-final' : ' page-status-draft') },
           done + '/' + t.length + ' done'
         ),
@@ -493,7 +451,7 @@ function renderTable() {
           h('td', { className: 'date' }, fmt.date(t.OrigDue)),
           h('td', { className: 'date' }, fmt.date(t.CurrDue)),
           h('td', { className: 'date' }, fmt.date(t.ActualDone)),
-          h('td', null, h('button', { className: 'btn btn-sm', onClick: (e) => { e.stopPropagation(); editTask(t); } }, '✏')),
+          h('td', null, h('button', { className: 'btn btn-sm', onClick: (e) => { e.stopPropagation(); editTask(t); } }, 'edit')),
         )
       )),
     )
@@ -647,7 +605,7 @@ function showDuplicate() {
   let nameInput, clientInput, projInput, dateInput;
   const el = h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === el) el.remove(); } },
     h('div', { className: 'modal' },
-      h('h2', null, '⧉ Make New From Template'),
+      h('h2', null, 'Make New From Template'),
       h('p', { style: 'color:var(--text-secondary);font-size:14px;margin-bottom:16px' },
         'Duplicates all tasks with shifted dates. Resets status to pending, zeroes out budgets, and clears actual dates.'
       ),
@@ -677,7 +635,7 @@ function showDuplicate() {
           h('input', { type: 'text', value: state.project.StartDate || 'not set', disabled: true, style: 'opacity:0.6' }),
         ),
       ),
-      h('div', { style: 'background:var(--surface2);border-radius:var(--radius);padding:12px;margin:12px 0;font-size:13px;color:var(--text-secondary)' },
+      h('div', { className: 'form-note' },
         h('strong', { style: 'color:var(--text)' }, 'What gets copied: '),
         'Task names, assignees, durations (weeks), hours, rates, notes. ',
         h('br'),
@@ -685,7 +643,7 @@ function showDuplicate() {
         'All dates shifted to new start. Budgets zeroed. Status → Pending. Actuals cleared.',
         h('br'),
         h('strong', { style: 'color:var(--text)' }, 'URL: '),
-        h('span', { style: 'color:var(--accent2);font-family:monospace' }, '/‹client›/‹project›/'),
+        h('span', { style: 'color:var(--accent2);font-family:var(--mono)' }, '/‹client›/‹project›/'),
       ),
       h('div', { className: 'modal-actions' },
         h('button', { className: 'btn', onClick: () => el.remove() }, 'Cancel'),
@@ -703,7 +661,7 @@ function showDuplicate() {
             // Navigate to the new project's URL
             window.location.href = '/' + cs + '/' + ps + '/';
           } catch (e) { alert('Error: ' + e.message); }
-        }}, '⧉ Create New Project'),
+        }}, 'Create New Project'),
       ),
     )
   );
@@ -715,7 +673,7 @@ function showDuplicate() {
 function showSettings() {
   const el = h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === el) el.remove(); } },
     h('div', { className: 'modal' },
-      h('h2', null, '⚙ Project Settings'),
+      h('h2', null, 'Project Settings'),
       h('div', { className: 'form-row' },
         h('div', { className: 'form-group' },
           h('label', null, 'Project Name'),
@@ -738,7 +696,7 @@ function showSettings() {
       ),
       state.project.ClientSlug && state.project.ProjectSlug
         ? h('div', { style: 'font-size:13px;color:var(--text-secondary);margin-bottom:12px' },
-            'URL: ', h('a', { href: '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/', style: 'color:var(--accent2);font-family:monospace' },
+            'URL: ', h('a', { href: '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/', style: 'color:var(--accent2);font-family:var(--mono)' },
               '/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/'),
           )
         : null,
@@ -811,7 +769,7 @@ function showSettings() {
         });
         state.tasks = await api('/api/projects/' + state.projectId + '/tasks');
         el.remove(); render();
-      }}, '📥 Import JSON'),
+      }}, 'Import JSON'),
       h('div', { className: 'modal-actions' },
         h('button', { className: 'btn btn-sm', onClick: async () => {
           if (!confirm('Archive this project? It will be hidden from the active list (you can restore it later).')) return;
@@ -915,8 +873,8 @@ function renderSnapshotEmailModal() {
       ),
 
       state.emailConfigured === false
-        ? h('div', { style: 'background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e' },
-            '⚠️ Email is not configured on the server.'
+        ? h('div', { className: 'form-note warn' },
+            'Email is not configured on the server.'
           )
         : null,
 
@@ -934,7 +892,7 @@ function renderSnapshotEmailModal() {
                   type: 'email',
                   placeholder: 'email@example.com',
                   value: r.email,
-                  style: 'flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px',
+                  style: 'flex:1',
                   onInput: (e) => {
                     snapshotRecipients[i].email = e.target.value;
                     snapshotRecipients[i].checked = e.target.value.trim().length > 0;
@@ -947,13 +905,13 @@ function renderSnapshotEmailModal() {
       ),
 
       state.snapshotResult?.ok
-        ? h('div', { style: 'background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46' },
-            '2713 Sent to: ' + state.snapshotResult.sent_to.join(', ')
+        ? h('div', { className: 'form-note ok' },
+            '✓ Sent to: ' + state.snapshotResult.sent_to.join(', ')
           )
         : null,
       state.snapshotResult?.error
-        ? h('div', { style: 'background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626' },
-            '❌ ' + state.snapshotResult.error
+        ? h('div', { className: 'form-note err' },
+            state.snapshotResult.error
           )
         : null,
 
@@ -966,7 +924,7 @@ function renderSnapshotEmailModal() {
                 className: 'btn btn-primary',
                 disabled: state.snapshotSending || state.emailConfigured === false ? 'disabled' : undefined,
                 onClick: sendSnapshotEmail,
-              }, state.snapshotSending ? 'Sending…' : '📨 Send Snapshot'),
+              }, state.snapshotSending ? 'Sending…' : 'Send Snapshot'),
             ],
       ),
     ),
@@ -1027,8 +985,8 @@ function renderActivityEmailModal() {
       ),
 
       state.emailConfigured === false
-        ? h('div', { style: 'background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e' },
-            '⚠️ Email is not configured on the server.'
+        ? h('div', { className: 'form-note warn' },
+            'Email is not configured on the server.'
           )
         : null,
 
@@ -1046,7 +1004,7 @@ function renderActivityEmailModal() {
                   type: 'email',
                   placeholder: 'email@example.com',
                   value: r.email,
-                  style: 'flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px',
+                  style: 'flex:1',
                   onInput: (e) => {
                     activityRecipients[i].email = e.target.value;
                     activityRecipients[i].checked = e.target.value.trim().length > 0;
@@ -1059,13 +1017,13 @@ function renderActivityEmailModal() {
       ),
 
       state.activityResult?.ok
-        ? h('div', { style: 'background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46' },
-            '2713 Sent to: ' + state.activityResult.sent_to.join(', ')
+        ? h('div', { className: 'form-note ok' },
+            '✓ Sent to: ' + state.activityResult.sent_to.join(', ')
           )
         : null,
       state.activityResult?.error
-        ? h('div', { style: 'background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626' },
-            '❌ ' + state.activityResult.error
+        ? h('div', { className: 'form-note err' },
+            state.activityResult.error
           )
         : null,
 
@@ -1078,7 +1036,7 @@ function renderActivityEmailModal() {
                 className: 'btn btn-primary',
                 disabled: state.activitySending || state.emailConfigured === false ? 'disabled' : undefined,
                 onClick: sendActivityEmail,
-              }, state.activitySending ? 'Sending…' : '📨 Send Activity Update'),
+              }, state.activitySending ? 'Sending…' : 'Send Activity Update'),
             ],
       ),
     ),
@@ -1156,7 +1114,7 @@ function renderFileLog() {
                 h('td', null, h('span', { className: 'badge badge-dim' }, e.file_type || '—')),
                 h('td', { style: 'font-size:13px' }, (e.sent_by || '?') + ' → ' + (e.received_by || '?')),
                 h('td', { style: 'color:var(--text-secondary);font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, e.notes || ''),
-                h('td', null, h('button', { className: 'btn btn-sm btn-danger', style: 'padding:2px 6px;font-size:11px', onClick: () => deleteFileLogEntry(e.id) }, '✕')),
+                h('td', null, h('button', { className: 'btn btn-sm btn-danger', onClick: () => deleteFileLogEntry(e.id) }, '✕')),
               )
             )),
           ),
@@ -1178,7 +1136,7 @@ function renderFileLogModal() {
   const close = () => { state.showFileLogModal = false; render(); };
   return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) close(); } },
     h('div', { className: 'modal' },
-      h('h2', null, '+ Log File Transfer'),
+      h('h2', null, 'Log File Transfer'),
       h('div', { className: 'form-row' },
         h('div', { className: 'form-group' },
           h('label', null, 'Direction'),
@@ -1218,7 +1176,7 @@ function renderFileLogModal() {
       ),
       h('div', { className: 'form-group' },
         h('label', null, 'Notes'),
-        notesInput = h('textarea', { rows: '2', style: 'width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical' }),
+        notesInput = h('textarea', { rows: '2' }),
       ),
       h('div', { className: 'modal-actions' },
         h('button', { className: 'btn', onClick: close }, 'Cancel'),
@@ -1260,7 +1218,6 @@ async function loadJournal() {
   render();
 }
 
-const journalTypeEmoji = { call: '📞', decision: '⚖️', approval: '✅', note: '📝' };
 const journalTypeLabel = { call: 'Call', decision: 'Decision', approval: 'Approval', note: 'Note' };
 
 function renderJournal() {
@@ -1277,16 +1234,15 @@ function renderJournal() {
       ? h('div', { className: 'empty-state', style: 'padding:3rem' }, h('p', null, 'No journal entries yet'))
       : h('div', { className: 'journal-feed' },
           ...entries.map(e => {
-            const emoji = journalTypeEmoji[e.entry_type] || '📝';
             const label = journalTypeLabel[e.entry_type] || e.entry_type;
             const dt = new Date(e.created_at);
             const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
             return h('div', { className: 'journal-entry' },
               h('div', { className: 'journal-entry-header' },
-                h('span', { className: 'journal-type journal-type-' + e.entry_type }, emoji + ' ' + label),
+                h('span', { className: 'journal-type journal-type-' + e.entry_type }, label),
                 h('span', { className: 'journal-date' }, dateStr + ' · ' + timeStr),
-                h('button', { className: 'btn btn-sm btn-danger', style: 'padding:2px 6px;font-size:11px;margin-left:auto', onClick: () => deleteJournalEntry(e.id) }, '✕'),
+                h('button', { className: 'btn btn-sm btn-danger', style: 'margin-left:auto', onClick: () => deleteJournalEntry(e.id) }, '✕'),
               ),
               h('div', { className: 'journal-content' }, e.content),
             );
@@ -1308,14 +1264,14 @@ function renderJournalModal() {
   const close = () => { state.showJournalModal = false; render(); };
   return h('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target.classList.contains('modal-backdrop')) close(); } },
     h('div', { className: 'modal' },
-      h('h2', null, '+ Journal Entry'),
+      h('h2', null, 'Journal Entry'),
       h('div', { className: 'form-group' },
         h('label', null, 'Type'),
         typeSel = h('select', null,
-          h('option', { value: 'note' }, '📝 Note'),
-          h('option', { value: 'call' }, '📞 Call'),
-          h('option', { value: 'decision' }, '⚖️ Decision'),
-          h('option', { value: 'approval' }, '✅ Approval'),
+          h('option', { value: 'note' }, 'Note'),
+          h('option', { value: 'call' }, 'Call'),
+          h('option', { value: 'decision' }, 'Decision'),
+          h('option', { value: 'approval' }, 'Approval'),
         ),
       ),
       h('div', { className: 'form-group' },
@@ -1323,7 +1279,6 @@ function renderJournalModal() {
         contentArea = h('textarea', {
           rows: '5',
           placeholder: 'What happened?',
-          style: 'width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical;font-family:inherit',
         }),
       ),
       h('div', { className: 'modal-actions' },

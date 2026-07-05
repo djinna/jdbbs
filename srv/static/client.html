@@ -7,197 +7,254 @@
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
 (function() {
   try {
     var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
     if (t && t.dark) document.documentElement.classList.add('dark');
+    var legacy = { literata: 'martian', 'ibm-serif': 'plex', menlo: 'jetbrains', 'ibm-sans': 'geist' };
+    var f = t && t.font;
+    if (legacy[f]) f = legacy[f];
+    if (f === 'jetbrains' || f === 'martian' || f === 'plex' || f === 'geist') {
+      document.documentElement.setAttribute('data-font', f);
+    }
   } catch(e) {}
 })();
 </script>
+<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/style.css">
 <style>
-  .dashboard { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+  /* Terminal Folio — client portal interior. Structure from rules + whitespace
+     only: no cards, no boxes, zero radius, zero shadows. Tokens: theme.css. */
 
-  .dash-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+  body {
+    font-family: var(--body); font-size: 15px; line-height: 1.5;
+    color: var(--text); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
   }
-  .dash-header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
-  .dash-header .subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 2px; }
 
-  .stats-row {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1rem; margin-bottom: 2rem;
-  }
-  .stat-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 1.25rem;
-  }
-  .stat-card .label {
-    font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;
-    letter-spacing: 0.05em; margin-bottom: 0.5rem;
-  }
-  .stat-card .value { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+  .page { max-width: 1040px; margin: 0 auto; padding: 0 32px; }
 
-  .projects-grid { display: grid; gap: 1rem; }
-  .project-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s;
+  /* Guard against the legacy floating theme pill in style.css until it is
+     re-tokened: the masthead theme bar is plain inline text. */
+  .jdbb-masthead .theme-bar {
+    position: static; background: none; border: none; border-radius: 0;
+    box-shadow: none; padding: 0; backdrop-filter: none; -webkit-backdrop-filter: none;
   }
-  .project-card:hover { border-color: var(--accent); }
-  .project-top {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 1rem;
+  .jdbb-masthead .theme-bar .font-name { padding: 0; font-size: 11px; border-radius: 0; display: inline; }
+  .jdbb-masthead .theme-bar.expanded .font-name { display: inline; }
+  .jdbb-masthead .theme-bar .font-options { max-width: none; opacity: 1; overflow: visible; }
+  .jdbb-masthead .theme-bar .theme-opt { padding: 0; background: none; border-radius: 0; font-size: 11px; }
+  .jdbb-masthead .theme-bar .theme-opt.active { background: none; color: var(--accent); }
+  .jdbb-masthead .theme-bar .dark-btn { width: auto; height: auto; border-radius: 0; background: none; font-size: 12px; }
+
+  .site-footer {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 1rem; font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+    padding: 20px 0; margin-top: 80px;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
   }
-  .project-name { font-size: 1.15rem; font-weight: 600; }
+  .site-footer a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
+  .site-footer a:hover { color: var(--text); }
+
+  /* ---- Title block ---- */
+  .dashboard { padding-top: 8px; }
+  .title-block { padding: 48px 0 40px; }
+  .title-block h1 {
+    font-family: var(--mono); font-size: 32px; font-weight: 600;
+    letter-spacing: -0.015em; line-height: 1.1; margin: 14px 0 10px;
+  }
+  .title-sub { font-size: 14px; color: var(--text-secondary); }
+
+  /* ---- Stats: one ledger line between strong rules ---- */
+  .stats-ledger {
+    display: grid; grid-template-columns: repeat(4, auto);
+    justify-content: space-between; gap: 16px 32px; padding: 18px 0;
+  }
+  .stat { display: flex; align-items: baseline; gap: 12px; white-space: nowrap; }
+  .stat .stat-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
+  }
+  .stat .stat-value {
+    font-family: var(--mono); font-size: 17px; font-weight: 600;
+    letter-spacing: -0.01em; color: var(--text);
+  }
+
+  /* ---- Section heads ---- */
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; padding: 56px 0 10px; flex-wrap: wrap;
+  }
+  .section-head .count { color: var(--text-muted); font-weight: 400; }
+  .section-actions { display: flex; align-items: baseline; gap: 24px; }
+
+  /* ---- Project ledger blocks ---- */
+  .projects-ledger .project { padding: 30px 0 34px; border-top: 1px solid var(--border); }
+  .projects-ledger .project:first-child { border-top: 0; }
+  .project-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 24px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .project-name {
+    font-family: var(--mono); font-size: 21px; font-weight: 600;
+    letter-spacing: -0.01em; margin: 0;
+  }
   .project-meta {
-    display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem;
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em;
+    color: var(--text-muted); text-transform: uppercase; white-space: nowrap;
   }
-  .project-meta span { font-size: 0.8rem; color: var(--text-secondary); }
-  .progress-bar {
-    width: 100%; height: 6px; background: var(--badge-dim-bg);
-    border-radius: 3px; overflow: hidden; margin-top: 0.75rem;
+  .project-status {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 24px; font-family: var(--mono); font-size: 13px; margin-bottom: 10px;
   }
-  .progress-fill {
-    height: 100%; border-radius: 3px; transition: width 0.3s ease;
+  .project-status .prompt { color: var(--text-muted); margin-right: 8px; }
+  .project-status .pct { font-weight: 600; white-space: nowrap; }
+  .project-tags { display: flex; align-items: baseline; gap: 16px; }
+  .progress-line { margin-bottom: 18px; }
+  .progress-line > span.done { background: var(--green); }
+  .project-actions { display: flex; align-items: baseline; gap: 28px; flex-wrap: wrap; }
+  .project-actions .link-action, .email-btn {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-  .progress-fill.green { background: var(--green, #4ade80); }
-  .progress-fill.yellow { background: var(--yellow, #facc15); }
-  .progress-fill.accent { background: var(--accent); }
-  .badge {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    padding: 0.25rem 0.6rem; border-radius: 9999px;
-    font-size: 0.75rem; font-weight: 500;
-  }
-  .badge-dim { background: var(--badge-dim-bg); color: var(--text-secondary); }
   .email-btn {
-    background: none; border: none; color: var(--accent, #6c63ff); cursor: pointer;
-    font-size: 0.8rem; padding: 0; text-decoration: none; font-family: inherit;
+    background: none; border: none; border-radius: 0; padding: 0; cursor: pointer;
+    color: var(--text); text-decoration: underline; text-underline-offset: 3px;
+    text-decoration-color: var(--text-muted);
   }
-  .email-btn:hover { text-decoration: underline; }
-  .links { display: flex; gap: 0.75rem; margin-top: 1rem; }
-  .links a { font-size: 0.8rem; color: var(--accent); text-decoration: none; }
-  .links a:hover { text-decoration: underline; }
+  .email-btn:hover { text-decoration-color: var(--text); }
 
-  .auth-box {
-    max-width: 400px; margin: 80px auto; text-align: center;
-    padding: 40px 32px; background: var(--surface); border-radius: 16px;
-    border: 1px solid var(--border);
-  }
-  .auth-box h2 { font-size: 1.4rem; margin-bottom: 4px; }
-  .auth-box .auth-sub { color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; }
-  .auth-box input {
-    margin: 0 0 12px; padding: 10px 14px; width: 100%; border-radius: 8px;
-    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px;
-  }
-  .auth-box .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
-  .auth-box .forgot-link { margin-top: 14px; }
-  .auth-box .forgot-link a { color: var(--accent); font-size: 13px; text-decoration: none; }
-  .auth-box .forgot-link a:hover { text-decoration: underline; }
-  .auth-box .back-link { margin-top: 8px; }
-  .auth-box .back-link a { color: var(--text-secondary); font-size: 13px; text-decoration: none; }
+  .empty { font-family: var(--mono); font-size: 13px; color: var(--text-muted); padding: 32px 0; }
 
-  .theme-toggle {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 24px; height: 24px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--badge-dim-bg); color: var(--text-secondary); cursor: pointer;
-    font-size: 11px; transition: all 0.15s; padding: 0; line-height: 1;
-  }
-  .theme-toggle:hover { background: var(--border); color: var(--text); }
-
-  .theme-bar {
-    position: fixed; top: 1rem; right: 2rem; z-index: 200;
-    display: flex; align-items: center; gap: 0.25rem;
-    background: var(--theme-bg, rgba(255,255,255,0.85)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border); border-radius: 14px;
-    padding: 0.2rem 0.3rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: background 0.3s, border-color 0.3s;
-  }
-  .theme-bar .font-options {
-    display: flex; gap: 0.15rem; overflow: hidden;
-    max-width: 0; opacity: 0;
-    transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
-  }
-  .theme-bar.expanded .font-options { max-width: 400px; opacity: 1; }
-  .theme-bar .font-name {
-    padding: 0.25rem 0.5rem; font-size: 0.55rem; color: var(--text-secondary);
-    cursor: pointer; white-space: nowrap; transition: color 0.15s; border-radius: 10px;
-  }
-  .theme-bar .font-name:hover { color: var(--text); }
-  .theme-bar.expanded .font-name { display: none; }
-  .theme-opt {
-    padding: 0.25rem 0.5rem; border-radius: 10px; border: none;
-    background: transparent; color: var(--text-secondary); font-size: 0.55rem;
-    cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: inherit;
-  }
-  .theme-opt:hover { color: var(--text); background: var(--progress-bg, rgba(0,0,0,0.04)); }
-  .theme-opt.active { color: var(--accent); background: rgba(37,99,235,0.08); }
-  html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
-  .theme-sep { width: 1px; height: 13px; background: var(--border); margin: 0 0.1rem; flex-shrink: 0; align-self: center; }
-  .dark-btn {
-    width: 20px; height: 20px; padding: 0; border-radius: 50%; border: none;
-    background: transparent; color: var(--text-secondary);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-  }
-  .dark-btn:hover { color: var(--text); background: var(--progress-bg, rgba(0,0,0,0.04)); }
-
-  .empty { text-align: center; padding: 4rem; color: var(--text-secondary); }
-
-  .activity-section {
-    margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
-  }
-  .activity-section h2 {
-    font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;
-    display: flex; align-items: center; gap: 0.5rem;
-  }
-  .activity-tabs {
-    display: flex; gap: 0.5rem; margin-bottom: 1rem;
-  }
+  /* ---- Activity ledger ---- */
+  .activity-tabs { display: flex; align-items: baseline; gap: 20px; }
   .activity-tab {
-    padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text-secondary); cursor: pointer;
-    font-size: 13px; font-weight: 500; transition: all 0.15s;
+    background: none; border: none; border-radius: 0; padding: 0; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
   }
-  .activity-tab:hover { border-color: var(--accent); color: var(--text); }
-  .activity-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .activity-item {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 14px; margin-bottom: 6px; font-size: 13px;
+  .activity-tab:hover { color: var(--text); }
+  .activity-tab.active {
+    color: var(--accent); text-decoration: underline; text-underline-offset: 4px;
   }
-  .activity-item-header {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  .activity-row {
+    display: grid; grid-template-columns: 110px 1fr auto;
+    column-gap: 28px; padding: 13px 0; border-top: 1px solid var(--border);
+    font-size: 14px; align-items: baseline;
   }
-  .activity-item-header .project-label {
-    font-size: 11px; background: var(--badge-dim-bg); padding: 1px 8px;
-    border-radius: 9999px; color: var(--text-secondary); font-weight: 500;
+  .activity-row:first-child { border-top: 0; }
+  .activity-time {
+    font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+    letter-spacing: 0.02em; white-space: nowrap;
   }
-  .activity-item-date { font-size: 11px; color: var(--text-secondary); margin-left: auto; }
-  .file-dir-sm { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 9999px; }
-  .dir-in-sm { background: rgba(74, 222, 128, 0.15); color: var(--green, #4ade80); }
-  .dir-out-sm { background: rgba(96, 165, 250, 0.15); color: var(--blue, #60a5fa); }
-  .journal-type-sm { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 9999px; }
-  .jt-call { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-  .jt-decision { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-  .jt-approval { background: rgba(74, 222, 128, 0.15); color: var(--green, #4ade80); }
-  .jt-note { background: var(--badge-dim-bg); color: var(--text-secondary); }
+  .activity-event .proj { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  .activity-event .fine { color: var(--text-secondary); }
+  .activity-event .note { color: var(--text-secondary); margin-top: 2px; }
+  .activity-event .fine-line { color: var(--text-muted); font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+  .activity-tag { text-align: right; }
 
-  @media (max-width: 480px) {
-    .dashboard { padding: 1.25rem 1rem; }
-    .dash-header { flex-wrap: wrap; gap: 0.75rem; }
-    .theme-bar { top: auto; bottom: 0.75rem; right: 0.75rem; }
-    .auth-box { margin: 48px auto; padding: 32px 20px; }
+  /* ---- Auth / error: centered rule-bounded blocks ---- */
+  .auth-box {
+    max-width: 420px; margin: 96px auto 0; padding: 40px 4px 44px;
+    border-top: 1px solid var(--border-strong);
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .auth-box h2 {
+    font-family: var(--mono); font-size: 20px; font-weight: 600;
+    letter-spacing: -0.01em; margin: 14px 0 8px;
+  }
+  .auth-box .auth-sub { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+  .auth-box .auth-sub code { font-family: var(--mono); color: var(--accent); }
+  .auth-box .input-bare { margin-bottom: 20px; }
+  .auth-box .error {
+    font-family: var(--mono); font-size: 12px; color: var(--red); margin-top: 14px;
+  }
+  .auth-box .forgot-link { margin-top: 26px; }
+  .auth-box .back-link { margin-top: 12px; }
+
+  /* ---- Modals: --surface + 1px strong rule, no radius, no shadow ---- */
+  .overlay {
+    position: fixed; inset: 0; background: var(--modal-backdrop);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 16px;
+  }
+  .modal-box {
+    background: var(--surface); border: 1px solid var(--border-strong);
+    padding: 28px; width: min(92vw, 500px); max-height: 85vh; overflow-y: auto;
+  }
+  .modal-box h2 {
+    font-family: var(--mono); font-size: 16px; font-weight: 600;
+    letter-spacing: -0.01em; margin: 0 0 8px;
+  }
+  .modal-sub { color: var(--text-secondary); font-size: 14px; margin: 0 0 20px; }
+  .modal-actions {
+    display: flex; justify-content: flex-end; align-items: baseline;
+    gap: 28px; margin-top: 24px;
+  }
+  .modal-actions .btn-fill[disabled], .modal-actions .link-action[disabled] {
+    opacity: 0.5; cursor: default;
+  }
+  .field { display: grid; gap: 6px; margin-bottom: 16px; }
+  .field-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
+  }
+  .field-hint { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+  .form-error { font-family: var(--mono); font-size: 12px; color: var(--red); margin-top: 4px; }
+  .callout {
+    border-left: 2px solid var(--accent); padding: 6px 0 6px 12px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+  .callout.ok { border-left-color: var(--green); color: var(--green); }
+  .callout.err { border-left-color: var(--red); color: var(--red); }
+  .recip-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .recip-row input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
+  .recip-row .recip-email { font-family: var(--mono); font-size: 13px; }
+  .recip-row .recip-label {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-muted); margin-left: auto; white-space: nowrap;
+  }
+  .recip-row .input-bare { flex: 1; font-size: 13px; padding: 4px 2px; width: auto; }
+
+  .loading-note {
+    font-family: var(--mono); font-size: 13px; color: var(--text-muted);
+    text-align: center; padding-top: 96px;
+  }
+
+  @media (max-width: 640px) {
+    .page { padding: 0 16px; }
+    .title-block { padding: 36px 0 28px; }
+    .title-block h1 { font-size: 24px; }
+    .stats-ledger { grid-template-columns: repeat(2, auto); }
+    .section-head { padding-top: 40px; }
+    .activity-row { grid-template-columns: 1fr auto; row-gap: 4px; }
+    .activity-row .activity-event { grid-column: 1 / -1; }
+    .auth-box { margin-top: 56px; }
+    .jdbb-masthead { flex-wrap: wrap; }
   }
 </style>
 </head>
 <body>
-<div class="grid-lines"><div class="grid-lines-inner">
-  <div class="grid-line"></div><div class="grid-line"></div>
-</div></div>
-<div id="app"></div>
+<div class="page">
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span>JDBB<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav><div id="theme-bar"></div></nav>
+  </header>
+  <div class="jdbb-statusline">
+    <span id="status-ctx">Client portal</span>
+    <span>UTC <span id="status-date"></span> &middot; <span class="ok">&#9679;</span> live</span>
+  </div>
+  <div id="app"></div>
+  <footer class="site-footer">
+    <span class="jdbb-wordmark"><span class="bracket">[</span>JDBB<span class="bracket">]</span></span>
+    <span><a href="/admin/">Admin</a> &middot; &copy; 2026 JDBB</span>
+  </footer>
+</div>
+<script src="/static/theme.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const api = async (url, opts = {}) => {
@@ -216,76 +273,9 @@ function absoluteURL(path) { return new URL(path, portalBaseURL()).toString(); }
 let contactEmail = 'j@djinna.com';
 fetch('/api/public/config').then(r => r.ok ? r.json() : null).then(c => { if (c && c.contact_email) contactEmail = c.contact_email; }).catch(() => {});
 
-function getTheme() { try { var t = JSON.parse(localStorage.getItem('prodcal-theme-v1')); return (t && t.dark) ? 'dark' : 'light'; } catch(e) { return 'light'; } }
-function applyTheme(t) {
-  document.documentElement.classList.toggle('dark', t === 'dark');
-}
-applyTheme(getTheme());
-
-// Font + Theme bar system
-var _fonts = {
-  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
-  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
-  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
-  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
-};
-var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
-var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: document.documentElement.classList.contains('dark') };
-try {
-  var _savedTheme = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-  if (_savedTheme && _fonts[_savedTheme.font]) _themeState.font = _savedTheme.font;
-} catch(e) {}
-function _saveThemeState() {
-  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
-}
-// Persist the first-visit random pick so the font follows the visitor site-wide.
-_saveThemeState();
-// Apply the font immediately so auth/notfound views match the rest of the site.
-_applyThemeBar();
-
-function _applyThemeBar() {
-  var f = _fonts[_themeState.font];
-  if (f) {
-    document.body.style.fontFamily = f.family;
-    var nameEl = document.getElementById('font-name');
-    if (nameEl) nameEl.textContent = f.label;
-  }
-  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.font === _themeState.font);
-  });
-  var darkBtn = document.getElementById('dark-btn');
-  if (darkBtn) darkBtn.textContent = _themeState.dark ? '\u2600' : '\u263e';
-}
-function _ensureThemeBar() {
-  if (document.getElementById('theme-bar')) return;
-  var bar = document.createElement('div');
-  bar.className = 'theme-bar'; bar.id = 'theme-bar';
-  bar.innerHTML = '<div class="font-name" id="font-name" title="Click to change typeface">' + (_fonts[_themeState.font]?.label || '') + '</div>'
-    + '<div class="font-options" id="font-options">'
-    + '<button class="theme-opt" data-font="literata">Literata</button>'
-    + '<button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>'
-    + '<button class="theme-opt" data-font="menlo">Menlo</button>'
-    + '<button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>'
-    + '</div><div class="theme-sep"></div>'
-    + '<button class="dark-btn" id="dark-btn" title="Toggle dark mode">\u263e</button>';
-  document.body.appendChild(bar);
-  var expanded = false;
-  document.getElementById('font-name').addEventListener('click', function() { expanded = !expanded; bar.classList.toggle('expanded', expanded); });
-  document.addEventListener('click', function(e) { if (expanded && !bar.contains(e.target)) { expanded = false; bar.classList.remove('expanded'); } });
-  bar.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      _themeState.font = this.dataset.font; _applyThemeBar(); _saveThemeState();
-      expanded = false; bar.classList.remove('expanded');
-    });
-  });
-  document.getElementById('dark-btn').addEventListener('click', function() {
-    _themeState.dark = !_themeState.dark;
-    document.documentElement.classList.toggle('dark', _themeState.dark);
-    _saveThemeState();
-    _applyThemeBar();
-  });
-  _applyThemeBar();
-}
+// Shared chrome: theme/font bar + statusline date (state lives in theme.js).
+JdbbTheme.mount(document.getElementById('theme-bar'));
+document.getElementById('status-date').textContent = new Date().toISOString().slice(0, 10);
 
 const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
 let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: null, showNewProject: false, projectCreate: { name: '', start_date: '', project_slug: '', error: '', saving: false } };
@@ -297,19 +287,20 @@ function slugifyProject(value) {
 function render() {
   const app = $('#app');
   if (state.view === 'loading') {
-    app.innerHTML = '<div class="dashboard" style="text-align:center;padding-top:80px;color:var(--text-secondary)">Loading…</div>';
+    app.innerHTML = '<div class="dashboard"><div class="loading-note">Loading&hellip;</div></div>';
   } else if (state.view === 'auth') {
     app.innerHTML = '';
     const box = document.createElement('div');
     box.className = 'auth-box';
     box.innerHTML = `
-      <h2>Password Required</h2>
+      <div class="kicker">Client portal</div>
+      <h2>Password required</h2>
       <p class="auth-sub">${esc(state.client?.name || clientSlug)}</p>
-      <input type="password" id="pw" placeholder="Enter password" autofocus>
-      <div><button class="btn btn-primary" id="loginBtn" style="width:100%">Unlock</button></div>
+      <input type="password" id="pw" class="input-bare" placeholder="Password" autofocus>
+      <div><button class="btn-fill" id="loginBtn" style="width:100%">Unlock</button></div>
       ${state.error ? '<div class="error">' + esc(state.error) + '</div>' : ''}
-      <div class="forgot-link"><a href="#" id="forgotLink">Forgot or need a reset?</a></div>
-      <div class="back-link"><a href="/">← Back</a></div>
+      <div class="forgot-link"><a href="#" id="forgotLink" class="link-action">Forgot or need a reset?</a></div>
+      <div class="back-link"><a href="/" class="link-action">&larr; Back</a></div>
     `;
     app.appendChild(box);
     const pw = box.querySelector('#pw');
@@ -343,43 +334,45 @@ function render() {
     const box = document.createElement('div');
     box.className = 'auth-box';
     box.innerHTML = `
+      <div class="kicker">Client portal</div>
       <h2>We don't recognize that client code</h2>
-      <p class="auth-sub">There's no portal at <code>/${esc(clientSlug)}/</code>. Double-check the link or client code you were given — a small typo is the usual cause.</p>
-      <div class="back-link"><a href="/">← Back to start</a></div>
+      <p class="auth-sub">There's no portal at <code>/${esc(clientSlug)}/</code>. Double-check the link or client code you were given &mdash; a small typo is the usual cause.</p>
+      <div class="back-link"><a href="/" class="link-action">&larr; Back to start</a></div>
     `;
     app.appendChild(box);
-    applyTheme(getTheme());
   } else if (state.view === 'portal') {
     app.innerHTML = '';
     const div = document.createElement('div');
     div.className = 'dashboard';
     const name = state.client?.name || clientSlug;
+    document.getElementById('status-ctx').textContent = 'Client portal · ' + name;
 
     // Stats
     const totalTasks = state.projects.reduce((s, p) => s + p.task_count, 0);
     const totalDone = state.projects.reduce((s, p) => s + p.done_count, 0);
     const totalActive = state.projects.reduce((s, p) => s + p.active_count, 0);
-    const withTx = state.projects.filter(p => p.has_transmittal).length;
 
     div.innerHTML = `
-      <div class="dash-header">
-        <div>
-          <h1>${esc(name)}</h1>
-          <div class="subtitle">${state.projects.length} project${state.projects.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-sm" id="new-project-btn" style="font-size:12px">New Project</button>
-          ${state.projects.length > 0 ? '<button class="btn btn-sm" id="digest-btn" style="font-size:12px" title="Email weekly digest">Weekly Digest</button>' : ''}
-        </div>
+      <section class="title-block">
+        <div class="kicker">Dashboard</div>
+        <h1>${esc(name)}</h1>
+        <p class="title-sub">${state.projects.length} project${state.projects.length !== 1 ? 's' : ''} in production</p>
+      </section>
+      <hr class="rule-strong">
+      <div class="stats-ledger" id="stats"></div>
+      <hr class="rule-strong">
+      <div class="section-head">
+        <span class="kicker">Projects <span class="count">&middot; ${state.projects.length}</span></span>
+        <span class="section-actions">
+          <button class="link-action" id="new-project-btn">+ New project</button>
+          ${state.projects.length > 0 ? '<button class="link-action" id="digest-btn" title="Email a digest of the last 7 days">Email digest</button>' : ''}
+        </span>
       </div>
-      <div class="stats-row" id="stats"></div>
-      <div class="projects-grid" id="projList"></div>
+      <hr class="rule">
+      <div class="projects-ledger" id="projList"></div>
     `;
     app.appendChild(div);
 
-    // Apply theme + inject theme bar
-    applyTheme(getTheme());
-    _ensureThemeBar();
     document.getElementById('new-project-btn').addEventListener('click', () => {
       state.showNewProject = true;
       state.projectCreate = { name: '', start_date: '', project_slug: '', error: '', saving: false };
@@ -388,67 +381,59 @@ function render() {
     const digestBtn = document.getElementById('digest-btn');
     if (digestBtn) digestBtn.addEventListener('click', () => { state.showDigestEmail = true; state.digestResult = null; render(); });
 
-    // Stats cards
+    // Stats ledger line
     const statsEl = div.querySelector('#stats');
     statsEl.innerHTML = `
-      <div class="stat-card">
-        <div class="label">Projects</div>
-        <div class="value">${state.projects.length}</div>
+      <div class="stat">
+        <span class="stat-label">Projects</span>
+        <span class="stat-value">${state.projects.length}</span>
       </div>
-      <div class="stat-card">
-        <div class="label">Total Tasks</div>
-        <div class="value">${totalTasks}</div>
+      <div class="stat">
+        <span class="stat-label">Total tasks</span>
+        <span class="stat-value">${totalTasks}</span>
       </div>
-      <div class="stat-card">
-        <div class="label">Completed</div>
-        <div class="value">${totalDone}</div>
+      <div class="stat">
+        <span class="stat-label">Completed</span>
+        <span class="stat-value" style="color:var(--green)">${totalDone}</span>
       </div>
-      <div class="stat-card">
-        <div class="label">In Progress</div>
-        <div class="value">${totalActive}</div>
+      <div class="stat">
+        <span class="stat-label">In progress</span>
+        <span class="stat-value" style="color:var(--accent)">${totalActive}</span>
       </div>
     `;
 
-    // Project cards
+    // Project ledger blocks
     const list = div.querySelector('#projList');
     if (state.projects.length === 0) {
-      list.innerHTML = '<div class="empty">No projects yet.</div>';
+      list.innerHTML = '<div class="empty">&gt; No projects yet.</div>';
     } else {
       list.innerHTML = state.projects.map(p => {
         const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
-        const barClass = pct === 100 ? 'green' : pct > 50 ? 'accent' : 'yellow';
-        const txBadge = p.has_transmittal
-          ? `<span class="badge badge-dim">${esc(p.transmittal_status || 'draft')}</span>` : '';
+        const txTag = p.has_transmittal
+          ? `<span class="tag">[${esc((p.transmittal_status || 'draft').toUpperCase())}]</span>` : '';
+        const statusTag = pct === 100
+          ? '<span class="tag ok">[COMPLETE]</span>'
+          : (p.active_count > 0 ? '<span class="tag warn">[IN PROGRESS]</span>' : '<span class="tag">[SCHEDULED]</span>');
         const projectURL = absoluteURL(p.path);
         const transmittalURL = absoluteURL(p.path + 'transmittal/');
         return `
-          <div class="project-card">
-            <div class="project-top">
-              <div>
-                <div class="project-name">${esc(p.name)}</div>
-              </div>
-              <div style="display:flex;gap:0.5rem">${txBadge}</div>
+          <article class="project">
+            <div class="project-head">
+              <h2 class="project-name">${esc(p.name)}</h2>
+              <span class="project-meta">Start ${esc(p.start_date || 'TBD')}</span>
             </div>
-            <div class="project-meta">
-              <span>Start: ${esc(p.start_date || 'TBD')}</span>
+            <div class="project-status">
+              <span><span class="prompt">&gt;</span>${p.done_count}/${p.task_count} tasks done${p.active_count > 0 ? ' &middot; ' + p.active_count + ' active' : ''}</span>
+              <span class="project-tags">${txTag}${statusTag}<span class="pct" style="color:${pct === 100 ? 'var(--green)' : 'var(--text)'}">${pct}%</span></span>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:0.85rem">
-                <strong>${p.done_count}</strong>/${p.task_count} tasks done
-                ${p.active_count > 0 ? '· <span style="color:var(--yellow, #facc15)">' + p.active_count + ' active</span>' : ''}
-              </span>
-              <span style="font-size:0.85rem;font-weight:600;color:${pct===100?'var(--green, #4ade80)':'var(--text)'}">${pct}%</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill ${barClass}" style="width:${pct}%"></div>
-            </div>
-            <div class="links">
-              <a href="${esc(projectURL)}">Calendar</a>
-              <a href="${esc(transmittalURL)}">Transmittal</a>
+            <div class="progress-line"><span class="${pct === 100 ? 'done' : ''}" style="width:${pct}%"></span></div>
+            <div class="project-actions">
+              <a class="link-action" href="${esc(projectURL)}">Calendar &rarr;</a>
+              <a class="link-action" href="${esc(transmittalURL)}">Transmittal</a>
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">Snapshot</button>
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="activity">Activity</button>
             </div>
-          </div>
+          </article>
         `;
       }).join('');
     }
@@ -464,11 +449,14 @@ function render() {
     const actDiv = document.createElement('div');
     actDiv.className = 'activity-section';
     actDiv.innerHTML = `
-      <h2>Recent Activity</h2>
-      <div class="activity-tabs">
-        <button class="activity-tab ${state.activityTab === 'files' ? 'active' : ''}" data-tab="files">Files</button>
-        <button class="activity-tab ${state.activityTab === 'journal' ? 'active' : ''}" data-tab="journal">Journal</button>
+      <div class="section-head">
+        <span class="kicker">Recent activity</span>
+        <span class="activity-tabs">
+          <button class="activity-tab ${state.activityTab === 'files' ? 'active' : ''}" data-tab="files">Files</button>
+          <button class="activity-tab ${state.activityTab === 'journal' ? 'active' : ''}" data-tab="journal">Journal</button>
+        </span>
       </div>
+      <hr class="rule-strong">
       <div id="activity-content"></div>
     `;
     div.appendChild(actDiv);
@@ -492,7 +480,7 @@ function render() {
 
 function renderNewProjectModal(root) {
   const backdrop = document.createElement('div');
-  backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+  backdrop.className = 'overlay';
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop && !state.projectCreate.saving) {
       state.showNewProject = false;
@@ -501,29 +489,27 @@ function renderNewProjectModal(root) {
   });
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'width:min(92vw,520px);background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);';
+  modal.className = 'modal-box';
   modal.innerHTML = `
-    <h2 style="margin:0 0 6px;font-size:1.25rem">New Project</h2>
-    <p style="margin:0 0 18px;color:var(--text-secondary);font-size:14px">Create a fresh project in the ${esc(state.client?.name || clientSlug)} portal.</p>
-    <div style="display:grid;gap:12px">
-      <label style="display:grid;gap:6px;font-size:13px;color:var(--text-secondary)">
-        <span>Project name</span>
-        <input id="np-name" type="text" value="${esc(state.projectCreate.name)}" placeholder="Spring 2026 novel" style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit">
-      </label>
-      <label style="display:grid;gap:6px;font-size:13px;color:var(--text-secondary)">
-        <span>Project code / slug</span>
-        <input id="np-slug" type="text" value="${esc(state.projectCreate.project_slug)}" placeholder="spring-2026-novel" style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit">
-      </label>
-      <label style="display:grid;gap:6px;font-size:13px;color:var(--text-secondary)">
-        <span>Start date (optional)</span>
-        <input id="np-start" type="date" value="${esc(state.projectCreate.start_date)}" style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit">
-      </label>
-      <div style="font-size:12px;color:var(--text-secondary)">Portal URL will be /${esc(clientSlug)}/<span id="np-preview">${esc(state.projectCreate.project_slug || 'project-slug')}</span>/</div>
-      ${state.projectCreate.error ? `<div style="font-size:13px;color:#ef4444">${esc(state.projectCreate.error)}</div>` : ''}
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
-      <button id="np-cancel" class="btn btn-sm btn-secondary" ${state.projectCreate.saving ? 'disabled' : ''}>Cancel</button>
-      <button id="np-create" class="btn btn-sm" ${state.projectCreate.saving ? 'disabled' : ''}>${state.projectCreate.saving ? 'Creating…' : 'Create Project'}</button>
+    <h2>New project</h2>
+    <p class="modal-sub">Create a fresh project in the ${esc(state.client?.name || clientSlug)} portal.</p>
+    <label class="field">
+      <span class="field-label">Project name</span>
+      <input id="np-name" type="text" class="input-bare" value="${esc(state.projectCreate.name)}" placeholder="Spring 2026 novel">
+    </label>
+    <label class="field">
+      <span class="field-label">Project code / slug</span>
+      <input id="np-slug" type="text" class="input-bare" value="${esc(state.projectCreate.project_slug)}" placeholder="spring-2026-novel">
+    </label>
+    <label class="field">
+      <span class="field-label">Start date (optional)</span>
+      <input id="np-start" type="date" class="input-bare" value="${esc(state.projectCreate.start_date)}">
+    </label>
+    <div class="field-hint">Portal URL will be /${esc(clientSlug)}/<span id="np-preview">${esc(state.projectCreate.project_slug || 'project-slug')}</span>/</div>
+    ${state.projectCreate.error ? `<div class="form-error">${esc(state.projectCreate.error)}</div>` : ''}
+    <div class="modal-actions">
+      <button id="np-cancel" class="link-action" ${state.projectCreate.saving ? 'disabled' : ''}>Cancel</button>
+      <button id="np-create" class="btn-fill" ${state.projectCreate.saving ? 'disabled' : ''}>${state.projectCreate.saving ? 'Creating…' : 'Create project'}</button>
     </div>
   `;
   backdrop.appendChild(modal);
@@ -608,46 +594,41 @@ async function createProjectFromPortal() {
 function renderActivityContent(container) {
   if (state.activityTab === 'files') {
     if (state.fileLog.length === 0) {
-      container.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:1rem 0">No file transfers logged yet.</div>';
+      container.innerHTML = '<div class="empty">&gt; No file transfers logged yet.</div>';
     } else {
       container.innerHTML = state.fileLog.map(e => {
-        const dirCls = e.direction === 'outbound' ? 'dir-out-sm' : 'dir-in-sm';
-        const dirLabel = e.direction === 'outbound' ? '↑ Out' : '↓ In';
+        const dirLabel = e.direction === 'outbound' ? '[OUT]' : '[IN]';
         return `
-          <div class="activity-item">
-            <div class="activity-item-header">
-              <span class="file-dir-sm ${dirCls}">${dirLabel}</span>
-              <strong>${esc(e.filename || '—')}</strong>
-              <span style="color:var(--text-secondary)">${esc(e.file_type || '')}</span>
-              <span class="project-label">${esc(e.project_name)}</span>
-              <span class="activity-item-date">${esc(e.transfer_date || '')}</span>
+          <div class="activity-row">
+            <div class="activity-time">${esc(e.transfer_date || '')}</div>
+            <div class="activity-event">
+              <span class="proj">${esc(e.project_name)}</span> &middot; ${esc(e.filename || '—')}
+              ${e.file_type ? '<span class="fine">(' + esc(e.file_type) + ')</span>' : ''}
+              ${e.notes ? '<div class="note">' + esc(e.notes) + '</div>' : ''}
+              <div class="fine-line">${esc(e.sent_by || '?')} &rarr; ${esc(e.received_by || '?')}</div>
             </div>
-            ${e.notes ? '<div style="color:var(--text-secondary);margin-top:2px">' + esc(e.notes) + '</div>' : ''}
-            <div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${esc(e.sent_by || '?')} → ${esc(e.received_by || '?')}</div>
+            <div class="activity-tag tag">${dirLabel}</div>
           </div>
         `;
       }).join('');
     }
   } else {
     if (state.journal.length === 0) {
-      container.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:1rem 0">No journal entries yet.</div>';
+      container.innerHTML = '<div class="empty">&gt; No journal entries yet.</div>';
     } else {
-      const typeEmoji = { call: '📞', decision: '⚖️', approval: '✅', note: '📝' };
-      const typeCls = { call: 'jt-call', decision: 'jt-decision', approval: 'jt-approval', note: 'jt-note' };
+      const typeTagCls = { call: '', decision: 'warn', approval: 'ok', note: '' };
       container.innerHTML = state.journal.map(e => {
-        const emoji = typeEmoji[e.entry_type] || '📝';
-        const cls = typeCls[e.entry_type] || 'jt-note';
-        const label = e.entry_type.charAt(0).toUpperCase() + e.entry_type.slice(1);
+        const tagCls = typeTagCls[e.entry_type] || '';
         const dt = new Date(e.created_at);
-        const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const dateStr = isNaN(dt) ? esc(e.created_at || '') : dt.toISOString().slice(0, 10);
         return `
-          <div class="activity-item">
-            <div class="activity-item-header">
-              <span class="journal-type-sm ${cls}">${emoji} ${esc(label)}</span>
-              <span class="project-label">${esc(e.project_name)}</span>
-              <span class="activity-item-date">${dateStr}</span>
+          <div class="activity-row">
+            <div class="activity-time">${dateStr}</div>
+            <div class="activity-event">
+              <span class="proj">${esc(e.project_name)}</span>
+              <div style="margin-top:4px;white-space:pre-wrap">${esc(e.content)}</div>
             </div>
-            <div style="margin-top:4px;white-space:pre-wrap">${esc(e.content)}</div>
+            <div class="activity-tag tag ${tagCls}">[${esc((e.entry_type || 'note').toUpperCase())}]</div>
           </div>
         `;
       }).join('');
@@ -716,55 +697,54 @@ function renderProjectEmailModal() {
   let backdrop = document.querySelector('.proj-email-backdrop');
   if (!backdrop) {
     backdrop = document.createElement('div');
-    backdrop.className = 'proj-email-backdrop';
-    backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+    backdrop.className = 'proj-email-backdrop overlay';
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeProjectEmailModal(); });
     document.body.appendChild(backdrop);
   }
 
-  const typeLabel = projEmailState.type === 'snapshot' ? 'Project Snapshot' : 'Activity Update';
+  const typeLabel = projEmailState.type === 'snapshot' ? 'Project snapshot' : 'Activity update';
   const typeDesc = projEmailState.type === 'snapshot'
     ? 'Sends schedule, budget, transmittal, recent files, and journal.'
     : 'Sends file transfers and journal entries from the last 7 days.';
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;';
+  modal.className = 'modal-box';
 
-  let html = `<h2 style="margin:0 0 8px;font-size:18px;">${esc(typeLabel)}: ${esc(projEmailState.projectName)}</h2>`;
-  html += `<p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px">${typeDesc}</p>`;
+  let html = `<h2>${esc(typeLabel)}: ${esc(projEmailState.projectName)}</h2>`;
+  html += `<p class="modal-sub">${typeDesc}</p>`;
 
   if (state.emailConfigured === false) {
-    html += '<div style="background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e">⚠️ Email is not configured on the server.</div>';
+    html += '<div class="callout">Email is not configured on the server.</div>';
   }
 
-  html += '<div style="margin-bottom:16px"><label style="font-weight:600;display:block;margin-bottom:8px">Send to:</label>';
+  html += '<div style="margin-bottom:16px"><div class="field-label" style="margin-bottom:10px">Send to</div>';
   projEmailRecipients.forEach((r, i) => {
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+    html += '<div class="recip-row">';
     html += `<input type="checkbox" data-pidx="${i}" ${r.checked ? 'checked' : ''}>`;
     if (r.editable) {
-      html += `<input type="email" placeholder="email@example.com" value="${esc(r.email)}" data-pedit="${i}" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px">`;
+      html += `<input type="email" class="input-bare" placeholder="email@example.com" value="${esc(r.email)}" data-pedit="${i}">`;
     } else {
-      html += `<span style="font-size:14px">${esc(r.email)}</span>`;
+      html += `<span class="recip-email">${esc(r.email)}</span>`;
     }
-    html += `<span style="font-size:12px;color:var(--text-secondary)">${esc(r.label)}</span>`;
+    html += `<span class="recip-label">${esc(r.label)}</span>`;
     html += '</div>';
   });
   html += '</div>';
 
   if (projEmailState.result?.ok) {
-    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✓ Sent to: ' + projEmailState.result.sent_to.join(', ') + '</div>';
+    html += '<div class="callout ok">&#10003; Sent to: ' + projEmailState.result.sent_to.join(', ') + '</div>';
   }
   if (projEmailState.result?.error) {
-    html += '<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626">❌ ' + esc(projEmailState.result.error) + '</div>';
+    html += '<div class="callout err">' + esc(projEmailState.result.error) + '</div>';
   }
 
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">';
+  html += '<div class="modal-actions">';
   if (projEmailState.result?.ok) {
-    html += '<button class="btn btn-primary" id="proj-email-done">✓ Done</button>';
+    html += '<button class="btn-fill" id="proj-email-done">Done</button>';
   } else {
-    html += '<button class="btn" id="proj-email-cancel">Cancel</button>';
+    html += '<button class="link-action" id="proj-email-cancel">Cancel</button>';
     const disabled = projEmailState.sending || state.emailConfigured === false ? ' disabled' : '';
-    html += `<button class="btn btn-primary" id="proj-email-send"${disabled}>${projEmailState.sending ? 'Sending…' : '📨 Send'}</button>`;
+    html += `<button class="btn-fill" id="proj-email-send"${disabled}>${projEmailState.sending ? 'Sending…' : 'Send'}</button>`;
   }
   html += '</div>';
 
@@ -853,50 +833,49 @@ function renderDigestModal(parent) {
   if (existing) existing.remove();
 
   const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+  backdrop.className = 'modal-backdrop overlay';
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) { state.showDigestEmail = false; state.digestResult = null; render(); }
   });
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;';
+  modal.className = 'modal-box';
 
-  let html = '<h2 style="margin:0 0 8px;font-size:18px;">Email Weekly Digest</h2>';
-  html += '<p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px">Sends a digest of file transfers and journal entries from the last 7 days across all projects.</p>';
+  let html = '<h2>Email digest</h2>';
+  html += '<p class="modal-sub">Sends a digest of file transfers and journal entries from the last 7 days across all projects.</p>';
 
   if (state.emailConfigured === false) {
-    html += '<div style="background:#fef3c7;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#92400e">⚠️ Email is not configured on the server.</div>';
+    html += '<div class="callout">Email is not configured on the server.</div>';
   }
 
-  html += '<div style="margin-bottom:16px"><label style="font-weight:600;display:block;margin-bottom:8px">Send to:</label>';
+  html += '<div style="margin-bottom:16px"><div class="field-label" style="margin-bottom:10px">Send to</div>';
   digestRecipients.forEach((r, i) => {
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+    html += '<div class="recip-row">';
     html += `<input type="checkbox" data-idx="${i}" ${r.checked ? 'checked' : ''}>`;
     if (r.editable) {
-      html += `<input type="email" placeholder="email@example.com" value="${esc(r.email)}" data-edit-idx="${i}" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px">`;
+      html += `<input type="email" class="input-bare" placeholder="email@example.com" value="${esc(r.email)}" data-edit-idx="${i}">`;
     } else {
-      html += `<span style="font-size:14px">${esc(r.email)}</span>`;
+      html += `<span class="recip-email">${esc(r.email)}</span>`;
     }
-    html += `<span style="font-size:12px;color:var(--text-secondary)">${esc(r.label)}</span>`;
+    html += `<span class="recip-label">${esc(r.label)}</span>`;
     html += '</div>';
   });
   html += '</div>';
 
   if (state.digestResult?.ok) {
-    html += '<div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#065f46">✓ Sent to: ' + state.digestResult.sent_to.join(', ') + '</div>';
+    html += '<div class="callout ok">&#10003; Sent to: ' + state.digestResult.sent_to.join(', ') + '</div>';
   }
   if (state.digestResult?.error) {
-    html += '<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#dc2626">❌ ' + esc(state.digestResult.error) + '</div>';
+    html += '<div class="callout err">' + esc(state.digestResult.error) + '</div>';
   }
 
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">';
+  html += '<div class="modal-actions">';
   if (state.digestResult?.ok) {
-    html += '<button class="btn btn-primary" id="digest-done">✓ Done</button>';
+    html += '<button class="btn-fill" id="digest-done">Done</button>';
   } else {
-    html += '<button class="btn" id="digest-cancel">Cancel</button>';
+    html += '<button class="link-action" id="digest-cancel">Cancel</button>';
     const disabled = state.digestSending || state.emailConfigured === false ? ' disabled' : '';
-    html += `<button class="btn btn-primary" id="digest-send"${disabled}>${state.digestSending ? 'Sending…' : '📨 Send Digest'}</button>`;
+    html += `<button class="btn-fill" id="digest-send"${disabled}>${state.digestSending ? 'Sending…' : 'Send digest'}</button>`;
   }
   html += '</div>';
 

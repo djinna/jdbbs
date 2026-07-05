@@ -31,72 +31,22 @@ const api = async (url, opts = {}) => {
 let contactEmail = 'j@djinna.com';
 fetch('/api/public/config').then(r => r.ok ? r.json() : null).then(c => { if (c && c.contact_email) contactEmail = c.contact_email; }).catch(() => {});
 
-// ─── Font + Theme System ───
-var _fonts = {
-  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
-  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
-  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
-  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
-};
-var _fontKeys = ['literata', 'ibm-serif', 'menlo', 'ibm-sans'];
-var _themeState = { font: _fontKeys[Math.floor(Math.random() * _fontKeys.length)], dark: false };
-try {
-  var _saved = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-  if (_saved) {
-    _themeState.dark = !!_saved.dark;
-    if (_fonts[_saved.font]) _themeState.font = _saved.font;
-  }
-} catch(e) {}
-// Persist the first-visit random pick so the font follows the visitor site-wide.
-try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
-
-function _applyTheme() {
-  var f = _fonts[_themeState.font];
-  if (f) {
-    document.body.style.fontFamily = f.family;
-    var nameEl = document.getElementById('font-name');
-    if (nameEl) nameEl.textContent = f.label;
-  }
-  document.documentElement.classList.toggle('dark', _themeState.dark);
-  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.font === _themeState.font);
-  });
-  var darkBtn = document.getElementById('dark-btn');
-  if (darkBtn) darkBtn.textContent = _themeState.dark ? '\u2600' : '\u263e';
-}
-function _saveTheme() {
-  try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({ font: _themeState.font, dark: _themeState.dark })); } catch(e) {}
-}
-function _setFont(key) { _themeState.font = key; _applyTheme(); _saveTheme(); }
-function _toggleDark() { _themeState.dark = !_themeState.dark; _applyTheme(); _saveTheme(); }
-
+// ─── Theme (canonical JdbbTheme — see theme.js / theme.css)───
+// One theme system only: state lives in localStorage `prodcal-theme-v1`,
+// owned by JdbbTheme (theme.js migrates the legacy font keys).
 function _ensureThemeBar() {
   if (document.getElementById('theme-bar')) return;
+  if (!window.JdbbTheme) return;
   var bar = document.createElement('div');
-  bar.className = 'theme-bar';
   bar.id = 'theme-bar';
-  bar.innerHTML = '<div class="font-name" id="font-name" title="Click to change typeface">' + (_fonts[_themeState.font]?.label || '') + '</div>'
-    + '<div class="font-options" id="font-options">'
-    + '<button class="theme-opt" data-font="literata">Literata</button>'
-    + '<button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>'
-    + '<button class="theme-opt" data-font="menlo">Menlo</button>'
-    + '<button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>'
-    + '</div>'
-    + '<div class="theme-sep"></div>'
-    + '<button class="dark-btn" id="dark-btn" title="Toggle dark mode">\u263e</button>';
   document.body.appendChild(bar);
-  var expanded = false;
-  var nameEl = document.getElementById('font-name');
-  nameEl.addEventListener('click', function() { expanded = !expanded; bar.classList.toggle('expanded', expanded); });
-  document.addEventListener('click', function(e) { if (expanded && !bar.contains(e.target)) { expanded = false; bar.classList.remove('expanded'); } });
-  bar.querySelectorAll('.theme-opt[data-font]').forEach(function(btn) {
-    btn.addEventListener('click', function() { _setFont(this.dataset.font); expanded = false; bar.classList.remove('expanded'); });
-  });
-  document.getElementById('dark-btn').addEventListener('click', _toggleDark);
-  _applyTheme();
+  JdbbTheme.mount(bar);
+}
+function _applyTheme() {
+  if (window.JdbbTheme) JdbbTheme.apply(document.getElementById('theme-bar'));
 }
 function themeBtn() { return h('span'); }
-function getTheme() { return _themeState.dark ? 'dark' : 'light'; }
+function getTheme() { return window.JdbbTheme && JdbbTheme.state.dark ? 'dark' : 'light'; }
 
 // ─── State ───
 let state = {
@@ -598,7 +548,7 @@ function renderForm() {
           }}, 'Duplicate'),
           h('button', { className: 'btn btn-sm', onClick: () => window.print() }, 'Print'),
           h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, 'Email'),
-          h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? ' btn-primary' : ''),
+          h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? '' : ' btn-primary'),
             onClick: () => {
               const wasDraft = state.transmittal.status !== 'final';
               state.transmittal.status = wasDraft ? 'final' : 'draft';
@@ -806,7 +756,7 @@ function renderChecklistSection() {
           ),
         ),
         // Back matter header
-        h('tr', null, h('td', { colspan: '3', style: 'padding-top:10px;font-weight:600;font-size:12px;color:var(--accent)' }, 'Back Matter')),
+        h('tr', null, h('td', { colspan: '3', className: 'tx-checklist-subhead' }, 'Back Matter')),
         ...bmRows,
       ),
     ),
@@ -833,8 +783,7 @@ function renderIllustrationsSection() {
             h('input', { type: 'checkbox', checked: getField('illustrations.' + key + '_here') ? 'checked' : undefined,
               onChange: (e) => setField('illustrations.' + key + '_here', e.target.checked) })),
           h('td', null, h('input', { type: 'text', value: getField('illustrations.' + key + '_to_come') || '',
-            onInput: (e) => setField('illustrations.' + key + '_to_come', e.target.value),
-            style: 'width:100%;padding:2px 4px;background:var(--bg);border:1px solid transparent;border-radius:3px;color:var(--text);font-size:12px' })),
+            onInput: (e) => setField('illustrations.' + key + '_to_come', e.target.value) })),
         )
       )),
     ),
@@ -898,7 +847,7 @@ function renderSubrightsSection() {
         }, (isNa ? '✕ ' : '') + label),
         !isNa ? h('input', { type: 'text', value: val || '', placeholder: 'details...',
           onInput: (e) => setField('subrights.' + key, e.target.value),
-          style: 'flex:1;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px'
+          style: 'flex:1'
         }) : h('span', { style: 'color:var(--text-secondary);font-size:12px;cursor:pointer',
           onClick: () => { setField('subrights.' + key, ''); render(); }
         }, 'n/a — click to enable'),
@@ -1292,7 +1241,7 @@ function renderEmailModal() {
         // Result
         state.emailResult?.ok
           ? h('div', { className: 'email-success' },
-              '2713 Sent to: ' + state.emailResult.sent_to.join(', ')
+              '✓ Sent to: ' + state.emailResult.sent_to.join(', ')
             )
           : null,
         state.emailResult?.error
@@ -1304,7 +1253,7 @@ function renderEmailModal() {
         // Actions
         h('div', { className: 'email-actions' },
           state.emailResult?.ok
-            ? h('button', { className: 'btn btn-primary', onClick: closeModal }, '2713 Done')
+            ? h('button', { className: 'btn btn-primary', onClick: closeModal }, '✓ Done')
             : [
                 h('button', {
                   className: 'btn btn-primary',
