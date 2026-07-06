@@ -35,17 +35,17 @@ fetch('/api/public/config').then(r => r.ok ? r.json() : null).then(c => { if (c 
 // One theme system only: state lives in localStorage `prodcal-theme-v1`,
 // owned by JdbbTheme (theme.js migrates the legacy font keys).
 function _ensureThemeBar() {
-  if (document.getElementById('theme-bar')) return;
+  var bar = document.getElementById('theme-bar');
+  if (!bar) return;
   if (!window.JdbbTheme) return;
-  var bar = document.createElement('div');
-  bar.id = 'theme-bar';
-  document.body.appendChild(bar);
+  if (bar.dataset.mounted === 'true') return;
   JdbbTheme.mount(bar);
+  bar.dataset.mounted = 'true';
 }
 function _applyTheme() {
   if (window.JdbbTheme) JdbbTheme.apply(document.getElementById('theme-bar'));
 }
-function themeBtn() { return h('span'); }
+function themeBtn() { return h('div', { id: 'theme-bar' }); }
 function getTheme() { return window.JdbbTheme && JdbbTheme.state.dark ? 'dark' : 'light'; }
 
 // ─── State ───

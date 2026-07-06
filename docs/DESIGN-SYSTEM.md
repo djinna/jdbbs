@@ -53,35 +53,43 @@ deletions/errors only, muted = pending.
 
 ## Type
 
-Mono (`--mono`) for headings, labels, data, controls, wordmark; body sans
-(`--body`) for prose. Four pairings, switched by the header selector via
-`html[data-font]`:
+The header selector switches the full site font via `html[data-font]`. Both
+`--mono` and `--body` resolve to the selected family so headings, labels,
+controls, and prose move together:
 
-| key | mono | body |
-|---|---|---|
-| `jetbrains` (default) | JetBrains Mono | Inter |
-| `martian` | Martian Mono | Inter |
-| `plex` | IBM Plex Mono | IBM Plex Sans |
-| `geist` | Geist Mono | Geist |
+| key | site font |
+|---|---|
+| `jetbrains` (default) | JetBrains Mono |
+| `martian` | Martian Mono |
+| `plex` | IBM Plex Sans |
+| `geist` | Geist |
+| `literata` | Literata |
+| `ibm-serif` | IBM Plex Serif |
+| `source-serif` | Source Serif 4 |
+| `newsreader` | Newsreader |
+
+Martian Mono has a visibly large x-height, so `html[data-font="martian"]`
+sets `font-size-adjust: 0.52` to keep its apparent size near the other faces.
 
 Google Fonts link (all pages):
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
 ```
 
 State persists in localStorage `prodcal-theme-v1` (`{font, dark}`); theme.js
-migrates legacy font keys and keeps the random first-visit pairing pick.
+migrates legacy font keys and keeps the random first-visit font pick.
 Every page's `<head>` keeps the tiny inline bootstrap that applies the dark
 class + `data-font` before first paint.
 
 ## Shared chrome
 
 Masthead on every surface (`.jdbb-masthead`): wordmark left —
-`<a class="jdbb-wordmark"><span class="bracket">[</span>JDBB<span class="bracket">]</span><span class="studio">studio</span></a>`
+`<a class="jdbb-wordmark"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>`
 — nav/actions right, ending with the theme bar (`JdbbTheme.mount(el)`).
 Below it a `.jdbb-statusline` (context left, `UTC date · state` right).
-Footer: `[JDBB]` left, `Admin · © 2026 JDBB` right, above a closing hairline.
+Footer: linked `[jdbb]` left, `Admin · © 2026 Jenna Dixon` right, above a
+closing hairline.
 
 ## Content facts (recurring copy)
 
@@ -92,6 +100,7 @@ Footer: `[JDBB]` left, `Admin · © 2026 JDBB` right, above a closing hairline.
 
 ## Wordmark / favicon
 
-Working wordmark is the bracketed mono lockup above. Favicon:
-`/static/favicon.svg` (route `/favicon.ico` redirects there). A drawn-mark
-pass is in progress; until it lands, keep the existing favicon wiring.
+Working wordmark is the lowercase bracketed mono W1 lockup above, with `.kj`
+tightening the mono `j`->`d` gap by `-0.08em`. Serif site-font choices reset
+that tightening to `0`. Favicon: `/static/favicon.svg` (route `/favicon.ico`
+redirects there), using the M10 bracket + folio-dot mark.

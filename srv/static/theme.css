@@ -51,9 +51,10 @@
 
   --radius: 0;
 
-  /* Type. Pairings switched via html[data-font], see below. */
+  /* Type. The header selector switches both aliases via html[data-font]. */
   --mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   --body: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-size-adjust: none;
 }
 
 html.dark {
@@ -84,14 +85,18 @@ html.dark {
   --theme-bg: var(--bg);
 }
 
-/* ---- Font pairings (the header selector switches these) ---- */
-html[data-font="jetbrains"] { --mono: "JetBrains Mono", "SFMono-Regular", Menlo, monospace; --body: "Inter", -apple-system, sans-serif; }
-html[data-font="martian"]   { --mono: "Martian Mono", "SFMono-Regular", Menlo, monospace;   --body: "Inter", -apple-system, sans-serif; }
-html[data-font="plex"]      { --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;  --body: "IBM Plex Sans", -apple-system, sans-serif; }
-html[data-font="geist"]     { --mono: "Geist Mono", "SFMono-Regular", Menlo, monospace;     --body: "Geist", -apple-system, sans-serif; }
+/* ---- Site font choices (the header selector switches these) ---- */
+html[data-font="jetbrains"] { --mono: "JetBrains Mono", "SFMono-Regular", Menlo, monospace; --body: "JetBrains Mono", "SFMono-Regular", Menlo, monospace; }
+html[data-font="martian"]   { --mono: "Martian Mono", "SFMono-Regular", Menlo, monospace;   --body: "Martian Mono", "SFMono-Regular", Menlo, monospace; --font-size-adjust: 0.52; }
+html[data-font="plex"]      { --mono: "IBM Plex Sans", -apple-system, sans-serif;           --body: "IBM Plex Sans", -apple-system, sans-serif; }
+html[data-font="geist"]     { --mono: "Geist", -apple-system, sans-serif;                   --body: "Geist", -apple-system, sans-serif; }
+html[data-font="literata"]  { --mono: "Literata", Georgia, serif;                           --body: "Literata", Georgia, serif; }
+html[data-font="ibm-serif"] { --mono: "IBM Plex Serif", Georgia, serif;                     --body: "IBM Plex Serif", Georgia, serif; }
+html[data-font="source-serif"] { --mono: "Source Serif 4", Georgia, serif;                  --body: "Source Serif 4", Georgia, serif; }
+html[data-font="newsreader"] { --mono: "Newsreader", Georgia, serif;                        --body: "Newsreader", Georgia, serif; }
 
 /* ---- Base ---- */
-html { background: var(--bg); }
+html { background: var(--bg); font-size-adjust: var(--font-size-adjust); }
 
 /* Old decorative layers, neutralized wherever pages still carry the markup. */
 .grid-lines { display: none !important; }
@@ -110,6 +115,11 @@ body::before, body::after { display: none !important; }
   white-space: nowrap;
 }
 .jdbb-wordmark .bracket { color: var(--accent); font-weight: 700; }
+.jdbb-wordmark .kj { letter-spacing: -0.08em; }
+html[data-font="literata"] .jdbb-wordmark .kj,
+html[data-font="ibm-serif"] .jdbb-wordmark .kj,
+html[data-font="source-serif"] .jdbb-wordmark .kj,
+html[data-font="newsreader"] .jdbb-wordmark .kj { letter-spacing: 0; }
 .jdbb-wordmark .studio { color: var(--text-secondary); font-weight: 400; margin-left: 0.45em; }
 .jdbb-masthead nav { display: flex; align-items: center; gap: 1.4rem; }
 .jdbb-masthead nav a {
@@ -129,28 +139,87 @@ body::before, body::after { display: none !important; }
 
 /* ---- Theme bar (font selector + dark toggle), plain text controls ---- */
 .theme-bar {
-  display: flex; align-items: center; gap: 0.9rem;
-  font-family: var(--mono); font-size: 11px; color: var(--text-secondary);
+  position: relative;
+  display: flex; align-items: center; gap: 0.65rem;
+  font-family: var(--mono); font-size: 12px; color: var(--text-secondary);
   background: none; border: none; border-radius: 0; box-shadow: none; padding: 0;
 }
-.theme-bar .font-name { cursor: pointer; white-space: nowrap; }
+.theme-bar .font-name {
+  width: 146px; min-width: 146px;
+  border: none; background: none; border-radius: 0; box-shadow: none;
+  padding: 0; color: var(--text-secondary); cursor: pointer;
+  font-family: var(--mono); font-size: 12px; text-align: left; white-space: nowrap;
+}
 .theme-bar .font-name:hover { color: var(--text); }
 .theme-bar .font-name::before { content: "Aa "; color: var(--text-muted); }
 .theme-bar .font-name::after { content: " \25BE"; color: var(--text-muted); }
-.theme-bar .font-options { display: none; gap: 0.6rem; }
-.theme-bar.expanded .font-options { display: flex; }
-.theme-bar.expanded .font-name::after { content: " \25B4"; }
-.theme-opt {
-  border: none; background: none; padding: 0; border-radius: 0;
-  font-family: var(--mono); font-size: 11px; color: var(--text-secondary);
-  cursor: pointer; white-space: nowrap;
+.theme-bar .font-options {
+  display: none;
+  position: absolute; top: calc(100% + 9px); right: 18px; z-index: 80;
+  box-sizing: border-box;
+  width: 330px; padding: 14px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
 }
-.theme-opt:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.theme-bar.expanded .font-options { display: block; }
+.theme-bar.expanded .font-name::after { content: " \25B4"; }
+.theme-opt-group + .theme-opt-group {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+}
+.theme-opt-label {
+  padding: 0 0 8px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.theme-opt {
+  --opt-name-size: 16px;
+  --opt-sample-size: 17px;
+  display: block; width: 100%;
+  border: none; background: none; padding: 7px 0; border-radius: 0; box-shadow: none;
+  color: var(--text-secondary); cursor: pointer; text-align: left;
+}
+.theme-opt-main {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  font-family: var(--mono); font-size: var(--opt-name-size); white-space: nowrap;
+}
+.theme-current { color: var(--accent); font-size: 12px; }
+.theme-sample {
+  display: block; margin-top: 2px;
+  font-size: var(--opt-sample-size); line-height: 1.22; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.theme-opt[data-font="jetbrains"] { --opt-name-size: 14px; --opt-sample-size: 14px; }
+.theme-opt[data-font="martian"] { --opt-name-size: 13px; --opt-sample-size: 13px; }
+.theme-opt[data-font="plex"] { --opt-name-size: 16px; --opt-sample-size: 17px; }
+.theme-opt[data-font="geist"] { --opt-name-size: 16px; --opt-sample-size: 17px; }
+.theme-opt[data-font="literata"] { --opt-name-size: 16px; --opt-sample-size: 17px; }
+.theme-opt[data-font="ibm-serif"] { --opt-name-size: 16px; --opt-sample-size: 17px; }
+.theme-opt[data-font="source-serif"] { --opt-name-size: 16.5px; --opt-sample-size: 17.5px; }
+.theme-opt[data-font="newsreader"] { --opt-name-size: 17px; --opt-sample-size: 18px; }
+.theme-opt[data-font="jetbrains"] .theme-sample { font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace; }
+.theme-opt[data-font="martian"] .theme-sample { font-family: "Martian Mono", "SFMono-Regular", Menlo, monospace; }
+.theme-opt[data-font="plex"] .theme-sample { font-family: "IBM Plex Sans", -apple-system, sans-serif; }
+.theme-opt[data-font="geist"] .theme-sample { font-family: "Geist", -apple-system, sans-serif; }
+.theme-opt[data-font="literata"] .theme-sample { font-family: "Literata", Georgia, serif; }
+.theme-opt[data-font="ibm-serif"] .theme-sample { font-family: "IBM Plex Serif", Georgia, serif; }
+.theme-opt[data-font="source-serif"] .theme-sample { font-family: "Source Serif 4", Georgia, serif; }
+.theme-opt[data-font="newsreader"] .theme-sample { font-family: "Newsreader", Georgia, serif; }
+.theme-opt[data-font="jetbrains"] .theme-opt-name { font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace; }
+.theme-opt[data-font="martian"] .theme-opt-name { font-family: "Martian Mono", "SFMono-Regular", Menlo, monospace; }
+.theme-opt[data-font="plex"] .theme-opt-name { font-family: "IBM Plex Sans", -apple-system, sans-serif; }
+.theme-opt[data-font="geist"] .theme-opt-name { font-family: "Geist", -apple-system, sans-serif; }
+.theme-opt[data-font="literata"] .theme-opt-name { font-family: "Literata", Georgia, serif; }
+.theme-opt[data-font="ibm-serif"] .theme-opt-name { font-family: "IBM Plex Serif", Georgia, serif; }
+.theme-opt[data-font="source-serif"] .theme-opt-name { font-family: "Source Serif 4", Georgia, serif; }
+.theme-opt[data-font="newsreader"] .theme-opt-name { font-family: "Newsreader", Georgia, serif; }
+.theme-opt:hover .theme-opt-name { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 .theme-opt.active { color: var(--accent); }
-.theme-sep { width: 1px; height: 12px; background: var(--border); }
+.theme-opt.active .theme-sample { color: var(--text-secondary); }
+.theme-sep { width: 1px; height: 14px; background: var(--border); }
 .dark-btn {
   border: none; background: none; padding: 0; border-radius: 0;
-  font-size: 12px; color: var(--text-secondary); cursor: pointer;
+  font-size: 14px; color: var(--text-secondary); cursor: pointer;
 }
 .dark-btn:hover { color: var(--text); }
 

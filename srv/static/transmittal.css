@@ -15,48 +15,47 @@ body {
   background: var(--bg);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 input, select, textarea { accent-color: var(--accent); }
 
 /* ─── Theme bar (JdbbTheme.mount) — plain text controls, keep fixed pos ─── */
 .theme-bar {
+  position: relative;
   background: var(--bg);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: none;
   border-radius: 0;
   box-shadow: none;
-  padding: 4px 6px;
-  gap: 0.9rem;
+  padding: 0;
+  gap: 0.65rem;
 }
 .theme-bar .font-name {
-  padding: 0;
-  font-size: 11px;
+  font-size: 12px;
   font-family: var(--mono);
   border-radius: 0;
 }
-.theme-bar.expanded .font-name { display: inline; }
 .theme-bar .font-options {
-  display: none;
   max-width: none;
   opacity: 1;
   overflow: visible;
-  gap: 0.6rem;
 }
-.theme-bar.expanded .font-options { display: flex; }
 .theme-opt {
-  padding: 0;
   border-radius: 0;
   background: none;
-  font-family: var(--mono);
-  font-size: 11px;
 }
-.theme-opt:hover { background: none; color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.theme-opt:hover { background: none; color: var(--text); }
 .theme-opt.active, html.dark .theme-opt.active { background: none; color: var(--accent); }
 .dark-btn {
   width: auto;
   height: auto;
   border-radius: 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 .dark-btn:hover { background: none; color: var(--text); }
 
@@ -192,21 +191,32 @@ input, select, textarea { accent-color: var(--accent); }
 }
 
 /* ─── Two-column ledger ─── */
-.tx-container { max-width: none; padding: 0; }
+.tx-container {
+  width: min(100% - 48px, 1320px);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 48px 0 72px;
+}
 
 .tx-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 48px;
   align-items: start;
+  min-width: 0;
 }
 @media (max-width: 800px) {
-  .tx-columns { grid-template-columns: 1fr; gap: 0; }
+  .tx-container {
+    width: min(100% - 28px, 1320px);
+    padding-top: 28px;
+  }
+  .tx-columns { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
 .tx-column {
   display: flex;
   flex-direction: column;
   gap: 36px;
+  min-width: 0;
 }
 
 /* ─── Sections: rule-separated, cardless ─── */
@@ -321,6 +331,14 @@ html.dark .tx-field-important { border-left-color: var(--accent); background: no
 
 .tx-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .tx-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.tx-row,
+.tx-row-3 {
+  min-width: 0;
+}
+.tx-row > *,
+.tx-row-3 > * {
+  min-width: 0;
+}
 
 /* ─── Inline field (label + input on same line) ─── */
 .tx-inline {

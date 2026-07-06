@@ -1,9 +1,8 @@
-// theme.js — canonical font-pairing + dark-mode state for jdbb studio.
+// theme.js — canonical site-font + dark-mode state for jdbb studio.
 //
 // Storage key `prodcal-theme-v1` is kept from the previous design so existing
-// visitors keep their dark preference. Legacy font keys (literata / ibm-serif /
-// menlo / ibm-sans) migrate to the nearest new pairing once, preserving the
-// "every visitor gets a slightly different type voice" behavior.
+// visitors keep their dark preference. The selector switches the full site
+// voice so headings, labels, controls, and prose move together.
 //
 // Usage per page:
 //   <script src="/static/theme.js"></script>
@@ -19,9 +18,17 @@
     martian: 'Martian',
     plex: 'Plex',
     geist: 'Geist',
+    literata: 'Literata',
+    'ibm-serif': 'Plex Serif',
+    'source-serif': 'Source Serif',
+    newsreader: 'Newsreader',
   };
   var KEYS = Object.keys(FONTS);
-  var LEGACY = { literata: 'martian', 'ibm-serif': 'plex', menlo: 'jetbrains', 'ibm-sans': 'geist' };
+  var GROUPS = [
+    { label: 'Mono/Sans', keys: ['jetbrains', 'martian', 'plex', 'geist'] },
+    { label: 'Serif', keys: ['literata', 'ibm-serif', 'source-serif', 'newsreader'] },
+  ];
+  var LEGACY = { menlo: 'jetbrains', 'ibm-sans': 'geist' };
   var STORAGE = 'prodcal-theme-v1';
 
   var state = { font: KEYS[Math.floor(Math.random() * KEYS.length)], dark: false };
@@ -45,7 +52,11 @@
     var nameEl = bar.querySelector('.font-name');
     if (nameEl) nameEl.textContent = FONTS[state.font];
     bar.querySelectorAll('.theme-opt[data-font]').forEach(function (b) {
-      b.classList.toggle('active', b.dataset.font === state.font);
+      var active = b.dataset.font === state.font;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      var marker = b.querySelector('.theme-current');
+      if (marker) marker.hidden = !active;
     });
     var darkBtn = bar.querySelector('.dark-btn');
     if (darkBtn) darkBtn.textContent = state.dark ? '☀' : '☾';
@@ -54,23 +65,28 @@
   function bind(bar) {
     var nameEl = bar.querySelector('.font-name');
     var expanded = false;
+    function setExpanded(next) {
+      expanded = next;
+      bar.classList.toggle('expanded', expanded);
+      if (nameEl) nameEl.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
     if (nameEl) {
       nameEl.addEventListener('click', function () {
-        expanded = !expanded;
-        bar.classList.toggle('expanded', expanded);
+        setExpanded(!expanded);
       });
       document.addEventListener('click', function (e) {
         if (expanded && !bar.contains(e.target)) {
-          expanded = false;
-          bar.classList.remove('expanded');
+          setExpanded(false);
         }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (expanded && e.key === 'Escape') setExpanded(false);
       });
     }
     bar.querySelectorAll('.theme-opt[data-font]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.font = this.dataset.font;
-        expanded = false;
-        bar.classList.remove('expanded');
+        setExpanded(false);
         apply(bar); save();
       });
     });
@@ -89,12 +105,23 @@
     if (!el) return;
     el.classList.add('theme-bar');
     el.innerHTML =
-      '<span class="font-name"></span>' +
-      '<span class="font-options">' +
-      KEYS.map(function (k) {
-        return '<button type="button" class="theme-opt" data-font="' + k + '">' + FONTS[k] + '</button>';
+      '<button type="button" class="font-name" aria-haspopup="true" aria-expanded="false"></button>' +
+      '<div class="font-options" role="menu" aria-label="Site font">' +
+      GROUPS.map(function (group) {
+        return '<div class="theme-opt-group">' +
+          '<div class="theme-opt-label">' + group.label + '</div>' +
+          group.keys.map(function (k) {
+            return '<button type="button" class="theme-opt" data-font="' + k + '" aria-pressed="false">' +
+              '<span class="theme-opt-main">' +
+                '<span class="theme-opt-name">' + FONTS[k] + '</span>' +
+                '<span class="theme-current" hidden>[current]</span>' +
+              '</span>' +
+              '<span class="theme-sample">A quiet line of proof text</span>' +
+            '</button>';
+          }).join('') +
+        '</div>';
       }).join('') +
-      '</span>' +
+      '</div>' +
       '<span class="theme-sep"></span>' +
       '<button type="button" class="dark-btn" title="Toggle dark mode"></button>';
     bind(el);
