@@ -39,3 +39,7 @@ Commit locally → push to GitHub (`origin`) → on the VM `git pull --ff-only o
 
 - **`docs/reviews/LAUNCH-TRIAGE.md`** — pre-launch code + UX review; blockers fixed, HIGH tier tracked.
 - **`docs/reviews/DESKTOP-APP-FEASIBILITY.md`** — macOS app plan + prototype notes.
+
+## Worknotes
+
+- Permanent session handoffs/worknotes live in `docs/reviews/SESSION-HANDOFF-YYYY-MM-DD.md`. When the user asks to write permanent worknotes, commit and push that note to GitHub, then fast-forward the VM so the note is available from local, GitHub, and `/home/exedev/prodcal`.
