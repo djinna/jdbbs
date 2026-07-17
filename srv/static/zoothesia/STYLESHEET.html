@@ -1,0 +1,536 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zoothesia · Editorial stylesheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root{ --bg:#f8f9fa; --surface:#fff; --border:#e0e2e6; --text:#111827; --text-secondary:#6b7280; --text-muted:#9ca3af; --accent:#2563eb; --progress-bg:#f1f3f5; --theme-bg:rgba(255,255,255,0.92); }
+html.dark{ --bg:#0f1115; --surface:#1a1d24; --border:#2a2d35; --text:#e4e5e7; --text-secondary:#9ca0a8; --text-muted:#6b7074; --accent:#5b9aff; --progress-bg:#23262e; --theme-bg:rgba(26,29,36,0.92); }
+body{ font-family:'IBM Plex Serif',Georgia,serif; max-width:760px; margin:0 auto; padding:4rem 1.5rem 4rem; color:var(--text); background:var(--bg); min-height:100vh; transition:background .3s,color .3s; }
+body,body *{ font-weight:400; }
+h1{ font-size:1.5rem; letter-spacing:-0.02em; }
+.crumb{ font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); }
+table{ border-collapse:collapse; width:100%; margin-top:1.25rem; }
+td{ padding:0.55rem 0.6rem; border-bottom:1px solid var(--border); font-size:0.95rem; }
+.num{ color:var(--text-muted); width:2.5rem; }
+.slug{ text-align:right; }
+tr.collection td{ background:color-mix(in srgb,var(--accent) 5%,transparent); }
+.tag{ display:inline-block; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); border:1px solid var(--border); border-radius:9999px; padding:0.05rem 0.45rem; margin-left:0.4rem; vertical-align:middle; }
+code{ font-family:'JetBrains Mono',Menlo,monospace; font-size:0.8rem; color:var(--text-secondary); }
+a{ color:var(--accent); text-decoration:none; } a:hover{ text-decoration:underline; }
+.theme-bar{ position:fixed; top:1rem; right:1.25rem; z-index:200; display:flex; align-items:center; gap:0.25rem; background:var(--theme-bg); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:14px; padding:0.2rem 0.3rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.theme-bar .font-options{ display:flex; gap:0.15rem; overflow:hidden; max-width:0; opacity:0; transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .2s; }
+.theme-bar.expanded .font-options{ max-width:400px; opacity:1; }
+.theme-bar .font-name{ padding:0.25rem 0.5rem; font-size:0.65rem; color:var(--text-secondary); cursor:pointer; white-space:nowrap; border-radius:10px; }
+.theme-bar.expanded .font-name{ display:none; }
+.theme-opt{ padding:0.25rem 0.5rem; border-radius:10px; border:none; background:transparent; color:var(--text-secondary); font-size:0.65rem; cursor:pointer; white-space:nowrap; font-family:inherit; }
+.theme-opt:hover{ color:var(--text); background:var(--progress-bg); }
+.theme-opt.active{ color:var(--accent); background:rgba(37,99,235,0.08); }
+html.dark .theme-opt.active{ background:rgba(91,154,255,0.12); }
+.theme-sep{ width:1px; height:13px; background:var(--border); margin:0 0.1rem; align-self:center; }
+.dark-btn{ width:20px; height:20px; padding:0; border-radius:50%; border:none; background:transparent; color:var(--text-secondary); display:flex; align-items:center; justify-content:center; font-size:10px; cursor:pointer; }
+.dark-btn:hover{ color:var(--text); background:var(--progress-bg); }
+
+body{ max-width:820px; }
+h1,h2,h3,h4{ letter-spacing:-0.01em; line-height:1.25; margin-top:1.8rem; }
+h1{ font-size:1.7rem; border-bottom:2px solid var(--border); padding-bottom:0.4rem; }
+h2{ font-size:1.3rem; border-bottom:1px solid var(--border); padding-bottom:0.3rem; margin-top:2.4rem; }
+h3{ font-size:1.05rem; }
+p,li{ font-size:0.97rem; line-height:1.7; }
+ul,ol{ padding-left:1.4rem; }
+li{ margin:0.2rem 0; }
+blockquote{ border-left:3px solid var(--accent); margin:1rem 0; padding:0.4rem 1rem; background:color-mix(in srgb,var(--accent) 6%,transparent); color:var(--text-secondary); border-radius:0 6px 6px 0; }
+code{ background:var(--progress-bg); padding:0.12em 0.4em; border-radius:4px; }
+pre{ background:var(--progress-bg); padding:1rem; border-radius:8px; overflow:auto; border:1px solid var(--border); }
+pre code{ background:none; padding:0; }
+table{ font-size:0.9rem; }
+table td,table th{ border:1px solid var(--border); padding:0.45rem 0.6rem; vertical-align:top; }
+table th{ background:var(--progress-bg); text-align:left; }
+hr{ border:none; border-top:1px solid var(--border); margin:2.4rem 0; }
+.backlink{ display:inline-block; margin-bottom:1.5rem; font-size:0.82rem; }
+</style></head><body>
+
+<div class="theme-bar" id="theme-bar">
+  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
+  <div class="font-options" id="font-options">
+    <button class="theme-opt" data-font="literata">Literata</button>
+    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
+    <button class="theme-opt" data-font="menlo">Menlo</button>
+    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
+  </div>
+  <div class="theme-sep"></div>
+  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
+</div>
+
+<div class="crumb">Zoothesia · Editorial stylesheet</div>
+<a class="backlink" href="index.html">← Back to review index</a>
+<h1
+id="editorial-stylesheet--protocolized-anthology-working-draft">Editorial
+Stylesheet — <em>Protocolized Anthology</em> (working draft)</h1>
+<p>A living reference for copy editing the stories in this series. Goal:
+<strong>consistency</strong> across stories while preserving each
+author's voice. This is a <em>light</em> copy edit regime — fix
+mechanics, don't rewrite. When in doubt, leave the author's choice.</p>
+<p>Started from: <em>01 Aster's Story: Presence Must Preserve</em></p>
+<hr />
+<h2 id="0-workflow-how-we-process-each-story">0. Workflow (how we
+process each story)</h2>
+<ol type="1">
+<li>Author/editor exports the Google Doc as <strong>Microsoft Word
+(.docx)</strong> (keeps italics, smart quotes, em dashes, scene breaks).
+Plain-text paste loses these.</li>
+<li>Drop the file in
+<code>editorial/Zoothesia/source/NN Title.docx</code>.</li>
+<li>From <code>editorial/Zoothesia/</code>, extract for editing without
+losing emphasis:
+<code>pandoc -f docx -t markdown --wrap=none "source/NN Title.docx" -o work.md</code></li>
+<li>Edit <code>work.md</code> (asterisks = the author's italics; verify
+each one is real).</li>
+<li>Render back:
+<code>pandoc -f markdown -t docx work.md -o "edited/NN Title (copyedited).docx"</code></li>
+<li>Deliver <strong>clean edited .docx + a
+<code>NN-...-CHANGELOG.md</code></strong> (before → after list plus
+author queries). We do clean edits, not tracked-changes redlines (pandoc
+can't author Word revision marks reliably); the changelog is the review
+surface.</li>
+<li>Sanity-check emphasis survived the round-trip:
+<code>pandoc -f docx -t markdown edited/....docx | grep -oP '\*[^*]+\*'</code></li>
+</ol>
+<blockquote>
+<p><strong>Italic-export gotcha:</strong> Google Docs sometimes extends
+an italic run over the trailing <code>."</code> of a sentence. After
+extraction, check that closing punctuation isn't accidentally inside
+<code>*...*</code>; move it out. (Happened once in Story 01.)</p>
+<p><strong>Literal asterisks:</strong> if the author <em>types</em>
+<code>*gag*</code> as characters (not as an italic style), pandoc shows
+it escaped as <code>\*gag\*</code>. Preserve that — it's an authorial
+choice, not emphasis.</p>
+</blockquote>
+<h2 id="1-house-style-basics">1. House Style Basics</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Rule</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>English</td>
+<td>US spelling &amp; punctuation</td>
+<td>color, fueled, desiccated</td>
+</tr>
+<tr class="even">
+<td>Spelling authority</td>
+<td>Merriam-Webster (first listing)</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Serial (Oxford) comma</td>
+<td><strong>Yes</strong></td>
+<td>"hurt, hunted, and erased"</td>
+</tr>
+<tr class="even">
+<td>Quotation marks</td>
+<td>Curly “ ” / ‘ ’</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Periods/commas</td>
+<td>Inside quotation marks</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Em dash</td>
+<td>Closed (no surrounding spaces): <code>—</code></td>
+<td>"skin-deep AR—is, well"</td>
+</tr>
+<tr class="odd">
+<td>Ellipsis</td>
+<td>Single glyph … or spaced periods, but be consistent within a
+story</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Numbers</td>
+<td>Spell out zero–one hundred in prose; numerals for years, addresses,
+temps with units, code/UI values</td>
+<td>"seventy-two-degree day"; "five in the morning"</td>
+</tr>
+<tr class="odd">
+<td>Time of day</td>
+<td>Spell out, hyphenated when adjectival</td>
+<td>"eleven-o'clock shadow"; "five in the morning"</td>
+</tr>
+<tr class="even">
+<td>Ampersand</td>
+<td>Avoid in prose; use "and"</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Oxford “etc.” / Latin</td>
+<td>Roman, not italic</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-voice--register-preserve-dont-sanitize">2. Voice &amp;
+Register (preserve, don't sanitize)</h2>
+<p>These stories use a casual, interior first-person voice.
+<strong>Keep:</strong></p>
+<ul>
+<li>Sentence-fragments used for rhythm/emphasis. <em>"Poof. There." /
+"Or dangerous."</em></li>
+<li>Conversational discourse markers: "Like, sure,…", "I mean it", "I
+guess", "sure".</li>
+<li>Profanity and slang in dialogue and narration (do not soften).</li>
+<li>Coined/neologism vocabulary (see Lexicon). Do not “correct” invented
+words.</li>
+<li>Intentional repetition for effect (e.g., "The same… The
+same…").</li>
+</ul>
+<p><strong>Fix:</strong> grammar slips, missing/extra words, agreement
+errors, typos, mistaken homophones, dropped punctuation, inconsistent
+styling.</p>
+<p>When a fragment vs. error is ambiguous, preserve if it scans as
+deliberate.</p>
+<h2 id="3-dialogue-formatting">3. Dialogue Formatting</h2>
+<ul>
+<li>Each speaker gets a new paragraph.</li>
+<li>Put a Q&amp;A exchange on <strong>separate</strong>
+lines/paragraphs, even when terse ("You've got a good job?" / "Why do
+you care?").</li>
+<li>Dialogue tags lowercase after a comma:
+<code>she said, "Let's go."</code> and
+<code>"Never," he said.</code></li>
+<li>Capitalize the first word of quoted dialogue introduced by a comma:
+<code>shrugged and said, "Let's go."</code></li>
+</ul>
+<h2 id="4-formatting--typography">4. Formatting / Typography</h2>
+<ul>
+<li>Titles of in-world media, tracks, filters, products:
+<em>italics</em>. <em>Marine Serenity: Safe Waters in Your Social
+Seas</em>; <em>Pink Sunrises</em>.</li>
+<li>Editorial/sound asides the author types with literal asterisks (e.g.
+<code>*gag*</code>): <strong>keep the literal asterisks</strong> — do
+not convert to italics. Place sentence punctuation logically (in Story
+01: <code>(... \*gag\*.)</code> — period inside the paren).</li>
+<li>Emphasis vs. punctuation: ensure trailing
+<code>.</code>/<code>,</code>/<code>"</code> are <em>outside</em> an
+italic span unless the author clearly intended otherwise.</li>
+<li>Story header banner kept verbatim as delivered:
+<code>= = = NN Title: Subtitle = = =</code></li>
+<li>Scene breaks: use a blank line or <code>* * *</code> consistently
+(TBD per layout; the DOCX/Typst pipeline handles <code>---</code>).</li>
+</ul>
+<h2
+id="5-series-lexicon-capitalization--spelling--keep-consistent-across-stories">5.
+Series Lexicon (capitalization &amp; spelling — keep consistent ACROSS
+stories)</h2>
+<p>Keep a running list so the same coined terms are styled identically
+everywhere. From Aster's Story:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Term</th>
+<th>Style</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Zoothesia Protocols</td>
+<td>Cap both; "the protocols" lowercase generically</td>
+<td>the in-world AR system</td>
+</tr>
+<tr class="even">
+<td>the Zoo</td>
+<td>Cap; shorthand for the system</td>
+<td>treated as an "it," not a person</td>
+</tr>
+<tr class="odd">
+<td>overlays</td>
+<td>lowercase</td>
+<td>AR layer</td>
+</tr>
+<tr class="even">
+<td>AR</td>
+<td>all caps</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>tent town</td>
+<td>lowercase two words</td>
+<td>NOT "tent-town"/"Tent-town" — standardized</td>
+</tr>
+<tr class="even">
+<td>kapala halo</td>
+<td>lowercase</td>
+<td>spoofing device; "the halo" lowercase</td>
+</tr>
+<tr class="odd">
+<td>Mayasiddha Saints</td>
+<td>Cap</td>
+<td>the robed order; "the saints" lowercase generically</td>
+</tr>
+<tr class="even">
+<td>Mayaford / Mayaford City</td>
+<td>Cap</td>
+<td>the city</td>
+</tr>
+<tr class="odd">
+<td>Center City</td>
+<td>Cap</td>
+<td>district</td>
+</tr>
+<tr class="even">
+<td>Nayanaport docks</td>
+<td>Cap proper noun + lowercase "docks"</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Second and Poplar / Market Street</td>
+<td>Cap</td>
+<td>streets</td>
+</tr>
+<tr class="even">
+<td>molly</td>
+<td>lowercase</td>
+<td>slang for MDMA; "MDMA" all caps</td>
+</tr>
+<tr class="odd">
+<td>foulmaxxes</td>
+<td>lowercase, one word</td>
+<td>coined verb</td>
+</tr>
+<tr class="even">
+<td>genAI</td>
+<td>as styled</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>LLM</td>
+<td>all caps</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Bakāsura</td>
+<td>Cap, keep macron ā</td>
+<td>spoken epithet (Sanskrit "crane demon")</td>
+</tr>
+<tr class="odd">
+<td>"Presence is a Present"</td>
+<td>slogan, roman in quotes</td>
+<td>marketing tagline (Story 01)</td>
+</tr>
+<tr class="even">
+<td>"Presence Must Preserve"</td>
+<td>slogan, <strong>title case</strong>, roman in quotes</td>
+<td>the marketing slogan when quoted as a banner/tagline (Stories 02,
+04)</td>
+</tr>
+<tr class="odd">
+<td>"Perception must preserve, not present"</td>
+<td>the corrected in-world maxim</td>
+<td>note comma (Story 01)</td>
+</tr>
+<tr class="even">
+<td>"Perception must preserve" / "presence must preserve"</td>
+<td><strong>lowercase</strong> when echoed as a maxim in prose</td>
+<td>thematic refrain (Stories 01, 03, 05, 06)</td>
+</tr>
+<tr class="odd">
+<td>Other in-world slogans</td>
+<td>italics OR roman-in-quotes, but be consistent within a story</td>
+<td><em>See in Safety!</em>, <em>Be yourself; See yourself!</em>,
+<em>Erase to be Safe</em> (Story 03/05); "Presence is a Present" /
+"Perception must preserve" stay roman-in-quotes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Presence vs. Perception (collection-wide flag):</strong> the
+marketing <em>slogan</em> is "Presence Must Preserve" (title case, the
+billboard/tagline form). The in-world <em>maxim/design principle</em> is
+"Perception must preserve(, not present)" (lowercase). Stories 05 and 06
+use <em>Perception</em> where 02/04 use <em>Presence</em>. We lowercased
+the maxim form and title-cased the slogan form, but the
+Presence/Perception split itself is an <strong>open author
+query</strong> — see §8. | serotonin syndrome | lowercase | | |
+anhedonia | lowercase | | | phobisculpting | lowercase | clinical term
+for foulmaxxing (Story 02) | | kapala halo | lowercase |
+spoofing/AR-override device; lets you see past the Zoo's overlays
+(Stories 02, 06) | | doppelgänger | keep the umlaut; one spelling |
+standardized from mixed "doppleganger" (Story 06) | | the Mouth (of the
+Zoo) | Cap "Mouth" | the Zoo's avatar/oracle in Story 06 | | therabot |
+lowercase, one word | therapy/social-work drone (Story 03) | | ProfBot /
+ProfBot tutor | as styled (camelCase) | AI tutor (Story 05) | | faceting
+/ faceter | lowercase | embedding gems/crystal lattices into the body to
+overload the Zoo (Story 05) | | Charntown | Cap | hidden shantytown of
+faceters/foulmaxxers near Nayanaport (Story 05) | | Shraville | Cap |
+district/neighborhood (Stories 02, 06) | | Kaylan Grove / Chitram Row /
+Deva and Market | Cap | districts/streets (Stories 02, 04) | | Center
+City | Cap | district (Stories 01, 06) — NOT "center city" | | Mayaport
+| Cap — <strong>but see Q</strong> | appears in Stories 04 &amp; 06; may
+be a typo for <strong>Mayaford</strong>. Flag, don't merge. | | the
+Market | Cap when personified as a Leviathan parallel to the Zoo (Story
+04) | author is inconsistent; query | | meatspace | lowercase, one word
+| the physical world (Stories 04, 05); Story 06's Mouth says
+"Meat-space" — kept verbatim in its dialogue | | Oren | Cap | recurring
+polite drug-dealer/fixer across Stories 01, 02, 05, 06 (see Q) | | Z-Day
+| Cap, hyphen | in-world holiday with fireworks (Stories 01, 03) | | V2
+Zoo (teens) | as styled | a Zoo version/generation (Story 02) | |
+"insect scream" / "suffering decibels" | lowercase in quotes | the
+screaming-bug score game (Stories 02, 03, 06) | | ocelli / setae /
+chelicerae | lowercase | spider anatomy (Story 02) — correct Latin
+plurals | | firework overlay / "fireworks" | lowercase | virtual clothes
+projected onto others (Stories 01, 04) |</p>
+</blockquote>
+<blockquote>
+<p><strong>Action for editors:</strong> append new coinages to this
+table as each story is edited. Flag any term that appears spelled two
+ways for an author query.</p>
+</blockquote>
+<h2 id="6-recurring-mechanical-fixes-watch-list">6. Recurring Mechanical
+Fixes (watch-list)</h2>
+<p>These were the actual corrections in Aster's Story; expect similar in
+others:</p>
+<ul>
+<li><strong>Hyphenation of compound modifiers:</strong> taped-off,
+skin-deep, drug-fueled, ivory-colored, sickly sweetness (open as
+noun).</li>
+<li><strong>Possessives:</strong> someone’s, others’ — check apostrophe
+placement.</li>
+<li><strong>its vs. it’s:</strong> "its faultless humanity"
+(possessive), not "it's."</li>
+<li><strong>angrier</strong> not "angier"; <strong>desiccated</strong>
+not "dessicated"; <strong>putrefying</strong> not "putrifying";
+<strong>hall pass</strong> two words.</li>
+<li><strong>Subject/verb &amp; there was/were:</strong> "there were so
+many more people."</li>
+<li><strong>Dropped/duplicated words:</strong> delete false starts like
+"I was the I couldn't…".</li>
+<li><strong>Comma before terminal "sometimes"/parentheticals</strong> —
+verify.</li>
+<li><strong>"step up to the corner"</strong> (missing preposition).</li>
+<li><strong>Question marks</strong> on questions phrased as statements
+in interior monologue ("To judge the lives of those whose urges were
+completely alien?").</li>
+<li><strong>Plurals vs. names:</strong> "shouted out the names of the
+body parts."</li>
+</ul>
+<h2 id="7-what-not-to-change">7. What NOT to change</h2>
+<ul>
+<li>Authorial fragments and run-ons used stylistically.</li>
+<li>Slang, vulgarity, and dialect in dialogue.</li>
+<li>Invented terminology and neologisms (style them per the
+Lexicon).</li>
+<li>Voice-driven comma splices in fast interior passages — light edit
+only; query the author rather than silently rewriting if meaning is at
+stake.</li>
+</ul>
+<h2 id="8-author-queries-log-per-story">8. Author Queries (log per
+story)</h2>
+<p>Raise (don't silently fix) when:</p>
+<ul>
+<li>A coined term is spelled inconsistently and you can't tell which is
+canonical.</li>
+<li>A sentence's meaning is genuinely ambiguous.</li>
+<li>A factual/continuity detail conflicts within or across stories
+(e.g., timeline, place names, the rules of the Zoo).</li>
+</ul>
+<h3 id="story-01-queries">Story 01 queries</h3>
+<ul>
+<li>"an eleven-o'clock shadow" — deliberate riff on "five-o'clock
+shadow"? Kept as written (assumed intentional).</li>
+<li>"rose miasmatic" — unusual inversion; kept as stylistic.
+Confirm.</li>
+<li>"Play-pretending my father." — fragment in the saint's speech; kept
+as voice.</li>
+</ul>
+<h3 id="story-02-ki-queries">Story 02 (Ki) queries</h3>
+<ul>
+<li>Friend names <strong>Cressida</strong> (hardware) vs.
+<strong>Clarissa</strong> (confidante) read as two people — confirm
+distinct. "Cassandra's equation" corrected to
+<strong>Clarissa's</strong>.</li>
+<li>"insect scream <strong>decimal</strong> count" → read as
+<strong>decibel</strong> count. Confirm.</li>
+<li>Slogan standardized to title-case "Presence Must Preserve."</li>
+</ul>
+<h3 id="story-03-angel-queries">Story 03 (Angel) queries</h3>
+<ul>
+<li>Protagonist named <strong>Heath</strong> (once). Confirm
+spelling.</li>
+<li>Percentages kept as numerals + spelled unit ("15 percent"); confirm
+vs. % glyph.</li>
+<li>"splitting ribs" — deliberate riff on "splitting hairs." Kept.</li>
+</ul>
+<h3 id="story-04-ed-queries">Story 04 (Ed) queries</h3>
+<ul>
+<li><strong>Mayaport</strong> vs. Mayaford — see Lexicon flag. Left as
+written.</li>
+<li>"the Market" capitalization inconsistent (Leviathan
+personification). Left as delivered.</li>
+<li>Trader shorthand "2K into 70" kept as numerals (voice).</li>
+</ul>
+<h3 id="story-05-elara--io-queries">Story 05 (Elara &amp; Io)
+queries</h3>
+<ul>
+<li>"awonawon" = phonetic mishearing of "one of one." Intentional; do
+not correct.</li>
+<li><strong>Oren</strong> the taxi driver — same name as the recurring
+dealer/fixer. Confirm.</li>
+<li>"Perception must preserve" lowercased to match maxim styling.</li>
+<li>"He's understand" → "He'd understand." Confirm.</li>
+</ul>
+<h3 id="story-06-karina-queries">Story 06 (Karina) queries</h3>
+<ul>
+<li><strong>Mayaport</strong> vs. Mayaford — see Lexicon flag.</li>
+<li>"intersticed" kept as author coinage (after fixing doubled-s
+"instersticed").</li>
+<li>Presence/Perception slogan split (billboard reads "Perception must
+preserve").</li>
+<li>"Karinaic," "Zoothesetic" kept as coinages.</li>
+</ul>
+<h3 id="collection-wide-open-queries">Collection-wide open queries</h3>
+<p>(Each bullet is a query on the collection review page. Optional
+indented <code>terms:</code> / <code>brief:</code> sub-bullets feed the
+auto-assembled "Context for this ruling" block: <code>terms:</code> sets
+the manuscript-search phrases; <code>brief:</code> supplies hand-written
+framing that overrides the auto stylesheet explanation.)</p>
+<ul>
+<li><strong>Presence vs. Perception</strong> in the slogan/maxim (see
+§5). Needs an author ruling.
+<ul>
+<li>terms: presence must preserve; perception must preserve</li>
+</ul></li>
+<li><strong>Mayaport vs. Mayaford</strong> as a place name (Stories 04,
+06).
+<ul>
+<li>terms: Mayaport; Mayaford</li>
+</ul></li>
+<li><strong>Oren</strong> as a deliberately recurring character across
+stories (01, 02, 05, 06).
+<ul>
+<li>terms: Oren</li>
+</ul></li>
+</ul>
+<hr />
+<p><em>Maintainer note:</em> keep this file under
+<code>editorial/Zoothesia/</code>. Update the Lexicon and watch-list
+with every story so later stories inherit decisions made earlier.</p>
+
+<script>
+var _fonts={'ibm-serif':{family:"'IBM Plex Serif',Georgia,serif",label:'IBM Plex Serif'},'ibm-sans':{family:"'IBM Plex Sans',-apple-system,sans-serif",label:'IBM Plex Sans'},literata:{family:"'Literata',Georgia,serif",label:'Literata'},menlo:{family:"'Menlo','Consolas','Monaco',monospace",label:'Menlo'}};
+var _fontKeys=['literata','ibm-serif','menlo','ibm-sans'];
+var _t={font:null,dark:false};
+try{var _s=JSON.parse(localStorage.getItem('prodcal-theme-v1'));if(_s){_t.dark=!!_s.dark;if(_s.font)_t.font=_s.font;}}catch(e){}
+var _frozen=!!_t.font; if(!_t.font){_t.font=_fontKeys[Math.floor(Math.random()*_fontKeys.length)];}
+function _save(){try{localStorage.setItem('prodcal-theme-v1',JSON.stringify({dark:_t.dark,font:_t.font}));}catch(e){}}
+if(!_frozen)_save();
+function _apply(){var f=_fonts[_t.font];if(f){document.body.style.fontFamily=f.family;var n=document.getElementById('font-name');if(n)n.textContent=f.label;}document.documentElement.classList.toggle('dark',_t.dark);document.querySelectorAll('.theme-opt[data-font]').forEach(function(b){b.classList.toggle('active',b.dataset.font===_t.font);});var db=document.getElementById('dark-btn');if(db)db.textContent=_t.dark?'☀':'☾';}
+(function(){var bar=document.getElementById('theme-bar');var ex=false;document.getElementById('font-name').addEventListener('click',function(){ex=!ex;bar.classList.toggle('expanded',ex);});document.addEventListener('click',function(e){if(ex&&!bar.contains(e.target)){ex=false;bar.classList.remove('expanded');}});bar.querySelectorAll('.theme-opt[data-font]').forEach(function(b){b.addEventListener('click',function(){_t.font=this.dataset.font;_apply();_save();ex=false;bar.classList.remove('expanded');});});document.getElementById('dark-btn').addEventListener('click',function(){_t.dark=!_t.dark;_apply();_save();});_apply();})();
+</script>
+</body></html>

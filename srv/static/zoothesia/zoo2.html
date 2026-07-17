@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 Ki&#x27;s Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<script>
+(function() {
+  try { var t = JSON.parse(localStorage.getItem('prodcal-theme-v1')); if (t && t.dark) document.documentElement.classList.add('dark'); } catch(e) {}
+})();
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f8f9fa; --surface: #ffffff; --border: #e0e2e6;
+  --text: #111827; --text-secondary: #6b7280; --text-muted: #9ca3af;
+  --accent: #2563eb; --green: #16a34a; --red: #dc2626; --yellow: #ca8a04; --orange: #ea580c;
+  --badge-green-bg: rgba(22,163,74,0.1); --badge-red-bg: rgba(220,38,38,0.1);
+  --badge-yellow-bg: rgba(202,138,4,0.1);
+  --badge-dim-bg: #f1f3f5; --progress-bg: #f1f3f5;
+  --toggle-bg: #f8f9fa;
+  --noise-opacity: 0.035; --grid-color: rgba(160,168,180,0.6);
+  --gradient-wash: linear-gradient(to bottom, rgba(230,233,240,0.3) 0%, transparent 60%);
+  --theme-bg: rgba(255,255,255,0.92);
+  --radius: 6px;
+}
+html.dark {
+  --bg: #0f1115; --surface: #1a1d24; --border: #2a2d35;
+  --text: #e4e5e7; --text-secondary: #9ca0a8; --text-muted: #6b7074;
+  --accent: #5b9aff; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --orange: #fb923c;
+  --badge-green-bg: rgba(52,211,153,0.12); --badge-red-bg: rgba(248,113,113,0.12);
+  --badge-yellow-bg: rgba(251,191,36,0.12);
+  --badge-dim-bg: #23262e; --progress-bg: #23262e;
+  --toggle-bg: #23262e;
+  --noise-opacity: 0.012; --grid-color: rgba(90,96,110,0.7);
+  --gradient-wash: linear-gradient(to bottom, rgba(20,22,28,0.4) 0%, transparent 60%);
+  --theme-bg: rgba(26,29,36,0.92);
+}
+
+body {
+  background: var(--bg); font-family: 'IBM Plex Serif', Georgia, serif;
+  color: var(--text); min-height: 100vh; position: relative;
+  transition: background 0.3s, color 0.3s;
+}
+body, body * { font-weight: 400; }
+
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px; opacity: var(--noise-opacity);
+}
+body::after {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; height: 50vh; z-index: 0;
+  pointer-events: none; background: var(--gradient-wash);
+}
+.grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: flex; justify-content: center; }
+.grid-lines-inner { width: 1120px; max-width: 100vw; display: flex; justify-content: space-between; padding: 0; }
+.grid-line { width: 1px; background: repeating-linear-gradient(to bottom, var(--grid-color) 0px, var(--grid-color) 4px, transparent 4px, transparent 10px); }
+
+.content { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
+
+/* theme bar */
+.theme-bar { position: fixed; top: 1rem; right: 2rem; z-index: 200; display: flex; align-items: center; gap: 0.25rem; background: var(--theme-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 14px; padding: 0.2rem 0.3rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: background 0.3s, border-color 0.3s; }
+.theme-bar .font-options { display: flex; gap: 0.15rem; overflow: hidden; max-width: 0; opacity: 0; transition: max-width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s; }
+.theme-bar.expanded .font-options { max-width: 400px; opacity: 1; }
+.theme-bar .font-name { padding: 0.25rem 0.5rem; font-size: 0.65rem; color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: color 0.15s; border-radius: 10px; }
+.theme-bar .font-name:hover { color: var(--text); }
+.theme-bar.expanded .font-name { display: none; }
+.theme-opt { padding: 0.25rem 0.5rem; border-radius: 10px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.65rem; cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: inherit; }
+.theme-opt:hover { color: var(--text); background: var(--progress-bg); }
+.theme-opt.active { color: var(--accent); background: rgba(37,99,235,0.08); }
+html.dark .theme-opt.active { background: rgba(91,154,255,0.12); }
+.theme-sep { width: 1px; height: 13px; background: var(--border); margin: 0 0.1rem; flex-shrink: 0; align-self: center; }
+.dark-btn { width: 20px; height: 20px; padding: 0; border-radius: 50%; border: none; background: transparent; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+.dark-btn:hover { color: var(--text); background: var(--progress-bg); }
+
+/* chapter eyebrow nav */
+.chapnav { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 1rem; padding-bottom: 0.4rem; }
+.chapnav a { font-size: 0.78rem; color: var(--text-secondary); text-decoration: none; padding: 0.25rem 0.55rem; border-radius: 9999px; border: 1px solid transparent; white-space: nowrap; transition: all 0.12s; }
+.chapnav a:hover { color: var(--text); background: var(--progress-bg); }
+.chapnav a.cur { color: var(--accent); border-color: var(--border); background: var(--surface); font-weight: 600; }
+.chapnav a .cn { color: var(--text-muted); margin-right: 0.3rem; font-size: 0.72rem; }
+.chapnav a.cur .cn { color: var(--accent); }
+.prevnext { display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0; }
+.prevnext a { font-size: 0.8rem; color: var(--accent); text-decoration: none; padding: 0.3rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
+.prevnext a:hover { background: var(--progress-bg); }
+.prevnext .disabled { color: var(--text-muted); border-color: var(--border); opacity: 0.4; pointer-events: none; }
+
+/* header */
+.header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; gap: 1rem; }
+.header h1 { font-size: 1.5rem; letter-spacing: -0.03em; color: var(--text); }
+.header .sub { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem; }
+.header .crumb { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* role banner (primary control) */
+.role-banner { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 0.7rem 1rem; margin-bottom: 1rem; }
+.role-banner-lbl { font-size: 0.85rem; color: var(--text-secondary); }
+.sel-role { font-size: 0.95rem; font-weight: 600; padding: 0.4rem 0.8rem; }
+.role-banner-hint { font-size: 0.78rem; color: var(--text-muted); margin-left: auto; }
+
+/* progress + toolbar */
+.toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+.toolbar .spacer { flex: 1; }
+.progress-wide { flex: 1; min-width: 160px; max-width: 360px; height: 5px; background: var(--progress-bg); border-radius: 3px; overflow: hidden; }
+.progress-wide > i { display: block; height: 100%; background: var(--green); width: 0%; transition: width 0.3s; }
+.prog-label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+.sel { padding: 0.4rem 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 0.82rem; font-family: inherit; }
+.sel:focus { outline: none; border-color: var(--accent); }
+
+/* buttons (prodcal) */
+.btn { padding: 0.45rem 1rem; border-radius: 4px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-size: 0.85rem; cursor: pointer; transition: opacity 0.15s; font-family: inherit; }
+.btn:hover { opacity: 0.9; }
+.btn-secondary { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { background: var(--progress-bg); }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btn-sm:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+/* sections */
+details.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin: 0 0 1rem; overflow: hidden; }
+details.section > summary { list-style: none; cursor: pointer; padding: 0.9rem 1.25rem; display: flex; align-items: center; gap: 0.6rem; }
+details.section > summary::-webkit-details-marker { display: none; }
+.sec-caret { color: var(--text-muted); transition: transform 0.15s; font-size: 0.7rem; }
+details[open] > summary .sec-caret { transform: rotate(90deg); }
+.sec-title { font-size: 0.95rem; color: var(--text); }
+.sec-count { font-size: 0.78rem; color: var(--text-muted); }
+.badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.18rem 0.55rem; border-radius: 9999px; font-size: 0.68rem; }
+.badge-green { background: var(--badge-green-bg); color: var(--green); }
+.badge-red { background: var(--badge-red-bg); color: var(--red); }
+.badge-yellow { background: var(--badge-yellow-bg); color: var(--yellow); }
+.badge-dim { background: var(--badge-dim-bg); color: var(--text-secondary); }
+.badge-accent { background: rgba(37,99,235,0.1); color: var(--accent); }
+html.dark .badge-accent { background: rgba(91,154,255,0.15); }
+
+.group-actions { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; padding: 0.6rem 1.25rem; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 86%, var(--bg) 14%); font-size: 0.76rem; }
+.group-actions .lbl { color: var(--text-muted); }
+.group-actions .role-name { color: var(--text-secondary); margin-left: 0.5rem; }
+
+.items { padding: 0.75rem 1.25rem 1rem; }
+
+/* compact change table */
+table.changes { width: 100%; border-collapse: collapse; }
+table.changes thead th { text-align: left; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 500; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+table.changes th.c-n { width: 2.6rem; }
+table.changes th.c-why { width: 12rem; }
+table.changes th.c-you { width: 8.5rem; }
+table.changes th.c-st { width: 5.5rem; }
+tbody.item { border-bottom: 1px solid var(--border); }
+tbody.item.done { background: color-mix(in srgb, var(--green) 4%, transparent); }
+tbody.item.conflict { background: color-mix(in srgb, var(--red) 5%, transparent); }
+tbody.item td { padding: 0.55rem 0.75rem; vertical-align: top; font-size: 0.9rem; }
+.row-main td { border-top: 1px solid var(--border); }
+tbody.item:first-of-type .row-main td { border-top: none; }
+.c-n { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+/* Query/collection tables: topic name can be long, so let the first column
+   wrap and give the query text the remaining width. */
+table.changes.is-query th.c-n, table.changes.is-query td.c-n { width: 12rem; white-space: normal; color: var(--text); font-weight: 500; }
+table.changes.is-query th.c-why, table.changes.is-query td.c-why { width: 5rem; }
+table.changes.is-query td.c-change { word-break: normal; overflow-wrap: anywhere; }
+.c-change { line-height: 1.5; word-break: break-word; }
+.c-change .d-arr { color: var(--text-muted); margin: 0 0.4rem; }
+.c-change .q-text { color: var(--text); }
+.c-st { white-space: nowrap; }
+.st-wrap { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+.chip-other { width: 1.15rem; height: 1.15rem; padding: 0; justify-content: center; font-size: 0.62rem; font-weight: 600; border-radius: 50%; }
+.row-detail td { padding-top: 0; padding-bottom: 0.7rem; }
+.row-detail .note { padding: 0 0 0.45rem; }
+.row-detail details { font-size: 0.8rem; margin-bottom: 0.4rem; }
+.row-detail summary { cursor: pointer; color: var(--accent); font-size: 0.74rem; margin-bottom: 0.3rem; }
+.note-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
+.note-row .note-lbl { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
+@media (max-width: 720px) {
+  table.changes, table.changes tbody, table.changes tr, table.changes td { display: block; width: 100%; }
+  table.changes thead { display: none; }
+  .row-main td { border-top: none; }
+  tbody.item { padding: 0.5rem 0; }
+}
+
+/* item card */
+.item { border: 1px solid var(--border); border-radius: var(--radius); margin: 0.75rem 0; overflow: hidden; background: var(--bg); }
+.item.done { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); }
+.item.conflict { border-color: color-mix(in srgb, var(--red) 45%, var(--border)); }
+.item-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--border); }
+.item-head .n { font-size: 0.8rem; color: var(--text-muted); min-width: 2rem; }
+.item-head .cat { font-size: 0.72rem; color: var(--text-secondary); }
+.item-head .st { margin-left: auto; }
+.item-head .why { font-size: 0.72rem; color: var(--text-secondary); }
+.badge-why { background: var(--badge-accent-bg, rgba(37,99,235,0.08)); color: var(--accent); display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.55rem; border-radius: 9999px; font-size: 0.7rem; }
+html.dark .badge-why { background: rgba(91,154,255,0.12); }
+.badge-why .why-ref { font-size: 0.62rem; opacity: 0.7; border-left: 1px solid currentColor; padding-left: 0.35rem; }
+
+.diff { padding: 0.75rem 0.85rem; display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.7rem; align-items: stretch; }
+.diff .arrow { color: var(--text-muted); align-self: center; }
+.diff .side { padding: 0.55rem 0.7rem; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); font-size: 0.92rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.diff .side .lbl { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.3rem; }
+del { background: var(--badge-red-bg); color: var(--red); text-decoration: line-through; border-radius: 2px; padding: 0 1px; }
+ins { background: var(--badge-green-bg); color: var(--green); text-decoration: none; border-radius: 2px; padding: 0 1px; }
+.note { padding: 0 0.85rem 0.65rem; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; }
+.note b, .note strong { color: var(--text); }
+.note em { font-style: italic; }
+
+.extra { padding: 0 0.85rem 0.6rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+.extra details { font-size: 0.78rem; }
+.extra summary { cursor: pointer; color: var(--accent); font-size: 0.74rem; }
+.ctx { background: color-mix(in srgb, var(--yellow) 7%, var(--surface)); border: 1px solid var(--badge-yellow-bg); border-radius: 4px; padding: 0.6rem 0.75rem; margin-top: 0.4rem; font-size: 0.86rem; line-height: 1.6; color: var(--text); white-space: pre-wrap; max-height: 260px; overflow: auto; }
+.ctx mark { background: var(--yellow); color: #1a1205; font-weight: 600; border-radius: 3px; padding: 0 3px; box-shadow: 0 0 0 1px var(--yellow); }
+html.dark .ctx mark { background: var(--yellow); color: #1a1205; }
+.raw { font-family: 'JetBrains Mono','Menlo','Consolas',monospace; font-size: 0.72rem; color: var(--text-secondary); background: var(--badge-dim-bg); border-radius: 4px; padding: 0.5rem 0.65rem; margin-top: 0.4rem; white-space: pre-wrap; }
+/* Collection-query assembled context */
+.qctx { margin-top: 0.4rem; font-size: 0.86rem; line-height: 1.6; color: var(--text); }
+.qctx .q-frame { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 4px; padding: 0.6rem 0.75rem; }
+.qctx .q-occ, .qctx .q-flagged { margin-top: 0.7rem; }
+.qctx .q-occ-h { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.35rem; }
+.qctx .occ { background: color-mix(in srgb, var(--yellow) 7%, var(--surface)); border: 1px solid var(--badge-yellow-bg); border-radius: 4px; padding: 0.45rem 0.6rem; margin-bottom: 0.35rem; display: flex; gap: 0.6rem; }
+.qctx .occ-lbl { flex-shrink: 0; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); min-width: 4.2rem; padding-top: 0.1rem; }
+.qctx .occ-txt { flex: 1; }
+.qctx mark { background: var(--yellow); color: #1a1205; font-weight: 600; border-radius: 3px; padding: 0 3px; box-shadow: 0 0 0 1px var(--yellow); }
+.qctx .q-flagged ul { margin: 0; padding-left: 0; list-style: none; }
+.qctx .q-flagged li { margin-bottom: 0.3rem; padding-left: 0; }
+.qctx .q-flagged .occ-lbl { display: inline-block; min-width: 4.2rem; }
+
+.reviewers { padding: 0.65rem 0.85rem 0.8rem; display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px dashed var(--border); }
+.rev { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.rev .role { font-size: 0.8rem; color: var(--text-secondary); min-width: 5.5rem; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 0.3rem 0.8rem; font-size: 0.8rem; background: var(--surface); color: var(--text-secondary); cursor: pointer; font-family: inherit; transition: all 0.12s; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button:hover { background: var(--progress-bg); }
+.seg button.sel-yes { background: var(--green); color: #fff; }
+.seg button.sel-no { background: var(--red); color: #fff; }
+.seg button.sel-other { background: var(--accent); color: #fff; }
+.rnote { flex: 1; min-width: 150px; border: 1px solid var(--border); border-radius: 4px; padding: 0.3rem 0.55rem; font: inherit; font-size: 0.8rem; background: var(--bg); color: var(--text); }
+.rnote:focus { outline: none; border-color: var(--accent); }
+
+/* footer */
+footer.bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: var(--theme-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border); padding: 0.6rem 2rem; display: flex; gap: 0.6rem; align-items: center; }
+footer.bar .who { font-size: 0.82rem; color: var(--text-secondary); }
+footer.bar .spacer { flex: 1; }
+
+.toast { position: fixed; bottom: 4.5rem; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 0.5rem 0.9rem; border-radius: 6px; font-size: 0.82rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 400; }
+.toast.show { opacity: 0.95; }
+
+.colophon { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border); font-size: 0.74rem; color: var(--text-muted); line-height: 1.5; }
+
+@media (max-width: 720px) { .diff { grid-template-columns: 1fr; } .diff .arrow { transform: rotate(90deg); justify-self: center; } }
+</style>
+</head>
+<body>
+
+<div class="grid-lines"><div class="grid-lines-inner">
+  <div class="grid-line"></div><div class="grid-line"></div>
+</div></div>
+
+<div class="theme-bar" id="theme-bar">
+  <div class="font-name" id="font-name" title="Click to change typeface">IBM Plex Serif</div>
+  <div class="font-options" id="font-options">
+    <button class="theme-opt" data-font="literata">Literata</button>
+    <button class="theme-opt" data-font="ibm-serif">IBM Plex Serif</button>
+    <button class="theme-opt" data-font="menlo">Menlo</button>
+    <button class="theme-opt" data-font="ibm-sans">IBM Plex Sans</button>
+  </div>
+  <div class="theme-sep"></div>
+  <button class="dark-btn" id="dark-btn" title="Toggle dark mode">&#9790;</button>
+</div>
+
+<div class="content">
+  <nav class="chapnav" id="chapNav"></nav>
+  <div class="header">
+    <div>
+      <div class="crumb" id="docCrumb"></div>
+      <h1 id="docTitle"></h1>
+      <div class="sub" id="docSub"></div>
+    </div>
+    <div class="prevnext" id="prevNext"></div>
+  </div>
+
+  <div class="role-banner">
+    <span class="role-banner-lbl">I am reviewing as</span>
+    <select class="sel sel-role" id="whoami"></select>
+    <span class="role-banner-hint" id="roleHint"></span>
+  </div>
+
+  <div class="toolbar">
+    <div class="progress-wide"><i id="progBar"></i></div>
+    <span class="prog-label" id="progPct"></span>
+    <span class="spacer"></span>
+    <label class="prog-label">Show
+      <select class="sel" id="filter">
+        <option value="all">all</option>
+        <option value="undecided">undecided</option>
+        <option value="conflict">conflicts</option>
+        <option value="done">complete</option>
+      </select>
+    </label>
+    <button class="btn-sm" id="expandAll">Expand all</button>
+    <button class="btn-sm" id="collapseAll">Collapse all</button>
+  </div>
+
+  <main id="main"></main>
+
+  <div class="colophon" id="colophon"></div>
+</div>
+
+<footer class="bar">
+  <span class="who">Reviewing as <b id="footWho"></b></span>
+  <span class="spacer"></span>
+  <button class="btn-sm btn-secondary" id="btnReset">Reset</button>
+  <button class="btn-sm" id="btnSummary">Export summary</button>
+  <button class="btn" id="btnSubmit">Submit review &amp; email</button>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script id="review-data" type="application/json">{"id": "02-kis-story", "title": "02 Ki's Story", "subtitle": "Light copyedit — review & sign-off", "crumb": "Zoothesia · Copyedit review", "book": "Zoothesia", "chapterNum": 2, "chapters": [{"n": 0, "num": "§", "label": "Series", "title": "Collection-wide queries", "url": "zoo0.html"}, {"n": 1, "num": "01", "label": "Aster", "title": "01 Aster's Story: Presence Must Preserve", "url": "zoo1.html"}, {"n": 2, "num": "02", "label": "Ki", "title": "02 Ki's Story", "url": "zoo2.html"}, {"n": 3, "num": "03", "label": "Angel", "title": "03 Angel's Story", "url": "zoo3.html"}, {"n": 4, "num": "04", "label": "Ed", "title": "04 Ed's Story", "url": "zoo4.html"}, {"n": 5, "num": "05", "label": "Elara and Io", "title": "05 Elara and Io's Story", "url": "zoo5.html"}, {"n": 6, "num": "06", "label": "Karina", "title": "06 Karina's Story", "url": "zoo6.html"}], "roles": ["Author", "Publisher", "Production manager"], "sections": [{"id": "sec-A", "title": "Typos / spelling", "series": false, "items": [{"id": "sec-A-1", "n": 1, "cat": "Typos / spelling", "explainer": "Spelling / typo", "explainer_ref": "§1", "before_html": "<del>steelly<\/del> look", "after_html": "<ins>steely<\/ins> look", "before_txt": "steelly look", "after_txt": "steely look", "note": "", "raw": "\"steelly look\" → **steely look**", "context": "… end was truly worldshifting for him. I thought he was going to cry when it finally sank in, but I watched this curious, <mark>steelly look<\/mark> pass across, then settle on his face.\n\n&quot;This is a chance to win you back,&quot; he said. &quot;A test.&quot;\n\nFuck.\n\nAnd look, I gotta …", "instances": 1}, {"id": "sec-A-2", "n": 2, "cat": "Typos / spelling", "explainer": "Spelling / typo", "explainer_ref": "§1", "before_html": "eating <del>poprocks<\/del> for every meal", "after_html": "eating <ins>Pop Rocks<\/ins> for every meal", "before_txt": "eating poprocks for every meal", "after_txt": "eating Pop Rocks for every meal", "note": "trademark", "raw": "\"eating poprocks for every meal\" → **eating Pop Rocks for every meal** (trademark)", "context": "… would let him, which of course they wouldn&#x27;t.\n\nIt was nice for a while, that warmth and focus. But it became kind of like <mark>eating poprocks for every meal<\/mark>. I think the big problem was that he was one of those guys who really liked being in love. It was all he ever talked about: …", "instances": 1}, {"id": "sec-A-3", "n": 3, "cat": "Typos / spelling", "explainer": "Series consistency", "explainer_ref": "§5", "before_html": "<del>I liked the mouthfeel of foulmaxing better<\/del>", "after_html": "<ins>foulmaxxing<\/ins>", "before_txt": "I liked the mouthfeel of foulmaxing better", "after_txt": "foulmaxxing", "note": "matches series Lexicon spelling", "raw": "\"I liked the mouthfeel of foulmaxing better\" → **foulmaxxing** (matches series Lexicon spelling)", "context": "… research my way out of it.\n\nThe technical term was phobisculpting, and it was mostly hippies and criminals who engaged. <mark>I liked the mouthfeel of foulmaxing better<\/mark>, though. I was ready to be foul. Truthfully, the prospect of jumping into bodymodding felt exciting in a way I hadn&#x27;t expected. …", "instances": 1}, {"id": "sec-A-4", "n": 4, "cat": "Typos / spelling", "explainer": "Spelling / typo", "explainer_ref": "§1", "before_html": "My <del>oceli<\/del> replaced", "after_html": "My <ins>ocelli<\/ins> replaced", "before_txt": "My oceli replaced", "after_txt": "My ocelli replaced", "note": "", "raw": "\"My oceli replaced\" → **My ocelli replaced**", "context": "… it works,&quot; she said.\n\nI was no longer arachnid. I was patriarchal. His father&#x27;s face stared back at me from the mirror. <mark>My oceli replaced<\/mark> with a perpetual five o&#x27;clock shadow. My hairy arms replaced with, well, a different kind of hair. I looked just like him. …", "instances": 1}, {"id": "sec-A-5", "n": 5, "cat": "Typos / spelling", "explainer": "Spelling / typo", "explainer_ref": "§1", "before_html": "<del>graymarket<\/del> <del>edidermal<\/del> polymer", "after_html": "<ins>gray-market<\/ins> <ins>epidermal<\/ins> polymer", "before_txt": "graymarket edidermal polymer", "after_txt": "gray-market epidermal polymer", "note": "", "raw": "\"graymarket edidermal polymer\" → **gray-market epidermal polymer**", "context": "… my arms was riddled with pods, like a lotus, bent on triggering his trypophobia. My midsection, made translucent with a <mark>graymarket edidermal polymer<\/mark> integration, showed, in real time, the excrement accumulating in my stomach. Eight legs, only two functional, spread beneath …", "instances": 1}, {"id": "sec-A-6", "n": 6, "cat": "Typos / spelling", "explainer": "Spelling / typo", "explainer_ref": "§1", "before_html": "and there&#x27;<del>s<\/del> be something so soft", "after_html": "and there&#x27;<ins>d<\/ins> be something so soft", "before_txt": "and there's be something so soft", "after_txt": "and there'd be something so soft", "note": "", "raw": "\"and there's be something so soft\" → **and there'd be something so soft**", "context": "… deep and overbearing would go on for so long that I&#x27;d snap, and then once I did, he&#x27;d crack open and I&#x27;d really see him <mark>and there&#x27;s be something so soft<\/mark> and beautiful inside him that I felt like a monster for hurting him.\n\nA picture of him, shirtless, with a tarantula legging …", "instances": 1}]}, {"id": "sec-B", "title": "Grammar / agreement / wrong word", "series": false, "items": [{"id": "sec-B-7", "n": 7, "cat": "Grammar / agreement / wrong word", "explainer": "Grammar", "explainer_ref": "§2", "before_html": "", "after_html": "", "before_txt": "", "after_txt": "", "note": "&quot;looking me in the eyes and say, \\&quot;You&#x27;re perfect.\\&quot;&quot; → <b>… and saying, &quot;You&#x27;re perfect.&quot;<\/b> (parallel participle)", "raw": "\"looking me in the eyes and say, \\\"You're perfect.\\\"\" → **… and saying, \"You're perfect.\"** (parallel participle)", "context": "", "instances": 1}, {"id": "sec-B-8", "n": 8, "cat": "Grammar / agreement / wrong word", "explainer": "Spelling — Merriam-Webster", "explainer_ref": "§1", "before_html": "<del>an anti-social<\/del> personality disorders", "after_html": "<ins>antisocial<\/ins> personality disorders", "before_txt": "an anti-social personality disorders", "after_txt": "antisocial personality disorders", "note": "MW one word", "raw": "\"an anti-social personality disorders\" → **antisocial personality disorders** (MW one word)", "context": "", "instances": 1}, {"id": "sec-B-9", "n": 9, "cat": "Grammar / agreement / wrong word", "explainer": "Possessive apostrophe", "explainer_ref": "§1", "before_html": "a <del>Masters<\/del> in <del>Social<\/del> <del>Work<\/del>", "after_html": "a <ins>master&#x27;s<\/ins> in <ins>social<\/ins> <ins>work<\/ins>", "before_txt": "a Masters in Social Work", "after_txt": "a master's in social work", "note": "lowercase field; possessive", "raw": "\"a Masters in Social Work\" → **a master's in social work** (lowercase field; possessive)", "context": "… entered, decidedly, stalking territory. Trust me, I knew the statistics about where that leads better than most. I&#x27;d gotten <mark>a Masters in Social Work<\/mark> with a focus on anti-social personality disorders for perception&#x27;s sake. I knew the stats.\n\nBut I also knew the Zoo. He …", "instances": 1}, {"id": "sec-B-10", "n": 10, "cat": "Grammar / agreement / wrong word", "explainer": "Grammar", "explainer_ref": "§2", "before_html": "Flight, freeze, <del>faun<\/del>", "after_html": "Flight, freeze, <ins>fawn<\/ins>", "before_txt": "Flight, freeze, faun", "after_txt": "Flight, freeze, fawn", "note": "the trauma response is <em>fawn<\/em>", "raw": "\"Flight, freeze, faun\" → **Flight, freeze, fawn** (the trauma response is *fawn*)", "context": "… That&#x27;s what people get wrong about foulmaxxing. It&#x27;s about a particular subtype of disgust that triggers a fight response. <mark>Flight, freeze, faun<\/mark>, none of that&#x27;s gonna work for you.&quot;\n\n&quot;Faun&#x27;s the whole problem. He&#x27;s scared of spiders,&quot; I hazarded. &quot;Like he&#x27;d see one …", "instances": 1}, {"id": "sec-B-11", "n": 11, "cat": "Grammar / agreement / wrong word", "explainer": "Grammar", "explainer_ref": "§2", "before_html": "<del>Faun<\/del>&#x27;s the whole problem", "after_html": "<ins>Fawn<\/ins>&#x27;s the whole problem", "before_txt": "Faun's the whole problem", "after_txt": "Fawn's the whole problem", "note": "", "raw": "\"Faun's the whole problem\" → **Fawn's the whole problem**", "context": "… particular subtype of disgust that triggers a fight response. Flight, freeze, faun, none of that&#x27;s gonna work for you.&quot;\n\n&quot;<mark>Faun&#x27;s the whole problem<\/mark>. He&#x27;s scared of spiders,&quot; I hazarded. &quot;Like he&#x27;d see one and a second later he&#x27;d be throwing an improvised projectile at …", "instances": 1}, {"id": "sec-B-12", "n": 12, "cat": "Grammar / agreement / wrong word", "explainer": "Grammar", "explainer_ref": "§2", "before_html": "<del>the desire half of Cassandra<\/del>&#x27;s equation", "after_html": "<ins>Clarissa<\/ins>&#x27;s equation", "before_txt": "the desire half of Cassandra's equation", "after_txt": "Clarissa's equation", "note": "continuity: the friend who gave the power/desire model is Clarissa; &quot;Cassandra&quot; appears nowhere else — see Q2", "raw": "\"the desire half of Cassandra's equation\" → **Clarissa's equation** (continuity: the friend who gave the power/desire model is Clarissa; \"Cassandra\" appears nowhere else — see Q2)", "context": "… physically, but I don&#x27;t think the Zoo believed I would. I was still seeing him everywhere.\n\nThe actual hardest part for me was <mark>the desire half of Cassandra&#x27;s equation<\/mark>. Every day, I forced myself to imagine driving my fist into Sylvo&#x27;s face. The first month, I&#x27;d feel guilty every time. I&#x27;d …", "instances": 1}, {"id": "sec-B-13", "n": 13, "cat": "Grammar / agreement / wrong word", "explainer": "Grammar", "explainer_ref": "§2", "before_html": "<del>being asked if I needed to consider a leave of absence, demuring<\/del>", "after_html": "<ins>demurring<\/ins>", "before_txt": "being asked if I needed to consider a leave of absence, demuring", "after_txt": "demurring", "note": "", "raw": "\"being asked if I needed to consider a leave of absence, demuring\" → **demurring**", "context": "… re-remade. This time, though, I was better prepared. I had ideas.\n\nI&#x27;d spent the intervening week calling in sick to work, <mark>being asked if I needed to consider a leave of absence, demuring<\/mark>, and – most importantly – stalking my stalker. It didn&#x27;t escape me that the persistence, the insistence, the dogged perseverance …", "instances": 1}, {"id": "sec-B-14", "n": 14, "cat": "Grammar / agreement / wrong word", "explainer": "Grammar", "explainer_ref": "§2", "before_html": "<del>decimal<\/del> count", "after_html": "<ins>decibel<\/ins> count", "before_txt": "decimal count", "after_txt": "decibel count", "note": "a count of screams is measured in decibels, not &quot;decimal&quot;; see Q3", "raw": "\"\\\"insect scream\\\" decimal count\" → **decibel count** (a count of screams is measured in decibels, not \"decimal\"; see Q3)", "context": "… ever rolled my eyes, he&#x27;d look like I was one of those V2 Zoo teens who tried to rack up the highest daily &quot;insect scream&quot; <mark>decimal count<\/mark>. Like I&#x27;d literally kicked his puppy in the mouth or something. I don&#x27;t like feeling like a bad person, and around Sylvo, …", "instances": 1}]}, {"id": "sec-C", "title": "Punctuation", "series": false, "items": [{"id": "sec-C-15", "n": 15, "cat": "Punctuation", "explainer": "Dropped / duplicated / wrong word", "explainer_ref": "§2", "before_html": ", he&#x27;d ask.", "after_html": "<ins>&quot;Ki<\/ins>,<ins>&quot;<\/ins> he&#x27;d ask.", "before_txt": ", he'd ask.", "after_txt": "\"Ki,\" he'd ask.", "note": "deleted doubled comma", "raw": "\"\\\"Ki,\\\", he'd ask.\" → **\"Ki,\" he'd ask.** (deleted doubled comma)", "context": "… sucks.\n\nHe always wanted to play this game when we were dating. He called it &quot;If I was,&quot; and I totally loathed it.\n\n&quot;Ki,&quot;<mark>, he&#x27;d ask.<\/mark> &quot;Would the most beautiful woman in Mayaford love me if I was *insert some inane change here*?&quot;\n\nI think the genesis of the …", "instances": 1}, {"id": "sec-C-16", "n": 16, "cat": "Punctuation", "explainer": "Comma", "explainer_ref": "§1", "before_html": "<del>after he surprised me <\/del>… <del>with a bottle of <\/del>champagne<del>.<\/del> I visited a friend", "after_html": "… champagne<ins>,<\/ins> I visited a friend", "before_txt": "after he surprised me … with a bottle of champagne. I visited a friend", "after_txt": "… champagne, I visited a friend", "note": "comma, not period; the fragment had no main clause", "raw": "\"after he surprised me … with a bottle of champagne. I visited a friend\" → **… champagne, I visited a friend** (comma, not period; the fragment had no main clause)", "context": "… indexing for &quot;annoying someone to death.&quot;\n\nInstead, after he surprised me in my apartment stairwell with a bottle of champagne. <mark>I visited a friend<\/mark>, Cressida, who worked on the hardware side of the overlays. She was busy working on a next-gen kapala halo, bent over her …", "instances": 1}, {"id": "sec-C-17", "n": 17, "cat": "Punctuation", "explainer": "Quotation marks", "explainer_ref": "§1/§3", "before_html": "", "after_html": "", "before_txt": "", "after_txt": "", "note": "&quot;started with &#x27;You&#x27;re the Ki to my heart … without you,\\&quot;&quot; → opened with a matching curly double quote (mismatched open/close quotes)", "raw": "\"started with 'You're the Ki to my heart … without you,\\\"\" → opened with a matching curly double quote (mismatched open/close quotes)", "context": "", "instances": 1}, {"id": "sec-C-18", "n": 18, "cat": "Punctuation", "explainer": "Spelling — Merriam-Webster", "explainer_ref": "§1", "before_html": "", "after_html": "", "before_txt": "", "after_txt": "", "note": "&quot;3 out of 5 \\&quot;under watered, over nitrogenated;\\&quot;&quot; → <b>&quot;underwatered, overnitrogenated&quot;;<\/b> (closed compounds; semicolon moved outside the quotation, US style)", "raw": "\"3 out of 5 \\\"under watered, over nitrogenated;\\\"\" → **\"underwatered, overnitrogenated\";** (closed compounds; semicolon moved outside the quotation, US style)", "context": "", "instances": 1}, {"id": "sec-C-19", "n": 19, "cat": "Punctuation", "explainer": "Italic / emphasis span", "explainer_ref": "§4", "before_html": "one<del>\\<\/del>&#x27;s flaws", "after_html": "one&#x27;s flaws", "before_txt": "one\\'s flaws", "after_txt": "one's flaws", "note": "stray backslash from export", "raw": "\"one\\'s flaws\" → **one's flaws** (stray backslash from export)", "context": "", "instances": 1}, {"id": "sec-C-20", "n": 20, "cat": "Punctuation", "explainer": "Hyphenation", "explainer_ref": "§1", "before_html": "a perpetual five<del> <\/del>o&#x27;clock shadow", "after_html": "a perpetual five<ins>-<\/ins>o&#x27;clock shadow", "before_txt": "a perpetual five o'clock shadow", "after_txt": "a perpetual five-o'clock shadow", "note": "hyphenated per Lexicon", "raw": "\"a perpetual five o'clock shadow\" → **a perpetual five-o'clock shadow** (hyphenated per Lexicon)", "context": "… said.\n\nI was no longer arachnid. I was patriarchal. His father&#x27;s face stared back at me from the mirror. My oceli replaced with <mark>a perpetual five o&#x27;clock shadow<\/mark>. My hairy arms replaced with, well, a different kind of hair. I looked just like him. His beautiful girl turned into his …", "instances": 1}]}, {"id": "sec-D", "title": "Capitalization / series consistency", "series": true, "items": [{"id": "sec-D-21", "n": 21, "cat": "Capitalization / series consistency", "explainer": "House style: OK", "explainer_ref": "§1", "before_html": "", "after_html": "", "before_txt": "", "after_txt": "", "note": "&quot;\\&quot;Ok, but is there no consideration\\&quot;&quot; → <b>&quot;OK, …&quot;<\/b> (house style OK)", "raw": "\"\\\"Ok, but is there no consideration\\\"\" → **\"OK, …\"** (house style OK)", "context": "", "instances": 1}, {"id": "sec-D-22", "n": 22, "cat": "Capitalization / series consistency", "explainer": "Series consistency", "explainer_ref": "§5", "before_html": "<del>*Presence<\/del> <del>must<\/del> <del>Preserve*<\/del>", "after_html": "<ins>_Presence<\/ins> <ins>Must<\/ins> <ins>Preserve_<\/ins>", "before_txt": "*Presence must Preserve*", "after_txt": "_Presence Must Preserve_", "note": "slogan title-cased to match Story 01&#x27;s &quot;Presence is a Present&quot; treatment; see Lexicon", "raw": "\"*Presence must Preserve*\" → **_Presence Must Preserve_** (slogan title-cased to match Story 01's \"Presence is a Present\" treatment; see Lexicon)", "context": "", "instances": 1}, {"id": "sec-D-23", "n": 23, "cat": "Capitalization / series consistency", "explainer": "Number style", "explainer_ref": "§1", "before_html": "He sent <del>100<\/del> in a single day.", "after_html": "He sent <ins>a hundred<\/ins> in a single day.", "before_txt": "He sent 100 in a single day.", "after_txt": "He sent a hundred in a single day.", "note": "spell out per number rule", "raw": "\"He sent 100 in a single day.\" → **He sent a hundred in a single day.** (spell out per number rule)", "context": "… he&#x27;d definitely be passing. My dining room table displayed a gradient of roses, from dark brown wilt to vibrant fresh reds. <mark>He sent 100 in a single day.<\/mark>\n\n(OK, fine. The other reason we lasted as long as we did is that he&#x27;s loaded – I&#x27;m talking real roses here, not bundles …", "instances": 1}, {"id": "sec-D-24", "n": 24, "cat": "Capitalization / series consistency", "explainer": "Number style", "explainer_ref": "§1", "before_html": "meet her at <del>11<\/del> the next morning", "after_html": "meet her at <ins>eleven<\/ins> the next morning", "before_txt": "meet her at 11 the next morning", "after_txt": "meet her at eleven the next morning", "note": "spell out time in prose", "raw": "\"meet her at 11 the next morning\" → **meet her at eleven the next morning** (spell out time in prose)", "context": "… starving for something with hard edges to jut up against.\n\nHe gave me the name and coordinates of a sculptor and told me to <mark>meet her at 11 the next morning<\/mark>. The coordinates seemed like they were in a populous enough place, so I made my way there, after literally sprinting through …", "instances": 1}]}], "queries": [{"id": "q-Q1", "tag": "Q1", "cat": "Author query", "before_html": "", "after_html": "", "note": "Friend names: the hardware friend is <b>Cressida<\/b> (appears twice). The later confidante is <b>Clarissa<\/b> (three times). These read as two different people, so both were kept as-is. Confirm they&#x27;re distinct and not a typo for one character.", "raw": "Friend names: the hardware friend is **Cressida** (appears twice). The later confidante is **Clarissa** (three times). These read as two different people, so both were kept as-is. Confirm they're distinct and not a typo for one character."}, {"id": "q-Q2", "tag": "Q2", "cat": "Author query", "before_html": "", "after_html": "", "note": "&quot;the desire half of <b>Cassandra&#x27;s<\/b> equation&quot; — changed to <b>Clarissa&#x27;s<\/b> on the assumption it refers to Clarissa&#x27;s power/desire model. Confirm.", "raw": "\"the desire half of **Cassandra's** equation\" — changed to **Clarissa's** on the assumption it refers to Clarissa's power/desire model. Confirm."}, {"id": "q-Q3", "tag": "Q3", "cat": "Author query", "before_html": "", "after_html": "", "note": "&quot;highest daily \\&quot;insect scream\\&quot; <b>decimal<\/b> count&quot; — read as <b>decibel<\/b> count and corrected. Confirm intent (could &quot;decimal&quot; be deliberate Zoo-UI jargon?).", "raw": "\"highest daily \\\"insect scream\\\" **decimal** count\" — read as **decibel** count and corrected. Confirm intent (could \"decimal\" be deliberate Zoo-UI jargon?)."}, {"id": "q-Q4", "tag": "Q4", "cat": "Author query", "before_html": "", "after_html": "", "note": "Slogan casing: standardized to <b>&quot;Presence Must Preserve.&quot;<\/b> Confirm the in-world slogan should always be title case.", "raw": "Slogan casing: standardized to **\"Presence Must Preserve.\"** Confirm the in-world slogan should always be title case."}], "colophon": "Generated from <code>02-kis-story-CHANGELOG.md<\/code> by scripts/review/build_review.py. Decisions are stored in your browser (localStorage) and never leave this device until you export. 28 review items · 3 reviewers (Author, Publisher, Production manager)."}</script>
+<script>
+/* ── Font + theme system (mirrors prodcal app.js) ── */
+var _fonts = {
+  'ibm-serif': { family: "'IBM Plex Serif',Georgia,serif", label: 'IBM Plex Serif' },
+  'ibm-sans':  { family: "'IBM Plex Sans',-apple-system,sans-serif", label: 'IBM Plex Sans' },
+  literata:    { family: "'Literata',Georgia,serif", label: 'Literata' },
+  menlo:       { family: "'Menlo','Consolas','Monaco',monospace", label: 'Menlo' },
+};
+var _fontKeys = ['literata','ibm-serif','menlo','ibm-sans'];
+// Font is frozen on a reviewer's very first load (random pick) and persisted,
+// so it stays consistent across the index + every chapter. A reviewer can pick
+// an alternate face at any time; that choice then persists until changed again.
+var _themeState = { font: null, dark: false };
+try { var _s = JSON.parse(localStorage.getItem('prodcal-theme-v1')); if (_s){ _themeState.dark = !!_s.dark; if (_s.font) _themeState.font = _s.font; } } catch(e) {}
+var _fontWasFrozen = !!_themeState.font;
+if (!_themeState.font) { _themeState.font = _fontKeys[Math.floor(Math.random()*_fontKeys.length)]; }
+function _applyTheme() {
+  var f = _fonts[_themeState.font];
+  if (f) { document.body.style.fontFamily = f.family; var n = document.getElementById('font-name'); if (n) n.textContent = f.label; }
+  document.documentElement.classList.toggle('dark', _themeState.dark);
+  document.querySelectorAll('.theme-opt[data-font]').forEach(function(b){ b.classList.toggle('active', b.dataset.font===_themeState.font); });
+  var db = document.getElementById('dark-btn'); if (db) db.textContent = _themeState.dark ? '\u2600' : '\u263e';
+}
+function _saveTheme(){ try { localStorage.setItem('prodcal-theme-v1', JSON.stringify({dark:_themeState.dark, font:_themeState.font})); } catch(e){} }
+// Freeze the initial (possibly random) pick immediately so it carries across pages.
+if (!_fontWasFrozen) { _saveTheme(); }
+(function _initThemeBar(){
+  var bar = document.getElementById('theme-bar'); var expanded = false;
+  var nameEl = document.getElementById('font-name');
+  nameEl.addEventListener('click', function(){ expanded=!expanded; bar.classList.toggle('expanded',expanded); });
+  document.addEventListener('click', function(e){ if(expanded && !bar.contains(e.target)){ expanded=false; bar.classList.remove('expanded'); } });
+  bar.querySelectorAll('.theme-opt[data-font]').forEach(function(b){ b.addEventListener('click', function(){ _themeState.font=this.dataset.font; _applyTheme(); _saveTheme(); expanded=false; bar.classList.remove('expanded'); }); });
+  document.getElementById('dark-btn').addEventListener('click', function(){ _themeState.dark=!_themeState.dark; _applyTheme(); _saveTheme(); });
+  _applyTheme();
+})();
+
+/* ── Review app ── */
+(function(){
+  const DATA = JSON.parse(document.getElementById('review-data').textContent);
+  const ROLES = DATA.roles;
+  const KEY = 'review:' + DATA.id;
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){ state = {}; }
+  let activeRole = localStorage.getItem(KEY+':whoami') || ROLES[0];
+
+  const el = (tag, attrs, ...kids) => {
+    const n = document.createElement(tag);
+    if (attrs) for (const k in attrs){
+      if (k==='class') n.className = attrs[k];
+      else if (k==='html') n.innerHTML = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    for (const kid of kids){ if (kid==null) continue; n.append(kid.nodeType?kid:document.createTextNode(kid)); }
+    return n;
+  };
+  function rec(id){ return state[id] || (state[id] = {}); }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1400); }
+
+  function itemStatus(id){
+    const r = state[id] || {};
+    const ds = ROLES.map(role => (r[role]||{}).decision).filter(Boolean);
+    if (ds.length===0) return 'open';
+    const hasYes = ds.some(d=>d==='yes'||d==='accept'||d==='keep');
+    const hasNo = ds.some(d=>d==='no'||d==='change'||d==='unify');
+    if (hasYes && hasNo) return 'conflict';
+    if (ds.length===ROLES.length) return 'done';
+    return 'partial';
+  }
+
+  const allItems = [];
+  DATA.sections.forEach(s => s.items.forEach(it => allItems.push(it)));
+  DATA.queries.forEach(q => allItems.push(q));
+
+  function updateProgress(){
+    const total = allItems.length; let done=0, conflict=0;
+    allItems.forEach(it => { const st=itemStatus(it.id); if(st==='done')done++; if(st==='conflict')conflict++; });
+    const pct = total ? Math.round(done/total*100) : 0;
+    document.getElementById('progBar').style.width = pct+'%';
+    document.getElementById('progPct').textContent = done+'/'+total+' complete'+(conflict?('  \u00b7  '+conflict+' conflict'):'');
+  }
+
+  const IS_COLLECTION = !!DATA.collection;
+  const labelMap = {yes:'Approved',no:'Rejected',accept:'Accepted',change:'Change',discuss:'Discuss',keep:'Keep as-is',unify:'Unify'};
+  const optsFor = isQuery => !isQuery
+    ? [['yes','Approve','yes'],['no','Reject','no']]
+    : IS_COLLECTION
+      ? [['keep','Keep as-is','yes'],['unify','Unify','no'],['discuss','Discuss','other']]
+      : [['accept','Accept','yes'],['change','Change','no'],['discuss','Discuss','other']];
+
+  // Each change is a <tbody> (a main row + a detail row) inside the section table.
+  function buildRow(it, isQuery){
+    const tb = el('tbody',{class:'item','data-id':it.id});
+
+    // --- main row ---
+    const main = el('tr',{class:'row-main'});
+    main.append(el('td',{class:'c-n'}, isQuery ? it.tag : ('#'+it.n)));
+
+    const whyTd = el('td',{class:'c-why'});
+    if (isQuery) whyTd.append(el('span',{class:'badge badge-accent'},'query'));
+    else if (it.explainer){
+      const why = el('span',{class:'badge badge-why', title:'Stylesheet '+(it.explainer_ref||'')}, it.explainer);
+      if (it.explainer_ref) why.append(el('span',{class:'why-ref'}, it.explainer_ref));
+      whyTd.append(why);
+    }
+    if (it.instances && it.instances>1) whyTd.append(el('span',{class:'badge badge-yellow',style:'margin-left:.3rem'}, '\u00d7'+it.instances));
+    main.append(whyTd);
+
+    const chTd = el('td',{class:'c-change'});
+    if (it.before_html || it.after_html){
+      const b=el('span',{class:'d-old'}); b.innerHTML=it.before_html||'';
+      const a=el('span',{class:'d-new'}); a.innerHTML=it.after_html||'';
+      chTd.append(b, el('span',{class:'d-arr'},'\u2192'), a);
+    } else if (it.note){
+      chTd.append(el('span',{class:'q-text', html:it.note}));
+    }
+    main.append(chTd);
+
+    const youTd = el('td',{class:'c-you'});
+    const seg = el('div',{class:'seg'});
+    const r = rec(it.id);
+    optsFor(isQuery).forEach(([val,label,kind])=>{
+      const b = el('button',{}, label);
+      if ((r[activeRole]||{}).decision===val) b.classList.add('sel-'+(kind==='yes'?'yes':kind==='no'?'no':'other'));
+      b.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const rr=rec(it.id); rr[activeRole]=rr[activeRole]||{};
+        rr[activeRole].decision = (rr[activeRole].decision===val)?null:val;
+        save(); refreshRow(tb,it,isQuery); updateProgress(); applyFilter();
+      });
+      seg.append(b);
+    });
+    youTd.append(seg);
+    main.append(youTd);
+
+    const stTd = el('td',{class:'c-st'});
+    main.append(stTd);
+    tb.append(main);
+
+    // --- detail row (context open by default, changelog collapsed, note) ---
+    const detail = el('tr',{class:'row-detail'});
+    const dcell = el('td',{class:'detail-cell',colspan:'5'});
+    if (it.note && (it.before_html||it.after_html)) dcell.append(el('div',{class:'note', html:it.note}));
+    if (it.context){
+      const cd = el('details',{open:''});
+      cd.append(el('summary',{},'Manuscript context'));
+      const c=el('div',{class:'ctx'}); c.innerHTML=it.context; cd.append(c);
+      dcell.append(cd);
+    }
+    // Rich, assembled context for collection-wide queries (open by default).
+    if (it.context_html){
+      const cd = el('details',{open:''});
+      cd.append(el('summary',{},'Context for this ruling'));
+      const c=el('div',{class:'qctx'}); c.innerHTML=it.context_html; cd.append(c);
+      dcell.append(cd);
+    }
+    // Only show the raw changelog line when it adds info beyond the question.
+    if (it.raw && !it.context_html){
+      const rd=el('details'); rd.append(el('summary',{},'Changelog entry'));
+      rd.append(el('div',{class:'raw'}, it.raw)); dcell.append(rd);
+    }
+    const noteRow = el('div',{class:'note-row'});
+    noteRow.append(el('span',{class:'note-lbl'}, 'Your note'));
+    const note = el('input',{class:'rnote',type:'text',placeholder:'optional \u2014 visible to others on submit'});
+    note.value = ((r[activeRole]||{}).note)||'';
+    note.addEventListener('input', ()=>{ const rr=rec(it.id); rr[activeRole]=rr[activeRole]||{}; rr[activeRole].note=note.value; save(); });
+    noteRow.append(note);
+    dcell.append(noteRow);
+    detail.append(dcell);
+    tb.append(detail);
+
+    paintStatus(tb, it, stTd);
+    return tb;
+  }
+
+  function paintStatus(tb, it, stTd){
+    const st = itemStatus(it.id);
+    tb.classList.toggle('done', st==='done');
+    tb.classList.toggle('conflict', st==='conflict');
+    tb.dataset.status = st;
+    stTd = stTd || tb.querySelector('.c-st');
+    stTd.innerHTML='';
+    const wrap = el('div',{class:'st-wrap'});
+    if (st==='done') wrap.append(el('span',{class:'badge badge-green'},'\u2713'));
+    else if (st==='conflict') wrap.append(el('span',{class:'badge badge-red'},'conflict'));
+    else if (st==='partial') wrap.append(el('span',{class:'badge badge-dim'},'partial'));
+    else wrap.append(el('span',{class:'badge badge-dim'},'open'));
+    // other roles' calls as compact chips
+    const r = state[it.id]||{};
+    ROLES.filter(role=>role!==activeRole).forEach(role=>{
+      const d=r[role]||{}; if(!d.decision) return;
+      const cls = (d.decision==='yes'||d.decision==='accept'||d.decision==='keep')?'badge-green':(d.decision==='no'||d.decision==='change'||d.decision==='unify')?'badge-red':'badge-accent';
+      wrap.append(el('span',{class:'badge chip-other '+cls, title:role+': '+(labelMap[d.decision]||d.decision)+(d.note?(' \u2014 '+d.note):'')}, role[0]));
+    });
+    stTd.append(wrap);
+  }
+  function refreshRow(oldTb, it, isQuery){ oldTb.replaceWith(buildRow(it,isQuery)); }
+
+  function groupSet(items, role, val){
+    items.forEach(it => { const rr=rec(it.id); rr[role]=rr[role]||{}; rr[role].decision=val; });
+    save(); render(); toast(role+': set '+items.length+' items');
+  }
+
+  const main = document.getElementById('main');
+  function render(){
+    main.innerHTML='';
+    DATA.sections.forEach(sec => main.append(buildSection(sec,false)));
+    if (DATA.queries.length) main.append(buildSection({id:'queries',title:'Author queries',items:DATA.queries,query:true}, true));
+    updateProgress(); applyFilter();
+  }
+
+  function buildSection(sec, isQuery){
+    const det = el('details',{class:'section'});
+    det.dataset.section = sec.id;
+    // Open small sections (<5 items) on load so short query lists are visible.
+    if ((sec.items||[]).length < 5) det.open = true;
+    const sum = el('summary',{},
+      el('span',{class:'sec-caret'},'\u25B6'),
+      el('span',{class:'sec-title'}, sec.title),
+      el('span',{class:'sec-count'}, '('+sec.items.length+')'));
+    if (sec.series) sum.append(el('span',{class:'badge badge-yellow'},'series-wide'));
+    if (isQuery) sum.append(el('span',{class:'badge badge-accent'},'decisions'));
+    det.append(sum);
+
+    const ga = el('div',{class:'group-actions'});
+    ga.append(el('span',{class:'lbl'},'Bulk (as '+activeRole+')'));
+    const yes = el('button',{class:'btn-sm'}, isQuery?'accept all':'approve all');
+    yes.addEventListener('click', ()=>groupSet(sec.items, activeRole, isQuery?'accept':'yes'));
+    const no = el('button',{class:'btn-sm'}, isQuery?'flag all':'reject all');
+    no.addEventListener('click', ()=>groupSet(sec.items, activeRole, isQuery?'change':'no'));
+    ga.append(yes, no);
+    const clr = el('button',{class:'btn-sm btn-secondary',style:'margin-left:auto'}, 'clear my calls');
+    clr.addEventListener('click', ()=>{ sec.items.forEach(it=>{ if(state[it.id]) delete state[it.id][activeRole]; }); save(); render(); });
+    ga.append(clr);
+    det.append(ga);
+
+    const table = el('table',{class:'changes'+(isQuery?' is-query':'')});
+    const thead = el('thead',{}, el('tr',{},
+      el('th',{class:'c-n'},'#'),
+      el('th',{class:'c-why'},'Why'),
+      el('th',{class:'c-change'}, isQuery?'Query':'Change'),
+      el('th',{class:'c-you'},'You'),
+      el('th',{class:'c-st'},'Status')));
+    table.append(thead);
+    sec.items.forEach(it => table.append(buildRow(it, isQuery)));
+    det.append(table);
+    return det;
+  }
+
+  function applyFilter(){
+    const f = document.getElementById('filter').value;
+    document.querySelectorAll('tbody.item').forEach(tb=>{
+      const st = tb.dataset.status; let show=true;
+      if (f==='undecided') show=(st==='open'||st==='partial');
+      else if (f==='conflict') show=(st==='conflict');
+      else if (f==='done') show=(st==='done');
+      tb.style.display = show?'':'none';
+    });
+    document.querySelectorAll('details.section').forEach(sec=>{
+      const vis = [...sec.querySelectorAll('tbody.item')].some(c=>c.style.display!=='none');
+      sec.style.display = (f==='all'||vis)?'':'none';
+    });
+  }
+
+  function decisionLabel(it, role){
+    const d = (state[it.id]||{})[role]||{};
+    if (!d.decision) return '\u2014';
+    const map = {yes:'APPROVE',no:'REJECT',accept:'ACCEPT',change:'CHANGE',discuss:'DISCUSS'};
+    return (map[d.decision]||d.decision) + (d.note?(' ('+d.note+')'):'');
+  }
+  function summaryText(forRole){
+    const L=[]; L.push(DATA.title); L.push('Review summary \u2014 '+new Date().toLocaleString());
+    L.push(forRole ? ('Reviewer: '+forRole) : ('Roles: '+ROLES.join(', '))); L.push('');
+    const sections = DATA.sections.concat([{title:'Author queries',items:DATA.queries}]);
+    sections.forEach(sec=>{ if(!sec.items.length) return; L.push('## '+sec.title);
+      sec.items.forEach(it=>{ const head=it.tag?it.tag:('#'+it.n);
+        L.push('  '+head+'  '+(it.before_txt||'')+(it.after_txt?('  ->  '+it.after_txt):'')+(it.before_txt||it.after_txt?'':(' '+stripTags(it.note||''))));
+        const roles = forRole ? [forRole] : ROLES;
+        roles.forEach(role=> L.push('      - '+role+': '+decisionLabel(it,role)));
+      }); L.push('');
+    });
+    return L.join('\n');
+  }
+  function stripTags(h){ const d=document.createElement('div'); d.innerHTML=h; return d.textContent||''; }
+  function exportSummary(){ download(DATA.id+'-summary.txt', summaryText(null), 'text/plain'); }
+
+  function submitReview(){
+    const email = (prompt('Your email (used as Reply-To so the editor can reply to you):', localStorage.getItem('review:replyTo')||'')||'').trim();
+    if (!email) return;
+    localStorage.setItem('review:replyTo', email);
+    const name = (prompt('Your name (optional):', localStorage.getItem('review:name')||'')||'').trim();
+    localStorage.setItem('review:name', name);
+    const btn = document.getElementById('btnSubmit'); btn.disabled=true; const old=btn.textContent; btn.textContent='Sending\u2026';
+    fetch('/api/submit', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ docId:DATA.id, title:DATA.title, reviewer:activeRole,
+        replyTo:email, name:name, summary:summaryText(activeRole), decisions:state }) })
+      .then(r=>r.json().then(j=>({ok:r.ok,j})))
+      .then(({ok,j})=>{ if(ok&&j.ok){ toast('Submitted to '+(j.to||'editor')); } else { alert('Submit failed: '+(j.error||'unknown')); } })
+      .catch(e=>alert('Submit failed (is the server running, not busybox?): '+e))
+      .finally(()=>{ btn.disabled=false; btn.textContent=old; });
+  }
+  function download(name, content, type){
+    const blob = new Blob([content],{type});
+    const a = el('a',{href:URL.createObjectURL(blob), download:name});
+    document.body.append(a); a.click(); a.remove(); toast('Downloaded '+name);
+  }
+
+  // Chapter eyebrow nav + prev/next
+  (function buildChapNav(){
+    const nav = document.getElementById('chapNav');
+    const chs = DATA.chapters || [];
+    if (!chs.length) return;
+    nav.append(el('span',{class:'crumb',style:'margin-right:0.5rem'}, (DATA.book||'')+' \u00b7 chapters'));
+    let curIdx = -1;
+    chs.forEach((c,i)=>{
+      if (c.n===DATA.chapterNum) curIdx=i;
+      const a = el('a',{href:c.url, class:(c.n===DATA.chapterNum?'cur':'')},
+        el('span',{class:'cn'}, c.num), c.label);
+      nav.append(a);
+    });
+    const pn = document.getElementById('prevNext');
+    const prev = chs[curIdx-1], next = chs[curIdx+1];
+    pn.append(el('a',{href: prev?prev.url:'#', class: prev?'':'disabled'}, '\u2190 Prev'));
+    pn.append(el('a',{href: next?next.url:'#', class: next?'':'disabled'}, 'Next \u2192'));
+  })();
+
+  document.getElementById('docCrumb').textContent = DATA.crumb || 'Copyedit review';
+  document.getElementById('docTitle').textContent = DATA.title;
+  document.getElementById('docSub').textContent = DATA.subtitle || '';
+  document.getElementById('colophon').innerHTML = DATA.colophon || '';
+  const who = document.getElementById('whoami');
+  ROLES.forEach(r=> who.append(el('option',{value:r}, r)));
+  if (ROLES.indexOf(activeRole)<0) activeRole = ROLES[0];
+  who.value = activeRole;
+  function setRoleUI(){
+    document.getElementById('footWho').textContent = activeRole;
+    document.getElementById('roleHint').textContent = 'Showing your Approve / Reject controls. Other reviewers\u2019 calls appear as read-only chips.';
+  }
+  who.addEventListener('change', ()=>{ activeRole=who.value; localStorage.setItem(KEY+':whoami',activeRole); setRoleUI(); render(); });
+  setRoleUI();
+  document.getElementById('filter').addEventListener('change', applyFilter);
+  document.getElementById('expandAll').addEventListener('click', ()=>document.querySelectorAll('details.section').forEach(d=>d.open=true));
+  document.getElementById('collapseAll').addEventListener('click', ()=>document.querySelectorAll('details.section').forEach(d=>d.open=false));
+  document.getElementById('btnSummary').addEventListener('click', exportSummary);
+  document.getElementById('btnReset').addEventListener('click', ()=>{ if(confirm('Clear all decisions for this story on this device?')){ state={}; save(); render(); toast('Reset'); } });
+  document.getElementById('btnSubmit').addEventListener('click', submitReview);
+
+  render();
+})();
+</script>
+</body>
+</html>
