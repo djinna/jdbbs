@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PI Editorial Stylesheet (working)</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<script>
+(function(){ try {
+  var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (t) {
+    if (t.dark) document.documentElement.classList.add('dark');
+    var FONTS={literata:1,'ibm-serif':1,'source-serif':1,newsreader:1};
+    if (t.font && FONTS[t.font]) document.documentElement.setAttribute('data-font', t.font);
+  }
+} catch(e){} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Source+Serif+4:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<div class="theme-bar">
+  <button type="button" class="dark-btn" id="dark-btn" title="Toggle dark mode">☾</button>
+</div>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="crumb">Protocolized Anthology · Editorial</div>
+    <h1 class="title">PI Editorial Stylesheet <span style="font-weight:400;color:var(--text-muted);font-size:0.7em;">(working)</span></h1>
+    <div class="subline">
+      <span id="who"><span class="role">loading…</span></span>
+    </div>
+
+    <div class="toolbar">
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="proposed">Proposed</button>
+        <button class="filter-btn" data-filter="accepted">Accepted</button>
+        <button class="filter-btn" data-filter="rejected">Rejected</button>
+        <button class="filter-btn" data-filter="author">Author-facing</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="exports">
+        <a href="/stylesheet/export.html">Export working (.html)</a>
+        <span class="sep">·</span>
+        <a href="/stylesheet/export.md">Export working (.md)</a>
+        <span class="sep">·</span>
+        <a href="/stylesheet/authors">Authors’ view →</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="content"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>window.SS_MODE = 'editor';</script>
+<script src="app.js?v=1"></script>
+</body>
+</html>

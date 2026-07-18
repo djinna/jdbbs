@@ -1,0 +1,1342 @@
+[
+  {
+    "section_ord": -1,
+    "section": "Overview",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "# Editorial Stylesheet — *Protocolized Anthology* (working draft)\n\nA living reference for copy editing the stories in this series. Goal: **consistency**\nacross stories while preserving each author's voice. This is a *light* copy edit\nregime — fix mechanics, don't rewrite. When in doubt, leave the author's choice.\n\nStarted from: *01 Aster's Story: Presence Must Preserve*"
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "1. Author/editor exports the Google Doc as **Microsoft Word (.docx)** (keeps\n   italics, smart quotes, em dashes, scene breaks). Plain-text paste loses these."
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 2,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "2. Drop the file in `editorial/Zoothesia/source/NN Title.docx`."
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 3,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "3. From `editorial/Zoothesia/`, extract for editing without losing emphasis:\n   `pandoc -f docx -t markdown --wrap=none \"source/NN Title.docx\" -o work.md`"
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 4,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "4. Edit `work.md` (asterisks = the author's italics; verify each one is real)."
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 5,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "5. Render back: `pandoc -f markdown -t docx work.md -o \"edited/NN Title (copyedited).docx\"`"
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 6,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "6. Deliver **clean edited .docx + a `NN-...-CHANGELOG.md`** (before → after list\n   plus author queries). We do clean edits, not tracked-changes redlines\n   (pandoc can't author Word revision marks reliably); the changelog is the\n   review surface."
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 7,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "7. Sanity-check emphasis survived the round-trip:\n   `pandoc -f docx -t markdown edited/....docx | grep -oP '\\*[^*]+\\*'`"
+  },
+  {
+    "section_ord": 0,
+    "section": "0. Workflow (how we process each story)",
+    "item_ord": 8,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "> **Italic-export gotcha:** Google Docs sometimes extends an italic run over the\n> trailing `.\"` of a sentence. After extraction, check that closing punctuation\n> isn't accidentally inside `*...*`; move it out. (Happened once in Story 01.)\n>\n> **Literal asterisks:** if the author *types* `*gag*` as characters (not as an\n> italic style), pandoc shows it escaped as `\\*gag\\*`. Preserve that — it's an\n> authorial choice, not emphasis."
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 1,
+    "kind": "rule",
+    "col1": "English",
+    "col2": "US spelling & punctuation",
+    "col3": "color, fueled, desiccated",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 2,
+    "kind": "rule",
+    "col1": "Spelling authority",
+    "col2": "Merriam-Webster (first listing)",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 3,
+    "kind": "rule",
+    "col1": "Serial (Oxford) comma",
+    "col2": "**Yes**",
+    "col3": "\"hurt, hunted, and erased\"",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 4,
+    "kind": "rule",
+    "col1": "Quotation marks",
+    "col2": "Curly “ ” / ‘ ’",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 5,
+    "kind": "rule",
+    "col1": "Periods/commas",
+    "col2": "Inside quotation marks",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 6,
+    "kind": "rule",
+    "col1": "Em dash",
+    "col2": "Closed (no surrounding spaces): `—`",
+    "col3": "\"skin-deep AR—is, well\"",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 7,
+    "kind": "rule",
+    "col1": "Ellipsis",
+    "col2": "Single glyph … or spaced periods, but be consistent within a story",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 8,
+    "kind": "rule",
+    "col1": "Numbers",
+    "col2": "Spell out zero–one hundred in prose; numerals for years, addresses, temps with units, code/UI values",
+    "col3": "\"seventy-two-degree day\"; \"five in the morning\"",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 9,
+    "kind": "rule",
+    "col1": "Time of day",
+    "col2": "Spell out, hyphenated when adjectival",
+    "col3": "\"eleven-o'clock shadow\"; \"five in the morning\"",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 10,
+    "kind": "rule",
+    "col1": "Ampersand",
+    "col2": "Avoid in prose; use \"and\"",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 1,
+    "section": "1. House Style Basics",
+    "item_ord": 11,
+    "kind": "rule",
+    "col1": "Oxford “etc.” / Latin",
+    "col2": "Roman, not italic",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "These stories use a casual, interior first-person voice. **Keep:**"
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 2,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Sentence-fragments used for rhythm/emphasis. *\"Poof. There.\" / \"Or dangerous.\"*"
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 3,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Conversational discourse markers: \"Like, sure,…\", \"I mean it\", \"I guess\", \"sure\"."
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 4,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Profanity and slang in dialogue and narration (do not soften)."
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 5,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Coined/neologism vocabulary (see Lexicon). Do not “correct” invented words."
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 6,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Intentional repetition for effect (e.g., \"The same… The same…\")."
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 7,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "**Fix:** grammar slips, missing/extra words, agreement errors, typos,\nmistaken homophones, dropped punctuation, inconsistent styling."
+  },
+  {
+    "section_ord": 2,
+    "section": "2. Voice & Register (preserve, don't sanitize)",
+    "item_ord": 8,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "When a fragment vs. error is ambiguous, preserve if it scans as deliberate."
+  },
+  {
+    "section_ord": 3,
+    "section": "3. Dialogue Formatting",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Each speaker gets a new paragraph."
+  },
+  {
+    "section_ord": 3,
+    "section": "3. Dialogue Formatting",
+    "item_ord": 2,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Put a Q&A exchange on **separate** lines/paragraphs, even when terse\n  (\"You've got a good job?\" / \"Why do you care?\")."
+  },
+  {
+    "section_ord": 3,
+    "section": "3. Dialogue Formatting",
+    "item_ord": 3,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Dialogue tags lowercase after a comma: `she said, \"Let's go.\"` and\n  `\"Never,\" he said.`"
+  },
+  {
+    "section_ord": 3,
+    "section": "3. Dialogue Formatting",
+    "item_ord": 4,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Capitalize the first word of quoted dialogue introduced by a comma:\n  `shrugged and said, \"Let's go.\"`"
+  },
+  {
+    "section_ord": 4,
+    "section": "4. Formatting / Typography",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Titles of in-world media, tracks, filters, products: *italics*.\n  *Marine Serenity: Safe Waters in Your Social Seas*; *Pink Sunrises*."
+  },
+  {
+    "section_ord": 4,
+    "section": "4. Formatting / Typography",
+    "item_ord": 2,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Editorial/sound asides the author types with literal asterisks (e.g. `*gag*`):\n  **keep the literal asterisks** — do not convert to italics. Place sentence\n  punctuation logically (in Story 01: `(... \\*gag\\*.)` — period inside the paren)."
+  },
+  {
+    "section_ord": 4,
+    "section": "4. Formatting / Typography",
+    "item_ord": 3,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Emphasis vs. punctuation: ensure trailing `.`/`,`/`\"` are *outside* an italic\n  span unless the author clearly intended otherwise."
+  },
+  {
+    "section_ord": 4,
+    "section": "4. Formatting / Typography",
+    "item_ord": 4,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Story header banner kept verbatim as delivered:\n  `= = = NN Title: Subtitle = = =`"
+  },
+  {
+    "section_ord": 4,
+    "section": "4. Formatting / Typography",
+    "item_ord": 5,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Scene breaks: use a blank line or `* * *` consistently (TBD per layout; the\n  DOCX/Typst pipeline handles `---`)."
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "Keep a running list so the same coined terms are styled identically everywhere.\nFrom Aster's Story:"
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 2,
+    "kind": "rule",
+    "col1": "Zoothesia Protocols",
+    "col2": "Cap both; \"the protocols\" lowercase generically",
+    "col3": "the in-world AR system",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 3,
+    "kind": "rule",
+    "col1": "the Zoo",
+    "col2": "Cap; shorthand for the system",
+    "col3": "treated as an \"it,\" not a person",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 4,
+    "kind": "rule",
+    "col1": "overlays",
+    "col2": "lowercase",
+    "col3": "AR layer",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 5,
+    "kind": "rule",
+    "col1": "AR",
+    "col2": "all caps",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 6,
+    "kind": "rule",
+    "col1": "tent town",
+    "col2": "lowercase two words",
+    "col3": "NOT \"tent-town\"/\"Tent-town\" — standardized",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 7,
+    "kind": "rule",
+    "col1": "kapala halo",
+    "col2": "lowercase",
+    "col3": "spoofing device; \"the halo\" lowercase",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 8,
+    "kind": "rule",
+    "col1": "Mayasiddha Saints",
+    "col2": "Cap",
+    "col3": "the robed order; \"the saints\" lowercase generically",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 9,
+    "kind": "rule",
+    "col1": "Mayaford / Mayaford City",
+    "col2": "Cap",
+    "col3": "the city",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 10,
+    "kind": "rule",
+    "col1": "Center City",
+    "col2": "Cap",
+    "col3": "district",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 11,
+    "kind": "rule",
+    "col1": "Nayanaport docks",
+    "col2": "Cap proper noun + lowercase \"docks\"",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 12,
+    "kind": "rule",
+    "col1": "Second and Poplar / Market Street",
+    "col2": "Cap",
+    "col3": "streets",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 13,
+    "kind": "rule",
+    "col1": "molly",
+    "col2": "lowercase",
+    "col3": "slang for MDMA; \"MDMA\" all caps",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 14,
+    "kind": "rule",
+    "col1": "foulmaxxes",
+    "col2": "lowercase, one word",
+    "col3": "coined verb",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 15,
+    "kind": "rule",
+    "col1": "genAI",
+    "col2": "as styled",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 16,
+    "kind": "rule",
+    "col1": "LLM",
+    "col2": "all caps",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 17,
+    "kind": "rule",
+    "col1": "Bakāsura",
+    "col2": "Cap, keep macron ā",
+    "col3": "spoken epithet (Sanskrit \"crane demon\")",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 18,
+    "kind": "rule",
+    "col1": "\"Presence is a Present\"",
+    "col2": "slogan, roman in quotes",
+    "col3": "marketing tagline (Story 01)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 19,
+    "kind": "rule",
+    "col1": "\"Presence Must Preserve\"",
+    "col2": "slogan, **title case**, roman in quotes",
+    "col3": "the marketing slogan when quoted as a banner/tagline (Stories 02, 04)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 20,
+    "kind": "rule",
+    "col1": "\"Perception must preserve, not present\"",
+    "col2": "the corrected in-world maxim",
+    "col3": "note comma (Story 01)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 21,
+    "kind": "rule",
+    "col1": "\"Perception must preserve\" / \"presence must preserve\"",
+    "col2": "**lowercase** when echoed as a maxim in prose",
+    "col3": "thematic refrain (Stories 01, 03, 05, 06)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 22,
+    "kind": "rule",
+    "col1": "Other in-world slogans",
+    "col2": "italics OR roman-in-quotes, but be consistent within a story",
+    "col3": "*See in Safety!*, *Be yourself; See yourself!*, *Erase to be Safe* (Story 03/05); \"Presence is a Present\" / \"Perception must preserve\" stay roman-in-quotes",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 23,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "> **Presence vs. Perception (collection-wide flag):** the marketing *slogan* is\n> \"Presence Must Preserve\" (title case, the billboard/tagline form). The in-world\n> *maxim/design principle* is \"Perception must preserve(, not present)\" (lowercase).\n> Stories 05 and 06 use *Perception* where 02/04 use *Presence*. We lowercased the\n> maxim form and title-cased the slogan form, but the Presence/Perception split\n> itself is an **open author query** — see §8."
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 24,
+    "kind": "rule",
+    "col1": "serotonin syndrome",
+    "col2": "lowercase",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 25,
+    "kind": "rule",
+    "col1": "anhedonia",
+    "col2": "lowercase",
+    "col3": "",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 26,
+    "kind": "rule",
+    "col1": "phobisculpting",
+    "col2": "lowercase",
+    "col3": "clinical term for foulmaxxing (Story 02)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 27,
+    "kind": "rule",
+    "col1": "kapala halo",
+    "col2": "lowercase",
+    "col3": "spoofing/AR-override device; lets you see past the Zoo's overlays (Stories 02, 06)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 28,
+    "kind": "rule",
+    "col1": "doppelgänger",
+    "col2": "keep the umlaut; one spelling",
+    "col3": "standardized from mixed \"doppleganger\" (Story 06)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 29,
+    "kind": "rule",
+    "col1": "the Mouth (of the Zoo)",
+    "col2": "Cap \"Mouth\"",
+    "col3": "the Zoo's avatar/oracle in Story 06",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 30,
+    "kind": "rule",
+    "col1": "therabot",
+    "col2": "lowercase, one word",
+    "col3": "therapy/social-work drone (Story 03)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 31,
+    "kind": "rule",
+    "col1": "ProfBot / ProfBot tutor",
+    "col2": "as styled (camelCase)",
+    "col3": "AI tutor (Story 05)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 32,
+    "kind": "rule",
+    "col1": "faceting / faceter",
+    "col2": "lowercase",
+    "col3": "embedding gems/crystal lattices into the body to overload the Zoo (Story 05)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 33,
+    "kind": "rule",
+    "col1": "Charntown",
+    "col2": "Cap",
+    "col3": "hidden shantytown of faceters/foulmaxxers near Nayanaport (Story 05)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 34,
+    "kind": "rule",
+    "col1": "Shraville",
+    "col2": "Cap",
+    "col3": "district/neighborhood (Stories 02, 06)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 35,
+    "kind": "rule",
+    "col1": "Kaylan Grove / Chitram Row / Deva and Market",
+    "col2": "Cap",
+    "col3": "districts/streets (Stories 02, 04)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 36,
+    "kind": "rule",
+    "col1": "Center City",
+    "col2": "Cap",
+    "col3": "district (Stories 01, 06) — NOT \"center city\"",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 37,
+    "kind": "rule",
+    "col1": "Mayaport",
+    "col2": "Cap — **but see Q**",
+    "col3": "appears in Stories 04 & 06; may be a typo for **Mayaford**. Flag, don't merge.",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 38,
+    "kind": "rule",
+    "col1": "the Market",
+    "col2": "Cap when personified as a Leviathan parallel to the Zoo (Story 04)",
+    "col3": "author is inconsistent; query",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 39,
+    "kind": "rule",
+    "col1": "meatspace",
+    "col2": "lowercase, one word",
+    "col3": "the physical world (Stories 04, 05); Story 06's Mouth says \"Meat-space\" — kept verbatim in its dialogue",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 40,
+    "kind": "rule",
+    "col1": "Oren",
+    "col2": "Cap",
+    "col3": "recurring polite drug-dealer/fixer across Stories 01, 02, 05, 06 (see Q)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 41,
+    "kind": "rule",
+    "col1": "Z-Day",
+    "col2": "Cap, hyphen",
+    "col3": "in-world holiday with fireworks (Stories 01, 03)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 42,
+    "kind": "rule",
+    "col1": "V2 Zoo (teens)",
+    "col2": "as styled",
+    "col3": "a Zoo version/generation (Story 02)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 43,
+    "kind": "rule",
+    "col1": "\"insect scream\" / \"suffering decibels\"",
+    "col2": "lowercase in quotes",
+    "col3": "the screaming-bug score game (Stories 02, 03, 06)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 44,
+    "kind": "rule",
+    "col1": "ocelli / setae / chelicerae",
+    "col2": "lowercase",
+    "col3": "spider anatomy (Story 02) — correct Latin plurals",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 45,
+    "kind": "rule",
+    "col1": "firework overlay / \"fireworks\"",
+    "col2": "lowercase",
+    "col3": "virtual clothes projected onto others (Stories 01, 04)",
+    "body": ""
+  },
+  {
+    "section_ord": 5,
+    "section": "5. Series Lexicon (capitalization & spelling — keep consistent ACROSS stories)",
+    "item_ord": 46,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "> **Action for editors:** append new coinages to this table as each story is edited.\n> Flag any term that appears spelled two ways for an author query."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "These were the actual corrections in Aster's Story; expect similar in others:"
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 2,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Hyphenation of compound modifiers:** taped-off, skin-deep, drug-fueled,\n  ivory-colored, sickly sweetness (open as noun)."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 3,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Possessives:** someone’s, others’ — check apostrophe placement."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 4,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **its vs. it’s:** \"its faultless humanity\" (possessive), not \"it's.\""
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 5,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **angrier** not \"angier\"; **desiccated** not \"dessicated\"; **putrefying** not\n  \"putrifying\"; **hall pass** two words."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 6,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Subject/verb & there was/were:** \"there were so many more people.\""
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 7,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Dropped/duplicated words:** delete false starts like \"I was the I couldn't…\"."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 8,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Comma before terminal \"sometimes\"/parentheticals** — verify."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 9,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **\"step up to the corner\"** (missing preposition)."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 10,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Question marks** on questions phrased as statements in interior monologue\n  (\"To judge the lives of those whose urges were completely alien?\")."
+  },
+  {
+    "section_ord": 6,
+    "section": "6. Recurring Mechanical Fixes (watch-list)",
+    "item_ord": 11,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Plurals vs. names:** \"shouted out the names of the body parts.\""
+  },
+  {
+    "section_ord": 7,
+    "section": "7. What NOT to change",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Authorial fragments and run-ons used stylistically."
+  },
+  {
+    "section_ord": 7,
+    "section": "7. What NOT to change",
+    "item_ord": 2,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Slang, vulgarity, and dialect in dialogue."
+  },
+  {
+    "section_ord": 7,
+    "section": "7. What NOT to change",
+    "item_ord": 3,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Invented terminology and neologisms (style them per the Lexicon)."
+  },
+  {
+    "section_ord": 7,
+    "section": "7. What NOT to change",
+    "item_ord": 4,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Voice-driven comma splices in fast interior passages — light edit only;\n  query the author rather than silently rewriting if meaning is at stake."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 1,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "Raise (don't silently fix) when:"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 2,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- A coined term is spelled inconsistently and you can't tell which is canonical."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 3,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- A sentence's meaning is genuinely ambiguous."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 4,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- A factual/continuity detail conflicts within or across stories\n  (e.g., timeline, place names, the rules of the Zoo)."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 5,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "### Story 01 queries"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 6,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"an eleven-o'clock shadow\" — deliberate riff on \"five-o'clock shadow\"? Kept as written (assumed intentional)."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 7,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"rose miasmatic\" — unusual inversion; kept as stylistic. Confirm."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 8,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"Play-pretending my father.\" — fragment in the saint's speech; kept as voice."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 9,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "### Story 02 (Ki) queries"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 10,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Friend names **Cressida** (hardware) vs. **Clarissa** (confidante) read as two\n  people — confirm distinct. \"Cassandra's equation\" corrected to **Clarissa's**."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 11,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"insect scream **decimal** count\" → read as **decibel** count. Confirm."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 12,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Slogan standardized to title-case \"Presence Must Preserve.\""
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 13,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "### Story 03 (Angel) queries"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 14,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Protagonist named **Heath** (once). Confirm spelling."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 15,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Percentages kept as numerals + spelled unit (\"15 percent\"); confirm vs. % glyph."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 16,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"splitting ribs\" — deliberate riff on \"splitting hairs.\" Kept."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 17,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "### Story 04 (Ed) queries"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 18,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Mayaport** vs. Mayaford — see Lexicon flag. Left as written."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 19,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"the Market\" capitalization inconsistent (Leviathan personification). Left as delivered."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 20,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Trader shorthand \"2K into 70\" kept as numerals (voice)."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 21,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "### Story 05 (Elara & Io) queries"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 22,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"awonawon\" = phonetic mishearing of \"one of one.\" Intentional; do not correct."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 23,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Oren** the taxi driver — same name as the recurring dealer/fixer. Confirm."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 24,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"Perception must preserve\" lowercased to match maxim styling."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 25,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"He's understand\" → \"He'd understand.\" Confirm."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 26,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "### Story 06 (Karina) queries"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 27,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Mayaport** vs. Mayaford — see Lexicon flag."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 28,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"intersticed\" kept as author coinage (after fixing doubled-s \"instersticed\")."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 29,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- Presence/Perception slogan split (billboard reads \"Perception must preserve\")."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 30,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- \"Karinaic,\" \"Zoothesetic\" kept as coinages."
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 31,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "### Collection-wide open queries"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 32,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "(Each bullet is a query on the collection review page. Optional indented\n`terms:` / `brief:` sub-bullets feed the auto-assembled \"Context for this\nruling\" block: `terms:` sets the manuscript-search phrases; `brief:` supplies\nhand-written framing that overrides the auto stylesheet explanation.)"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 33,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Presence vs. Perception** in the slogan/maxim (see §5). Needs an author ruling.\n  - terms: presence must preserve; perception must preserve"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 34,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Mayaport vs. Mayaford** as a place name (Stories 04, 06).\n  - terms: Mayaport; Mayaford"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 35,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "- **Oren** as a deliberately recurring character across stories (01, 02, 05, 06).\n  - terms: Oren"
+  },
+  {
+    "section_ord": 8,
+    "section": "8. Author Queries (log per story)",
+    "item_ord": 36,
+    "kind": "prose",
+    "col1": "",
+    "col2": "",
+    "col3": "",
+    "body": "*Maintainer note:* keep this file under `editorial/Zoothesia/`. Update the Lexicon and\nwatch-list with every story so later stories inherit decisions made earlier."
+  }
+]

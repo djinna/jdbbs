@@ -226,6 +226,9 @@ func (s *Server) Handler() http.Handler {
 	staticServer := http.FileServer(http.FS(static))
 	mux.Handle("GET /static/", http.StripPrefix("/static", staticServer))
 
+	// PI editorial stylesheet review tool (explicit routes, before SPA catch-all).
+	s.registerStylesheetRoutes(mux)
+
 	// Root: always show landing page
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		s.serveLanding(w)
