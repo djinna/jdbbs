@@ -35,6 +35,7 @@ type ssItem struct {
 	Col3         string  `json:"col3"`
 	Body         string  `json:"body"`
 	Status       string  `json:"status"`
+	Scope        string  `json:"scope"`
 	AuthorFacing bool    `json:"author_facing"`
 	StatusBy     string  `json:"status_by"`
 	StatusAt     string  `json:"status_at"`
@@ -145,7 +146,7 @@ func (s *Server) ssEnsureSeeded(ctx context.Context) error {
 func (s *Server) ssLoadItems(ctx context.Context) ([]ssItem, error) {
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT id, section_ord, section, item_ord, kind, col1, col2, col3, body,
-		        status, author_facing, status_by, status_at, updated_at
+		        status, scope, author_facing, status_by, status_at, updated_at
 		 FROM stylesheet_items ORDER BY section_ord, item_ord, id`)
 	if err != nil {
 		return nil, err
@@ -158,7 +159,7 @@ func (s *Server) ssLoadItems(ctx context.Context) ([]ssItem, error) {
 		var af int
 		var statusAt, updatedAt sql.NullTime
 		if err := rows.Scan(&it.ID, &it.SectionOrd, &it.Section, &it.ItemOrd, &it.Kind,
-			&it.Col1, &it.Col2, &it.Col3, &it.Body, &it.Status, &af,
+			&it.Col1, &it.Col2, &it.Col3, &it.Body, &it.Status, &it.Scope, &af,
 			&it.StatusBy, &statusAt, &updatedAt); err != nil {
 			return nil, err
 		}
@@ -246,6 +247,7 @@ func (s *Server) handleSSPatchItem(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Status       *string `json:"status"`
 		AuthorFacing *bool   `json:"author_facing"`
+		Scope        *string `json:"scope"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonErr(w, "bad body", 400)
@@ -261,6 +263,19 @@ func (s *Server) handleSSPatchItem(w http.ResponseWriter, r *http.Request) {
 		if _, err := s.DB.ExecContext(ctx,
 			`UPDATE stylesheet_items SET status=?, status_by=?, status_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
 			st, name, id); err != nil {
+			jsonErr(w, err.Error(), 500)
+			return
+		}
+	}
+	if body.Scope != nil {
+		sc := *body.Scope
+		if sc != "universal" && sc != "zoothesia" {
+			jsonErr(w, "bad scope", 400)
+			return
+		}
+		if _, err := s.DB.ExecContext(ctx,
+			`UPDATE stylesheet_items SET scope=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+			sc, id); err != nil {
 			jsonErr(w, err.Error(), 500)
 			return
 		}
@@ -426,8 +441,11 @@ func (s *Server) ssResolveEdit(w http.ResponseWriter, r *http.Request, accept bo
 
 // ---- Exports ----
 
-// filtered returns accepted items; if authorsOnly, also require author_facing.
-func ssFilter(items []ssItem, authorsOnly bool) []ssItem {
+// ssFilter returns accepted items; if authorsOnly, also require author_facing.
+// scope, when non-empty ("universal" | "zoothesia"), further restricts to items
+// tagged with that scope — used to derive the org master sheet vs the title
+// archive from the same canonical DB.
+func ssFilter(items []ssItem, authorsOnly bool, scope string) []ssItem {
 	var out []ssItem
 	for _, it := range items {
 		if it.Status != "accepted" {
@@ -436,9 +454,22 @@ func ssFilter(items []ssItem, authorsOnly bool) []ssItem {
 		if authorsOnly && !it.AuthorFacing {
 			continue
 		}
+		if scope != "" && it.Scope != scope {
+			continue
+		}
 		out = append(out, it)
 	}
 	return out
+}
+
+// ssScopeParam validates the ?scope= query param, returning "" (all) unless it
+// is one of the two known scopes.
+func ssScopeParam(r *http.Request) string {
+	sc := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("scope")))
+	if sc == "universal" || sc == "zoothesia" {
+		return sc
+	}
+	return ""
 }
 
 type ssSection struct {
@@ -476,12 +507,10 @@ func (s *Server) handleSSExportMD(authorsOnly bool) http.HandlerFunc {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		secs := ssGroup(ssFilter(items, authorsOnly))
+		scope := ssScopeParam(r)
+		secs := ssGroup(ssFilter(items, authorsOnly, scope))
 		var b strings.Builder
-		title := "Protocol Institute — Editorial Stylesheet"
-		if authorsOnly {
-			title = "Protocol Institute — Author Stylesheet (essentials)"
-		}
+		title := ssExportTitle(authorsOnly, scope)
 		fmt.Fprintf(&b, "# %s\n\n", title)
 		fmt.Fprintf(&b, "_Generated %s from the working stylesheet database._\n\n", time.Now().Format("2006-01-02"))
 		for _, sec := range secs {
@@ -508,14 +537,39 @@ func (s *Server) handleSSExportMD(authorsOnly bool) http.HandlerFunc {
 				b.WriteString("\n")
 			}
 		}
-		fname := "pi-stylesheet.md"
-		if authorsOnly {
-			fname = "pi-author-stylesheet.md"
-		}
+		fname := ssExportFilename(authorsOnly, scope, "md")
 		w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 		w.Header().Set("Content-Disposition", "attachment; filename=\""+fname+"\"")
 		_, _ = w.Write([]byte(b.String()))
 	}
+}
+
+// ssExportTitle builds the export heading, reflecting the author/scope filter.
+func ssExportTitle(authorsOnly bool, scope string) string {
+	switch {
+	case authorsOnly:
+		return "Protocol Institute — Author Stylesheet (essentials)"
+	case scope == "universal":
+		return "Protocol Institute — Master Editorial Stylesheet (universal)"
+	case scope == "zoothesia":
+		return "Protocol Institute — Zoothesia Editorial Stylesheet (title-specific)"
+	default:
+		return "Protocol Institute — Editorial Stylesheet"
+	}
+}
+
+// ssExportFilename picks a download filename reflecting the author/scope filter.
+func ssExportFilename(authorsOnly bool, scope, ext string) string {
+	base := "pi-stylesheet"
+	switch {
+	case authorsOnly:
+		base = "pi-author-stylesheet"
+	case scope == "universal":
+		base = "pi-master-stylesheet"
+	case scope == "zoothesia":
+		base = "pi-zoothesia-stylesheet"
+	}
+	return base + "." + ext
 }
 
 func mdCell(s string) string {
@@ -531,13 +585,10 @@ func (s *Server) handleSSExportHTML(authorsOnly bool) http.HandlerFunc {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		secs := ssGroup(ssFilter(items, authorsOnly))
-		title := "Protocol Institute — Editorial Stylesheet"
-		fname := "pi-stylesheet.html"
-		if authorsOnly {
-			title = "Protocol Institute — Author Stylesheet (essentials)"
-			fname = "pi-author-stylesheet.html"
-		}
+		scope := ssScopeParam(r)
+		secs := ssGroup(ssFilter(items, authorsOnly, scope))
+		title := ssExportTitle(authorsOnly, scope)
+		fname := ssExportFilename(authorsOnly, scope, "html")
 		var b strings.Builder
 		b.WriteString(ssExportHead(title))
 		fmt.Fprintf(&b, "<h1>%s</h1>\n", html.EscapeString(title))

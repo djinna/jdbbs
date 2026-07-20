@@ -54,6 +54,7 @@
     items: [],
     me: { email: '', name: '', can_write: false },
     filter: 'all',        // all | proposed | accepted | rejected | author
+    scopeFilter: 'all',   // all | universal | zoothesia
     editingId: null,      // item id currently being inline-edited
     loadError: null,
   };
@@ -213,6 +214,7 @@
   }
 
   function passesFilter(it) {
+    if (state.scopeFilter !== 'all' && it.scope !== state.scopeFilter) return false;
     switch (state.filter) {
       case 'proposed': return it.status === 'proposed';
       case 'accepted': return it.status === 'accepted';
@@ -256,8 +258,8 @@
     if (!rows.length) rows.push(h('div', { className: 'empty-section' }, '(no textual change)'));
 
     var actions = state.me.can_write ? h('div', { className: 'pending-actions' },
-      h('button', { className: 'btn accept', onclick: function () { acceptEdit(e.id); } }, '✓ Accept edit'),
-      h('button', { className: 'btn reject', onclick: function () { rejectEdit(e.id); } }, '✕ Reject edit')
+      h('button', { className: 'link-action accent', onclick: function () { acceptEdit(e.id); } }, 'Accept edit'),
+      h('button', { className: 'link-action danger', onclick: function () { rejectEdit(e.id); } }, 'Reject edit')
     ) : null;
 
     return h('div', { className: 'pending' },
@@ -299,7 +301,7 @@
     return h('div', { className: 'editor' }, inputs,
       h('div', { className: 'editor-actions' },
         h('button', {
-          className: 'btn primary', onclick: function () {
+          className: 'btn-fill', onclick: function () {
             var body = {
               col1: isRule ? f.col1.value : it.col1,
               col2: isRule ? f.col2.value : it.col2,
@@ -310,14 +312,36 @@
             saveEdit(it.id, body);
           }
         }, 'Save proposed edit'),
-        h('button', { className: 'btn ghost', onclick: function () { state.editingId = null; render(); } }, 'Cancel')));
+        h('button', { className: 'link-action', onclick: function () { state.editingId = null; render(); } }, 'Cancel')));
+  }
+
+  // scope control: two-way ledger toggle (universal | zoothesia)
+  function renderScope(it) {
+    var canWrite = state.me.can_write;
+    if (!canWrite) {
+      return h('span', { className: 'scope-readonly', title: 'Scope' },
+        it.scope === 'zoothesia' ? 'zoothesia' : 'universal');
+    }
+    function opt(val, label) {
+      return h('button', {
+        className: 'scope-btn' + (it.scope === val ? ' active' : ''),
+        title: 'Scope: ' + label,
+        'aria-pressed': it.scope === val ? 'true' : 'false',
+        onclick: it.scope === val ? null : function () { setScope(it, val); },
+      }, label);
+    }
+    return h('span', { className: 'scope-ctl', title: 'Scope' },
+      opt('universal', 'universal'),
+      h('span', { className: 'scope-sep' }, '·'),
+      opt('zoothesia', 'zoothesia'));
   }
 
   function renderCard(it) {
     var canWrite = state.me.can_write;
-    var head = h('div', { className: 'card-head' },
-      h('span', { className: 'badge kind' }, it.kind),
-      h('span', { className: 'badge ' + it.status }, it.status),
+    var head = h('div', { className: 'item-head' },
+      h('span', { className: 'tag kind brk' }, it.kind),
+      h('span', { className: 'tag status-' + it.status + ' brk' }, it.status),
+      renderScope(it),
       it.status_by ? h('span', { className: 'status-meta' },
         it.status + ' by ' + it.status_by + (it.status_at ? ' · ' + fmtWhen(it.status_at) : '')) : null,
       h('span', { className: 'grow' }),
@@ -340,18 +364,18 @@
       kids.push(renderEditor(it));
     } else if (canWrite) {
       kids.push(h('div', { className: 'actions' },
-        h('button', { className: 'btn accept', disabled: it.status === 'accepted',
-          onclick: function () { setStatus(it, 'accepted'); } }, '✓ Accept'),
-        h('button', { className: 'btn reject', disabled: it.status === 'rejected',
-          onclick: function () { setStatus(it, 'rejected'); } }, '✕ Reject'),
-        it.status !== 'proposed' ? h('button', { className: 'btn ghost',
-          onclick: function () { setStatus(it, 'proposed'); } }, '↺ Reset') : null,
-        h('button', { className: 'btn', onclick: function () { state.editingId = it.id; render(); } },
-          '✎ Edit')));
+        h('button', { className: 'link-action accent', disabled: it.status === 'accepted',
+          onclick: it.status === 'accepted' ? null : function () { setStatus(it, 'accepted'); } }, 'Accept'),
+        h('button', { className: 'link-action danger', disabled: it.status === 'rejected',
+          onclick: it.status === 'rejected' ? null : function () { setStatus(it, 'rejected'); } }, 'Reject'),
+        it.status !== 'proposed' ? h('button', { className: 'link-action',
+          onclick: function () { setStatus(it, 'proposed'); } }, 'Reset') : null,
+        h('button', { className: 'link-action', onclick: function () { state.editingId = it.id; render(); } },
+          'Edit')));
     }
 
     return h('div', {
-      className: 'card status-' + it.status + (it.pending_edit ? ' has-pending' : ''),
+      className: 'item status-' + it.status + (it.pending_edit ? ' has-pending' : ''),
     }, kids);
   }
 
@@ -386,7 +410,7 @@
       g.items.forEach(function (it) {
         var body = it.kind === 'rule' ? renderRuleBody(it)
           : h('div', { className: 'prose', html: blockMd(it.body) });
-        append(sec, h('div', { className: 'card' }, body));
+        append(sec, h('div', { className: 'item' }, body));
       });
       append(container, sec);
     });
@@ -421,18 +445,17 @@
   function renderChrome() {
     var who = $('#who');
     if (who) {
-      who.innerHTML = '';
       if (state.me.name) {
-        append(who, h('span', { className: 'who' }, state.me.name));
-        append(who, h('span', { className: 'role' },
-          state.me.can_write ? ' · editor (can write)' : ' · read-only'));
+        who.textContent = state.me.name + (state.me.can_write ? ' · editor' : ' · read-only');
       } else {
-        append(who, h('span', { className: 'role' }, 'not signed in'));
+        who.textContent = 'not signed in';
       }
     }
-    var fb = document.querySelectorAll('.filter-btn');
-    fb.forEach(function (b) {
+    document.querySelectorAll('.filter-btn').forEach(function (b) {
       b.classList.toggle('active', b.dataset.filter === state.filter);
+    });
+    document.querySelectorAll('.scope-filter-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.scope === state.scopeFilter);
     });
   }
 
@@ -458,6 +481,7 @@
   }
 
   function setStatus(it, status) { patchItem(it, { status: status }, 'Marked ' + status + '.'); }
+  function setScope(it, scope) { patchItem(it, { scope: scope }, 'Scope → ' + scope + '.'); }
   function toggleAuthor(it) {
     patchItem(it, { author_facing: !it.author_facing },
       it.author_facing ? 'Removed from authors\u2019 sheet.' : 'Added to authors\u2019 sheet.');
@@ -509,32 +533,12 @@
     toastTimer = setTimeout(function () { t.className = 'toast'; }, 2600);
   }
 
-  // ── Dark mode (self-contained; also cooperates with app-wide theme.js) ───
-  var TKEY = 'prodcal-theme-v1';
-  function loadDark() {
-    try { var t = JSON.parse(localStorage.getItem(TKEY)); return !!(t && t.dark); }
-    catch (e) { return false; }
+  // ── Theme (canonical theme.js owns font + dark state) ───────────
+  function mountTheme() {
+    var bar = $('#theme-bar');
+    if (bar && window.JdbbTheme) JdbbTheme.mount(bar);
   }
-  function saveDark(d) {
-    var t = {};
-    try { t = JSON.parse(localStorage.getItem(TKEY)) || {}; } catch (e) {}
-    t.dark = d;
-    try { localStorage.setItem(TKEY, JSON.stringify(t)); } catch (e) {}
-  }
-  function applyDark(d) {
-    document.documentElement.classList.toggle('dark', d);
-    var b = $('#dark-btn');
-    if (b) b.textContent = d ? '☀' : '☾';
-  }
-  function initDark() {
-    var d = loadDark();
-    applyDark(d);
-    var b = $('#dark-btn');
-    if (b) b.addEventListener('click', function () {
-      d = !document.documentElement.classList.contains('dark');
-      applyDark(d); saveDark(d);
-    });
-  }
+
 
   // ── Filters wiring (editor only) ─────────────────────────────
   function initFilters() {
@@ -544,11 +548,17 @@
         renderChrome(); render();
       });
     });
+    document.querySelectorAll('.scope-filter-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.scopeFilter = b.dataset.scope;
+        renderChrome(); render();
+      });
+    });
   }
 
   // ── Load ──────────────────────────────────────────────
   function boot() {
-    initDark();
+    mountTheme();
     if (MODE === 'editor') initFilters();
 
     if (DEMO) {
@@ -579,12 +589,12 @@
   var SAMPLE_ITEMS = [
     { id: 1, section_ord: 1, section: '1. House Style Basics', item_ord: 1, kind: 'rule',
       col1: 'Serial comma', col2: 'Use the **Oxford comma** in lists of three or more.',
-      col3: 'red, white, and blue', status: 'accepted', author_facing: true,
+      col3: 'red, white, and blue', status: 'accepted', scope: 'universal', author_facing: true,
       status_by: 'James Langdon (PI Editor)', status_at: '2026-07-10T12:00:00Z',
       updated_at: '2026-07-10T12:00:00Z', pending_edit: null },
     { id: 2, section_ord: 1, section: '1. House Style Basics', item_ord: 2, kind: 'rule',
       col1: 'Em dashes', col2: 'Use unspaced em dashes — like this — for breaks in thought.',
-      col3: 'She paused—then ran.', status: 'proposed', author_facing: false,
+      col3: 'She paused—then ran.', status: 'proposed', scope: 'zoothesia', author_facing: false,
       status_by: '', status_at: '', updated_at: '2026-07-11T09:00:00Z',
       pending_edit: { id: 91, item_id: 2, col1: 'Em dashes',
         col2: 'Use unspaced em dashes—like this—for a sharp break in thought.',
@@ -592,19 +602,19 @@
         proposed_by: 'JD (Publisher)', proposed_at: '2026-07-12T15:30:00Z', state: 'pending' } },
     { id: 3, section_ord: 1, section: '1. House Style Basics', item_ord: 3, kind: 'rule',
       col1: 'Numbers', col2: 'Spell out `zero` through `nine`; use numerals for 10+.',
-      col3: 'three cats, 42 dogs', status: 'rejected', author_facing: false,
+      col3: 'three cats, 42 dogs', status: 'rejected', scope: 'universal', author_facing: false,
       status_by: 'JD (Publisher)', status_at: '2026-07-09T08:00:00Z',
       updated_at: '2026-07-09T08:00:00Z', pending_edit: null },
     { id: 4, section_ord: 2, section: '2. Voice & Tone', item_ord: 1, kind: 'prose',
       col1: '', col2: '', col3: '',
       body: '## Preserve the author\u2019s voice\n\nThis is a *light* copy edit regime — fix mechanics, don\u2019t rewrite. When in doubt, **leave the author\u2019s choice**.\n\n- Fix clear errors of grammar and spelling.\n- Query, don\u2019t change, stylistic risks.\n- Keep curly quotes and em dashes as-is.\n\n> When in doubt, leave it alone.',
-      status: 'accepted', author_facing: true,
+      status: 'accepted', scope: 'universal', author_facing: true,
       status_by: 'James Langdon (PI Editor)', status_at: '2026-07-08T10:00:00Z',
       updated_at: '2026-07-08T10:00:00Z', pending_edit: null },
     { id: 5, section_ord: 2, section: '2. Voice & Tone', item_ord: 2, kind: 'prose',
       col1: '', col2: '', col3: '',
       body: 'Dialogue tags stay simple: `said` and `asked` do most of the work.',
-      status: 'proposed', author_facing: false, status_by: '', status_at: '',
+      status: 'proposed', scope: 'zoothesia', author_facing: false, status_by: '', status_at: '',
       updated_at: '2026-07-13T11:00:00Z',
       pending_edit: { id: 92, item_id: 5, col1: '', col2: '', col3: '',
         body: 'Dialogue tags stay simple: `said` and `asked` carry most scenes. Reserve fancy tags for real emphasis.',

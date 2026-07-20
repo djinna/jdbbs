@@ -7,47 +7,56 @@
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <script>
 (function(){ try {
+  var FONTS={jetbrains:1,martian:1,plex:1,geist:1,literata:1,'ibm-serif':1,'source-serif':1,newsreader:1};
+  var LEGACY={menlo:'jetbrains','ibm-sans':'geist'};
   var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
   if (t) {
     if (t.dark) document.documentElement.classList.add('dark');
-    var FONTS={literata:1,'ibm-serif':1,'source-serif':1,newsreader:1};
-    if (t.font && FONTS[t.font]) document.documentElement.setAttribute('data-font', t.font);
+    var f = LEGACY[t.font] || t.font;
+    if (f && FONTS[f]) document.documentElement.setAttribute('data-font', f);
   }
 } catch(e){} })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Source+Serif+4:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/theme.css?v=20260705a">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body class="authors">
-<div class="theme-bar">
-  <button type="button" class="dark-btn" id="dark-btn" title="Toggle dark mode">☾</button>
-</div>
-
 <div class="wrap">
-  <header class="masthead">
-    <div class="crumb">Protocolized Anthology · For Authors</div>
-    <h1 class="title">Authors’ Stylesheet</h1>
-    <div class="subline">
-      <span class="role">The tight sheet — accepted, author-facing items only.</span>
-    </div>
-    <div class="toolbar">
-      <a class="backlink" href="/stylesheet/">← Back to editor</a>
-      <span class="spacer"></span>
-      <div class="exports">
-        <a href="/stylesheet/authors.html">Download (.html)</a>
-        <span class="sep">·</span>
-        <a href="/stylesheet/authors.md">Download (.md)</a>
-      </div>
-    </div>
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav>
+      <a href="/stylesheet/">Editor view</a>
+      <div id="theme-bar"></div>
+    </nav>
   </header>
+  <div class="jdbb-statusline">
+    <span>Protocolized Anthology · For Authors</span>
+    <span>Accepted, author-facing items only</span>
+  </div>
+
+  <div class="page-head">
+    <span class="kicker">For Authors</span>
+    <h1 class="page-title">Authors’ Stylesheet</h1>
+    <p class="page-sub">The tight sheet — the essentials your editors want you to keep in mind.</p>
+  </div>
+
+  <hr class="rule-strong">
+
+  <div class="exports">
+    <span class="exports-label">Download</span>
+    <a class="link-action" href="/stylesheet/authors.html">.html</a>
+    <a class="link-action" href="/stylesheet/authors.md">.md</a>
+  </div>
 
   <main id="content"></main>
 </div>
 
 <div class="toast" id="toast"></div>
 <script>window.SS_MODE = 'authors';</script>
-<script src="app.js?v=1"></script>
+<script src="/static/theme.js?v=20260705a"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

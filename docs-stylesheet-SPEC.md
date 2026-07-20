@@ -29,6 +29,7 @@ Item {
   col3: string               // rule: "Example" column
   body: string               // prose: markdown text
   status: "proposed" | "accepted" | "rejected"
+  scope: "universal" | "zoothesia"   // universal -> org master sheet; else title archive
   author_facing: bool
   status_by: string          // display name
   status_at: string          // RFC3339 or ""
@@ -48,11 +49,18 @@ Edit {
 ## HTTP API (all JSON unless noted)
 GET  /api/stylesheet/items
      -> { items: [Item...], me: { email, name, can_write: bool } }
-PATCH /api/stylesheet/items/{id}      body {status?, author_facing?}  -> Item   (write)
+PATCH /api/stylesheet/items/{id}      body {status?, author_facing?, scope?}  -> Item   (write)
+     scope must be "universal" | "zoothesia" (400 otherwise).
 POST  /api/stylesheet/items           body {section_ord,section,kind,col1,col2,col3,body} -> Item (write)
 POST  /api/stylesheet/items/{id}/edits body {col1,col2,col3,body,note} -> Item (with pending_edit) (write)
 POST  /api/stylesheet/edits/{id}/accept  -> Item (applies edit to item) (write)
 POST  /api/stylesheet/edits/{id}/reject  -> Item (write)
+
+## Scope model
+Each item has a `scope`: `universal` (belongs in the org-wide PI master
+stylesheet, carried forward to future titles) or a title scope like `zoothesia`
+(book-specific, kept with that title's archive). Default `universal`. Migration
+020 adds the column. See book-production `docs/EDITORIAL-STYLESHEET-PROCESS.md`.
 
 ## Page routes
 GET /stylesheet/            -> editor SPA (static/stylesheet/index.html)
@@ -65,6 +73,14 @@ GET /stylesheet/authors.md  -> authors sheet markdown
 
 Authors' sheet filter: status == "accepted" AND author_facing == true.
 Working export: status == "accepted".
+
+### Scope-aware exports (query param)
+All four export endpoints accept an optional `?scope=universal` or
+`?scope=zoothesia`, which further restricts to items with that scope (invalid
+values are ignored = all scopes). Titles/filenames reflect the filter:
+- export.*?scope=universal -> "Master Editorial Stylesheet (universal)", pi-master-stylesheet.*
+- export.*?scope=zoothesia -> "Zoothesia Editorial Stylesheet (title-specific)", pi-zoothesia-stylesheet.*
+The master sheet is the accumulating org reference = export.md?scope=universal.
 
 ## Notes
 - Static files live in srv/static/stylesheet/ and are embedded via existing //go:embed static/* in srv/server.go.
