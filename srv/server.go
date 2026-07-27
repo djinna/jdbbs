@@ -247,6 +247,11 @@ func (s *Server) Handler() http.Handler {
 			s.serveLanding(w)
 			return
 		}
+		// /lg -> landing with a +20% type bump (review-only)
+		if len(parts) == 1 && parts[0] == "lg" {
+			s.serveStaticHTML(w, "static/landing-lg.html")
+			return
+		}
 		// /{client}/ -> client portal
 		if len(parts) == 1 {
 			if !strings.HasSuffix(path, "/") {
