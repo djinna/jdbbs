@@ -125,6 +125,15 @@ ul.shelf li:first-child{border-top:none;}
 ul.shelf .name{font-family:var(--mono); font-size:13px; color:var(--text); font-weight:600;}
 ul.shelf .hard{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:.06em; margin-left:.5rem;}
 
+/* zen garden gallery */
+.zg-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.4rem;}
+.zg-fig{margin:0; border:1px solid var(--border);}
+.zg-fig img{display:block; width:100%; height:auto; border-bottom:1px solid var(--border);}
+.zg-fig figcaption{font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--text-secondary); padding:.55rem .7rem;}
+.zg-fig figcaption b{color:var(--text); font-weight:600;}
+.zg-note{font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--text-muted); text-transform:uppercase; margin-top:.9rem;}
+@media(max-width:640px){ .zg-grid{grid-template-columns:1fr;} }
+
 /* footer */
 footer.site{
   display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap;
@@ -157,7 +166,7 @@ footer.site a:hover{color:var(--text);}
 
   <div class="jdbb-statusline">
     <span><span class="ok">●</span> Field notes · Language as protocol</span>
-    <span id="status-date">rev 2 · working</span>
+    <span id="status-date">rev 3 · working</span>
   </div>
 
   <div class="page-head">
@@ -209,6 +218,73 @@ footer.site a:hover{color:var(--text);}
     <p style="margin-top:1.4rem">And the move is one participants have <em>already made</em> without a name for it: in Word, <code>Modify style</code>; in Docs, <code>Update &lsquo;Heading&nbsp;1&rsquo; to match</code>. Redefine the style once → every instance in the document re-renders. That is <a href="#" onclick="return false" style="cursor:default;text-decoration:none;color:inherit"><b>CSS Zen Garden</b></a> — separation of layers — in a tool they already own.</p>
 
     <p class="small"><b>Why it matters for a book factory specifically.</b> Manuscripts arrive as <code>.docx</code> or Google Docs, so <em>ingest and normalization is literally Job&nbsp;#1 in production.</em> Whether the author used real styles or faked them with direct formatting is the difference between a clean import and a day of cleanup. “Select-all → Normal → re-tag semantically” is the real-world <b>Strip</b> step — in a tool everyone has open right now. This isn't an analogy for the work; it <em>is</em> the first hour of the work.</p>
+  </section>
+
+  <hr class="rule">
+
+  <!-- CURATED MIDDLE: this studio's own font selector -->
+  <section class="section">
+    <h2><span class="n">★</span> The curated middle — this studio's own font selector</h2>
+
+    <div class="star">
+      <span class="tag-star">running on the page you're reading</span>
+      <p>The bar at the top of this site is a <b>font picker</b>: eight typefaces in two labeled groups — <i>Mono/Sans</i> (JetBrains, Martian, Plex, Geist) and <i>Serif</i> (Literata, Plex Serif, Source Serif, Newsreader) — plus a dark toggle. Pick one and the <b>whole site</b> re-renders in that voice. It is the <em>curated answer</em> to the sizing problem the styles dropdown poses — and it's the page on the projector.</p>
+    </div>
+
+    <div class="map">
+      <span class="cell">you choose <code>data-font=“newsreader”</code></span>
+      <span class="op">→</span>
+      <span class="cell">CSS resolves the real family / fallback / size-adjust</span>
+    </div>
+
+    <div class="cap-row" style="border-top:1px solid var(--border-strong); margin-top:1.4rem;">
+      <span class="name">A name, not a stack</span>
+      <span class="desc">The UI stores <b>one semantic token</b> on the <code>&lt;html&gt;</code> element — <em>which voice</em>, not which font-family triple. The controlled-vocabulary move, exactly.</span>
+    </div>
+    <div class="cap-row">
+      <span class="name">Resolved once, elsewhere</span>
+      <span class="desc">One CSS map turns each token into its real declaration. Change the map → every page follows. <b>Separation of layers</b> — CSS Zen Garden, in production.</span>
+    </div>
+    <div class="cap-row">
+      <span class="name">Closed &amp; curated</span>
+      <span class="desc">Eight options, hand-grouped, each with a tuned preview size. You <b>can't</b> type an arbitrary font — and that restraint is the point. “As small as possible, but no smaller,” still spanning mono → sans → serif.</span>
+    </div>
+    <div class="cap-row">
+      <span class="name">Versioned</span>
+      <span class="desc">A tiny <b>alias map</b> silently upgrades retired tokens (<code>menlo→jetbrains</code>) so old saved preferences still resolve. <b>Deprecation with backward-compat</b>, live — the semver / rulebook-archive idea in one small object.</span>
+    </div>
+
+    <p style="margin-top:1.4rem">Set the three side by side and the whole spectrum snaps into focus: <b>Google Docs</b> (too small — meaning leaks into formatting) → <b>this picker</b> (the curated middle) → <b>MS Word</b> (too large — expressive but nothing enforces it). And the demo needs no narration: click <em>Literata</em> and this page becomes a book. The tool teaching protocolization is itself protocolized — the most honest possible credential.</p>
+  </section>
+
+  <hr class="rule">
+
+  <!-- CSS ZEN GARDEN: the canonical separation-of-layers demo -->
+  <section class="section">
+    <h2><span class="n">★</span> The canonical proof — CSS Zen Garden</h2>
+
+    <div class="star">
+      <span class="tag-star">one HTML file · infinite renders · still live since 2003</span>
+      <p>Every design below is the <b>exact same HTML file</b> — not one character changed. Only the stylesheet swaps. That is <em>separation of layers</em> in its purest, most persuasive form: the semantic source is fixed and meaningful, and appearance is a swappable, downstream decision. It's the single flip that makes the whole thesis undeniable — and <a href="https://www.csszengarden.com/">csszengarden.com</a> is <em>still online</em>, unchanged in spirit for two decades.</p>
+    </div>
+
+    <div class="zg-grid">
+      <figure class="zg-fig">
+        <img src="/static/img/zengarden-default.jpg" alt="CSS Zen Garden default green 'zen' design" loading="lazy">
+        <figcaption><b>Default</b> — the original zen design</figcaption>
+      </figure>
+      <figure class="zg-fig">
+        <img src="/static/img/zengarden-midcentury.jpg" alt="CSS Zen Garden 'Mid Century Modern' design: pink, teal, geometric" loading="lazy">
+        <figcaption><b>Mid Century Modern</b> · A. Lohman</figcaption>
+      </figure>
+      <figure class="zg-fig">
+        <img src="/static/img/zengarden-steel.jpg" alt="CSS Zen Garden 'Steel' design: dark industrial photography" loading="lazy">
+        <figcaption><b>Steel</b> · S. Knöller</figcaption>
+      </figure>
+    </div>
+    <p class="zg-note">Same <code>&lt;h1&gt;</code>, same paragraphs, same list — three stylesheets.</p>
+
+    <p style="margin-top:1.4rem">This is the mechanism underneath everything else on this page. The styles dropdown, the studio's font picker, a book factory's stylesheet, an ABS rulebook — all of them work because <b>“what a thing is” is stored once, and “how it looks” is resolved separately and swappably.</b> Zen Garden just makes the swap visible in a single click. Browse the living gallery: <a href="https://www.csszengarden.com/">csszengarden.com</a> · the fixed source: <a href="https://www.csszengarden.com/examples/index">HTML</a> / <a href="https://www.csszengarden.com/examples/style.css">CSS</a>.</p>
   </section>
 
   <hr class="rule">
