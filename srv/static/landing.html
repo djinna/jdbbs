@@ -253,6 +253,32 @@ body {
 }
 .spec-group .spec-val .op { color: var(--accent); }
 
+/* ---- resources strip (small links above footer) ---- */
+.resources {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  padding: 20px 0 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.resources .res-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.resources a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  padding: 8px 0;
+}
+.resources a:hover { color: var(--accent); }
+
 /* ---- footer ---- */
 footer.site {
   display: flex;
@@ -463,6 +489,14 @@ footer.site a:hover { color: var(--text); }
       <span class="spec-val">shared calendar &middot; scheduled digests</span>
     </div>
   </section>
+  <hr class="rule">
+
+  <!-- resources strip -->
+  <nav class="resources" aria-label="Resources">
+    <span class="res-label">Resources</span>
+    <a href="/stylesheet/">Editorial stylesheet</a>
+    <a href="/field-notes">Field notes: language as protocol</a>
+  </nav>
   <hr class="rule">
 
   <!-- footer -->

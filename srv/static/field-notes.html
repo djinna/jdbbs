@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Language as Protocol — Examples in the Wild · [jdbb] studio</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<script>
+/* Theme bootstrap: honor the site's stored theme when served on-site; harmless standalone. */
+(function(){ try {
+  var FONTS={jetbrains:1,martian:1,plex:1,geist:1,literata:1,'ibm-serif':1,'source-serif':1,newsreader:1};
+  var LEGACY={menlo:'jetbrains','ibm-sans':'geist'};
+  var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (t) {
+    if (t.dark) document.documentElement.classList.add('dark');
+    var f = LEGACY[t.font] || t.font;
+    if (f && FONTS[f]) document.documentElement.setAttribute('data-font', f);
+  }
+} catch(e){} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Terminal Folio tokens (inlined subset of the studio's theme.css so this
+      page renders identically whether opened as a file or served on-site).
+      cardless ledger · hairline rules · zero radius/shadow/gradient. ── */
+:root{
+  --bg:#F7F9FA; --surface:#FFF; --border:#DCE3E8; --border-strong:#0E1116;
+  --text:#0E1116; --text-secondary:#5D6B76; --text-muted:#8A97A1;
+  --accent:#007699; --green:#2F7D4F; --red:#B3261E; --yellow:#8A6A00;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --body:"Inter",-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+html.dark{
+  --bg:#0C0E12; --surface:#12151B; --border:#232833; --border-strong:#3A404D;
+  --text:#E8E6E1; --text-secondary:#8B909A; --text-muted:#6A707B;
+  --accent:#3BC3F2; --green:#6BBF73; --red:#E5484D; --yellow:#D5A021;
+}
+html[data-font="jetbrains"]{--body:"JetBrains Mono","SFMono-Regular",Menlo,monospace;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:var(--bg);}
+body{
+  font-family:var(--body); color:var(--text); background:var(--bg);
+  line-height:1.6; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.wrap{max-width:920px; margin:0 auto; padding:0 1.5rem 4rem;}
+
+/* masthead */
+.jdbb-masthead{
+  display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding:18px 0 14px; border-bottom:1px solid var(--border); font-family:var(--mono);
+  flex-wrap:wrap;
+}
+.jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none; white-space:nowrap;}
+.jdbb-wordmark .bracket{color:var(--accent);}
+.jdbb-wordmark .kj{letter-spacing:-.08em;}
+.jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
+.jdbb-masthead nav{display:flex; align-items:center; gap:1.4rem; font-size:12px;}
+.jdbb-masthead nav a{color:var(--text-secondary); text-decoration:none; padding:6px 0; border-bottom:1px solid transparent;}
+.jdbb-masthead nav a:hover{color:var(--text); border-bottom-color:var(--accent);}
+#theme-toggle{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:6px 0;}
+#theme-toggle:hover{color:var(--accent);}
+
+/* statusline */
+.jdbb-statusline{
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 24px;
+  padding:12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+  color:var(--text-muted); text-transform:uppercase;
+}
+.jdbb-statusline .ok{color:var(--green);}
+
+/* page head */
+.page-head{margin:2rem 0 .4rem;}
+.kicker{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:1rem;}
+.page-title{font-family:var(--mono); font-weight:600; font-size:clamp(26px,5vw,40px); line-height:1.2; letter-spacing:-.015em; max-width:24ch;}
+.lede{font-size:17px; line-height:1.7; color:var(--text-secondary); max-width:66ch; margin-top:1.4rem;}
+.lede em{font-style:normal; color:var(--text);}
+
+hr.rule{border:none; border-top:1px solid var(--border); margin:2.6rem 0 0;}
+hr.rule-strong{border:none; border-top:1px solid var(--border-strong); margin:2.6rem 0 0;}
+
+/* section */
+.section{margin-top:2.6rem;}
+.section > h2{
+  font-family:var(--mono); font-size:13px; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--text); padding-bottom:.6rem;
+  border-bottom:1px solid var(--border-strong); margin-bottom:.4rem;
+}
+.section > h2 .n{color:var(--text-muted); margin-right:.7rem;}
+.section p{margin-top:1.1rem; max-width:70ch;}
+.section p.small{font-size:14px; color:var(--text-secondary);}
+.section a{color:var(--accent); text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; overflow-wrap:anywhere;}
+.section a:hover{color:var(--text);}
+
+/* star callout — a ruled block, not a card */
+.star{margin-top:1.4rem; padding-left:1.1rem; border-left:2px solid var(--accent);}
+.star .tag-star{font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--accent); text-transform:uppercase;}
+
+/* ledger table */
+.ledger{width:100%; border-collapse:collapse; margin-top:1.3rem; font-size:14px;}
+.ledger th, .ledger td{text-align:left; vertical-align:top; padding:.7rem .9rem .7rem 0; border-top:1px solid var(--border);}
+.ledger thead th{border-top:none; border-bottom:1px solid var(--border-strong); font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600;}
+.ledger td.id, .ledger td.status{font-family:var(--mono); font-size:12px; white-space:nowrap;}
+.ledger td.status{color:var(--yellow); letter-spacing:.08em;}
+.ledger td.detail{color:var(--text-secondary);}
+.ledger code{font-family:var(--mono); font-size:.92em; color:var(--text); background:none;}
+
+/* map (finding -> style) */
+.map{display:flex; flex-wrap:wrap; gap:.6rem 1rem; align-items:center; margin-top:1.4rem; font-family:var(--mono); font-size:13px;}
+.map .cell{padding:.55rem .8rem; border:1px solid var(--border); color:var(--text);}
+.map .op{color:var(--accent); font-weight:600;}
+
+/* concept rows */
+.cap-row{display:grid; grid-template-columns:150px 1fr; column-gap:1.4rem; align-items:baseline; padding:1rem 0; border-top:1px solid var(--border);}
+.cap-row:last-child{border-bottom:1px solid var(--border);}
+.cap-row .name{font-family:var(--mono); font-size:14px; font-weight:600; color:var(--text);}
+.cap-row .desc{color:var(--text-secondary); font-size:14px;}
+.cap-row .desc b{color:var(--text); font-weight:600;}
+
+/* shelf list */
+ul.shelf{list-style:none; margin-top:1.1rem;}
+ul.shelf li{padding:.75rem 0; border-top:1px solid var(--border); font-size:14px; color:var(--text-secondary);}
+ul.shelf li:first-child{border-top:none;}
+ul.shelf .name{font-family:var(--mono); font-size:13px; color:var(--text); font-weight:600;}
+ul.shelf .hard{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:.06em; margin-left:.5rem;}
+
+/* footer */
+footer.site{
+  display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap;
+  gap:4px 24px; padding:24px 0 8px; margin-top:3rem; border-top:1px solid var(--border);
+  font-family:var(--mono); font-size:12px; letter-spacing:.04em; color:var(--text-muted);
+}
+footer.site .fm{color:var(--text); font-weight:700; text-decoration:none;}
+footer.site .fm .bracket{color:var(--accent);}
+footer.site .fm .kj{letter-spacing:-.08em;}
+footer.site a{color:var(--text-secondary); text-decoration:underline; text-underline-offset:3px;}
+footer.site a:hover{color:var(--text);}
+
+@media(max-width:640px){
+  .cap-row{grid-template-columns:1fr; row-gap:.3rem;}
+  .ledger td.id{white-space:normal;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav>
+      <a href="/">Studio</a>
+      <a href="/stylesheet/">Stylesheet</a>
+      <button id="theme-toggle" aria-label="Toggle dark mode">◐ Theme</button>
+    </nav>
+  </header>
+
+  <div class="jdbb-statusline">
+    <span><span class="ok">●</span> Field notes · Language as protocol</span>
+    <span id="status-date">rev 1 · working</span>
+  </div>
+
+  <div class="page-head">
+    <span class="kicker">Book Factory Workshop · Source material</span>
+    <h1 class="page-title">Language as protocol — examples in the wild.</h1>
+    <p class="lede">Written language has always been a <em>protocol stack</em>. A book-production factory just makes one layer — the stylesheet — visible and ownable. Here are real-world systems where language is already run as a strict protocol: <em>controlled vocabularies, typed interfaces, conformance regimes, versioned specs</em>. Field material for the workshop's lectures, demos, and the moment it clicks that this is everywhere.</p>
+  </div>
+
+  <hr class="rule-strong">
+
+  <!-- STAR: ABS / marine classification -->
+  <section class="section">
+    <h2><span class="n">★</span> Conformance on hard mode — marine classification review</h2>
+
+    <div class="star">
+      <span class="tag-star">star example · stylesheets on hard mode</span>
+      <p>Marine <b>classification societies</b> (e.g. the American Bureau of Shipping) publish <em>versioned engineering rulebooks</em> — <i>Rules for Building and Classing Marine Vessels</i>, lifting-appliance requirements, and so on. When a shipyard submits engineering documents, surveyors return a <b>findings log</b>: a table of discrete, numbered conditions, each citing the exact rule clause the submission fails to satisfy. Every finding must be <em>closed</em> before the vessel is granted class.</p>
+    </div>
+
+    <p>That is <em>exactly</em> a stylesheet preflight — but in a domain where the stakes are lives and steel instead of curly quotes. A representative findings log looks like this:</p>
+
+    <table class="ledger">
+      <thead><tr><th>Finding</th><th>Type</th><th>Description</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="id">EQUP-0008</td><td>Technical</td>
+          <td class="detail">Rope line-pull analysis uses friction-loss constant <code>K=1.045</code>. Per the lifting-appliance rules that value is for <b>bronze-bearing</b> sheaves; for roller/ball bearings <code>K</code> shall not be less than <code>1.02</code>. Please address.</td>
+          <td class="status">OPEN</td>
+        </tr>
+        <tr>
+          <td class="id">EQUP-0009</td><td>Technical</td>
+          <td class="detail">Submit hydraulic-piping detail: component cut sheets per <code>4-6-7/3</code>; valve compliance/materials/pressure per <code>4-6-7/3.5.3</code>; pipe schedule; hose &amp; hose-end fitting IDs per <code>4-6-7/3.5.2</code>.</td>
+          <td class="status">OPEN</td>
+        </tr>
+        <tr>
+          <td class="id">EQUP-0011</td><td>Technical</td>
+          <td class="detail">Redundancy calcs showing the A-frame sustains rated load on a single pair of hydraulic cylinders after loss of the second pair, per <code>2-9/9(ii)</code>; mode selection per <code>2-9/11</code>; personnel recovery per <code>2-9/13</code>; updated load charts.</td>
+          <td class="status">OPEN</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Illustrative rows, adapted from real classification-review practice.</p>
+
+    <p>Read that as a stylesheet and the isomorphism is total:</p>
+
+    <div class="map">
+      <span class="cell">rule clause <code>4-6-7/3.5.3</code></span>
+      <span class="op">≡</span>
+      <span class="cell">a style name (Heading / Epigraph / Verse)</span>
+    </div>
+    <div class="map">
+      <span class="cell">findings log (ID · type · cited description · OPEN)</span>
+      <span class="op">≡</span>
+      <span class="cell">preflight edge-case report</span>
+    </div>
+    <div class="map">
+      <span class="cell">close a finding — or file a formal variance</span>
+      <span class="op">≡</span>
+      <span class="cell">Keep / Strip / Convert (deviation that presupposes the rule)</span>
+    </div>
+
+    <p>It is <b>“hard mode”</b> because the citations nest to absurd depth (<code>2-9/9(ii)</code>), the vocabulary is unforgiving, and non-conformance is not a style nit — the vessel doesn't sail. It makes the whole abstract argument visceral: this is what a controlled vocabulary looks like when it is <em>load-bearing</em>. And the rulebook <b>archives</b> — superseded editions kept on file, a submission judged against the edition in force at contract date — are versioned, inheritable protocols with backward compatibility, running live in industry.</p>
+
+    <p class="small"><b>Public sources (safe to cite &amp; show):</b>
+      <a href="https://parismou.org/PMoU-Procedures/Library/inspection-results">Paris MoU Port State Control</a> is the closest <em>public</em> marine twin — inspectors record coded, convention-cited deficiencies plus an explicit “action taken” status vocabulary (<code>17 rectify before departure</code>, <code>16 within 14 days</code>, <code>30 detainable</code>): our finding schema <em>and</em> our OPEN/closed vocabulary, in the open.
+      The rulebook side: <a href="https://ww2.eagle.org/en/rules-and-resources/rules-and-guides/archives.html">ABS Rules &amp; Guides archives</a>.
+    </p>
+  </section>
+
+  <!-- concepts -->
+  <section class="section">
+    <h2><span class="n">01</span> The protocol concepts these make concrete</h2>
+    <div class="cap-row"><span class="name">Typed interface</span><span class="desc">A structured <b>handshake</b> you fill in up front — a transmittal, a customs declaration, a submission packet — that parameterizes everything downstream.</span></div>
+    <div class="cap-row"><span class="name">Controlled vocabulary</span><span class="desc">You mark <b>what a thing is</b>, not how it looks. Appearance is decided once, then applied deterministically.</span></div>
+    <div class="cap-row"><span class="name">Conformance / linting</span><span class="desc">A first-class, reviewable check that <b>negotiates rather than rejects</b> messy human input — the findings log, the linter, the desk-reject checklist.</span></div>
+    <div class="cap-row"><span class="name">Layered determinism</span><span class="desc">One semantic source → a format-independent intermediate → <b>many faithful outputs</b>.</span></div>
+    <div class="cap-row"><span class="name">Versioned protocols</span><span class="desc">Specs that <b>evolve without breaking their children</b> — editions, supersessions, semver, house-style revisions.</span></div>
+  </section>
+
+  <!-- shelf -->
+  <section class="section">
+    <h2><span class="n">02</span> The starter shelf — other candidates</h2>
+    <p class="small">Grouped by the concept each best illustrates. Hardness: ⚙ light · ⚙⚙ real · ⚙⚙⚙ hard mode.</p>
+
+    <p class="kicker" style="margin-top:1.6rem">Conformance / linting regimes</p>
+    <ul class="shelf">
+      <li><span class="name">Paris MoU Port State Control</span><span class="hard">⚙⚙⚙</span> — public marine twin of the classification findings log; coded, convention-cited deficiencies + an explicit “action taken” status vocabulary.</li>
+      <li><span class="name">FAA Airworthiness Directives</span><span class="hard">⚙⚙⚙</span> — numbered, clause-cited, must-close findings against a versioned spec; new directives routinely <em>supersede</em> old ones. Fully public via the Federal Register.</li>
+      <li><span class="name">Building-code plan review</span><span class="hard">⚙⚙</span> — a permit set bounced back with code citations; the most relatable version of the pattern.</li>
+      <li><span class="name">Journal desk-reject checklists</span><span class="hard">⚙⚙</span> — formatting/citation conformance gating <em>before</em> peer review even starts. On-the-nose for writers.</li>
+      <li><span class="name">CI linters &amp; pre-commit hooks</span><span class="hard">⚙⚙</span> — <code>gofmt</code>, ESLint, <code>ruff</code>: “the build won't merge until you conform.”</li>
+    </ul>
+
+    <p class="kicker" style="margin-top:1.6rem">Controlled vocabularies</p>
+    <ul class="shelf">
+      <li><span class="name">ICAO standard phraseology</span><span class="hard">⚙⚙</span> — a spoken controlled vocabulary engineered so meaning survives noise (“Roger / Wilco / Say again”).</li>
+      <li><span class="name">ICD-10 / SNOMED medical coding</span><span class="hard">⚙⚙⚙</span> — you can only say what the codebook lets you say, with care and billing consequences.</li>
+      <li><span class="name">MARC records + LCSH</span><span class="hard">⚙⚙</span> — a book <em>is</em> a controlled-vocabulary record inside a library's protocol.</li>
+      <li><span class="name">Bluebook legal citation</span><span class="hard">⚙⚙</span> — a rulebook whose whole job is making references machine-resolvable.</li>
+    </ul>
+
+    <p class="kicker" style="margin-top:1.6rem">Separation of layers · versioning · machine authors</p>
+    <ul class="shelf">
+      <li><span class="name">CSS Zen Garden</span><span class="hard">⚙⚙</span> — one HTML source, radically different renders, controlled entirely by the stylesheet. The whole thesis in one flip.</li>
+      <li><span class="name">JATS / DocBook / DITA</span><span class="hard">⚙⚙</span> — publishing-native proof that “structure, not presentation” is already industrial practice.</li>
+      <li><span class="name">Semantic Versioning</span><span class="hard">⚙⚙</span> — the crisp statement of backward-compatibility-as-contract.</li>
+      <li><span class="name">JSON-schema-constrained generation</span><span class="hard">⚙⚙</span> — an LLM <em>forced</em> to emit conformant output: the machine-side mirror of preflight, with no special path.</li>
+    </ul>
+  </section>
+
+  <hr class="rule">
+
+  <section class="section">
+    <p class="small">Part of the <b>Protocolize Your Book</b> workshop — a working book-production factory reframed as a protocol stack. Written language has always been protocolized; a stylesheet is just the layer writers can see and own.</p>
+  </section>
+
+  <footer class="site">
+    <a class="fm" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <span>Field notes · © 2026 Jenna Dixon</span>
+  </footer>
+
+</div>
+
+<script>
+/* Minimal theme toggle: persists to the same key the studio site uses. */
+(function(){
+  var btn = document.getElementById('theme-toggle');
+  if(!btn) return;
+  btn.addEventListener('click', function(){
+    var dark = document.documentElement.classList.toggle('dark');
+    var cur = {};
+    try { cur = JSON.parse(localStorage.getItem('prodcal-theme-v1')) || {}; } catch(e){}
+    cur.dark = dark;
+    try { localStorage.setItem('prodcal-theme-v1', JSON.stringify(cur)); } catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

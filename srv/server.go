@@ -229,6 +229,11 @@ func (s *Server) Handler() http.Handler {
 	// PI editorial stylesheet review tool (explicit routes, before SPA catch-all).
 	s.registerStylesheetRoutes(mux)
 
+	// Field notes: Language-as-protocol examples (workshop source material).
+	mux.HandleFunc("GET /field-notes", func(w http.ResponseWriter, r *http.Request) {
+		s.serveStaticHTML(w, "static/field-notes.html")
+	})
+
 	// Root: always show landing page
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		s.serveLanding(w)
@@ -319,6 +324,16 @@ func (s *Server) serveClientPortal(w http.ResponseWriter) {
 	data, err := staticFS.ReadFile("static/client.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
+}
+
+func (s *Server) serveStaticHTML(w http.ResponseWriter, name string) {
+	data, err := staticFS.ReadFile(name)
+	if err != nil {
+		http.Error(w, "not found", 404)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
