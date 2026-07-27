@@ -157,7 +157,7 @@ footer.site a:hover{color:var(--text);}
 
   <div class="jdbb-statusline">
     <span><span class="ok">●</span> Field notes · Language as protocol</span>
-    <span id="status-date">rev 1 · working</span>
+    <span id="status-date">rev 2 · working</span>
   </div>
 
   <div class="page-head">
@@ -168,12 +168,57 @@ footer.site a:hover{color:var(--text);}
 
   <hr class="rule-strong">
 
+  <!-- NEAR POLE: the styles dropdown everyone already uses -->
+  <section class="section">
+    <h2><span class="n">★</span> The controlled vocabulary you already use — the styles dropdown</h2>
+
+    <div class="star">
+      <span class="tag-star">near pole · everyone's Tuesday</span>
+      <p>Every word processor ships a <b>paragraph-styles menu</b> — the little dropdown that says <i>Normal text / Heading 1 / Title</i>. It is the most-used controlled vocabulary on Earth, and almost nobody who uses it thinks of it as one. <em>You already mark <b>what a thing is</b> and let the tool decide how it looks.</em> The instructive part is how differently two everyday tools size that menu — because the gap between them contains the entire design theory.</p>
+    </div>
+
+    <div class="map">
+      <span class="cell">“Heading 1” in the dropdown</span>
+      <span class="op">≡</span>
+      <span class="cell">a style name (rule clause / stylesheet tag)</span>
+    </div>
+
+    <div class="cap-row" style="border-top:1px solid var(--border-strong); margin-top:1.4rem;">
+      <span class="name">Google&nbsp;Docs<br><span style="color:var(--text-muted);font-weight:400">the tiny palette</span></span>
+      <span class="desc">≈ six choices — <b>Normal text, Title, Subtitle, Heading&nbsp;1–3</b> (4–6 hidden). <b>No character styles, no custom named styles</b> — you can't invent an “Epigraph” or “Verse.” You can only <em>redefine</em> the six you're given. A deliberately small, <em>closed</em> vocabulary.</span>
+    </div>
+    <div class="cap-row">
+      <span class="name">MS&nbsp;Word<br><span style="color:var(--text-muted);font-weight:400">the massive palette</span></span>
+      <span class="desc"><b>Dozens</b> of built-ins — Heading&nbsp;1–9, Title, Subtitle, Emphasis/Strong, Quote/Intense Quote, Book Title, Caption, List Paragraph… — across <b>five style types</b> (paragraph, character, <b>linked</b>, table, list), with <b>inheritance</b>, a <b>“style for the following paragraph”</b> rule, and <b>unlimited custom styles</b>. A large, self-describing, evolvable vocabulary.</span>
+    </div>
+
+    <p style="margin-top:1.4rem">The leap from the Google Docs <b>six</b> to Word's <b>hundreds</b> is the whole controlled-vocabulary problem in miniature:</p>
+    <div class="cap-row" style="border-top:1px solid var(--border);">
+      <span class="name">Too small</span>
+      <span class="desc">No slot for <em>epigraph, verse, dedication, pull-quote</em> → authors <b>smuggle</b> those meanings in as <b>direct formatting</b> (bold, center, manual indent). Semantics leak into presentation — the <b>fake heading</b>, the single most common preflight finding, reproduced here as an <em>inevitability of an undersized palette</em>, not author laziness.</span>
+    </div>
+    <div class="cap-row">
+      <span class="name">Too large</span>
+      <span class="desc">Word can express almost anything — but <b>nothing enforces consistency</b>. Two authors invent two taxonomies; the same look is reached five ways; direct formatting silently overrides the style. Expressiveness <em>without a conformance regime</em> is its own failure mode.</span>
+    </div>
+    <div class="cap-row">
+      <span class="name">The resolution</span>
+      <span class="desc">A <b>curated</b> vocabulary — as small as possible but no smaller — <b>plus</b> a preflight that enforces “mark what it is, never format directly.” Word gives the <em>tools</em> but no <em>discipline</em>; Google Docs gives the <em>discipline of scarcity</em> but no <em>expressiveness</em>. A book factory supplies the missing half to each.</span>
+    </div>
+
+    <p style="margin-top:1.4rem">And the move is one participants have <em>already made</em> without a name for it: in Word, <code>Modify style</code>; in Docs, <code>Update &lsquo;Heading&nbsp;1&rsquo; to match</code>. Redefine the style once → every instance in the document re-renders. That is <a href="#" onclick="return false" style="cursor:default;text-decoration:none;color:inherit"><b>CSS Zen Garden</b></a> — separation of layers — in a tool they already own.</p>
+
+    <p class="small"><b>Why it matters for a book factory specifically.</b> Manuscripts arrive as <code>.docx</code> or Google Docs, so <em>ingest and normalization is literally Job&nbsp;#1 in production.</em> Whether the author used real styles or faked them with direct formatting is the difference between a clean import and a day of cleanup. “Select-all → Normal → re-tag semantically” is the real-world <b>Strip</b> step — in a tool everyone has open right now. This isn't an analogy for the work; it <em>is</em> the first hour of the work.</p>
+  </section>
+
+  <hr class="rule">
+
   <!-- STAR: ABS / marine classification -->
   <section class="section">
     <h2><span class="n">★</span> Conformance on hard mode — marine classification review</h2>
 
     <div class="star">
-      <span class="tag-star">star example · stylesheets on hard mode</span>
+      <span class="tag-star">far pole · stylesheets on hard mode</span>
       <p>Marine <b>classification societies</b> (e.g. the American Bureau of Shipping) publish <em>versioned engineering rulebooks</em> — <i>Rules for Building and Classing Marine Vessels</i>, lifting-appliance requirements, and so on. When a shipyard submits engineering documents, surveyors return a <b>findings log</b>: a table of discrete, numbered conditions, each citing the exact rule clause the submission fails to satisfy. Every finding must be <em>closed</em> before the vessel is granted class.</p>
     </div>
 
@@ -253,6 +298,7 @@ footer.site a:hover{color:var(--text);}
 
     <p class="kicker" style="margin-top:1.6rem">Controlled vocabularies</p>
     <ul class="shelf">
+      <li><span class="name">Google Docs vs. MS Word styles</span><span class="hard">⚙</span> — the most accessible controlled vocabulary in the world, and the one every participant already uses. The six-choice palette vs. the hundreds-deep one <em>is</em> the vocabulary-sizing problem. See the featured entry above.</li>
       <li><span class="name">ICAO standard phraseology</span><span class="hard">⚙⚙</span> — a spoken controlled vocabulary engineered so meaning survives noise (“Roger / Wilco / Say again”).</li>
       <li><span class="name">ICD-10 / SNOMED medical coding</span><span class="hard">⚙⚙⚙</span> — you can only say what the codebook lets you say, with care and billing consequences.</li>
       <li><span class="name">MARC records + LCSH</span><span class="hard">⚙⚙</span> — a book <em>is</em> a controlled-vocabulary record inside a library's protocol.</li>
