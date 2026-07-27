@@ -31,16 +31,17 @@
   --accent:#007699; --green:#2F7D4F; --red:#B3261E; --yellow:#8A6A00;
   --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
   --body:"Inter",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-size-adjust:none;
 }
 html.dark{
   --bg:#0C0E12; --surface:#12151B; --border:#232833; --border-strong:#3A404D;
   --text:#E8E6E1; --text-secondary:#8B909A; --text-muted:#6A707B;
   --accent:#3BC3F2; --green:#6BBF73; --red:#E5484D; --yellow:#D5A021;
 }
-/* Font selector remaps both aliases so the whole page — wordmark included —
-   commits to one voice. Mirrors theme.css. */
+/* Site-font map — same tokens the studio's theme.css switches (this page is
+   itself the "curated middle" example, so it carries the live selector). */
 html[data-font="jetbrains"]{--mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace; --body:"JetBrains Mono","SFMono-Regular",Menlo,monospace;}
-html[data-font="martian"]{--mono:"Martian Mono","SFMono-Regular",Menlo,monospace; --body:"Martian Mono","SFMono-Regular",Menlo,monospace;}
+html[data-font="martian"]{--mono:"Martian Mono","SFMono-Regular",Menlo,monospace; --body:"Martian Mono","SFMono-Regular",Menlo,monospace; --font-size-adjust:0.52;}
 html[data-font="plex"]{--mono:"IBM Plex Sans",-apple-system,sans-serif; --body:"IBM Plex Sans",-apple-system,sans-serif;}
 html[data-font="geist"]{--mono:"Geist",-apple-system,sans-serif; --body:"Geist",-apple-system,sans-serif;}
 html[data-font="literata"]{--mono:"Literata",Georgia,serif; --body:"Literata",Georgia,serif;}
@@ -48,7 +49,7 @@ html[data-font="ibm-serif"]{--mono:"IBM Plex Serif",Georgia,serif; --body:"IBM P
 html[data-font="source-serif"]{--mono:"Source Serif 4",Georgia,serif; --body:"Source Serif 4",Georgia,serif;}
 html[data-font="newsreader"]{--mono:"Newsreader",Georgia,serif; --body:"Newsreader",Georgia,serif;}
 *{margin:0;padding:0;box-sizing:border-box;}
-html{background:var(--bg);}
+html{background:var(--bg); font-size-adjust:var(--font-size-adjust);}
 body{
   font-family:var(--body); color:var(--text); background:var(--bg);
   line-height:1.6; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
@@ -63,22 +64,11 @@ body{
 }
 .jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none; white-space:nowrap;}
 .jdbb-wordmark .bracket{color:var(--accent);}
+.jdbb-wordmark .kj{letter-spacing:-.08em;}
 .jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
-/* Tight -0.08em kern on the leading "j" only suits monospace faces; the
-   proportional sans/serif options squash with it, so they keep normal
-   spacing. Mirrors theme.css. */
-.jdbb-wordmark .kj{letter-spacing:0;}
-html[data-font="jetbrains"] .jdbb-wordmark .kj,
-html[data-font="martian"] .jdbb-wordmark .kj{letter-spacing:-.08em;}
-html[data-font="literata"] .jdbb-wordmark,
-html[data-font="ibm-serif"] .jdbb-wordmark,
-html[data-font="source-serif"] .jdbb-wordmark,
-html[data-font="newsreader"] .jdbb-wordmark{letter-spacing:.04em;}
 .jdbb-masthead nav{display:flex; align-items:center; gap:1.4rem; font-size:12px;}
 .jdbb-masthead nav a{color:var(--text-secondary); text-decoration:none; padding:6px 0; border-bottom:1px solid transparent;}
 .jdbb-masthead nav a:hover{color:var(--text); border-bottom-color:var(--accent);}
-#theme-toggle{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:6px 0;}
-#theme-toggle:hover{color:var(--accent);}
 
 /* statusline */
 .jdbb-statusline{
@@ -90,7 +80,13 @@ html[data-font="newsreader"] .jdbb-wordmark{letter-spacing:.04em;}
 
 /* page head */
 .page-head{margin:2rem 0 .4rem;}
-.kicker{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:1rem;}
+/* Kicker — the studio's louder ledger label: accent ink, weight 600, // prefix. */
+.kicker{font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:1rem;}
+.kicker::before{content:"// "; color:var(--accent);}
+/* Shelf sub-labels honor the 3:2 above/below rhythm: 1.8rem over 1.2rem, and
+   the label owns the space to the list it introduces. */
+.kicker.sub{margin:1.8rem 0 1.2rem;}
+.kicker.sub + ul.shelf{margin-top:0;}
 .page-title{font-family:var(--mono); font-weight:600; font-size:clamp(26px,5vw,40px); line-height:1.2; letter-spacing:-.015em; max-width:24ch;}
 .lede{font-size:17px; line-height:1.7; color:var(--text-secondary); max-width:66ch; margin-top:1.4rem;}
 .lede em{font-style:normal; color:var(--text);}
@@ -141,7 +137,45 @@ ul.shelf{list-style:none; margin-top:1.1rem;}
 ul.shelf li{padding:.75rem 0; border-top:1px solid var(--border); font-size:14px; color:var(--text-secondary);}
 ul.shelf li:first-child{border-top:none;}
 ul.shelf .name{font-family:var(--mono); font-size:13px; color:var(--text); font-weight:600;}
+a.name{text-decoration:underline; text-decoration-color:var(--border-strong); text-underline-offset:3px; text-decoration-thickness:1px;}
+a.name:hover{color:var(--accent); text-decoration-color:var(--accent);}
 ul.shelf .hard{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:.06em; margin-left:.5rem;}
+
+/* theme bar (live font selector + dark toggle) — mirrors theme.css so the
+   masthead widget renders identically on-site and this page can BE the
+   "curated middle" example it describes. */
+.theme-bar{position:relative; display:flex; align-items:center; gap:.65rem; font-family:var(--mono); font-size:12px; color:var(--text-secondary);}
+.theme-bar .font-name{width:146px; min-width:146px; border:none; background:none; padding:0; color:var(--text-secondary); cursor:pointer; font-family:var(--mono); font-size:12px; text-align:left; white-space:nowrap;}
+.theme-bar .font-name:hover{color:var(--text);}
+.theme-bar .font-name::before{content:"Aa "; color:var(--text-muted);}
+.theme-bar .font-name::after{content:" \25BE"; color:var(--text-muted);}
+.theme-bar .font-options{display:none; position:absolute; top:calc(100% + 9px); right:0; z-index:80; box-sizing:border-box; width:330px; padding:14px 16px; background:var(--surface); border-top:1px solid var(--border-strong); border-bottom:1px solid var(--border-strong);}
+.theme-bar.expanded .font-options{display:block;}
+.theme-bar.expanded .font-name::after{content:" \25B4";}
+.theme-opt-group + .theme-opt-group{margin-top:8px; padding-top:8px; border-top:1px solid var(--border);}
+.theme-opt-label{padding:0 0 8px; font-family:var(--mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted);}
+.theme-opt{--opt-name-size:16px; --opt-sample-size:17px; display:block; width:100%; border:none; background:none; padding:7px 0; color:var(--text-secondary); cursor:pointer; text-align:left;}
+.theme-opt-main{display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-family:var(--mono); font-size:var(--opt-name-size); white-space:nowrap;}
+.theme-current{color:var(--accent); font-size:12px;}
+.theme-sample{display:block; margin-top:2px; font-size:var(--opt-sample-size); line-height:1.22; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.theme-opt[data-font="jetbrains"]{--opt-name-size:14px; --opt-sample-size:14px;}
+.theme-opt[data-font="martian"]{--opt-name-size:13px; --opt-sample-size:13px;}
+.theme-opt[data-font="source-serif"]{--opt-name-size:16.5px; --opt-sample-size:17.5px;}
+.theme-opt[data-font="newsreader"]{--opt-name-size:17px; --opt-sample-size:18px;}
+.theme-opt[data-font="jetbrains"] .theme-sample,.theme-opt[data-font="jetbrains"] .theme-opt-name{font-family:"JetBrains Mono","SFMono-Regular",Menlo,monospace;}
+.theme-opt[data-font="martian"] .theme-sample,.theme-opt[data-font="martian"] .theme-opt-name{font-family:"Martian Mono","SFMono-Regular",Menlo,monospace;}
+.theme-opt[data-font="plex"] .theme-sample,.theme-opt[data-font="plex"] .theme-opt-name{font-family:"IBM Plex Sans",-apple-system,sans-serif;}
+.theme-opt[data-font="geist"] .theme-sample,.theme-opt[data-font="geist"] .theme-opt-name{font-family:"Geist",-apple-system,sans-serif;}
+.theme-opt[data-font="literata"] .theme-sample,.theme-opt[data-font="literata"] .theme-opt-name{font-family:"Literata",Georgia,serif;}
+.theme-opt[data-font="ibm-serif"] .theme-sample,.theme-opt[data-font="ibm-serif"] .theme-opt-name{font-family:"IBM Plex Serif",Georgia,serif;}
+.theme-opt[data-font="source-serif"] .theme-sample,.theme-opt[data-font="source-serif"] .theme-opt-name{font-family:"Source Serif 4",Georgia,serif;}
+.theme-opt[data-font="newsreader"] .theme-sample,.theme-opt[data-font="newsreader"] .theme-opt-name{font-family:"Newsreader",Georgia,serif;}
+.theme-opt:hover .theme-opt-name{color:var(--text); text-decoration:underline; text-underline-offset:3px;}
+.theme-opt.active{color:var(--accent);}
+.theme-opt.active .theme-sample{color:var(--text-secondary);}
+.theme-sep{width:1px; height:14px; background:var(--border);}
+.dark-btn{border:none; background:none; padding:0; font-size:14px; color:var(--text-secondary); cursor:pointer;}
+.dark-btn:hover{color:var(--text);}
 
 /* zen garden gallery */
 .zg-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.4rem;}
@@ -160,9 +194,7 @@ footer.site{
 }
 footer.site .fm{color:var(--text); font-weight:700; text-decoration:none;}
 footer.site .fm .bracket{color:var(--accent);}
-footer.site .fm .kj{letter-spacing:0;}
-html[data-font="jetbrains"] footer.site .fm .kj,
-html[data-font="martian"] footer.site .fm .kj{letter-spacing:-.08em;}
+footer.site .fm .kj{letter-spacing:-.08em;}
 footer.site a{color:var(--text-secondary); text-decoration:underline; text-underline-offset:3px;}
 footer.site a:hover{color:var(--text);}
 
@@ -178,15 +210,13 @@ footer.site a:hover{color:var(--text);}
   <header class="jdbb-masthead">
     <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
     <nav>
-      <a href="/">Studio</a>
-      <a href="/stylesheet/">Stylesheet</a>
-      <button id="theme-toggle" aria-label="Toggle dark mode">◐ Theme</button>
+      <div id="theme-bar"></div>
     </nav>
   </header>
 
   <div class="jdbb-statusline">
     <span><span class="ok">●</span> Field notes · Language as protocol</span>
-    <span id="status-date">rev 3 · working</span>
+    <span id="status-date">rev 4 · working</span>
   </div>
 
   <div class="page-head">
@@ -383,30 +413,30 @@ footer.site a:hover{color:var(--text);}
     <h2><span class="n">02</span> The starter shelf — other candidates</h2>
     <p class="small">Grouped by the concept each best illustrates. Hardness: ⚙ light · ⚙⚙ real · ⚙⚙⚙ hard mode.</p>
 
-    <p class="kicker" style="margin-top:1.6rem">Conformance / linting regimes</p>
+    <p class="kicker sub">Conformance / linting regimes</p>
     <ul class="shelf">
-      <li><span class="name">Paris MoU Port State Control</span><span class="hard">⚙⚙⚙</span> — public marine twin of the classification findings log; coded, convention-cited deficiencies + an explicit “action taken” status vocabulary.</li>
-      <li><span class="name">FAA Airworthiness Directives</span><span class="hard">⚙⚙⚙</span> — numbered, clause-cited, must-close findings against a versioned spec; new directives routinely <em>supersede</em> old ones. Fully public via the Federal Register.</li>
-      <li><span class="name">Building-code plan review</span><span class="hard">⚙⚙</span> — a permit set bounced back with code citations; the most relatable version of the pattern.</li>
-      <li><span class="name">Journal desk-reject checklists</span><span class="hard">⚙⚙</span> — formatting/citation conformance gating <em>before</em> peer review even starts. On-the-nose for writers.</li>
-      <li><span class="name">CI linters &amp; pre-commit hooks</span><span class="hard">⚙⚙</span> — <code>gofmt</code>, ESLint, <code>ruff</code>: “the build won't merge until you conform.”</li>
+      <li><a class="name" href="https://parismou.org/PMoU-Procedures/Library/inspection-results">Paris MoU Port State Control</a><span class="hard">⚙⚙⚙</span> — public marine twin of the classification findings log; coded, convention-cited deficiencies + an explicit “action taken” status vocabulary.</li>
+      <li><a class="name" href="https://www.federalregister.gov/documents/search?conditions%5Bterm%5D=airworthiness+directives">FAA Airworthiness Directives</a><span class="hard">⚙⚙⚙</span> — numbered, clause-cited, must-close findings against a versioned spec; new directives routinely <em>supersede</em> old ones. Fully public via the <a href="https://www.federalregister.gov/agencies/federal-aviation-administration">Federal Register</a>.</li>
+      <li><a class="name" href="https://codes.iccsafe.org/">Building-code plan review</a><span class="hard">⚙⚙</span> — a permit set bounced back with code citations; the most relatable version of the pattern.</li>
+      <li><a class="name" href="https://www.nature.com/nature/for-authors/formatting-guide">Journal desk-reject checklists</a><span class="hard">⚙⚙</span> — formatting/citation conformance gating <em>before</em> peer review even starts. On-the-nose for writers.</li>
+      <li><span class="name">CI linters &amp; pre-commit hooks</span><span class="hard">⚙⚙</span> — <a href="https://pkg.go.dev/cmd/gofmt"><code>gofmt</code></a>, <a href="https://eslint.org/">ESLint</a>, <a href="https://docs.astral.sh/ruff/"><code>ruff</code></a>: “the build won't merge until you conform.”</li>
     </ul>
 
-    <p class="kicker" style="margin-top:1.6rem">Controlled vocabularies</p>
+    <p class="kicker sub">Controlled vocabularies</p>
     <ul class="shelf">
-      <li><span class="name">Google Docs vs. MS Word styles</span><span class="hard">⚙</span> — the most accessible controlled vocabulary in the world, and the one every participant already uses. The six-choice palette vs. the hundreds-deep one <em>is</em> the vocabulary-sizing problem. See the featured entry above.</li>
-      <li><span class="name">ICAO standard phraseology</span><span class="hard">⚙⚙</span> — a spoken controlled vocabulary engineered so meaning survives noise (“Roger / Wilco / Say again”).</li>
-      <li><span class="name">ICD-10 / SNOMED medical coding</span><span class="hard">⚙⚙⚙</span> — you can only say what the codebook lets you say, with care and billing consequences.</li>
-      <li><span class="name">MARC records + LCSH</span><span class="hard">⚙⚙</span> — a book <em>is</em> a controlled-vocabulary record inside a library's protocol.</li>
-      <li><span class="name">Bluebook legal citation</span><span class="hard">⚙⚙</span> — a rulebook whose whole job is making references machine-resolvable.</li>
+      <li><a class="name" href="#" onclick="document.querySelector('.section:nth-of-type(1)').scrollIntoView({behavior:'smooth'});return false">Google Docs vs. MS Word styles</a><span class="hard">⚙</span> — the most accessible controlled vocabulary in the world, and the one every participant already uses. The six-choice palette vs. the hundreds-deep one <em>is</em> the vocabulary-sizing problem. See the featured entry above.</li>
+      <li><a class="name" href="https://skybrary.aero/articles/standard-phraseology">ICAO standard phraseology</a><span class="hard">⚙⚙</span> — a spoken controlled vocabulary engineered so meaning survives noise (“Roger / Wilco / Say again”).</li>
+      <li><a class="name" href="https://icd.who.int/browse10/2019/en">ICD-10</a> / <a class="name" href="https://www.snomed.org/">SNOMED</a> medical coding<span class="hard">⚙⚙⚙</span> — you can only say what the codebook lets you say, with care and billing consequences.</li>
+      <li><a class="name" href="https://www.loc.gov/marc/">MARC</a> records + <a class="name" href="https://id.loc.gov/authorities/subjects.html">LCSH</a><span class="hard">⚙⚙</span> — a book <em>is</em> a controlled-vocabulary record inside a library's protocol.</li>
+      <li><a class="name" href="https://www.legalbluebook.com/">Bluebook legal citation</a><span class="hard">⚙⚙</span> — a rulebook whose whole job is making references machine-resolvable.</li>
     </ul>
 
-    <p class="kicker" style="margin-top:1.6rem">Separation of layers · versioning · machine authors</p>
+    <p class="kicker sub">Separation of layers · versioning · machine authors</p>
     <ul class="shelf">
-      <li><span class="name">CSS Zen Garden</span><span class="hard">⚙⚙</span> — one HTML source, radically different renders, controlled entirely by the stylesheet. The whole thesis in one flip.</li>
-      <li><span class="name">JATS / DocBook / DITA</span><span class="hard">⚙⚙</span> — publishing-native proof that “structure, not presentation” is already industrial practice.</li>
-      <li><span class="name">Semantic Versioning</span><span class="hard">⚙⚙</span> — the crisp statement of backward-compatibility-as-contract.</li>
-      <li><span class="name">JSON-schema-constrained generation</span><span class="hard">⚙⚙</span> — an LLM <em>forced</em> to emit conformant output: the machine-side mirror of preflight, with no special path.</li>
+      <li><a class="name" href="https://www.csszengarden.com/">CSS Zen Garden</a><span class="hard">⚙⚙</span> — one HTML source, radically different renders, controlled entirely by the stylesheet. The whole thesis in one flip.</li>
+      <li><a class="name" href="https://jats.nlm.nih.gov/">JATS</a> / <a class="name" href="https://docbook.org/">DocBook</a> / <a class="name" href="https://www.dita-ot.org/">DITA</a><span class="hard">⚙⚙</span> — publishing-native proof that “structure, not presentation” is already industrial practice.</li>
+      <li><a class="name" href="https://semver.org/">Semantic Versioning</a><span class="hard">⚙⚙</span> — the crisp statement of backward-compatibility-as-contract.</li>
+      <li><a class="name" href="https://json-schema.org/">JSON-schema</a>-constrained generation<span class="hard">⚙⚙</span> — an LLM <em>forced</em> to emit conformant output: the machine-side mirror of preflight, with no special path. (<a href="https://platform.openai.com/docs/guides/structured-outputs">structured outputs</a>)</li>
     </ul>
   </section>
 
@@ -423,18 +453,14 @@ footer.site a:hover{color:var(--text);}
 
 </div>
 
+<!-- The live site-font selector: canonical state in the studio's theme.js.
+     This is the exact widget the "curated middle" section describes — the page
+     carries the example it teaches. (Served on-site; degrades gracefully to the
+     head bootstrap if theme.js is unavailable, e.g. opened as a bare file.) -->
+<script src="/static/theme.js"></script>
 <script>
-/* Minimal theme toggle: persists to the same key the studio site uses. */
 (function(){
-  var btn = document.getElementById('theme-toggle');
-  if(!btn) return;
-  btn.addEventListener('click', function(){
-    var dark = document.documentElement.classList.toggle('dark');
-    var cur = {};
-    try { cur = JSON.parse(localStorage.getItem('prodcal-theme-v1')) || {}; } catch(e){}
-    cur.dark = dark;
-    try { localStorage.setItem('prodcal-theme-v1', JSON.stringify(cur)); } catch(e){}
-  });
+  if (window.JdbbTheme) { JdbbTheme.mount(document.getElementById('theme-bar')); }
 })();
 </script>
 </body>
