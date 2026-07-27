@@ -81,12 +81,17 @@ body{
 /* page head */
 .page-head{margin:2rem 0 .4rem;}
 /* Kicker — the studio's louder ledger label: accent ink, weight 600, // prefix. */
-.kicker{font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:1rem;}
+.kicker{font-family:var(--mono); font-size:12.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:1rem;}
 .kicker::before{content:"// "; color:var(--accent);}
 /* Shelf sub-labels honor the 3:2 above/below rhythm: 1.8rem over 1.2rem, and
    the label owns the space to the list it introduces. */
-.kicker.sub{margin:1.8rem 0 1.2rem;}
+/* Sub-labels: space ABOVE (2.6rem) must read appreciably larger than the space
+   BELOW. The below-gap is owned solely by the kicker's own margin (0.7rem) — we
+   zero the following list's margin AND its first row's top padding + border so
+   nothing else quietly adds to it. Ratio lands ~3.7:1, not the failed 3:2. */
+.kicker.sub{margin:2.6rem 0 .7rem;}
 .kicker.sub + ul.shelf{margin-top:0;}
+.kicker.sub + ul.shelf li:first-child{padding-top:0; border-top:none;}
 .page-title{font-family:var(--mono); font-weight:600; font-size:clamp(26px,5vw,40px); line-height:1.2; letter-spacing:-.015em; max-width:24ch;}
 .lede{font-size:17px; line-height:1.7; color:var(--text-secondary); max-width:66ch; margin-top:1.4rem;}
 .lede em{font-style:normal; color:var(--text);}
@@ -97,7 +102,7 @@ hr.rule-strong{border:none; border-top:1px solid var(--border-strong); margin:2.
 /* section */
 .section{margin-top:2.6rem;}
 .section > h2{
-  font-family:var(--mono); font-size:13px; font-weight:600; letter-spacing:.06em;
+  font-family:var(--mono); font-size:15.5px; font-weight:700; letter-spacing:.05em;
   text-transform:uppercase; color:var(--text); padding-bottom:.6rem;
   border-bottom:1px solid var(--border-strong); margin-bottom:.4rem;
 }
@@ -216,7 +221,7 @@ footer.site a:hover{color:var(--text);}
 
   <div class="jdbb-statusline">
     <span><span class="ok">●</span> Field notes · Language as protocol</span>
-    <span id="status-date">rev 4 · working</span>
+    <span id="status-date">rev 5 · working</span>
   </div>
 
   <div class="page-head">
