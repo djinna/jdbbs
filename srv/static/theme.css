@@ -117,13 +117,14 @@ body::before, body::after { display: none !important; }
   white-space: nowrap;
 }
 .jdbb-wordmark .bracket { color: var(--accent); font-weight: 700; }
-.jdbb-wordmark .kj { letter-spacing: -0.08em; }
-/* Serif faces: drop the mono-tuned tight kern on the leading "j" and ease the
-   bracket weight so "[jdbb]" doesn't crush together. */
-html[data-font="literata"] .jdbb-wordmark .kj,
-html[data-font="ibm-serif"] .jdbb-wordmark .kj,
-html[data-font="source-serif"] .jdbb-wordmark .kj,
-html[data-font="newsreader"] .jdbb-wordmark .kj { letter-spacing: 0; }
+/* The tight -0.08em kern on the leading "j" only suits the monospace faces
+   (equal-width glyphs leave a big gap after the bracket). Proportional faces
+   — the sans (plex/geist) and serif options — squash with it, so they keep
+   normal spacing (the default). */
+.jdbb-wordmark .kj { letter-spacing: 0; }
+html[data-font="jetbrains"] .jdbb-wordmark .kj,
+html[data-font="martian"] .jdbb-wordmark .kj { letter-spacing: -0.08em; }
+/* Serif faces get a hair more overall tracking so "[jdbb]" breathes. */
 html[data-font="literata"] .jdbb-wordmark,
 html[data-font="ibm-serif"] .jdbb-wordmark,
 html[data-font="source-serif"] .jdbb-wordmark,

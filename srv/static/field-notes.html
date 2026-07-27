@@ -63,14 +63,13 @@ body{
 }
 .jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none; white-space:nowrap;}
 .jdbb-wordmark .bracket{color:var(--accent);}
-.jdbb-wordmark .kj{letter-spacing:-.08em;}
 .jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
-/* Serif faces: reset the mono-tuned tight kern and ease tracking so [jdbb]
-   doesn't squash. Mirrors theme.css. */
-html[data-font="literata"] .jdbb-wordmark .kj,
-html[data-font="ibm-serif"] .jdbb-wordmark .kj,
-html[data-font="source-serif"] .jdbb-wordmark .kj,
-html[data-font="newsreader"] .jdbb-wordmark .kj{letter-spacing:0;}
+/* Tight -0.08em kern on the leading "j" only suits monospace faces; the
+   proportional sans/serif options squash with it, so they keep normal
+   spacing. Mirrors theme.css. */
+.jdbb-wordmark .kj{letter-spacing:0;}
+html[data-font="jetbrains"] .jdbb-wordmark .kj,
+html[data-font="martian"] .jdbb-wordmark .kj{letter-spacing:-.08em;}
 html[data-font="literata"] .jdbb-wordmark,
 html[data-font="ibm-serif"] .jdbb-wordmark,
 html[data-font="source-serif"] .jdbb-wordmark,
@@ -161,11 +160,9 @@ footer.site{
 }
 footer.site .fm{color:var(--text); font-weight:700; text-decoration:none;}
 footer.site .fm .bracket{color:var(--accent);}
-footer.site .fm .kj{letter-spacing:-.08em;}
-html[data-font="literata"] footer.site .fm .kj,
-html[data-font="ibm-serif"] footer.site .fm .kj,
-html[data-font="source-serif"] footer.site .fm .kj,
-html[data-font="newsreader"] footer.site .fm .kj{letter-spacing:0;}
+footer.site .fm .kj{letter-spacing:0;}
+html[data-font="jetbrains"] footer.site .fm .kj,
+html[data-font="martian"] footer.site .fm .kj{letter-spacing:-.08em;}
 footer.site a{color:var(--text-secondary); text-decoration:underline; text-underline-offset:3px;}
 footer.site a:hover{color:var(--text);}
 
