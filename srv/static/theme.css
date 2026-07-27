@@ -110,16 +110,15 @@ body::before, body::after { display: none !important; }
   font-family: var(--mono);
 }
 .jdbb-wordmark {
-  font-family: var(--mono); font-size: 15px; font-weight: 700;
+  /* Fixed terminal wordmark — never tracks the reading-font selector, so the
+     logo stays evenly spaced instead of squashing in serif fonts. */
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 15px; font-weight: 700;
   letter-spacing: 0.02em; color: var(--text); text-decoration: none;
   white-space: nowrap;
 }
 .jdbb-wordmark .bracket { color: var(--accent); font-weight: 700; }
 .jdbb-wordmark .kj { letter-spacing: -0.08em; }
-html[data-font="literata"] .jdbb-wordmark .kj,
-html[data-font="ibm-serif"] .jdbb-wordmark .kj,
-html[data-font="source-serif"] .jdbb-wordmark .kj,
-html[data-font="newsreader"] .jdbb-wordmark .kj { letter-spacing: 0; }
 .jdbb-wordmark .studio { color: var(--text-secondary); font-weight: 400; margin-left: 0.45em; }
 .jdbb-masthead nav { display: flex; align-items: center; gap: 1.4rem; }
 .jdbb-masthead nav a {
