@@ -110,15 +110,24 @@ body::before, body::after { display: none !important; }
   font-family: var(--mono);
 }
 .jdbb-wordmark {
-  /* Fixed terminal wordmark — never tracks the reading-font selector, so the
-     logo stays evenly spaced instead of squashing in serif fonts. */
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 15px; font-weight: 700;
+  /* Wordmark wears the selected face (via --mono) so the whole studio commits
+     to one voice. Per-font tuning below keeps it from squashing. */
+  font-family: var(--mono); font-size: 15px; font-weight: 700;
   letter-spacing: 0.02em; color: var(--text); text-decoration: none;
   white-space: nowrap;
 }
 .jdbb-wordmark .bracket { color: var(--accent); font-weight: 700; }
 .jdbb-wordmark .kj { letter-spacing: -0.08em; }
+/* Serif faces: drop the mono-tuned tight kern on the leading "j" and ease the
+   bracket weight so "[jdbb]" doesn't crush together. */
+html[data-font="literata"] .jdbb-wordmark .kj,
+html[data-font="ibm-serif"] .jdbb-wordmark .kj,
+html[data-font="source-serif"] .jdbb-wordmark .kj,
+html[data-font="newsreader"] .jdbb-wordmark .kj { letter-spacing: 0; }
+html[data-font="literata"] .jdbb-wordmark,
+html[data-font="ibm-serif"] .jdbb-wordmark,
+html[data-font="source-serif"] .jdbb-wordmark,
+html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
 .jdbb-wordmark .studio { color: var(--text-secondary); font-weight: 400; margin-left: 0.45em; }
 .jdbb-masthead nav { display: flex; align-items: center; gap: 1.4rem; }
 .jdbb-masthead nav a {
