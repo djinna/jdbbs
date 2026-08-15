@@ -247,6 +247,11 @@ func (s *Server) Handler() http.Handler {
 		s.serveStaticHTML(w, "static/field-notes.html")
 	})
 
+	// Lit-mag tool-stack reference (public, standalone share page).
+	mux.HandleFunc("GET /litmags", func(w http.ResponseWriter, r *http.Request) {
+		s.serveStaticHTML(w, "static/litmags.html")
+	})
+
 	// Root: always show landing page
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		s.serveLanding(w)
