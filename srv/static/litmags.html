@@ -1,197 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>74 Small Literary Magazines — Publishing Tool Stack Reference</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lit-Mag Tool Stack — 74 small magazines · [jdbb] studio</title>
+<meta name="description" content="A tool-stack reference for 74 small literary magazines: web platform/CMS, output formats, revenue model, cadence, and editorial identity.">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<script>
+/* Theme bootstrap: honor the site's stored theme when served on-site. */
+(function(){ try {
+  var FONTS={jetbrains:1,martian:1,plex:1,geist:1,literata:1,'ibm-serif':1,'source-serif':1,newsreader:1};
+  var LEGACY={menlo:'jetbrains','ibm-sans':'geist'};
+  var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (t) {
+    if (t.dark) document.documentElement.classList.add('dark');
+    var f = LEGACY[t.font] || t.font;
+    if (f && FONTS[f]) document.documentElement.setAttribute('data-font', f);
+  }
+} catch(e){} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #f4f4f0;
-    --card: #ffffff;
-    --border: #d8d4cb;
-    --text: #1a1a2e;
-    --muted: #6b6b7b;
-    --accent: #7a5c3a;
-    --accent2: #4a7c59;
-    --accent3: #7c4a6e;
-    --outlier: #c0392b;
-    --free: #27ae60;
-    --pay: #2980b9;
-    --sub: #8e44ad;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Merriweather', Georgia, serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-  .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
-  h1 { font-size: 1.7em; margin-bottom: 0.2em; color: var(--accent); }
-  .byline { font-size: 0.85em; color: var(--muted); margin-bottom: 1.5em; }
-  .source-note { font-size: 0.85em; color: var(--muted); margin-bottom: 2em; border-left: 3px solid var(--accent); padding-left: 1em; }
-  .source-note a { color: var(--accent); }
+/* ── Terminal Folio tokens (inlined subset of the studio's theme.css) ── */
+:root{
+  --bg:#F7F9FA; --surface:#FFF; --border:#DCE3E8; --border-strong:#0E1116;
+  --text:#0E1116; --text-secondary:#5D6B76; --text-muted:#8A97A1;
+  --accent:#007699; --green:#2F7D4F; --red:#B3261E; --yellow:#8A6A00;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --body:"Inter",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-size-adjust:none;
+}
+html.dark{
+  --bg:#0C0E12; --surface:#12151B; --border:#232833; --border-strong:#3A404D;
+  --text:#E8E6E1; --text-secondary:#8B909A; --text-muted:#6A707B;
+  --accent:#3BC3F2; --green:#6BBF73; --red:#E5484D; --yellow:#D5A021;
+}
+html[data-font="jetbrains"]{--mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace; --body:"JetBrains Mono","SFMono-Regular",Menlo,monospace;}
+html[data-font="martian"]{--mono:"Martian Mono","SFMono-Regular",Menlo,monospace; --body:"Martian Mono","SFMono-Regular",Menlo,monospace; --font-size-adjust:0.52;}
+html[data-font="plex"]{--mono:"IBM Plex Sans",-apple-system,sans-serif; --body:"IBM Plex Sans",-apple-system,sans-serif;}
+html[data-font="geist"]{--mono:"Geist",-apple-system,sans-serif; --body:"Geist",-apple-system,sans-serif;}
+html[data-font="literata"]{--mono:"Literata",Georgia,serif; --body:"Literata",Georgia,serif;}
+html[data-font="ibm-serif"]{--mono:"IBM Plex Serif",Georgia,serif; --body:"IBM Plex Serif",Georgia,serif;}
+html[data-font="source-serif"]{--mono:"Source Serif 4",Georgia,serif; --body:"Source Serif 4",Georgia,serif;}
+html[data-font="newsreader"]{--mono:"Newsreader",Georgia,serif; --body:"Newsreader",Georgia,serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:var(--bg); font-size-adjust:var(--font-size-adjust);}
+body{font-family:var(--body); color:var(--text); background:var(--bg); line-height:1.6; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+.wrap{max-width:1240px; margin:0 auto; padding:0 1.5rem 4rem;}
 
-  /* Summary Cards */
-  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.8em; margin-bottom: 2em; }
-  .sum-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1em; text-align: center; }
-  .sum-card .num { font-size: 1.8em; font-weight: 700; color: var(--accent); }
-  .sum-card .label { font-size: 0.78em; color: var(--muted); margin-top: 0.2em; }
+/* masthead */
+.jdbb-masthead{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:18px 0 14px; border-bottom:1px solid var(--border); font-family:var(--mono); flex-wrap:wrap;}
+.jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none; white-space:nowrap;}
+.jdbb-wordmark .bracket{color:var(--accent);}
+.jdbb-wordmark .kj{letter-spacing:-.08em;}
+.jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
+.jdbb-masthead nav{display:flex; align-items:center; gap:1.4rem; font-size:12px;}
+.jdbb-masthead nav a{color:var(--text-secondary); text-decoration:none; padding:6px 0; border-bottom:1px solid transparent;}
+.jdbb-masthead nav a:hover{color:var(--text); border-bottom-color:var(--accent);}
 
-  /* Viz row */
-  .viz-row { display: flex; flex-wrap: wrap; gap: 1.5em; margin-bottom: 2em; }
-  .viz-box { flex: 1; min-width: 240px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.2em; }
-  .viz-box h3 { font-size: 0.95em; margin-bottom: 0.6em; color: var(--accent); }
-  .bar-group { margin-bottom: 0.4em; display: flex; align-items: center; gap: 0.5em; }
-  .bar-label { font-size: 0.75em; width: 90px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
-  .bar-track { flex: 1; height: 18px; background: #e8e5de; border-radius: 9px; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 9px; transition: width 0.5s; }
-  .bar-count { font-size: 0.75em; width: 28px; text-align: left; color: var(--muted); }
-  .fill-wordpress { background: #21759b; }
-  .fill-substack { background: #ff6719; }
-  .fill-squarespace { background: #121212; }
-  .fill-ghost { background: #15171a; }
-  .fill-shopify { background: #7ab55c; }
-  .fill-wix { background: #0c6efc; }
-  .fill-webflow { background: #4353ff; }
-  .fill-custom { background: #888; }
-  .fill-web { background: var(--accent2); }
-  .fill-print { background: var(--accent); }
-  .fill-audio { background: var(--accent3); }
-  .fill-epub { background: #d35400; }
-  .fill-free { background: var(--free); }
-  .fill-subscription { background: var(--sub); }
-  .fill-pay { background: var(--pay); }
-  .legend { display: flex; gap: 1em; flex-wrap: wrap; font-size: 0.7em; margin-top: 0.5em; }
-  .legend span { display: flex; align-items: center; gap: 0.3em; }
-  .legend .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+/* statusline */
+.jdbb-statusline{display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 24px; padding:12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--text-muted); text-transform:uppercase;}
+.jdbb-statusline .ok{color:var(--green);}
 
-  /* Table */
-  .table-wrap { overflow-x: auto; }
-  .controls { margin-bottom: 0.8em; display: flex; gap: 0.4em; flex-wrap: wrap; }
-  .controls button, .controls input { padding: 0.35em 0.7em; border: 1px solid var(--border); border-radius: 5px; font-size: 0.78em; background: var(--card); cursor: pointer; font-family: inherit; }
-  .controls button.active { background: var(--accent); color: white; border-color: var(--accent); }
-  .controls input { flex: 1; min-width: 160px; }
-  .controls button:hover { border-color: var(--accent); }
-  table { width: 100%; border-collapse: collapse; font-size: 0.78em; }
-  thead th { background: var(--accent); color: white; padding: 0.5em 0.4em; text-align: left; font-weight: 600; white-space: nowrap; position: sticky; top: 0; }
-  thead th:nth-child(1) { min-width: 180px; }
-  thead th:nth-child(2) { min-width: 220px; }
-  thead th:nth-child(4) { min-width: 100px; }
-  tbody td { padding: 0.4em; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tbody tr:hover { background: #edeae3; }
-  tbody tr.outlier { opacity: 0.55; }
-  tbody tr.outlier td:first-child::after { content: " ⚠️"; font-size: 0.85em; }
-  td a { color: var(--accent); text-decoration: none; }
-  td a:hover { text-decoration: underline; }
-  .tag { display: inline-block; font-size: 0.7em; padding: 0.12em 0.35em; border-radius: 3px; margin: 0.08em; white-space: nowrap; }
-  .tag-wp { background: #d4e6f1; color: #1a5276; }
-  .tag-ss { background: #fdebd0; color: #935116; }
-  .tag-sq { background: #e8e8e8; color: #121212; }
-  .tag-gh { background: #d5d8dc; color: #15171a; }
-  .tag-sh { background: #d5f5e3; color: #1e8449; }
-  .tag-wx { background: #d6eaf8; color: #1a5276; }
-  .tag-wf { background: #e8daef; color: #4a235a; }
-  .tag-oth { background: #eaecee; color: #2c3e50; }
-  .tag-free { background: #d5f5e3; color: #1e8449; }
-  .tag-sub { background: #e8daef; color: #6c3483; }
-  .tag-pay { background: #d6eaf8; color: #1f618d; }
-  .tag-web { background: #f0f3f4; color: #2c3e50; }
-  .tag-print { background: #fdedec; color: #922b21; }
-  .tag-audio { background: #f4ecf7; color: #7d3c98; }
-  .tag-epub { background: #fef9e7; color: #7d6608; }
-  .cadence { font-size: 0.9em; color: var(--muted); }
-  .editorial-note { font-size: 0.88em; color: var(--muted); line-height: 1.4; }
-  .editorial-note strong { color: var(--text); }
-  .outlier-badge { background: #fadbd8; color: var(--outlier); font-size: 0.65em; padding: 0.12em 0.35em; border-radius: 3px; white-space: nowrap; }
-  .footer { margin-top: 2em; font-size: 0.78em; color: var(--muted); text-align: center; padding: 1.5em 0; border-top: 1px solid var(--border); }
-  @media (max-width: 768px) {
-    .container { padding: 10px; }
-    table { font-size: 0.7em; }
-    thead th:nth-child(2) { min-width: 140px; }
-  }
+/* page head */
+.page-head{margin:2rem 0 .4rem;}
+.kicker{font-family:var(--mono); font-size:12.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:1rem;}
+.kicker::before{content:"// "; color:var(--accent);}
+.page-title{font-family:var(--mono); font-weight:600; font-size:clamp(26px,5vw,40px); line-height:1.2; letter-spacing:-.015em; max-width:24ch;}
+.subtitle{font-family:var(--mono); font-size:15px; color:var(--text-secondary); margin-top:.6rem;}
+.subtitle a{color:var(--accent); text-decoration:underline; text-underline-offset:3px;}
+.lede{font-size:17px; line-height:1.7; color:var(--text-secondary); max-width:74ch; margin-top:1.4rem;}
+.lede em{font-style:normal; color:var(--text);}
+
+hr.rule{border:none; border-top:1px solid var(--border); margin:2.6rem 0 0;}
+hr.rule-strong{border:none; border-top:1px solid var(--border-strong); margin:2.6rem 0 0;}
+
+.section{margin-top:2.6rem;}
+.section > h2{font-family:var(--mono); font-size:15.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text); padding-bottom:.6rem; border-bottom:1px solid var(--border-strong); margin-bottom:1.2rem;}
+.section > h2 .muted{color:var(--text-muted); font-weight:400; text-transform:none; letter-spacing:0; font-size:13px;}
+
+/* summary ledger (stat row) */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); border-top:1px solid var(--border-strong); border-left:1px solid var(--border);}
+.stat{border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:.9rem 1rem;}
+.stat .num{font-family:var(--mono); font-size:1.7em; font-weight:700; color:var(--text); line-height:1;}
+.stat .label{font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin-top:.5rem;}
+
+/* charts */
+.viz-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1.6rem; margin-top:1.2rem;}
+.viz-box{border:1px solid var(--border); border-top:2px solid var(--accent); background:var(--surface); padding:1.1rem 1.2rem;}
+.viz-box h3{font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text); margin-bottom:.9rem;}
+.bar-group{margin-bottom:.5rem; display:flex; align-items:center; gap:.6rem;}
+.bar-label{font-family:var(--mono); font-size:11px; width:96px; text-align:right; flex-shrink:0; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.bar-track{flex:1; height:16px; background:var(--bg); border:1px solid var(--border);}
+.bar-fill{height:100%; background:var(--accent);}
+.bar-fill.alt{background:var(--text-secondary);}
+.bar-count{font-family:var(--mono); font-size:11px; width:26px; text-align:left; color:var(--text-muted);}
+.legend{display:flex; gap:.9rem; flex-wrap:wrap; font-family:var(--mono); font-size:10px; letter-spacing:.03em; text-transform:uppercase; color:var(--text-muted); margin-top:.7rem; border-top:1px solid var(--border); padding-top:.6rem;}
+.legend span{display:flex; align-items:center; gap:.3rem;}
+.legend .dot{width:8px; height:8px; display:inline-block;}
+
+/* controls */
+.controls{display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1rem;}
+.controls button{font-family:var(--mono); font-size:11.5px; letter-spacing:.03em; color:var(--text-secondary); background:var(--surface); border:1px solid var(--border-strong); border-radius:0; padding:.4rem .7rem; cursor:pointer;}
+.controls button:hover{color:var(--text); border-color:var(--accent);}
+.controls button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+.controls input{flex:1; min-width:180px; font-family:var(--body); font-size:14px; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:0; padding:.4rem .7rem;}
+.controls input:focus{outline:none; border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent);}
+
+/* table (ledger) */
+.table-wrap{overflow-x:auto; border-top:1px solid var(--border-strong);}
+table.ledger{width:100%; border-collapse:collapse; font-size:13px;}
+table.ledger thead th{position:sticky; top:0; background:var(--surface); text-align:left; vertical-align:bottom; padding:.6rem .7rem; border-bottom:1px solid var(--border-strong); font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600; white-space:nowrap;}
+table.ledger thead th:nth-child(1){min-width:180px;} table.ledger thead th:nth-child(2){min-width:230px;} table.ledger thead th:nth-child(4){min-width:110px;}
+table.ledger tbody td{padding:.6rem .7rem; border-top:1px solid var(--border); vertical-align:top;}
+table.ledger tbody tr:hover{background:var(--surface);}
+table.ledger tbody tr.outlier{opacity:.5;}
+table.ledger tbody tr.outlier td:first-child .mag-name::after{content:" ⚠"; color:var(--yellow);}
+.mag-name{font-family:var(--mono); font-size:13px; font-weight:600; color:var(--text); text-decoration:none; border-bottom:1px solid transparent;}
+.mag-name:hover{border-bottom-color:var(--accent); color:var(--accent);}
+.desc{color:var(--text-secondary); line-height:1.5;}
+.editorial{font-size:12.5px; color:var(--text-secondary); line-height:1.5;}
+.editorial strong{color:var(--text);}
+.cadence{font-family:var(--mono); font-size:12px; color:var(--text-secondary); white-space:nowrap;}
+.chip{display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:.02em; padding:.12rem .4rem; margin:.08rem .1rem .08rem 0; border:1px solid var(--border-strong); color:var(--text-secondary); white-space:nowrap;}
+.chip.plat{border-color:var(--accent); color:var(--accent);}
+.chip.fmt-print{border-color:var(--border-strong); color:var(--text);}
+.chip.fmt-audio{border-style:dashed;}
+.chip.price{border-color:var(--border); color:var(--text-muted);}
+.outlier-note{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.02em; color:var(--yellow); margin-top:.3rem; text-transform:uppercase;}
+
+/* footer */
+footer.site{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 24px; padding:24px 0 8px; margin-top:3rem; border-top:1px solid var(--border); font-family:var(--mono); font-size:12px; letter-spacing:.04em; color:var(--text-muted);}
+footer.site .fm{color:var(--text); font-weight:700; text-decoration:none;}
+footer.site .fm .bracket{color:var(--accent);}
+footer.site .fm .kj{letter-spacing:-.08em;}
+footer.site a{color:var(--text-secondary); text-decoration:underline; text-underline-offset:3px;}
+@media(max-width:768px){ table.ledger{font-size:12px;} .lede{font-size:15px;} }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="wrap">
 
-<h1>74 Small Literary Magazines &mdash; Tool Stack Reference</h1>
-<div class="byline">Researched August 2026 · source: <a href="https://substack.com/@subclub/note/c-310324147" target="_blank">@subclub on Substack</a></div>
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav>
+      <a href="/field-notes">Field notes</a>
+      <a href="/workshop">Workshop</a>
+    </nav>
+  </header>
 
-<div class="source-note">
-  The original list highlighted magazines that accept reprints, charge no fees, and pay contributors. This reference table ignores the submission economics and documents how each publication actually <em>works</em> — their web platform, output formats, pricing model, cadence, editorial identity, and house style. Outliers (⚠️) are entries that don't really fit the "small literary magazine" mold.
-</div>
-
-<!-- ============ SUMMARY CARDS ============ -->
-<div class="summary-grid" id="summaryCards"></div>
-
-<!-- ============ VIZ ============ -->
-<div class="viz-row">
-  <div class="viz-box">
-    <h3>📡 Web Platform / CMS</h3>
-    <div id="platformBars"></div>
-    <div class="legend">
-      <span><span class="dot" style="background:#21759b"></span> WordPress (incl. .com, Divi, Elementor, Astra)</span>
-      <span><span class="dot" style="background:#ff6719"></span> Substack</span>
-      <span><span class="dot" style="background:#121212"></span> Squarespace</span>
-      <span><span class="dot" style="background:#15171a"></span> Ghost</span>
-      <span><span class="dot" style="background:#4353ff"></span> Webflow</span>
-      <span><span class="dot" style="background:#888"></span> Custom / Other</span>
-    </div>
+  <div class="jdbb-statusline">
+    <span><span class="ok">&#9679;</span> Reference &middot; Small-press publishing stacks</span>
+    <span id="statusCount">74 magazines &middot; researched Aug 2026</span>
   </div>
-  <div class="viz-box">
-    <h3>📖 Publication Formats</h3>
-    <div id="formatBars"></div>
-    <div class="legend">
-      <span><span class="dot" style="background:var(--accent2)"></span> Web</span>
-      <span><span class="dot" style="background:var(--accent)"></span> Print</span>
-      <span><span class="dot" style="background:var(--accent3)"></span> Audio</span>
-      <span><span class="dot" style="background:#d35400"></span> EPUB / Digital</span>
-    </div>
+
+  <div class="page-head">
+    <span class="kicker">Field survey &middot; Lit-mag tool stacks</span>
+    <h1 class="page-title">74 Small Literary Magazines</h1>
+    <p class="subtitle">How they actually publish &middot; source: <a href="https://substack.com/@subclub/note/c-310324147" target="_blank" rel="noopener">@subclub on Substack</a></p>
+    <p class="lede">The original list flagged magazines that take reprints, charge no fees, and pay contributors. This reference ignores the submission economics and documents how each publication <em>works</em> &mdash; web platform / CMS, output formats, revenue model, cadence, and editorial identity. Outliers (&#9888;) are entries that don't really fit the "small literary magazine" mold but ride along on the source list.</p>
   </div>
-  <div class="viz-box">
-    <h3>💰 Pricing Model</h3>
-    <div id="pricingBars"></div>
-    <div class="legend">
-      <span><span class="dot" style="background:var(--free)"></span> Free to read</span>
-      <span><span class="dot" style="background:var(--sub)"></span> Subscription</span>
-      <span><span class="dot" style="background:var(--pay)"></span> Pay-per-issue</span>
+
+  <hr class="rule-strong">
+
+  <section class="section">
+    <h2>At a glance</h2>
+    <div class="stats" id="summaryStats"></div>
+    <div class="viz-row">
+      <div class="viz-box">
+        <h3>Web platform / CMS</h3>
+        <div id="platformBars"></div>
+      </div>
+      <div class="viz-box">
+        <h3>Output formats</h3>
+        <div id="formatBars"></div>
+      </div>
+      <div class="viz-box">
+        <h3>Revenue model</h3>
+        <div id="pricingBars"></div>
+      </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- ============ TABLE CONTROLS ============ -->
-<div class="controls">
-  <button id="showAll" class="active" onclick="filterTable('all')">All</button>
-  <button onclick="filterTable('wordpress')">WordPress</button>
-  <button onclick="filterTable('substack')">Substack</button>
-  <button onclick="filterTable('custom')">Custom Build</button>
-  <button onclick="filterTable('print')">Has Print Edition</button>
-  <button onclick="filterTable('audio')">Audio / Podcast</button>
-  <button onclick="filterTable('sf')">Sci-Fi / Fantasy</button>
-  <button onclick="filterTable('poetry')">Poetry Only</button>
-  <button onclick="filterTable('weekly')">Weekly Cadence</button>
-  <button onclick="filterTable('outliers')">⚠️ Outliers</button>
-  <input type="text" id="searchInput" placeholder="Search name, platform, genre..." oninput="searchTable()">
-</div>
+  <section class="section">
+    <h2>The magazines <span class="muted" id="rowCount"></span></h2>
+    <div class="controls">
+      <button id="showAll" class="active" onclick="filterTable('all')">All</button>
+      <button onclick="filterTable('wordpress')">WordPress</button>
+      <button onclick="filterTable('substack')">Substack</button>
+      <button onclick="filterTable('custom')">Custom build</button>
+      <button onclick="filterTable('print')">Print edition</button>
+      <button onclick="filterTable('audio')">Audio / podcast</button>
+      <button onclick="filterTable('sf')">SF / fantasy</button>
+      <button onclick="filterTable('poetry')">Poetry</button>
+      <button onclick="filterTable('weekly')">Weekly</button>
+      <button onclick="filterTable('outliers')">&#9888; Outliers</button>
+      <input type="text" id="searchInput" placeholder="search name, platform, genre…" oninput="searchTable()">
+    </div>
+    <div class="table-wrap">
+      <table class="ledger" id="magTable">
+        <thead>
+          <tr>
+            <th>Magazine</th>
+            <th>Description &amp; house style</th>
+            <th>Platform</th>
+            <th>Formats</th>
+            <th>Revenue</th>
+            <th>Cadence</th>
+            <th>Editorial voice &amp; notes</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
 
-<!-- ============ TABLE ============ -->
-<div class="table-wrap">
-<table id="magTable">
-  <thead>
-    <tr>
-      <th>Magazine</th>
-      <th>Description &amp; House Style</th>
-      <th>Platform</th>
-      <th>Output Formats</th>
-      <th>Revenue Model</th>
-      <th>Cadence</th>
-      <th>Editorial Voice &amp; Notes</th>
-    </tr>
-  </thead>
-  <tbody id="tableBody">
-  </tbody>
-</table>
-</div>
-
-<div class="footer">
-  Data gathered via desk research in August 2026. Many mags are volunteer-run; platforms and policies change. ⚠️ marks entries that are not truly small literary magazines (association mags, commercial publishers, defunct sites, personal newsletters, etc.) but are included for completeness since they appear on the original list.
-</div>
+  <footer class="site">
+    <a class="fm" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span> studio</a>
+    <span>Desk research, Aug 2026 &middot; volunteer-run mags change often &middot; verify before you rely on it.</span>
+  </footer>
 
 </div>
 
@@ -283,114 +312,90 @@ const mags = [
   {name:'Quotidian Bagatelle', url:'https://qb.foofaraw.press/', desc:'Foofaraw Press micro-imprint: daily miniatures of 50-250 words. Magic Pages host.', platform:'Custom (Magic Pages)', platformDetail:'Magic Pages', formats:['web','print'], pricing:'Free / Pay-per-issue', cadence:'Daily', editorial:'50-250 word pieces. Experimental 365-piece cycle. Print collections every 2 years.', outlier:true, note:'Experimental 365-piece micro-imprint, not a conventional issue-based mag.', tags:['flash','experimental']},
 ];
 
-// ============= COUNTS =============
+// ============= COUNTS / STATS =============
 const validMags = mags.filter(m => !m.outlier);
 const outlierMags = mags.filter(m => m.outlier);
 
-document.getElementById('summaryCards').innerHTML = [
-  {num: mags.length, label: 'Total Entries Researched'},
-  {num: validMags.length, label: 'True Small Lit Mags'},
-  {num: outlierMags.length, label: 'Flagged Outliers'},
-  {num: mags.filter(m => m.formats.includes('print')).length, label: 'Have Print Edition'},
-  {num: mags.filter(m => m.formats.includes('audio')).length, label: 'Audio / Podcast'},
-  {num: mags.filter(m => m.platform==='WordPress'||m.platform.includes('WordPress')).length, label: 'Run on WordPress'},
-  {num: mags.filter(m => m.platform==='Substack').length, label: 'Run on Substack'},
-  {num: mags.filter(m => !m.outlier && m.tags.includes('sf')).length, label: 'Sci-Fi / Fantasy / Spec'},
-].map(c => `<div class="sum-card"><div class="num">${c.num}</div><div class="label">${c.label}</div></div>`).join('');
+document.getElementById('statusCount').textContent = mags.length + ' magazines · researched Aug 2026';
 
-// ============= VIZ: Platform =============
+document.getElementById('summaryStats').innerHTML = [
+  {num: mags.length, label: 'Entries researched'},
+  {num: validMags.length, label: 'True small lit mags'},
+  {num: outlierMags.length, label: 'Flagged outliers'},
+  {num: mags.filter(m => m.formats.includes('print')).length, label: 'Have print edition'},
+  {num: mags.filter(m => m.formats.includes('audio')).length, label: 'Audio / podcast'},
+  {num: mags.filter(m => m.platform.includes('WordPress')).length, label: 'Run on WordPress'},
+  {num: mags.filter(m => m.platform === 'Substack').length, label: 'Run on Substack'},
+  {num: mags.filter(m => !m.outlier && (m.tags.includes('sf')||m.tags.includes('fantasy'))).length, label: 'SF / fantasy / spec'},
+].map(c => `<div class="stat"><div class="num">${c.num}</div><div class="label">${c.label}</div></div>`).join('');
+
+// ============= BAR CHART HELPER =============
+function renderBars(el, entries, legend) {
+  const max = mags.length;
+  el.innerHTML = entries.map(([label, count], i) =>
+    `<div class="bar-group"><span class="bar-label">${label}</span><div class="bar-track"><div class="bar-fill${i%2?' alt':''}" style="width:${(count/max*100).toFixed(1)}%"></div></div><span class="bar-count">${count}</span></div>`
+  ).join('') + (legend ? `<div class="legend">${legend}</div>` : '');
+}
+
+// ---- Platform ----
 const platformCounts = {};
 mags.forEach(m => {
   let p = m.platform;
   if (p.includes('WordPress')) p = 'WordPress';
   else if (p === 'Substack') p = 'Substack';
   else if (p.includes('Squarespace')) p = 'Squarespace';
-  else if (p.includes('Ghost')) p = 'Ghost';
   else if (p.includes('Shopify')) p = 'Shopify';
   else if (p.includes('Wix')) p = 'Wix';
+  else if (p.includes('Ghost')) p = 'Ghost';
   else if (p.includes('Webflow')) p = 'Webflow';
-  else if (p.includes('Carrd')) p = 'Carrd';
-  else if (p === 'Custom' || p === 'Unknown') p = 'Custom / Other';
-  else p = 'Custom / Other';
+  else p = 'Custom / other';
   platformCounts[p] = (platformCounts[p]||0)+1;
 });
-const platformOrder = ['WordPress','Substack','Custom / Other','Squarespace','Shopify','Wix','Ghost','Webflow','Carrd'];
-const platformColors = {'WordPress':'fill-wordpress','Substack':'fill-substack','Custom / Other':'fill-custom','Squarespace':'fill-squarespace','Shopify':'fill-shopify','Wix':'fill-wix','Ghost':'fill-ghost','Webflow':'fill-webflow','Carrd':'fill-custom'};
-let platformHTML = '';
-platformOrder.forEach(p => {
-  const count = platformCounts[p]||0;
-  const pct = (count/mags.length*100);
-  platformHTML += `<div class="bar-group"><span class="bar-label">${p}</span><div class="bar-track"><div class="bar-fill ${platformColors[p]}" style="width:${pct}%"></div></div><span class="bar-count">${count}</span></div>`;
-});
-document.getElementById('platformBars').innerHTML = platformHTML;
+const platformOrder = ['WordPress','Substack','Custom / other','Squarespace','Shopify','Wix','Ghost','Webflow'];
+renderBars(document.getElementById('platformBars'),
+  platformOrder.filter(p => platformCounts[p]).map(p => [p, platformCounts[p]]));
 
-// ============= VIZ: Formats =============
+// ---- Formats ----
 const formatCounts = {};
-mags.forEach(m => { m.formats.forEach(f => { formatCounts[f] = (formatCounts[f]||0)+1; }); });
-const formatOrder = ['web','print','audio','epub'];
-const formatColors = {'web':'fill-web','print':'fill-print','audio':'fill-audio','epub':'fill-epub'};
-let formatHTML = '';
-formatOrder.forEach(f => {
-  const count = formatCounts[f]||0;
-  const pct = (count/mags.length*100);
-  formatHTML += `<div class="bar-group"><span class="bar-label">${f}</span><div class="bar-track"><div class="bar-fill ${formatColors[f]}" style="width:${pct}%"></div></div><span class="bar-count">${count}</span></div>`;
-});
-document.getElementById('formatBars').innerHTML = formatHTML;
+mags.forEach(m => m.formats.forEach(f => formatCounts[f] = (formatCounts[f]||0)+1));
+renderBars(document.getElementById('formatBars'),
+  ['web','print','audio','epub'].filter(f => formatCounts[f]).map(f => [f, formatCounts[f]]));
 
-// ============= VIZ: Pricing =============
+// ---- Pricing ----
 const pricingCounts = {};
 mags.forEach(m => {
-  let p = m.pricing.toLowerCase();
-  let key = 'Other';
-  if (p.includes('free')) key = 'Free (or freemium)';
-  if (p.includes('sub')) key = 'Has subscription tier';
-  if (p.includes('pay')||p.includes('per')) key = 'Pay-per-issue/title';
-  pricingCounts[key] = (pricingCounts[key]||0)+1;
+  const p = m.pricing.toLowerCase();
+  if (p.includes('free')) pricingCounts['Free / freemium'] = (pricingCounts['Free / freemium']||0)+1;
+  if (p.includes('sub')) pricingCounts['Subscription'] = (pricingCounts['Subscription']||0)+1;
+  if (p.includes('pay')||p.includes('per')) pricingCounts['Pay-per-issue'] = (pricingCounts['Pay-per-issue']||0)+1;
 });
-const pricingOrder = ['Free (or freemium)','Has subscription tier','Pay-per-issue/title','Other'];
-const pricingColors = {'Free (or freemium)':'fill-free','Has subscription tier':'fill-subscription','Pay-per-issue/title':'fill-pay','Other':'fill-custom'};
-let pricingHTML = '';
-pricingOrder.forEach(p => {
-  const count = pricingCounts[p]||0;
-  const pct = (count/mags.length*100);
-  pricingHTML += `<div class="bar-group"><span class="bar-label">${p}</span><div class="bar-track"><div class="bar-fill ${pricingColors[p]}" style="width:${pct}%"></div></div><span class="bar-count">${count}</span></div>`;
-});
-document.getElementById('pricingBars').innerHTML = pricingHTML;
+renderBars(document.getElementById('pricingBars'),
+  ['Free / freemium','Subscription','Pay-per-issue'].filter(p => pricingCounts[p]).map(p => [p, pricingCounts[p]]));
 
-// ============= RENDER TABLE =============
-function platformTag(m) {
-  let p = m.platform;
-  let cls = 'tag-oth';
-  let label = m.platformDetail || p;
-  if (p.includes('WordPress')) { cls = 'tag-wp'; }
-  else if (p === 'Substack') { cls = 'tag-ss'; }
-  else if (p.includes('Squarespace')) { cls = 'tag-sq'; }
-  else if (p.includes('Ghost')) { cls = 'tag-gh'; }
-  else if (p.includes('Shopify')) { cls = 'tag-sh'; }
-  else if (p.includes('Wix')) { cls = 'tag-wx'; }
-  else if (p.includes('Webflow')) { cls = 'tag-wf'; }
-  else if (p.includes('Carrd')) { cls = 'tag-oth'; }
-  return `<span class="tag ${cls}">${label}</span>`;
+// ============= TABLE =============
+function formatChips(formats) {
+  return formats.map(f => {
+    let cls = 'chip';
+    if (f === 'print') cls += ' fmt-print';
+    if (f === 'audio') cls += ' fmt-audio';
+    return `<span class="${cls}">${f}</span>`;
+  }).join(' ');
 }
 
-function formatTags(formats) {
-  const colorMap = {web:'tag-web',print:'tag-print',audio:'tag-audio',epub:'tag-epub'};
-  return formats.map(f => `<span class="tag ${colorMap[f]}">${f}</span>`).join(' ');
-}
-
-function renderTable(magsToRender) {
-  document.getElementById('tableBody').innerHTML = magsToRender.map(m => {
-    const outlierBadge = m.outlier ? `<span class="outlier-badge">⚠️ ${m.note}</span>` : '';
+function renderTable(list) {
+  document.getElementById('tableBody').innerHTML = list.map(m => {
+    const outlierNote = m.outlier ? `<span class="outlier-note">&#9888; ${m.note}</span>` : '';
     return `<tr class="${m.outlier?'outlier':''}">
-      <td><a href="${m.url}" target="_blank">${m.name}</a>${outlierBadge}</td>
-      <td>${m.desc}</td>
-      <td>${platformTag(m)}</td>
-      <td>${formatTags(m.formats)}</td>
-      <td><span class="tag ${m.pricing.toLowerCase().includes('free')?'tag-free':m.pricing.toLowerCase().includes('sub')?'tag-sub':'tag-pay'}">${m.pricing}</span></td>
+      <td><a class="mag-name" href="${m.url}" target="_blank" rel="noopener">${m.name}</a>${outlierNote}</td>
+      <td class="desc">${m.desc}</td>
+      <td><span class="chip plat">${m.platformDetail || m.platform}</span></td>
+      <td>${formatChips(m.formats)}</td>
+      <td><span class="chip price">${m.pricing}</span></td>
       <td class="cadence">${m.cadence}</td>
-      <td class="editorial-note">${m.editorial}</td>
+      <td class="editorial">${m.editorial}</td>
     </tr>`;
   }).join('');
+  document.getElementById('rowCount').textContent = '— showing ' + list.length + ' of ' + mags.length;
 }
 
 renderTable(mags);
@@ -398,33 +403,33 @@ renderTable(mags);
 // ============= FILTERS =============
 function filterTable(filter) {
   document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (window.event && window.event.target) window.event.target.classList.add('active');
   document.getElementById('searchInput').value = '';
-  let filtered;
+  let f;
   switch(filter) {
-    case 'all': filtered = mags; break;
-    case 'wordpress': filtered = mags.filter(m => m.platform.includes('WordPress')); break;
-    case 'substack': filtered = mags.filter(m => m.platform==='Substack'); break;
-    case 'custom': filtered = mags.filter(m => !m.platform.includes('WordPress') && m.platform!=='Substack' && !m.outlier); break;
-    case 'print': filtered = mags.filter(m => m.formats.includes('print')); break;
-    case 'audio': filtered = mags.filter(m => m.formats.includes('audio')); break;
-    case 'sf': filtered = mags.filter(m => !m.outlier && (m.tags.includes('sf')||m.tags.includes('fantasy'))); break;
-    case 'poetry': filtered = mags.filter(m => !m.outlier && m.tags.includes('poetry')); break;
-    case 'weekly': filtered = mags.filter(m => m.cadence.toLowerCase().includes('week')); break;
-    case 'outliers': filtered = mags.filter(m => m.outlier); break;
-    default: filtered = mags;
+    case 'wordpress': f = mags.filter(m => m.platform.includes('WordPress')); break;
+    case 'substack': f = mags.filter(m => m.platform === 'Substack'); break;
+    case 'custom': f = mags.filter(m => !m.platform.includes('WordPress') && m.platform !== 'Substack' && !m.outlier); break;
+    case 'print': f = mags.filter(m => m.formats.includes('print')); break;
+    case 'audio': f = mags.filter(m => m.formats.includes('audio')); break;
+    case 'sf': f = mags.filter(m => !m.outlier && (m.tags.includes('sf')||m.tags.includes('fantasy'))); break;
+    case 'poetry': f = mags.filter(m => !m.outlier && m.tags.includes('poetry')); break;
+    case 'weekly': f = mags.filter(m => m.cadence.toLowerCase().includes('week')); break;
+    case 'outliers': f = mags.filter(m => m.outlier); break;
+    default: f = mags;
   }
-  renderTable(filtered);
+  renderTable(f);
 }
 
 function searchTable() {
   document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
   const q = document.getElementById('searchInput').value.toLowerCase();
-  renderTable(mags.filter(m => 
-    m.name.toLowerCase().includes(q) || 
-    m.desc.toLowerCase().includes(q) || 
+  renderTable(mags.filter(m =>
+    m.name.toLowerCase().includes(q) ||
+    m.desc.toLowerCase().includes(q) ||
     m.editorial.toLowerCase().includes(q) ||
     m.platform.toLowerCase().includes(q) ||
+    (m.platformDetail||'').toLowerCase().includes(q) ||
     m.tags.some(t => t.includes(q))
   ));
 }
