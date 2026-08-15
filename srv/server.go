@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coreos/go-systemd/v22/daemon"
@@ -37,6 +38,9 @@ type Server struct {
 	Email           *EmailConfig
 	preflightRunner preflightRunnerFunc
 	secret          []byte
+
+	regLimiter     *regRateLimiter
+	regLimiterOnce sync.Once
 }
 
 func New(dbPath, hostname string) (*Server, error) {
@@ -113,6 +117,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/public/summary", s.handlePublicSummary)
 	mux.HandleFunc("GET /api/public/config", s.handlePublicConfig)
 
+	// Public workshop registration (unauthenticated; honeypot + rate-limited).
+	mux.HandleFunc("POST /api/public/register", s.handlePublicRegister)
+	mux.HandleFunc("GET /workshop", func(w http.ResponseWriter, r *http.Request) {
+		s.serveStaticHTML(w, "static/workshop.html")
+	})
+
 	// Well-known paths that must not fall through to the SPA catch-all (which
 	// would otherwise return 200 HTML to crawlers / uptime probes).
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +139,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/clients", s.handleAdminClientList)
 	mux.HandleFunc("GET /api/admin/backup-status", s.handleAdminBackupStatus)
 	mux.HandleFunc("POST /api/admin/clients", s.handleAdminCreateClient)
+	mux.HandleFunc("GET /admin/registrations", s.handleAdminRegistrationsPage)
+	mux.HandleFunc("GET /api/admin/registrations", s.handleAdminListRegistrations)
+	mux.HandleFunc("GET /api/admin/registrations.csv", s.handleAdminExportRegistrations)
 
 	// API routes (global, no path prefix)
 	mux.HandleFunc("GET /api/projects", s.handleListProjects)

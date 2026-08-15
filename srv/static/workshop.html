@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register — Protocolize Your Book · [jdbb] studio</title>
+<meta name="description" content="Registration for Protocolize Your Book, a four-session hands-on book-production factory at Protocol Symposium 2026.">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<script>
+/* Theme bootstrap: honor the site's stored theme when served on-site. */
+(function(){ try {
+  var FONTS={jetbrains:1,martian:1,plex:1,geist:1,literata:1,'ibm-serif':1,'source-serif':1,newsreader:1};
+  var LEGACY={menlo:'jetbrains','ibm-sans':'geist'};
+  var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+  if (t) {
+    if (t.dark) document.documentElement.classList.add('dark');
+    var f = LEGACY[t.font] || t.font;
+    if (f && FONTS[f]) document.documentElement.setAttribute('data-font', f);
+  }
+} catch(e){} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+/* ── Terminal Folio tokens (inlined subset of the studio's theme.css so this
+      page renders identically whether opened as a file or served on-site).
+      cardless ledger · hairline rules · zero radius/shadow/gradient. ── */
+:root{
+  --bg:#F7F9FA; --surface:#FFF; --border:#DCE3E8; --border-strong:#0E1116;
+  --text:#0E1116; --text-secondary:#5D6B76; --text-muted:#8A97A1;
+  --accent:#007699; --green:#2F7D4F; --red:#B3261E; --yellow:#8A6A00;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --body:"Inter",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-size-adjust:none;
+}
+html.dark{
+  --bg:#0C0E12; --surface:#12151B; --border:#232833; --border-strong:#3A404D;
+  --text:#E8E6E1; --text-secondary:#8B909A; --text-muted:#6A707B;
+  --accent:#3BC3F2; --green:#6BBF73; --red:#E5484D; --yellow:#D5A021;
+}
+/* Site-font map — same tokens the studio's theme.css switches (this page is
+   itself the "curated middle" example, so it carries the live selector). */
+html[data-font="jetbrains"]{--mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace; --body:"JetBrains Mono","SFMono-Regular",Menlo,monospace;}
+html[data-font="martian"]{--mono:"Martian Mono","SFMono-Regular",Menlo,monospace; --body:"Martian Mono","SFMono-Regular",Menlo,monospace; --font-size-adjust:0.52;}
+html[data-font="plex"]{--mono:"IBM Plex Sans",-apple-system,sans-serif; --body:"IBM Plex Sans",-apple-system,sans-serif;}
+html[data-font="geist"]{--mono:"Geist",-apple-system,sans-serif; --body:"Geist",-apple-system,sans-serif;}
+html[data-font="literata"]{--mono:"Literata",Georgia,serif; --body:"Literata",Georgia,serif;}
+html[data-font="ibm-serif"]{--mono:"IBM Plex Serif",Georgia,serif; --body:"IBM Plex Serif",Georgia,serif;}
+html[data-font="source-serif"]{--mono:"Source Serif 4",Georgia,serif; --body:"Source Serif 4",Georgia,serif;}
+html[data-font="newsreader"]{--mono:"Newsreader",Georgia,serif; --body:"Newsreader",Georgia,serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:var(--bg); font-size-adjust:var(--font-size-adjust);}
+body{
+  font-family:var(--body); color:var(--text); background:var(--bg);
+  line-height:1.6; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.wrap{max-width:920px; margin:0 auto; padding:0 1.5rem 4rem;}
+
+/* masthead */
+.jdbb-masthead{
+  display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding:18px 0 14px; border-bottom:1px solid var(--border); font-family:var(--mono);
+  flex-wrap:wrap;
+}
+.jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none; white-space:nowrap;}
+.jdbb-wordmark .bracket{color:var(--accent);}
+.jdbb-wordmark .kj{letter-spacing:-.08em;}
+.jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
+.jdbb-masthead nav{display:flex; align-items:center; gap:1.4rem; font-size:12px;}
+.jdbb-masthead nav a{color:var(--text-secondary); text-decoration:none; padding:6px 0; border-bottom:1px solid transparent;}
+.jdbb-masthead nav a:hover{color:var(--text); border-bottom-color:var(--accent);}
+
+/* statusline */
+.jdbb-statusline{
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 24px;
+  padding:12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+  color:var(--text-muted); text-transform:uppercase;
+}
+.jdbb-statusline .ok{color:var(--green);}
+
+/* masthead */
+.jdbb-masthead{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:18px 0 14px; border-bottom:1px solid var(--border); font-family:var(--mono); flex-wrap:wrap;}
+.jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none; white-space:nowrap;}
+.jdbb-wordmark .bracket{color:var(--accent);}
+.jdbb-wordmark .kj{letter-spacing:-.08em;}
+.jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
+.jdbb-masthead nav{display:flex; align-items:center; gap:1.4rem; font-size:12px;}
+.jdbb-masthead nav a{color:var(--text-secondary); text-decoration:none; padding:6px 0; border-bottom:1px solid transparent;}
+.jdbb-masthead nav a:hover{color:var(--text); border-bottom-color:var(--accent);}
+.jdbb-statusline{display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 24px; padding:12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--text-muted); text-transform:uppercase;}
+.jdbb-statusline .ok{color:var(--green);}
+
+/* page head */
+.page-head{margin:2rem 0 .4rem;}
+.kicker{font-family:var(--mono); font-size:12.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:1rem;}
+.kicker::before{content:"// "; color:var(--accent);}
+.page-title{font-family:var(--mono); font-weight:600; font-size:clamp(26px,5vw,40px); line-height:1.2; letter-spacing:-.015em; max-width:22ch;}
+.subtitle{font-family:var(--mono); font-size:15px; color:var(--text-secondary); margin-top:.6rem;}
+.lede{font-size:17px; line-height:1.7; color:var(--text-secondary); max-width:66ch; margin-top:1.4rem;}
+.lede em{font-style:normal; color:var(--text);}
+
+hr.rule{border:none; border-top:1px solid var(--border); margin:2.6rem 0 0;}
+hr.rule-strong{border:none; border-top:1px solid var(--border-strong); margin:2.6rem 0 0;}
+
+.section{margin-top:2.6rem;}
+.section > h2{font-family:var(--mono); font-size:15.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text); padding-bottom:.6rem; border-bottom:1px solid var(--border-strong); margin-bottom:.4rem;}
+.section p{margin-top:1.1rem; max-width:70ch;}
+.section p.small{font-size:14px; color:var(--text-secondary);}
+.section a{color:var(--accent); text-decoration:underline; text-underline-offset:3px;}
+
+/* requirement callout */
+.req{margin-top:1.4rem; padding:1rem 1.1rem; border-left:2px solid var(--accent); background:var(--surface); border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);}
+.req .tag{font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--accent); text-transform:uppercase; display:block; margin-bottom:.4rem;}
+.req b{color:var(--text);}
+
+/* sessions ledger */
+.ledger{width:100%; border-collapse:collapse; margin-top:1.3rem; font-size:14px;}
+.ledger th, .ledger td{text-align:left; vertical-align:top; padding:.6rem .9rem .6rem 0; border-top:1px solid var(--border);}
+.ledger thead th{border-top:none; border-bottom:1px solid var(--border-strong); font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600;}
+.ledger td.n{font-family:var(--mono); color:var(--text-muted); white-space:nowrap;}
+.ledger td.utc{font-family:var(--mono); color:var(--text); white-space:nowrap;}
+.ledger td.local{font-family:var(--mono); font-size:12px; color:var(--text-secondary);}
+
+/* take-aways list */
+ul.takeaways{list-style:none; margin-top:1.1rem;}
+ul.takeaways li{padding:.7rem 0 .7rem 1.3rem; border-top:1px solid var(--border); font-size:14.5px; color:var(--text-secondary); position:relative;}
+ul.takeaways li:first-child{border-top:none;}
+ul.takeaways li::before{content:"+"; position:absolute; left:0; color:var(--accent); font-family:var(--mono); font-weight:700;}
+ul.takeaways li b{color:var(--text); font-weight:600;}
+
+/* form */
+form.reg{margin-top:1.6rem; max-width:640px;}
+.field{margin-bottom:1.5rem;}
+.field > label{display:block; font-family:var(--mono); font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--text); font-weight:600; margin-bottom:.5rem;}
+.field .hint{font-family:var(--body); font-size:13px; text-transform:none; letter-spacing:0; color:var(--text-muted); font-weight:400; margin-top:.15rem;}
+.field .req-star{color:var(--accent);}
+.field input[type=text], .field input[type=email], .field textarea, .field select{width:100%; font-family:var(--body); font-size:15px; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:0; padding:.7rem .8rem;}
+.field input:focus, .field textarea:focus, .field select:focus{outline:none; border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent);}
+.field textarea{min-height:5rem; resize:vertical; line-height:1.5;}
+.field select{appearance:none; cursor:pointer;}
+.checkline{display:flex; align-items:flex-start; gap:.6rem; font-size:14.5px; color:var(--text-secondary); line-height:1.5;}
+.checkline input{margin-top:.25rem; width:16px; height:16px; accent-color:var(--accent); flex:0 0 auto;}
+.checkline.required-check{padding:.8rem .9rem; border:1px solid var(--border-strong); background:var(--surface);}
+.checkline b{color:var(--text);}
+/* honeypot: visually and semantically hidden from humans */
+.hp{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;}
+.btn{font-family:var(--mono); font-size:14px; font-weight:600; letter-spacing:.03em; color:#fff; background:var(--accent); border:1px solid var(--accent); border-radius:0; padding:.8rem 1.6rem; cursor:pointer;}
+.btn:hover{filter:brightness(1.08);}
+.btn:disabled{opacity:.5; cursor:default;}
+.formmsg{margin-top:1rem; font-family:var(--mono); font-size:13px; line-height:1.5;}
+.formmsg.err{color:var(--red);}
+.formmsg.ok{color:var(--green);}
+
+/* success panel */
+.done{margin-top:1.6rem; padding:1.6rem 1.4rem; border:1px solid var(--border-strong); background:var(--surface); max-width:640px;}
+.done h3{font-family:var(--mono); font-size:16px; color:var(--text); margin-bottom:.7rem;}
+.done p{color:var(--text-secondary); font-size:15px; line-height:1.6; margin-bottom:.6rem;}
+.hidden{display:none;}
+
+/* footer */
+footer.site{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 24px; padding:24px 0 8px; margin-top:3rem; border-top:1px solid var(--border); font-family:var(--mono); font-size:12px; letter-spacing:.04em; color:var(--text-muted);}
+footer.site .fm{color:var(--text); font-weight:700; text-decoration:none;}
+footer.site .fm .bracket{color:var(--accent);}
+footer.site .fm .kj{letter-spacing:-.08em;}
+footer.site a{color:var(--text-secondary); text-decoration:underline; text-underline-offset:3px;}
+@media(max-width:640px){ .ledger td.local{white-space:normal;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav>
+      <a href="/field-notes">Field notes</a>
+      <a href="https://protocol-institute.org/events/protocol-symposium-2026/">Symposium</a>
+    </nav>
+  </header>
+
+  <div class="jdbb-statusline">
+    <span><span class="ok">&#9679;</span> Registration &middot; Protocol Symposium 2026</span>
+    <span>4 sessions &middot; 8 seats</span>
+  </div>
+
+  <div class="page-head">
+    <span class="kicker">Workshop &middot; SIGPFB (Protocols for Business)</span>
+    <h1 class="page-title">Protocolize Your Book</h1>
+    <p class="subtitle">Run your manuscript through a book-production factory &middot; with Jenna Dixon, jdbb studio</p>
+    <p class="lede">"Protocol" workshops can get abstract &mdash; this one is a DIY factory. Bring a real manuscript (a half-finished book, a pile of essays, a thread archive, a zine) and over four sessions we push it through a protocolized production pipeline: a transmittal <em>handshake</em> that generates a custom authoring template, a conformance <em>preflight</em> that negotiates messy human input into machine-readable structure, and a deterministic transform that yields a print PDF and an EPUB from one source. You handle the protocol concepts hands-on &mdash; typed interfaces, controlled vocabularies, inheritable templates &mdash; and delegate some drafting to an LLM agent to see <em>why</em> a human-legible protocol is also machine-legible. Everyone leaves with a typeset artifact and a felt answer to the symposium's question: how much of a craft should be protocolized, and what does it cost?</p>
+  </div>
+
+  <hr class="rule-strong">
+
+  <section class="section">
+    <h2>Who it's for</h2>
+    <p>Writers, editors, designers, small-press and self-publishers, zine-makers, newsletter authors, and protocol-curious people who have a body of text they'd like to see become a real book. <b>No coding, typesetting, or protocol-studies background required</b> &mdash; the factory handles the machinery; you make the protocol decisions.</p>
+    <div class="req">
+      <span class="tag">One hard requirement</span>
+      <p style="margin-top:0">You must bring <b>real material</b> &mdash; a manuscript or text collection you'd like to turn into a book. Any size, rough is welcome. This is non-negotiable: the workshop runs on <b>your</b> files, not samples.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>The four sessions</h2>
+    <p class="small">Cumulative &mdash; each session builds on the last, so please plan to attend all four. All times UTC.</p>
+    <table class="ledger">
+      <thead><tr><th>#</th><th>Session</th><th>Day</th><th>UTC</th><th>Local</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td>Handshake &mdash; fill a real transmittal, get a generated authoring template</td><td class="utc">Mon Sep 21</td><td class="utc">15:00&ndash;16:30</td><td class="local">ET 11:00 &middot; PT 08:00 &middot; CET 17:00</td></tr>
+        <tr><td class="n">2</td><td>Preflight &mdash; run messy input through the conformance detector; Keep / Strip / Convert</td><td class="utc">Mon Sep 21</td><td class="utc">17:00&ndash;18:30</td><td class="local">ET 13:00 &middot; PT 10:00 &middot; CET 19:00</td></tr>
+        <tr><td class="n">3</td><td>Build + delegate &mdash; produce print PDF + EPUB from one source; direct an LLM agent</td><td class="utc">Tue Sep 22</td><td class="utc">15:00&ndash;16:30</td><td class="local">ET 11:00 &middot; PT 08:00 &middot; CET 17:00</td></tr>
+        <tr><td class="n">4</td><td>Show-and-tell &mdash; a lightning tour of your artifact, feeding a group synthesis &amp; rubric</td><td class="utc">Tue Sep 22</td><td class="utc">17:00&ndash;18:30</td><td class="local">ET 13:00 &middot; PT 10:00 &middot; CET 19:00</td></tr>
+      </tbody>
+    </table>
+    <p class="small">EU/US-friendly window. In Asia these land in the evening &mdash; we record the lecture-style portions of sessions 1 and 3.</p>
+  </section>
+
+  <section class="section">
+    <h2>You'll leave with</h2>
+    <ul class="takeaways">
+      <li>A typeset <b>PDF + EPUB</b> of your own material, produced through the factory.</li>
+      <li>A reusable <b>custom authoring template</b> generated from your transmittal.</li>
+      <li>A transferable <b>mental model</b>: your craft re-seen as a protocol stack &mdash; typed interfaces, controlled vocabularies, inheritable templates.</li>
+      <li>A <b>decision rubric</b> for what to protocolize and what to leave to craft judgment &mdash; useful well beyond book production.</li>
+      <li>First-hand experience <b>delegating creative work to an LLM agent</b>, and a sense of <em>why</em> it works.</li>
+    </ul>
+  </section>
+
+  <hr class="rule-strong">
+
+  <section class="section" id="register">
+    <h2>Request a seat</h2>
+    <p class="small">This is a small hands-on lab (8 seats). We curate for a mix of source material and backgrounds, then confirm by email within a few days with the Zoom link and calendar invites. Fields marked <span style="color:var(--accent)">*</span> are required.</p>
+
+    <form class="reg" id="reg-form" novalidate>
+      <div class="field">
+        <label for="f-name">Name <span class="req-star">*</span></label>
+        <input type="text" id="f-name" name="name" autocomplete="name" required>
+      </div>
+
+      <div class="field">
+        <label for="f-email">Email <span class="req-star">*</span>
+          <span class="hint">Where we send the Zoom link, calendar invites, and recordings.</span>
+        </label>
+        <input type="email" id="f-email" name="email" autocomplete="email" required>
+      </div>
+
+      <div class="field">
+        <label for="f-region">Time zone / region
+          <span class="hint">Helps us confirm the schedule works for the cohort.</span>
+        </label>
+        <select id="f-region" name="region">
+          <option value="">Select&hellip;</option>
+          <option value="EU">Europe / Africa</option>
+          <option value="US">Americas</option>
+          <option value="Asia">Asia / Pacific</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div class="checkline required-check">
+          <input type="checkbox" id="f-all" name="all_sessions">
+          <label for="f-all" style="margin:0; text-transform:none; letter-spacing:0; font-family:var(--body); font-weight:400; font-size:14.5px; color:var(--text-secondary)"><b>I can attend all four sessions.</b> The lab is cumulative &mdash; each session builds on the last.</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-material">What material will you bring? <span class="req-star">*</span>
+          <span class="hint">e.g. "half-finished novel, ~40k words" or "three years of newsletter archives."</span>
+        </label>
+        <textarea id="f-material" name="material" required></textarea>
+      </div>
+
+      <div class="field">
+        <label for="f-mtype">Type of source material
+          <span class="hint">We favor a diverse spread across the cohort.</span>
+        </label>
+        <select id="f-mtype" name="material_type">
+          <option value="">Select&hellip;</option>
+          <option value="book">Half-finished book</option>
+          <option value="essays">Essay collection</option>
+          <option value="archive">Thread / newsletter archive</option>
+          <option value="zine">Zine</option>
+          <option value="poetry">Poetry</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="f-bg">Your background</label>
+        <select id="f-bg" name="background">
+          <option value="">Select&hellip;</option>
+          <option value="publishing">Publishing / editorial</option>
+          <option value="design">Design</option>
+          <option value="writing">Writing</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div class="checkline">
+          <input type="checkbox" id="f-new" name="new_to_protocol">
+          <label for="f-new" style="margin:0; text-transform:none; letter-spacing:0; font-family:var(--body); font-weight:400; font-size:14.5px; color:var(--text-secondary)">I'm new to protocol studies. <span style="color:var(--text-muted)">(Used only as a tiebreaker if we're oversubscribed &mdash; we widen the room on purpose.)</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-goals">Anything you're hoping to get out of it?
+          <span class="hint">Optional.</span>
+        </label>
+        <textarea id="f-goals" name="goals"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="checkline">
+          <input type="checkbox" id="f-consent" name="consent_email">
+          <label for="f-consent" style="margin:0; text-transform:none; letter-spacing:0; font-family:var(--body); font-weight:400; font-size:14.5px; color:var(--text-secondary)">OK to email me about this workshop and future book-factory sessions.</label>
+        </div>
+      </div>
+
+      <!-- honeypot: hidden from humans; bots that fill it are silently dropped -->
+      <div class="hp" aria-hidden="true">
+        <label for="f-company">Company (leave blank)</label>
+        <input type="text" id="f-company" name="company" tabindex="-1" autocomplete="off">
+      </div>
+
+      <button type="submit" class="btn" id="reg-submit">Request a seat &rarr;</button>
+      <div class="formmsg" id="reg-msg" role="status" aria-live="polite"></div>
+    </form>
+
+    <div class="done hidden" id="reg-done">
+      <h3>Thanks &mdash; your request is in.</h3>
+      <p>Because this is a small hands-on lab, we curate for a mix of source material and backgrounds. We'll email within a few days to confirm your spot, with the Zoom link, calendar invites for all four sessions, and a short note on prepping your manuscript.</p>
+      <p>If the cohort fills, we'll offer you the session recordings and a spot in the next round.</p>
+      <p style="color:var(--text-muted); font-size:13px">Check your inbox for a confirmation from jdbb studio. See you in the factory.</p>
+    </div>
+  </section>
+
+  <footer class="site">
+    <a class="fm" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <span>Protocolize Your Book &middot; &copy; 2026 Jenna Dixon</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var form = document.getElementById('reg-form');
+  var msg = document.getElementById('reg-msg');
+  var btn = document.getElementById('reg-submit');
+  var done = document.getElementById('reg-done');
+
+  function setMsg(text, cls){ msg.textContent = text; msg.className = 'formmsg ' + (cls||''); }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    setMsg('');
+
+    var payload = {
+      name: form.name.value.trim(),
+      email: form.email.value.trim(),
+      region: form.region.value,
+      all_sessions: form.all_sessions.checked,
+      material: form.material.value.trim(),
+      material_type: form.material_type.value,
+      background: form.background.value,
+      new_to_protocol: form.new_to_protocol.checked,
+      goals: form.goals.value.trim(),
+      consent_email: form.consent_email.checked,
+      company: form.company.value
+    };
+
+    if (!payload.name || !payload.email){ setMsg('Please give your name and email.', 'err'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(payload.email)){ setMsg('That email address doesn\u2019t look right.', 'err'); return; }
+    if (!payload.material){ setMsg('Please tell us what material you\u2019ll bring \u2014 it\u2019s the one hard requirement.', 'err'); return; }
+
+    btn.disabled = true;
+    setMsg('Sending\u2026');
+
+    fetch('/api/public/register', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      return res.json().then(function(data){ return {ok: res.ok, data: data}; });
+    }).then(function(r){
+      if (r.ok && r.data && r.data.ok){
+        form.classList.add('hidden');
+        done.classList.remove('hidden');
+        done.scrollIntoView({behavior:'smooth', block:'start'});
+      } else {
+        btn.disabled = false;
+        setMsg((r.data && r.data.error) || 'Something went wrong. Please try again, or email j@djinna.com.', 'err');
+      }
+    }).catch(function(){
+      btn.disabled = false;
+      setMsg('Network error. Please try again, or email j@djinna.com.', 'err');
+    });
+  });
+})();
+</script>
+<script src="/static/theme.js"></script>
+</body>
+</html>
