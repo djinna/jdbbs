@@ -43,3 +43,19 @@ Commit locally → push to GitHub (`origin`) → on the VM `git pull --ff-only o
 ## Worknotes
 
 - Permanent session handoffs/worknotes live in `docs/reviews/SESSION-HANDOFF-YYYY-MM-DD.md`. When the user asks to write permanent worknotes, commit and push that note to GitHub, then fast-forward the VM so the note is available from local, GitHub, and `/home/exedev/prodcal`.
+
+## Public documents (`/home/exedev/pi-public`)
+
+Standalone share pages for outside audiences (talk decks, workshop handouts)
+live **outside this repo** in `/home/exedev/pi-public`, with their own git
+history. They are served by `servePublicDoc` (`srv/server.go`), which reads
+from disk at request time — so editing one of those HTML files publishes it
+immediately, with no rebuild or restart. Only adding a *new route* needs
+`make build && sudo systemctl restart prodcal`.
+
+Currently: `/exedeck` → `pi-public/exedeck.html` (exe.dev talk for the Protocol
+Institute's SIGPfB). Override the directory with `PRODCAL_PUBLIC_DOCS` for
+local runs. See `pi-public/README.md`.
+
+Older share pages (`/litmags`, `/field-notes`, `/workshop`) are still embedded
+in the binary under `srv/static/`.

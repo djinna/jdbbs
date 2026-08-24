@@ -252,6 +252,13 @@ func (s *Server) Handler() http.Handler {
 		s.serveStaticHTML(w, "static/litmags.html")
 	})
 
+	// exe.dev talk deck for SIGPfB. Served from the public-docs directory on
+	// disk (see publicDocsDir) rather than the embedded FS, so these
+	// share pages can be edited and reloaded without rebuilding the binary.
+	mux.HandleFunc("GET /exedeck", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "exedeck.html")
+	})
+
 	// Root: always show landing page
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		s.serveLanding(w)
@@ -356,6 +363,37 @@ func (s *Server) serveClientPortal(w http.ResponseWriter) {
 func (s *Server) serveStaticHTML(w http.ResponseWriter, name string) {
 	data, err := staticFS.ReadFile(name)
 	if err != nil {
+		http.Error(w, "not found", 404)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
+}
+
+// publicDocsDir is the on-disk root for standalone pages we publish for an
+// outside audience (talk decks, workshop handouts, reference sheets). It lives
+// outside the repo so those documents can be written, reviewed, and edited
+// without touching the application source or rebuilding the binary.
+//
+// Override with PRODCAL_PUBLIC_DOCS for local runs.
+func publicDocsDir() string {
+	if d := os.Getenv("PRODCAL_PUBLIC_DOCS"); d != "" {
+		return d
+	}
+	return "/home/exedev/pi-public"
+}
+
+// servePublicDoc serves an HTML page from publicDocsDir. name must be a bare
+// file name; anything with a path separator is rejected so a route can never be
+// talked into reading outside the directory.
+func (s *Server) servePublicDoc(w http.ResponseWriter, name string) {
+	if name == "" || strings.ContainsAny(name, `/\`) || strings.Contains(name, "..") {
+		http.Error(w, "not found", 404)
+		return
+	}
+	data, err := os.ReadFile(filepath.Join(publicDocsDir(), name))
+	if err != nil {
+		slog.Warn("public doc unavailable", "name", name, "err", err)
 		http.Error(w, "not found", 404)
 		return
 	}
