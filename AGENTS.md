@@ -53,9 +53,14 @@ from disk at request time — so editing one of those HTML files publishes it
 immediately, with no rebuild or restart. Only adding a *new route* needs
 `make build && sudo systemctl restart prodcal`.
 
-Currently: `/exedeck` → `pi-public/exedeck.html` (exe.dev talk for the Protocol
-Institute's SIGPfB). Override the directory with `PRODCAL_PUBLIC_DOCS` for
-local runs. See `pi-public/README.md`.
+Currently `/exedeck`, `/litmags`, `/field-notes`, and `/workshop`, all reading
+from `pi-public/`. Override the directory with `PRODCAL_PUBLIC_DOCS` for local
+runs. See `pi-public/README.md`.
 
-Older share pages (`/litmags`, `/field-notes`, `/workshop`) are still embedded
-in the binary under `srv/static/`.
+`/workshop` is the one that talks to the server: its form POSTs to
+`/api/public/register` and reads `/api/public/config` (see `srv/registration.go`),
+so test the form after editing that page.
+
+Application-owned assets stay embedded under `srv/static/` — `theme.js` and
+`theme.css` (the shared font selector and Terminal Folio tokens), the SPA, and
+the admin and client portals. Those are code, not documents.

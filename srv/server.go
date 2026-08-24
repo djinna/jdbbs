@@ -120,7 +120,7 @@ func (s *Server) Handler() http.Handler {
 	// Public workshop registration (unauthenticated; honeypot + rate-limited).
 	mux.HandleFunc("POST /api/public/register", s.handlePublicRegister)
 	mux.HandleFunc("GET /workshop", func(w http.ResponseWriter, r *http.Request) {
-		s.serveStaticHTML(w, "static/workshop.html")
+		s.servePublicDoc(w, "workshop.html")
 	})
 
 	// Well-known paths that must not fall through to the SPA catch-all (which
@@ -244,12 +244,12 @@ func (s *Server) Handler() http.Handler {
 
 	// Field notes: Language-as-protocol examples (workshop source material).
 	mux.HandleFunc("GET /field-notes", func(w http.ResponseWriter, r *http.Request) {
-		s.serveStaticHTML(w, "static/field-notes.html")
+		s.servePublicDoc(w, "field-notes.html")
 	})
 
 	// Lit-mag tool-stack reference (public, standalone share page).
 	mux.HandleFunc("GET /litmags", func(w http.ResponseWriter, r *http.Request) {
-		s.serveStaticHTML(w, "static/litmags.html")
+		s.servePublicDoc(w, "litmags.html")
 	})
 
 	// exe.dev talk deck for SIGPfB. Served from the public-docs directory on
