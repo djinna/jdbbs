@@ -259,6 +259,19 @@ func (s *Server) Handler() http.Handler {
 		s.servePublicDoc(w, "exedeck.html")
 	})
 
+	// Companion pages for the deck: internal documents from a consulting
+	// client, republished anonymized with their permission. The anonymization
+	// mapping lives in pi-public/client-raw/ (gitignored).
+	mux.HandleFunc("GET /work-notes-standard", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "work-notes-standard.html")
+	})
+	mux.HandleFunc("GET /architecture-plan", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "architecture-plan.html")
+	})
+	mux.HandleFunc("GET /field-guide", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "field-guide.html")
+	})
+
 	// Root: always show landing page
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		s.serveLanding(w)
