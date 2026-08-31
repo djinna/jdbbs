@@ -3,193 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Registrations — Protocolize Your Book</title>
+<title>Workshop cohort — Protocolize Your Book</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<script>
-(function(){ try {
-  var FONTS={jetbrains:1,martian:1,plex:1,geist:1,literata:1,'ibm-serif':1,'source-serif':1,newsreader:1};
-  var LEGACY={menlo:'jetbrains','ibm-sans':'geist'};
-  var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
-  if (t) { if (t.dark) document.documentElement.classList.add('dark');
-    var f = LEGACY[t.font] || t.font; if (f && FONTS[f]) document.documentElement.setAttribute('data-font', f); }
-} catch(e){} })();
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist:wght@400;500;600&family=Martian+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/theme.css">
 <style>
-/* ── Terminal Folio tokens (inlined subset of the studio's theme.css so this
-      page renders identically whether opened as a file or served on-site).
-      cardless ledger · hairline rules · zero radius/shadow/gradient. ── */
-:root{
-  --bg:#F7F9FA; --surface:#FFF; --border:#DCE3E8; --border-strong:#0E1116;
-  --text:#0E1116; --text-secondary:#5D6B76; --text-muted:#8A97A1;
-  --accent:#007699; --green:#2F7D4F; --red:#B3261E; --yellow:#8A6A00;
-  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
-  --body:"Inter",-apple-system,"Helvetica Neue",Arial,sans-serif;
-  --font-size-adjust:none;
+:root{--mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--body)}
+.wrap{max-width:1180px;margin:auto;padding:0 24px 64px}.mast{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0 14px;border-bottom:1px solid var(--border);font-family:var(--mono)}
+.wordmark{font-weight:700;color:var(--text);text-decoration:none}.wordmark b{color:var(--accent)}.wordmark small{color:var(--text-muted);font-weight:400;margin-left:7px}.mast nav{display:flex;gap:18px;font-size:12px}.mast nav a{color:var(--text-secondary);text-decoration:none}
+.hero{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;padding:34px 0 20px;border-bottom:1px solid var(--border-strong)}.kicker,.label{font:700 11px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:var(--text-secondary)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn,button,select,input,textarea{font:inherit;border-radius:0}.btn,button{border:1px solid var(--border-strong);background:var(--surface);color:var(--text);padding:8px 12px;cursor:pointer;text-decoration:none;font-family:var(--mono);font-size:12px;font-weight:600}.btn:hover,button:hover{border-color:var(--accent);color:var(--accent)}button.primary{background:var(--accent);border-color:var(--accent);color:white}button:disabled{opacity:.45;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--border);margin-bottom:26px}.stat{padding:15px 16px 15px 0}.stat+.stat{padding-left:16px;border-left:1px solid var(--border)}.stat b{display:block;font:600 24px/1 var(--mono)}.stat span{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin:30px 0 10px}.section-head h2{font:600 18px var(--mono);margin:5px 0}.hint{font-size:12px;color:var(--text-muted)}
+.participants{border-top:1px solid var(--border-strong)}.person{display:grid;grid-template-columns:30px minmax(180px,1fr) minmax(220px,1.5fr) minmax(270px,1.3fr);gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}.pick{padding-top:4px}.who h3{font:600 15px var(--mono);margin:0 0 3px}.who a{color:var(--accent);font:12px var(--mono);text-decoration:none}.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.tag{border:1px solid var(--border);padding:2px 6px;font:10px var(--mono);color:var(--text-secondary);text-transform:uppercase}.tag.good{color:var(--green)}.tag.warn{color:var(--yellow)}.tag.no{color:var(--red)}
+.material{color:var(--text-secondary)}.material .goals{margin-top:8px;color:var(--text-muted);font-style:italic;font-size:12px}.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.controls label{font:10px var(--mono);text-transform:uppercase;color:var(--text-muted)}select,input,textarea{width:100%;margin-top:4px;padding:7px 8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}textarea{resize:vertical;min-height:62px}.attendance{grid-column:1/-1;display:flex;gap:12px;align-items:center}.attendance span{font:10px var(--mono);color:var(--text-muted);text-transform:uppercase}.attendance label{display:flex;gap:4px;align-items:center}.attendance input{width:auto;margin:0}.saved{grid-column:1/-1;min-height:16px;font:10px var(--mono);color:var(--green)}
+.composer{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,.75fr);gap:28px;border-top:1px solid var(--border-strong);border-bottom:1px solid var(--border);padding:20px 0}.compose-fields label{display:block;margin-bottom:13px;font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}.compose-fields textarea{min-height:190px;text-transform:none}.sendbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.recipient-count{font:12px var(--mono);color:var(--text-secondary)}.privacy{padding-left:18px;color:var(--text-secondary);font-size:12px}.privacy li{margin-bottom:8px}.history{margin-top:18px}.history-row{display:grid;grid-template-columns:140px 1fr 150px;gap:12px;padding:8px 0;border-top:1px solid var(--border);font-size:12px}.history-row time,.history-row span{font-family:var(--mono);color:var(--text-muted)}
+.empty,.error{padding:26px 0;font-family:var(--mono);color:var(--text-muted)}.error{color:var(--red)}.toast{position:fixed;right:20px;bottom:20px;max-width:360px;padding:11px 14px;background:var(--text);color:var(--bg);font:12px var(--mono);display:none;z-index:5}
+.edit-actions{display:flex;gap:7px;margin-top:12px}.edit-panel{display:none;grid-column:2/-1;border-top:1px dashed var(--border);padding-top:14px}.person.editing .edit-panel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.person.editing .controls select,.person.editing .controls textarea,.person.editing .controls input{pointer-events:auto;opacity:1}.controls select,.controls textarea,.controls input{pointer-events:none;opacity:.78}.edit-panel label{font:10px var(--mono);text-transform:uppercase;color:var(--text-muted)}.edit-panel .wide{grid-column:span 2}.edit-panel .full{grid-column:1/-1}.checkline{display:flex;gap:16px;align-items:center;grid-column:1/-1}.checkline label{display:flex;gap:5px;align-items:center}.checkline input{width:auto;margin:0}.terse-sheet{display:none}.print-meta{display:none}
+@media print{
+ @page{margin:.45in} body{background:#fff;color:#000;font-size:10pt}.wrap{max-width:none;padding:0}.mast,.hero .actions,.section-head .actions,.pick,.edit-actions,.composer,.history,.hint,#email-status,.toast{display:none!important}.hero{padding:0 0 10px}.stats{margin-bottom:14px}.person{break-inside:avoid;grid-template-columns:1.1fr 1.7fr 1.2fr;padding:10px 0}.who{grid-column:1}.material{grid-column:2}.controls{display:none}.print-meta{display:block;grid-column:3;font-size:9pt}.tags{margin-top:5px}.tag{font-size:7pt}.goals{font-size:8pt!important}.section-head{margin:16px 0 6px}.section-head h2{margin:2px 0}.edit-panel{display:none!important}
+ body.print-terse .wrap>header,body.print-terse .wrap>section,body.print-terse .stats{display:none!important}body.print-terse .terse-sheet{display:block!important;page:terse}body.print-verbose .terse-sheet{display:none!important}
+ .terse-sheet h1{font-size:16pt;margin:0 0 3px}.terse-sheet .print-sub{font:8pt var(--mono);margin-bottom:8px}.terse-table{width:100%;border-collapse:collapse;font-size:8pt}.terse-table th,.terse-table td{border:1px solid #777;padding:4px 5px;text-align:left;vertical-align:top}.terse-table th{font:700 7pt var(--mono);text-transform:uppercase}.terse-table .box{font-size:10pt;white-space:nowrap}.terse-notes{height:28px}.terse-footer{font:7pt var(--mono);margin-top:6px}
 }
-html.dark{
-  --bg:#0C0E12; --surface:#12151B; --border:#232833; --border-strong:#3A404D;
-  --text:#E8E6E1; --text-secondary:#8B909A; --text-muted:#6A707B;
-  --accent:#3BC3F2; --green:#6BBF73; --red:#E5484D; --yellow:#D5A021;
-}
-/* Site-font map — same tokens the studio's theme.css switches (this page is
-   itself the "curated middle" example, so it carries the live selector). */
-html[data-font="jetbrains"]{--mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace; --body:"JetBrains Mono","SFMono-Regular",Menlo,monospace;}
-html[data-font="martian"]{--mono:"Martian Mono","SFMono-Regular",Menlo,monospace; --body:"Martian Mono","SFMono-Regular",Menlo,monospace; --font-size-adjust:0.52;}
-html[data-font="plex"]{--mono:"IBM Plex Sans",-apple-system,sans-serif; --body:"IBM Plex Sans",-apple-system,sans-serif;}
-html[data-font="geist"]{--mono:"Geist",-apple-system,sans-serif; --body:"Geist",-apple-system,sans-serif;}
-html[data-font="literata"]{--mono:"Literata",Georgia,serif; --body:"Literata",Georgia,serif;}
-html[data-font="ibm-serif"]{--mono:"IBM Plex Serif",Georgia,serif; --body:"IBM Plex Serif",Georgia,serif;}
-html[data-font="source-serif"]{--mono:"Source Serif 4",Georgia,serif; --body:"Source Serif 4",Georgia,serif;}
-html[data-font="newsreader"]{--mono:"Newsreader",Georgia,serif; --body:"Newsreader",Georgia,serif;}
-*{margin:0;padding:0;box-sizing:border-box;}
-html{background:var(--bg); font-size-adjust:var(--font-size-adjust);}
-body{
-  font-family:var(--body); color:var(--text); background:var(--bg);
-  line-height:1.6; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-}
-.wrap{max-width:920px; margin:0 auto; padding:0 1.5rem 4rem;}
-
-/* masthead */
-.jdbb-masthead{
-  display:flex; align-items:center; justify-content:space-between; gap:1rem;
-  padding:18px 0 14px; border-bottom:1px solid var(--border); font-family:var(--mono);
-  flex-wrap:wrap;
-}
-.jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none; white-space:nowrap;}
-.jdbb-wordmark .bracket{color:var(--accent);}
-.jdbb-wordmark .kj{letter-spacing:-.08em;}
-.jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
-.jdbb-masthead nav{display:flex; align-items:center; gap:1.4rem; font-size:12px;}
-.jdbb-masthead nav a{color:var(--text-secondary); text-decoration:none; padding:6px 0; border-bottom:1px solid transparent;}
-.jdbb-masthead nav a:hover{color:var(--text); border-bottom-color:var(--accent);}
-
-/* statusline */
-.jdbb-statusline{
-  display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 24px;
-  padding:12px 0; font-family:var(--mono); font-size:11px; letter-spacing:.06em;
-  color:var(--text-muted); text-transform:uppercase;
-}
-.jdbb-statusline .ok{color:var(--green);}
-
-*{margin:0;padding:0;box-sizing:border-box;}
-html{background:var(--bg);}
-body{font-family:var(--body); color:var(--text); background:var(--bg); line-height:1.5; font-size:14px; -webkit-font-smoothing:antialiased;}
-.wrap{max-width:1200px; margin:0 auto; padding:0 1.5rem 4rem;}
-
-.jdbb-masthead{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:18px 0 14px; border-bottom:1px solid var(--border); font-family:var(--mono); flex-wrap:wrap;}
-.jdbb-wordmark{font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.02em; color:var(--text); text-decoration:none;}
-.jdbb-wordmark .bracket{color:var(--accent);}
-.jdbb-wordmark .kj{letter-spacing:-.08em;}
-.jdbb-wordmark .studio{color:var(--text-muted); font-weight:400; margin-left:.4rem;}
-.jdbb-masthead nav{display:flex; align-items:center; gap:1.4rem; font-size:12px;}
-.jdbb-masthead nav a{color:var(--text-secondary); text-decoration:none; padding:6px 0; border-bottom:1px solid transparent;}
-.jdbb-masthead nav a:hover{color:var(--text); border-bottom-color:var(--accent);}
-
-.head{display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin:2rem 0 1rem;}
-.head .kicker{font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:.6rem;}
-.head h1{font-family:var(--mono); font-weight:600; font-size:clamp(22px,4vw,30px); line-height:1.2;}
-.head .actions{display:flex; gap:.7rem; align-items:center;}
-.count{font-family:var(--mono); font-size:13px; color:var(--text-secondary);}
-.count b{color:var(--text);} .count .over{color:var(--yellow);}
-.btn{font-family:var(--mono); font-size:13px; font-weight:600; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:0; padding:.55rem 1rem; cursor:pointer; text-decoration:none;}
-.btn:hover{border-color:var(--accent); color:var(--accent);}
-.btn.primary{color:#fff; background:var(--accent); border-color:var(--accent);}
-
-hr.rule-strong{border:none; border-top:1px solid var(--border-strong); margin:0 0 0;}
-
-table.reg{width:100%; border-collapse:collapse; margin-top:1.2rem; font-size:13px;}
-table.reg th, table.reg td{text-align:left; vertical-align:top; padding:.6rem .8rem .6rem 0; border-top:1px solid var(--border);}
-table.reg thead th{border-top:none; border-bottom:1px solid var(--border-strong); font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted); font-weight:600; white-space:nowrap;}
-table.reg tr.over td{background:color-mix(in srgb, var(--yellow) 8%, transparent);}
-td.num{font-family:var(--mono); color:var(--text-muted); white-space:nowrap;}
-td.name{font-weight:600; color:var(--text); white-space:nowrap;}
-td.email a{font-family:var(--mono); font-size:12px; color:var(--accent); text-decoration:none;}
-td.email a:hover{text-decoration:underline;}
-td.tag{font-family:var(--mono); font-size:12px; color:var(--text-secondary); white-space:nowrap;}
-td.material{color:var(--text-secondary); max-width:340px;}
-td.flag{font-family:var(--mono); font-size:12px; text-align:center;}
-.yes{color:var(--green); font-weight:600;} .no{color:var(--text-muted);}
-td.date{font-family:var(--mono); font-size:12px; color:var(--text-muted); white-space:nowrap;}
-.empty{margin-top:2rem; padding:2rem; border:1px dashed var(--border-strong); text-align:center; color:var(--text-muted); font-family:var(--mono); font-size:13px;}
-.err{margin-top:1.5rem; color:var(--red); font-family:var(--mono); font-size:13px;}
-.goals{color:var(--text-muted); font-style:italic; margin-top:.25rem; font-size:12px;}
-.legend{margin-top:1.2rem; font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--text-muted); text-transform:uppercase;}
+@page terse{size:landscape;margin:.35in}
+@media(max-width:850px){.stats{grid-template-columns:repeat(2,1fr)}.stat{border-bottom:1px solid var(--border)}.person{grid-template-columns:28px 1fr}.material,.controls{grid-column:2}.composer{grid-template-columns:1fr}.person.editing .edit-panel{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.wrap{padding:0 15px 50px}.person{grid-template-columns:24px 1fr}.controls{grid-template-columns:1fr}.attendance{flex-wrap:wrap}.stats{grid-template-columns:1fr}.stat+.stat{padding-left:0;border-left:0}.history-row{grid-template-columns:1fr}.person.editing .edit-panel{grid-template-columns:1fr}.edit-panel .wide{grid-column:auto}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="jdbb-masthead">
-    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
-    <nav>
-      <a href="/admin/">Production</a>
-      <a href="/workshop">Public form &rarr;</a>
-    </nav>
-  </header>
+<header class="mast"><a class="wordmark" href="/"><b>[</b>jdbb<b>]</b><small>studio</small></a><nav><a href="/admin/">Production</a><a href="/workshop">Public form ↗</a><div id="theme-bar"></div></nav></header>
+<section class="hero"><div><div class="kicker">Cohort tracker · September 21–22, 2026</div><h1>Protocolize Your Book</h1><div class="sub">Registrations, prep, attendance, notes, and announcements.</div></div><div class="actions"><a class="btn" href="/api/admin/registrations.csv">Export CSV</a><button type="button" onclick="printTracker('verbose')">Print verbose</button><button type="button" onclick="printTracker('terse')">Print terse · 1 page</button></div></section>
+<div class="stats" id="stats"></div>
 
-  <div class="head">
-    <div>
-      <span class="kicker">Protocol Symposium 2026</span>
-      <h1>Protocolize Your Book &mdash; registrations</h1>
-    </div>
-    <div class="actions">
-      <span class="count" id="count">&hellip;</span>
-      <a class="btn" href="/api/admin/registrations.csv">Export CSV</a>
-    </div>
-  </div>
+<section>
+<div class="section-head"><div><div class="label">Roster</div><h2>Participants</h2></div><div class="actions"><button onclick="selectGroup('confirmed')">Select confirmed</button><button onclick="selectGroup('contactable')">Select all email-OK</button><button onclick="selectGroup('none')">Clear</button></div></div>
+<div id="participants" class="participants"><div class="empty">Loading cohort…</div></div>
+</section>
 
-  <hr class="rule-strong">
-
-  <div id="body"></div>
+<section>
+<div class="section-head"><div><div class="label">Outbox</div><h2>Send an announcement</h2></div><div class="hint">Personalized and sent one-to-one — no exposed address list.</div></div>
+<div class="composer">
+<div class="compose-fields"><label>Subject<input id="subject" placeholder="Protocolize Your Book — workshop update"></label><label>Message<textarea id="message" placeholder="Write the common message here. Each email begins “Hi [first name],” and includes your signature."></textarea></label><div class="sendbar"><button class="primary" id="send" onclick="sendAnnouncement()">Send announcement</button><span class="recipient-count" id="recipient-count">0 recipients selected</span></div></div>
+<div><div class="label">Guardrails</div><ul class="privacy"><li>Only registrants who explicitly said “OK to email” can be selected.</li><li>Declined registrants are excluded.</li><li>Every send is logged below; successful recipients get a “last emailed” timestamp.</li><li>Andrea opted out, so her checkbox stays disabled.</li></ul><div id="email-status" class="hint"></div></div>
 </div>
-
+<div class="history"><div class="label">Announcement history</div><div id="history"></div></div>
+</section>
+<div id="terse-sheet" class="terse-sheet"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/static/theme.js"></script>
+<script>JdbbTheme.mount(document.getElementById('theme-bar'));</script>
 <script>
-function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
-function yn(b){ return b ? '<span class="yes">yes</span>' : '<span class="no">&mdash;</span>'; }
-
-fetch('/api/admin/registrations', {headers:{'Accept':'application/json'}})
-  .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-  .then(function(d){
-    var rows = d.registrations || [];
-    var cap = d.soft_cap || 8;
-    var cEl = document.getElementById('count');
-    if (d.count > cap) {
-      cEl.innerHTML = '<b>'+d.count+'</b> requests &middot; <span class="over">'+(d.count-cap)+' over soft cap of '+cap+'</span>';
-    } else {
-      cEl.innerHTML = '<b>'+d.count+'</b> of '+cap+' seats requested';
-    }
-    var body = document.getElementById('body');
-    if (!rows.length) { body.innerHTML = '<div class="empty">No registrations yet. The public form is at <a href="/workshop">/workshop</a>.</div>'; return; }
-
-    var h = '<table class="reg"><thead><tr>'+
-      '<th>#</th><th>Name</th><th>Email</th><th>Region</th><th>All&nbsp;4</th><th>Type</th>'+
-      '<th>Material / goals</th><th>Background</th><th>New</th><th>Email&nbsp;OK</th><th>Received</th>'+
-      '</tr></thead><tbody>';
-    rows.forEach(function(e, i){
-      var over = (i+1) > cap;
-      h += '<tr'+(over?' class="over"':'')+'>'+
-        '<td class="num">'+(i+1)+'</td>'+
-        '<td class="name">'+esc(e.name)+'</td>'+
-        '<td class="email"><a href="mailto:'+esc(e.email)+'">'+esc(e.email)+'</a></td>'+
-        '<td class="tag">'+esc(e.region||'—')+'</td>'+
-        '<td class="flag">'+yn(e.all_sessions)+'</td>'+
-        '<td class="tag">'+esc(e.material_type||'—')+'</td>'+
-        '<td class="material">'+esc(e.material)+ (e.goals ? '<div class="goals">'+esc(e.goals)+'</div>' : '') +'</td>'+
-        '<td class="tag">'+esc(e.background||'—')+'</td>'+
-        '<td class="flag">'+yn(e.new_to_protocol)+'</td>'+
-        '<td class="flag">'+yn(e.consent_email)+'</td>'+
-        '<td class="date">'+esc((e.created_at||'').replace('T',' ').slice(0,16))+'</td>'+
-        '</tr>';
-    });
-    h += '</tbody></table>';
-    h += '<div class="legend">Rows past seat '+cap+' are shaded &mdash; soft cap, not enforced. "New" = new to protocol studies (curation tiebreaker). Order: earliest first.</div>';
-    body.innerHTML = h;
-  })
-  .catch(function(err){
-    document.getElementById('body').innerHTML = '<div class="err">Could not load registrations: '+esc(err.message)+'. (Are you logged in via exe.dev?)</div>';
-  });
+let data={registrations:[],announcements:[]};
+const esc=s=>{const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML};
+function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3500)}
+function fmtDate(s){if(!s)return 'never';const d=new Date(s);return isNaN(d)?s:d.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+function eligible(r){return r.consent_email&&r.status!=='declined'}
+function render(){
+ const rs=data.registrations||[], cap=data.soft_cap||8;
+ const confirmed=rs.filter(r=>r.status==='confirmed').length, ready=rs.filter(r=>r.prep_status==='ready').length, contactable=rs.filter(eligible).length;
+ document.getElementById('stats').innerHTML=[['Requests',rs.length+' / '+cap],['Confirmed',confirmed],['Can attend all 4',rs.filter(r=>r.all_sessions).length],['Prep ready',ready],['Email opt-ins',contactable]].map(x=>`<div class="stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+ document.getElementById('email-status').textContent=data.email_ready?'Mailer connected.':'Mailer is not configured; sending is disabled.'; document.getElementById('send').disabled=!data.email_ready;
+ const p=document.getElementById('participants'); if(!rs.length){p.innerHTML='<div class="empty">No registrations yet.</div>';return}
+ p.innerHTML=rs.map((r,i)=>`<article class="person" data-id="${r.id}">
+ <div class="pick"><input class="recipient" type="checkbox" value="${r.id}" ${eligible(r)?'':'disabled'} aria-label="Select ${esc(r.name)} for email"></div>
+ <div class="who"><h3>${i+1}. ${esc(r.name)}</h3><a href="mailto:${esc(r.email)}">${esc(r.email)}</a><div class="tags"><span class="tag">${esc(r.region||'—')}</span><span class="tag">${esc(r.material_type||'—')}</span><span class="tag ${r.all_sessions?'good':'warn'}">${r.all_sessions?'all 4':'not all 4'}</span><span class="tag ${r.consent_email?'good':'no'}">${r.consent_email?'email OK':'no email'}</span>${r.new_to_protocol?'<span class="tag good">new to protocol</span>':''}</div><div class="edit-actions"><button type="button" onclick="startEdit(this.closest('.person'))">Edit registration</button></div></div>
+ <div class="material">${esc(r.material)}${r.goals?`<div class="goals">Goal: ${esc(r.goals)}</div>`:''}<div class="hint" style="margin-top:8px">Last emailed: ${fmtDate(r.last_emailed_at)}</div></div>
+ <div class="controls"><label>Seat status<select class="status"><option value="requested">Requested</option><option value="confirmed">Confirmed</option><option value="waitlist">Waitlist</option><option value="declined">Declined</option></select></label><label>Prep<select class="prep"><option value="not-started">Not started</option><option value="contacted">Contacted</option><option value="ready">Ready</option><option value="needs-help">Needs help</option></select></label><div class="attendance"><span>Attended</span>${[1,2,3,4].map(n=>`<label><input type="checkbox" class="attend" data-bit="${1<<(n-1)}" ${(r.attended_sessions&(1<<(n-1)))?'checked':''}>S${n}</label>`).join('')}</div><label style="grid-column:1/-1">Private notes<textarea class="notes" placeholder="Follow-up, fit, manuscript prep…">${esc(r.notes||'')}</textarea></label><div class="saved"></div></div>
+ <div class="print-meta"><b>${esc(r.status)}</b> · ${esc(r.prep_status)}<br>Attended: ${attendanceText(r.attended_sessions)}${r.notes?`<br>Notes: ${esc(r.notes)}`:''}</div>
+ <div class="edit-panel"><label class="wide">Name<input class="f-name" value="${esc(r.name)}"></label><label class="wide">Email<input class="f-email" type="email" value="${esc(r.email)}"></label><label>Region<input class="f-region" value="${esc(r.region)}"></label><label>Material type<input class="f-material-type" value="${esc(r.material_type)}"></label><label>Background<input class="f-background" value="${esc(r.background)}"></label><span></span><label class="full">Material<textarea class="f-material">${esc(r.material)}</textarea></label><label class="full">Goals<textarea class="f-goals">${esc(r.goals||'')}</textarea></label><div class="checkline"><label><input type="checkbox" class="f-all" ${r.all_sessions?'checked':''}> Can attend all four</label><label><input type="checkbox" class="f-new" ${r.new_to_protocol?'checked':''}> New to protocol studies</label><label><input type="checkbox" class="f-consent" ${r.consent_email?'checked':''}> OK to receive announcements</label></div><div class="edit-actions full"><button type="button" class="primary" onclick="saveRow(this.closest('.person'))">Save changes</button><button type="button" onclick="cancelEdit()">Cancel</button><span class="saved"></span></div></div>
+ </article>`).join('');
+ rs.forEach(r=>{const el=p.querySelector(`[data-id="${r.id}"]`);el.querySelector('.status').value=r.status;el.querySelector('.prep').value=r.prep_status});
+ renderTerse(); renderHistory(); updateRecipientCount();
+}
+function attendanceText(mask){const seen=[1,2,3,4].filter(n=>mask&(1<<(n-1)));return seen.length?seen.map(n=>'S'+n).join(', '):'—'}
+function startEdit(el){document.querySelectorAll('.person.editing').forEach(x=>x.classList.remove('editing'));el.classList.add('editing');el.querySelector('.f-name').focus()}
+function cancelEdit(){render()}
+async function saveRow(el){
+ const id=Number(el.dataset.id), mask=[...el.querySelectorAll('.attend:checked')].reduce((n,x)=>n|Number(x.dataset.bit),0);
+ const payload={name:el.querySelector('.f-name').value,email:el.querySelector('.f-email').value,region:el.querySelector('.f-region').value,all_sessions:el.querySelector('.f-all').checked,material:el.querySelector('.f-material').value,material_type:el.querySelector('.f-material-type').value,background:el.querySelector('.f-background').value,new_to_protocol:el.querySelector('.f-new').checked,goals:el.querySelector('.f-goals').value,consent_email:el.querySelector('.f-consent').checked,status:el.querySelector('.status').value,prep_status:el.querySelector('.prep').value,attended_sessions:mask,notes:el.querySelector('.notes').value};
+ const saved=el.querySelector('.edit-panel .saved');saved.textContent='saving…';
+ try{const r=await fetch('/api/admin/registrations/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const out=await r.json();if(!r.ok)throw new Error(out.error||'save failed');toast('Registration saved.');await load()}catch(e){saved.textContent='not saved';toast(e.message)}
+}
+function renderTerse(){
+ const rs=data.registrations||[];
+ document.getElementById('terse-sheet').innerHTML=`<h1>Protocolize Your Book — cohort tracker</h1><div class="print-sub">September 21–22, 2026 · ${rs.length} registrations · printed ${new Date().toLocaleDateString()}</div><table class="terse-table"><thead><tr><th>#</th><th>Participant / email</th><th>Region</th><th>Material</th><th>All 4</th><th>Status</th><th>Prep</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>Notes / follow-up</th></tr></thead><tbody>${rs.map((r,i)=>`<tr><td>${i+1}</td><td><b>${esc(r.name)}</b><br>${esc(r.email)}</td><td>${esc(r.region||'—')}</td><td>${esc(r.material_type||'—')}</td><td>${r.all_sessions?'yes':'no'}</td><td>${esc(r.status)}</td><td>${esc(r.prep_status)}</td>${[1,2,3,4].map(n=>`<td class="box">${r.attended_sessions&(1<<(n-1))?'☒':'☐'}</td>`).join('')}<td class="terse-notes">${esc(r.notes||'')}</td></tr>`).join('')}</tbody></table><div class="terse-footer">Email consent: ${rs.filter(r=>r.consent_email).length} opted in · announcements must exclude non-consenting participants.</div>`;
+}
+function printTracker(mode){document.body.classList.remove('print-verbose','print-terse');document.body.classList.add('print-'+mode);window.print();setTimeout(()=>document.body.classList.remove('print-verbose','print-terse'),500)}
+window.addEventListener('afterprint',()=>document.body.classList.remove('print-verbose','print-terse'));
+function selectGroup(group){document.querySelectorAll('.recipient').forEach(cb=>{if(cb.disabled)return;const r=data.registrations.find(x=>x.id===Number(cb.value));cb.checked=group==='contactable'||(group==='confirmed'&&r.status==='confirmed')});updateRecipientCount()}
+function selectedIDs(){return [...document.querySelectorAll('.recipient:checked')].map(x=>Number(x.value))}
+function updateRecipientCount(){const n=selectedIDs().length;document.getElementById('recipient-count').textContent=n+' recipient'+(n===1?'':'s')+' selected'}
+document.addEventListener('change',e=>{if(e.target.classList.contains('recipient'))updateRecipientCount()});
+async function sendAnnouncement(){const ids=selectedIDs(),subject=document.getElementById('subject').value.trim(),body=document.getElementById('message').value.trim();if(!ids.length||!subject||!body){toast('Select recipients and add a subject and message.');return}const names=data.registrations.filter(r=>ids.includes(r.id)).map(r=>r.name).join(', ');if(!confirm(`Send “${subject}” individually to ${ids.length} participant(s)?\n\n${names}`))return;const btn=document.getElementById('send');btn.disabled=true;btn.textContent='Sending…';try{const r=await fetch('/api/admin/registrations/announce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({registration_ids:ids,subject,body})});const out=await r.json();if(!r.ok)throw new Error(out.error||'send failed');toast(`Sent ${out.sent} of ${out.selected}.`);document.getElementById('message').value='';selectGroup('none');await load()}catch(e){toast(e.message)}finally{btn.textContent='Send announcement';btn.disabled=!data.email_ready}}
+function renderHistory(){const h=document.getElementById('history'), rows=data.announcements||[];h.innerHTML=rows.length?rows.map(a=>`<div class="history-row"><time>${fmtDate(a.created_at)}</time><b>${esc(a.subject)}</b><span>${a.sent_count}/${a.recipient_count} sent${a.failed_count?' · '+a.failed_count+' failed':''}</span></div>`).join(''):'<div class="hint" style="padding:12px 0">No announcements sent yet.</div>'}
+async function load(){try{const r=await fetch('/api/admin/registrations',{headers:{Accept:'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status);data=await r.json();render()}catch(e){document.getElementById('participants').innerHTML='<div class="error">Could not load cohort: '+esc(e.message)+'</div>'}}
+load();
 </script>
 </body>
 </html>

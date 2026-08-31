@@ -141,6 +141,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/clients", s.handleAdminCreateClient)
 	mux.HandleFunc("GET /admin/registrations", s.handleAdminRegistrationsPage)
 	mux.HandleFunc("GET /api/admin/registrations", s.handleAdminListRegistrations)
+	mux.HandleFunc("PUT /api/admin/registrations/{id}", s.handleAdminUpdateRegistration)
+	mux.HandleFunc("POST /api/admin/registrations/announce", s.handleAdminSendAnnouncement)
 	mux.HandleFunc("GET /api/admin/registrations.csv", s.handleAdminExportRegistrations)
 
 	// API routes (global, no path prefix)

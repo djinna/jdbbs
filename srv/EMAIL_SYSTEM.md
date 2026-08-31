@@ -18,7 +18,7 @@ All handlers check `s.Email == nil` and return 503 if not configured.
 
 ## Email Pathways
 
-There are **5 email pathways** in two categories (4 manual + 1 automatic):
+There are **6 email pathways** in two categories (5 manual + 1 automatic):
 
 ### Manual (button-triggered, user picks recipients)
 
@@ -32,12 +32,13 @@ First recipient = To, rest = CC.
 | 2 | **Email Snapshot button** on calendar toolbar | `POST /api/projects/{id}/snapshot/email` | `srv/snapshot_email.go` | Comprehensive project snapshot (schedule, budget, transmittal status, recent files, recent journal) |
 | 3 | **Email button** on Files/Journal tabs | `POST /api/projects/{id}/activity/email` | `srv/activity_email.go` | Activity digest — file transfers + journal entries from last N days (default 7, `?days=N`) |
 | 4 | **Weekly Digest button** on client portal | `POST /api/clients/{client}/digest/email` | `srv/client_digest_email.go` | Aggregated digest across ALL projects for a client — last 7 days of files + journal |
+| 5 | **Send announcement** on workshop cohort tracker | `POST /api/admin/registrations/announce` | `srv/registration.go` | Personalized one-to-one announcement to opted-in, non-declined registrants; logs each batch |
 
 ### Automatic (server-initiated, no user action)
 
 | # | Trigger | Recipient | File | Description |
 |---|---------|-----------|------|-------------|
-| 5 | **Client updates transmittal** (auto-save) | `j@djinna.com` | `srv/transmittal_notify.go` | Notification that a client is editing a transmittal. Throttled: max 1 per project per 30 min. Skipped when admin edits (X-ExeDev-UserID header present). |
+| 6 | **Client updates transmittal** (auto-save) | `j@djinna.com` | `srv/transmittal_notify.go` | Notification that a client is editing a transmittal. Throttled: max 1 per project per 30 min. Skipped when admin edits (X-ExeDev-UserID header present). |
 
 ## Pathway Details
 
@@ -68,7 +69,14 @@ First recipient = To, rest = CC.
 - Subject: `Weekly Digest: Client Name — Mar 29 – Apr 5, 2026`
 - Auth: client-level password OR any project-level auth for that client
 
-### 5. Transmittal Update Notification (`srv/transmittal_notify.go`)
+### 5. Workshop Cohort Announcement (`srv/registration.go`)
+- Triggered by: **Send announcement** on `/admin/registrations`
+- Admin selects recipients; the server re-checks `consent_email=1` and excludes declined registrations
+- Sends one personalized message per recipient (no exposed To/CC list)
+- Updates each successful recipient's `last_emailed_at` and logs the batch in `event_announcements`
+- Includes a consent reminder and reply-to-opt-out language
+
+### 6. Transmittal Update Notification (`srv/transmittal_notify.go`)
 - **This is the only automatic/server-initiated email**
 - Fires inside `handleUpdateTransmittal` (the auto-save handler)
 - Throttle: `sync.Mutex` + `map[int64]time.Time`, 30-minute cooldown per project
@@ -92,7 +100,7 @@ All HTML emails follow the same pattern for email client compatibility:
 
 ## Auth Model
 
-Manual emails (1–4) require authentication:
+Manual emails (1–5) require authentication:
 - Project-level cookie (set via password)
 - Client-level cookie
 - `X-ExeDev-UserID` header (exe.dev admin proxy)

@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -118,6 +120,89 @@ func TestRegistrationAdminRequiresAuth(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("want 401 without admin header, got %d", resp.StatusCode)
+	}
+}
+
+func TestRegistrationTrackerUpdate(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+	apiRequest(t, ts, "POST", "/api/public/register", map[string]any{
+		"name": "Ada", "email": "ada@example.com", "material": "essays",
+	}).Body.Close()
+
+	resp := apiRequestAdmin(t, ts, "PUT", "/api/admin/registrations/1", map[string]any{
+		"status": "confirmed", "prep_status": "ready", "attended_sessions": 5, "notes": "Great fit",
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("update: want 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	m := decodeMap(t, apiRequestAdmin(t, ts, "GET", "/api/admin/registrations", nil))
+	regs := m["registrations"].([]any)
+	got := regs[0].(map[string]any)
+	if got["status"] != "confirmed" || got["prep_status"] != "ready" || got["attended_sessions"] != float64(5) || got["notes"] != "Great fit" {
+		t.Fatalf("tracker update did not round-trip: %#v", got)
+	}
+}
+
+func TestAnnouncementHonorsConsentAndLogsSend(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+	for _, person := range []map[string]any{
+		{"name": "Ada Lovelace", "email": "ada@example.com", "material": "essays", "consent_email": true},
+		{"name": "No Mail", "email": "no@example.com", "material": "notes", "consent_email": false},
+	} {
+		apiRequest(t, ts, "POST", "/api/public/register", person).Body.Close()
+	}
+
+	var sends atomic.Int32
+	var sentTo atomic.Value
+	mailAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		to, _ := payload["to"].([]any)
+		if len(to) > 0 {
+			sentTo.Store(to[0].(string))
+		}
+		sends.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer mailAPI.Close()
+	s.Email = &EmailConfig{APIKey: "test", InboxID: "test@example.com", APIBase: mailAPI.URL}
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/admin/registrations/announce", map[string]any{
+		"registration_ids": []int{1, 2},
+		"subject":          "Workshop update",
+		"body":             "Bring your manuscript.",
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("announce: want 200, got %d", resp.StatusCode)
+	}
+	out := decodeMap(t, resp)
+	if out["selected"] != float64(1) || out["sent"] != float64(1) || sends.Load() != 1 {
+		t.Fatalf("only opted-in recipient should be sent: response=%#v sends=%d", out, sends.Load())
+	}
+	if got, _ := sentTo.Load().(string); got != "ada@example.com" {
+		t.Fatalf("sent to %q, want opted-in address", got)
+	}
+
+	m := decodeMap(t, apiRequestAdmin(t, ts, "GET", "/api/admin/registrations", nil))
+	regs := m["registrations"].([]any)
+	byEmail := map[string]map[string]any{}
+	for _, raw := range regs {
+		row := raw.(map[string]any)
+		byEmail[row["email"].(string)] = row
+	}
+	if byEmail["ada@example.com"]["last_emailed_at"] == "" {
+		t.Fatal("successful recipient should get last_emailed_at")
+	}
+	if byEmail["no@example.com"]["last_emailed_at"] != "" {
+		t.Fatal("opted-out recipient must not get last_emailed_at")
+	}
+	ann := m["announcements"].([]any)
+	if len(ann) != 1 || ann[0].(map[string]any)["sent_count"] != float64(1) {
+		t.Fatalf("announcement history not logged: %#v", ann)
 	}
 }
 

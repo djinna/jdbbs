@@ -25,6 +25,7 @@ type EmailConfig struct {
 	InboxID  string
 	FromName string
 	ReplyTo  string
+	APIBase  string // tests may override; empty uses AgentMail production API
 }
 
 func LoadEmailConfig() *EmailConfig {
@@ -53,7 +54,11 @@ func (cfg *EmailConfig) sendEmail(to []string, cc []string, subject, textBody, h
 // sendEmailWithHeaders is sendEmail plus extra MIME headers via the AgentMail
 // generic "headers" map (e.g. List-Unsubscribe for the recurring digest).
 func (cfg *EmailConfig) sendEmailWithHeaders(to []string, cc []string, subject, textBody, htmlBody string, extraHeaders map[string]string) error {
-	url := fmt.Sprintf("https://api.agentmail.to/v0/inboxes/%s/messages/send", cfg.InboxID)
+	base := strings.TrimRight(cfg.APIBase, "/")
+	if base == "" {
+		base = "https://api.agentmail.to"
+	}
+	url := fmt.Sprintf("%s/v0/inboxes/%s/messages/send", base, cfg.InboxID)
 
 	body := map[string]any{
 		"to":      to,
