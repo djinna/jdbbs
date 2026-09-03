@@ -71,6 +71,55 @@ type Correction struct {
 	CreatedAt   time.Time
 }
 
+type Coupon struct {
+	ID             int64
+	Code           string
+	Sku            string
+	MaxRedemptions int64
+	RedeemedCount  int64
+	ExpiresAt      sql.NullTime
+	RegistrationID sql.NullInt64
+	IssuedToEmail  string
+	Note           string
+	CreatedAt      time.Time
+}
+
+type EventAnnouncement struct {
+	ID             int64
+	EventSlug      string
+	Subject        string
+	Body           string
+	RecipientIds   string
+	RecipientCount int64
+	SentCount      int64
+	FailedCount    int64
+	CreatedAt      time.Time
+}
+
+type EventRegistration struct {
+	ID               int64
+	EventSlug        string
+	Name             string
+	Email            string
+	Region           string
+	AllSessions      int64
+	Material         string
+	MaterialType     string
+	Background       string
+	NewToProtocol    int64
+	Goals            string
+	ConsentEmail     int64
+	Status           string
+	Notes            string
+	UserAgent        string
+	Ip               string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	PrepStatus       string
+	AttendedSessions int64
+	LastEmailedAt    sql.NullTime
+}
+
 type FileLog struct {
 	ID           int64
 	ProjectID    int64
@@ -112,6 +161,32 @@ type Migration struct {
 	ExecutedAt      time.Time
 }
 
+type Pass struct {
+	ID             int64
+	ProjectID      int64
+	Sku            string
+	Source         string
+	CouponID       sql.NullInt64
+	CustomerEmail  string
+	CustomerName   string
+	BuildsIncluded int64
+	BuildsUsed     int64
+	BuildsExtra    int64
+	FulfilledAt    time.Time
+	ExpiresAt      time.Time
+	Status         string
+	Note           string
+}
+
+type PassLedger struct {
+	ID        int64
+	PassID    int64
+	BookID    sql.NullInt64
+	Delta     int64
+	Reason    string
+	CreatedAt time.Time
+}
+
 type Project struct {
 	ID          int64
 	Name        string
@@ -121,6 +196,38 @@ type Project struct {
 	ClientSlug  string
 	ProjectSlug string
 	ArchivedAt  sql.NullTime
+}
+
+type StylesheetEdit struct {
+	ID         int64
+	ItemID     int64
+	Col1       string
+	Col2       string
+	Col3       string
+	Body       string
+	Note       string
+	ProposedBy string
+	ProposedAt time.Time
+	State      string
+}
+
+type StylesheetItem struct {
+	ID           int64
+	SectionOrd   int64
+	Section      string
+	ItemOrd      int64
+	Kind         string
+	Col1         string
+	Col2         string
+	Col3         string
+	Body         string
+	Status       string
+	AuthorFacing int64
+	StatusBy     string
+	StatusAt     sql.NullTime
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Scope        string
 }
 
 type Task struct {
