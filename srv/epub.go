@@ -49,23 +49,44 @@ func (s *Server) handleGenerateEPUB(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]string{"status": "generating_epub"})
 }
 
+// runEPUBGeneration generates and stores a book's EPUB, logging any failure.
+// This is the fire-and-forget entry point for the admin "Generate EPUB"
+// button; runConversion calls generateEPUB directly so it can react to the
+// error (see the Factory Pass build flow in books.go).
 func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
+	if err := s.getEPUBRunner()(bid, book); err != nil {
+		slog.Error("epub generation failed", "id", bid, "err", err)
+	}
+}
+
+// getEPUBRunner returns the EPUB stage to use: the injected one in tests,
+// else the real pandoc pipeline. Mirrors getPreflightRunner.
+func (s *Server) getEPUBRunner() epubRunnerFunc {
+	if s.epubRunner != nil {
+		return s.epubRunner
+	}
+	return s.generateEPUB
+}
+
+// generateEPUB runs docx → EPUB and stores the artifact in book_outputs.
+// It deliberately never touches books.status: for a Factory Pass build the
+// PDF stage owns the status field, and for a standalone admin re-run there is
+// no build in flight to report on.
+func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 	start := time.Now()
 	q := dbgen.New(s.DB)
 	ctx := context.Background()
 
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("epub-%d-*", bid))
 	if err != nil {
-		slog.Error("epub: create temp dir", "id", bid, "err", err)
-		return
+		return fmt.Errorf("create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	// Write source docx
 	docxPath := filepath.Join(tmpDir, "input.docx")
 	if err := os.WriteFile(docxPath, book.SourceData, 0644); err != nil {
-		slog.Error("epub: write docx", "id", bid, "err", err)
-		return
+		return fmt.Errorf("write docx: %w", err)
 	}
 
 	slog.Info("epub generation starting", "id", bid, "title", book.Title)
@@ -173,8 +194,7 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 	}
 	fontArgs, ferr := epubEmbedFontArgs(fontPaths)
 	if ferr != nil {
-		slog.Error("epub: licensed-font guard tripped, aborting generation", "id", bid, "err", ferr)
-		return
+		return fmt.Errorf("licensed-font guard tripped, aborting generation: %w", ferr)
 	}
 	args = append(args, fontArgs...)
 
@@ -183,15 +203,13 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 	cmd := exec.Command("pandoc", args...)
 	cmd.Dir = tmpDir
 	if out, err := cmd.CombinedOutput(); err != nil {
-		slog.Error("epub: pandoc failed", "id", bid, "err", err, "output", string(out))
-		return
+		return fmt.Errorf("pandoc epub: %w\n%s", err, string(out))
 	}
 
 	// Read generated EPUB
 	epubData, err := os.ReadFile(epubPath)
 	if err != nil {
-		slog.Error("epub: read output", "id", bid, "err", err)
-		return
+		return fmt.Errorf("read epub: %w", err)
 	}
 
 	// TRK-DEV-009: inject per-chapter author bylines if configured.
@@ -227,16 +245,15 @@ func (s *Server) runEPUBGeneration(bid int64, book dbgen.Book) {
 		SpecSnapshot:        nullStringFrom(specSnapshot),
 		CorrectionsSnapshot: nullStringFrom(correctionsSnapshot),
 	}); err != nil {
-		slog.Error("epub: store", "id", bid, "err", err)
-		return
+		return fmt.Errorf("store epub: %w", err)
 	}
 	if err := q.TouchBook(ctx, bid); err != nil {
-		slog.Error("epub: touch book", "id", bid, "err", err)
-		return
+		return fmt.Errorf("touch book: %w", err)
 	}
 
 	slog.Info("epub generation complete", "id", bid, "title", book.Title,
 		"epub_size", len(epubData), "elapsed", time.Since(start))
+	return nil
 }
 
 type epubSpec struct {

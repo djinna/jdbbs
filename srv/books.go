@@ -468,13 +468,16 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		s.failConversion(bid, "store pdf: "+err.Error())
 		return
 	}
-	if err := q.UpdateBookStatusReady(ctx, bid); err != nil {
-		s.failConversion(bid, "mark ready: "+err.Error())
+	// Step 4: the EPUB. A build is PDF *and* EPUB (the Factory Pass contract),
+	// so this runs inline — the book stays "converting" until both artifacts
+	// exist, which is what the customer page polls on.
+	if err := s.finalizeBuild(ctx, bid, book); err != nil {
+		s.failConversion(bid, err.Error())
 		return
 	}
 
 	// Factory Pass: the build succeeded, so the credit debited at request time
-	// stands. Send the customer their receipt (EMAIL_SYSTEM.md pathway #6).
+	// stands. Send the customer their receipt (EMAIL_SYSTEM.md pathway #7).
 	// Re-read the pass so credits_remaining reflects this build.
 	if book.ProjectID.Valid {
 		if pass := s.passForProject(ctx, book.ProjectID.Int64); pass != nil {
@@ -485,6 +488,41 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	slog.Info("book conversion complete", "id", bid, "title", book.Title,
 		"pdf_size", len(pdfData),
 		"elapsed", time.Since(start))
+}
+
+// finalizeBuild completes a build once the PDF is stored: it generates the
+// EPUB and only then marks the book ready, so anything polling status sees
+// "converting" until both deliverables exist.
+//
+// An EPUB failure does NOT fail the build. The customer has a correctly
+// typeset print PDF — that is most of what they bought — so the status still
+// goes to "ready", the reason is left in error_msg as a non-fatal note, and
+// the build credit is not refunded. (A refund here would also be wrong the
+// other way round: the PDF is downloadable, so the build was delivered.)
+//
+// A returned error means the status write itself failed, i.e. the build
+// genuinely cannot be recorded; the caller treats that as a failed build.
+func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book) error {
+	q := dbgen.New(s.DB)
+	if epubErr := s.getEPUBRunner()(bid, book); epubErr != nil {
+		slog.Error("build: epub stage failed but pdf succeeded; delivering pdf-only build",
+			"id", bid, "title", book.Title, "err", epubErr)
+		note := clip("EPUB failed: "+epubErr.Error(), 2000)
+		if err := q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
+			Status: "ready", ErrorMsg: note, ID: bid,
+		}); err != nil {
+			return fmt.Errorf("mark ready (epub failed): %w", err)
+		}
+		return nil
+	}
+	// Clear any error_msg left by an earlier attempt: "ready" plus a stale
+	// error reads as a broken build in the UI.
+	if err := q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
+		Status: "ready", ErrorMsg: "", ID: bid,
+	}); err != nil {
+		return fmt.Errorf("mark ready: %w", err)
+	}
+	return nil
 }
 
 // failConversion marks a build as failed and, when the project holds a Factory

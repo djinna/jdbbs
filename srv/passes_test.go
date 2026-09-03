@@ -3,9 +3,13 @@ package srv
 import (
 	"bytes"
 	"database/sql"
+	"errors"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -1171,4 +1175,180 @@ func TestPassEmailBodiesCarryTheEssentials(t *testing.T) {
 	// Email is unconfigured, so this must log-and-skip rather than panic.
 	s.sendBuildDeliveredEmail(res.Pass, dbgen.Book{ID: 11, Title: "Notes"})
 	s.sendPassFulfillmentEmail(res)
+}
+
+// ─── build = PDF + EPUB ───
+
+// TestFinalizeBuildRunsEPUBBeforeReady: a build is both deliverables, so the
+// EPUB stage runs while the book is still "converting" and the status only
+// flips to ready afterwards. Asserted by having the fake EPUB runner observe
+// the status it was called under.
+func TestFinalizeBuildRunsEPUBBeforeReady(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, _, _, _ := grantedPass(t, s, ts, "Both Formats", "Two Deliverables")
+	q := dbgen.New(s.DB)
+	book, err := q.CreateBook(t.Context(), dbgen.CreateBookParams{
+		Title: "Two Deliverables", Author: "Both Formats", SourceFilename: "b.docx",
+		SourceData: []byte("x"), ProjectID: sql.NullInt64{Int64: pass.ProjectID, Valid: true},
+	})
+	if err != nil {
+		t.Fatalf("create book: %v", err)
+	}
+	if err := q.UpdateBookStatus(t.Context(), dbgen.UpdateBookStatusParams{
+		Status: "converting", ErrorMsg: "stale error from a previous attempt", ID: book.ID,
+	}); err != nil {
+		t.Fatalf("mark converting: %v", err)
+	}
+
+	called := 0
+	statusDuringEPUB := ""
+	s.epubRunner = func(bid int64, b dbgen.Book) error {
+		called++
+		if bid != book.ID {
+			t.Errorf("epub runner got book %d, want %d", bid, book.ID)
+		}
+		_ = s.DB.QueryRow(`SELECT status FROM books WHERE id = ?`, bid).Scan(&statusDuringEPUB)
+		return nil
+	}
+
+	if err := s.finalizeBuild(t.Context(), book.ID, book); err != nil {
+		t.Fatalf("finalizeBuild: %v", err)
+	}
+	if called != 1 {
+		t.Fatalf("epub stage ran %d times, want exactly 1 (a build is PDF + EPUB)", called)
+	}
+	if statusDuringEPUB != "converting" {
+		t.Errorf("status during the EPUB stage = %q, want \"converting\" (the UI polls on this)", statusDuringEPUB)
+	}
+
+	var status, errMsg string
+	if err := s.DB.QueryRow(`SELECT status, error_msg FROM books WHERE id = ?`, book.ID).Scan(&status, &errMsg); err != nil {
+		t.Fatalf("read book: %v", err)
+	}
+	if status != "ready" {
+		t.Errorf("status after a complete build = %q, want \"ready\"", status)
+	}
+	if errMsg != "" {
+		t.Errorf("a clean build must clear error_msg, got %q", errMsg)
+	}
+}
+
+// TestFinalizeBuildKeepsPDFOnlyBuildAndDoesNotRefund: the customer got a
+// correctly typeset PDF, so a failed EPUB is a note, not a failed build —
+// status ready, reason in error_msg, credit stays spent.
+func TestFinalizeBuildKeepsPDFOnlyBuildAndDoesNotRefund(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, _, _, _ := grantedPass(t, s, ts, "Pdf Only", "Epub Broke")
+	q := dbgen.New(s.DB)
+	book, err := q.CreateBook(t.Context(), dbgen.CreateBookParams{
+		Title: "Epub Broke", Author: "Pdf Only", SourceFilename: "b.docx",
+		SourceData: []byte("x"), ProjectID: sql.NullInt64{Int64: pass.ProjectID, Valid: true},
+	})
+	if err != nil {
+		t.Fatalf("create book: %v", err)
+	}
+	// The build is in flight and its credit is already spent.
+	if err := s.debitBuildCredit(t.Context(), pass.ID, book.ID); err != nil {
+		t.Fatalf("debit: %v", err)
+	}
+
+	s.epubRunner = func(int64, dbgen.Book) error {
+		return errors.New("pandoc epub: exit status 43")
+	}
+	if err := s.finalizeBuild(t.Context(), book.ID, book); err != nil {
+		t.Fatalf("finalizeBuild must not fail the build when only the EPUB failed: %v", err)
+	}
+
+	var status, errMsg string
+	if err := s.DB.QueryRow(`SELECT status, error_msg FROM books WHERE id = ?`, book.ID).Scan(&status, &errMsg); err != nil {
+		t.Fatalf("read book: %v", err)
+	}
+	if status != "ready" {
+		t.Errorf("status = %q, want \"ready\" — the PDF is downloadable", status)
+	}
+	if !strings.HasPrefix(errMsg, "EPUB failed:") {
+		t.Errorf("error_msg = %q, want a non-fatal \"EPUB failed: …\" note", errMsg)
+	}
+
+	reloaded, err := q.GetPass(t.Context(), pass.ID)
+	if err != nil {
+		t.Fatalf("reload pass: %v", err)
+	}
+	if reloaded.BuildsUsed != 1 {
+		t.Errorf("builds_used = %d, want 1 — a delivered PDF is not refunded", reloaded.BuildsUsed)
+	}
+	if n := countLedger(t, s, pass.ID, "build_failed_refund"); n != 0 {
+		t.Errorf("a PDF-only build wrote %d refund rows, want 0", n)
+	}
+}
+
+// TestGenerateEPUBStaysAdminOnly: re-running the EPUB on its own is an
+// operator tool, not a customer button (a customer's re-run would be a
+// second, unmetered build of the same manuscript).
+func TestGenerateEPUBStaysAdminOnly(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, password, clientSlug, _ := grantedPass(t, s, ts, "Curious Customer", "Epub Rerun")
+	cookie := clientCookie(t, ts, clientSlug, password)
+
+	resp := uploadBook(t, ts, itoa(pass.ProjectID), cookie, false)
+	if resp.StatusCode != 201 {
+		t.Fatalf("upload: expected 201, got %d", resp.StatusCode)
+	}
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	bookID := itoa(int64(created["id"].(float64)))
+
+	req, err := http.NewRequest("POST", ts.URL+"/api/books/"+bookID+"/generate-epub", nil)
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	req.AddCookie(cookie)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do generate-epub: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("customer generate-epub: expected 401, got %d", resp.StatusCode)
+	}
+}
+
+// TestPublicFactoryOfferPageRoute: GET /factory serves the offer page from
+// the on-disk public-docs directory (same as /workshop), so the storefront
+// copy can be edited without a rebuild.
+func TestPublicFactoryOfferPageRoute(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "factory.html"),
+		[]byte("<html><body>Factory Pass offer</body></html>"), 0o600); err != nil {
+		t.Fatalf("write public doc: %v", err)
+	}
+	t.Setenv("PRODCAL_PUBLIC_DOCS", dir)
+
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp, err := http.Get(ts.URL + "/factory")
+	if err != nil {
+		t.Fatalf("get /factory: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("/factory: expected 200, got %d", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "text/html") {
+		t.Errorf("/factory content type = %q, want text/html", ct)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if !strings.Contains(string(body), "Factory Pass offer") {
+		t.Errorf("/factory should serve the on-disk page, got %q", string(body))
+	}
 }

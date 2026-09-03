@@ -31,12 +31,17 @@ var staticFS embed.FS
 
 type preflightRunnerFunc func(docxPath string, declaredStylesPath string) ([]byte, []byte, error)
 
+// epubRunnerFunc is the EPUB stage of a build. Injectable so the build flow
+// (finalizeBuild) can be tested without pandoc.
+type epubRunnerFunc func(bookID int64, book dbgen.Book) error
+
 type Server struct {
 	DB              *sql.DB
 	Hostname        string
 	BaseURL         string
 	Email           *EmailConfig
 	preflightRunner preflightRunnerFunc
+	epubRunner      epubRunnerFunc
 	secret          []byte
 
 	regLimiter     *regRateLimiter
@@ -266,6 +271,12 @@ func (s *Server) Handler() http.Handler {
 	// Lit-mag tool-stack reference (public, standalone share page).
 	mux.HandleFunc("GET /litmags", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "litmags.html")
+	})
+
+	// The Factory Pass offer page (public storefront); its redeem form posts
+	// to /api/public/redeem.
+	mux.HandleFunc("GET /factory", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "factory.html")
 	})
 
 	// exe.dev talk deck for SIGPfB. Served from the public-docs directory on
