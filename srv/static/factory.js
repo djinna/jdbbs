@@ -601,7 +601,7 @@ async function loadPass() {
     S.pass = await api('/api/projects/' + S.projectId + '/pass');
   } catch (e) {
     if (e.status === 401) throw e;
-    if (e.status === 404) { S.pass = { exists: false }; return; }
+    if (e.status === 403 || e.status === 404) { S.pass = { exists: false }; return; }
     S.pass = { exists: false, _error: e.message };
     banner('Couldn\u2019t read your pass (' + esc(e.message) + '). The page is showing read-only until that works \u2014 reload to retry.');
   }
@@ -715,6 +715,19 @@ async function doUnlock() {
   catch (e) { handleFatal(e); }
 }
 
+// The server answers 403 for "no pass" / "expired" (requirePassAccess in
+// srv/passes.go). passState() normally disables those buttons first, so a 403
+// means our copy of the pass is stale — re-read it and say something human
+// instead of echoing the server's phrasing.
+async function handleForbidden(statusEl) {
+  await loadPass();
+  renderAll();
+  if (!statusEl) return;
+  statusEl.className = 'fx-status err';
+  statusEl.textContent = passState().reason ||
+    'That isn\u2019t available on this project any more. Reload the page to see where things stand.';
+}
+
 // Any 401 anywhere puts the gate up and re-runs what failed once unlocked.
 function handleFatal(e) {
   if (e && e.status === 401) { showAuth(function () { return refresh(); }); return; }
@@ -806,6 +819,7 @@ async function doUpload() {
   } catch (e) {
     S.uploading = false;
     if (e.status === 401) { showAuth(function () { return refresh(); }); return; }
+    if (e.status === 403) { await handleForbidden(status); return; }
     status.className = 'fx-status err';
     status.textContent = e.status === 413
       ? 'That file is too large to upload here. Email ' + S.contactEmail + ' and we\u2019ll take it another way.'
@@ -838,6 +852,7 @@ async function doInspect() {
   } catch (e) {
     S.inspecting = false;
     if (e.status === 401) { showAuth(function () { return refresh(); }); return; }
+    if (e.status === 403) { await handleForbidden(status); return; }
     status.className = 'fx-status err';
     status.textContent = 'Inspection didn\u2019t run: ' + shortErr(e.message);
     renderInspect();
@@ -873,6 +888,7 @@ async function doBuild() {
   } catch (e) {
     S.building = false;
     if (e.status === 401) { showAuth(function () { return refresh(); }); return; }
+    if (e.status === 403) { await handleForbidden(status); return; }
     if (e.status === 402) {
       status.className = 'fx-status err';
       status.innerHTML = 'No builds left on this pass.' +

@@ -90,10 +90,12 @@ func (s *Server) handleListBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleUploadBook accepts multipart form: file + title + author + series.
+//
+// Auth (Factory Pass): with a project_id, the caller may be the project's own
+// customer — requireAuth(project_id) plus a live pass. Without a project_id
+// (an unlinked, admin-managed book) it stays admin-only. See
+// docs/specs/FACTORY-PASS-API-2026-09-03.md.
 func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdminAPI(w, r) {
-		return
-	}
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		jsonErr(w, "file too large or bad form", 400)
 		return
@@ -103,17 +105,29 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 	author := strings.TrimSpace(r.FormValue("author"))
 	series := strings.TrimSpace(r.FormValue("series"))
 	projectIDStr := strings.TrimSpace(r.FormValue("project_id"))
-	if title == "" || author == "" {
-		jsonErr(w, "title and author required", 400)
-		return
-	}
 
 	var projectID sql.NullInt64
 	if projectIDStr != "" {
 		pid, err := strconv.ParseInt(projectIDStr, 10, 64)
-		if err == nil {
-			projectID = sql.NullInt64{Int64: pid, Valid: true}
+		if err != nil || pid <= 0 {
+			jsonErr(w, "bad project_id", 400)
+			return
 		}
+		projectID = sql.NullInt64{Int64: pid, Valid: true}
+	}
+	if !projectID.Valid {
+		// Non-admins must always name the project they're uploading into;
+		// an unlinked book has no pass to authorize it.
+		if !s.requireExeDevAdminAPI(w, r) {
+			return
+		}
+	} else if _, _, ok := s.requirePassAccess(w, r, projectID.Int64); !ok {
+		return
+	}
+
+	if title == "" || author == "" {
+		jsonErr(w, "title and author required", 400)
+		return
 	}
 
 	file, header, err := r.FormFile("file")
@@ -167,11 +181,8 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 // the upload trigger it runs synchronously so the admin UI gets the result
 // back immediately to render.
 //
-// TRK-DEV-012 Phase C.
+// TRK-DEV-012 Phase C. Auth: the project's own customer (live pass) or admin.
 func (s *Server) handleDetectChapters(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdminAPI(w, r) {
-		return
-	}
 	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
@@ -179,13 +190,27 @@ func (s *Server) handleDetectChapters(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := dbgen.New(s.DB)
-	book, err := q.GetBook(r.Context(), bid)
+	ref, err := q.GetBookProjectID(r.Context(), bid)
 	if err != nil {
 		jsonErr(w, "not found", 404)
 		return
 	}
-	if !book.ProjectID.Valid {
+	if !ref.ProjectID.Valid {
+		// No project means no pass to authorize against, so this is an
+		// admin-managed book either way.
+		if !s.requireExeDevAdminAPI(w, r) {
+			return
+		}
 		jsonErr(w, "book is not linked to a project; link it first so suggestions have a spec to land in", 400)
+		return
+	}
+	if _, _, ok := s.requirePassAccess(w, r, ref.ProjectID.Int64); !ok {
+		return
+	}
+
+	book, err := q.GetBook(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, "not found", 404)
 		return
 	}
 	if len(book.SourceData) == 0 {
@@ -204,11 +229,15 @@ func (s *Server) handleDetectChapters(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleConvertBook runs the docx → typst → PDF pipeline.
+// handleConvertBook runs the docx → typst → PDF pipeline. This is the metered
+// step of a Factory Pass: one successful convert = one build.
+//
+// Gating (docs/specs/FACTORY-PASS-API-2026-09-03.md):
+//   - customer: requireAuth(project) + live pass + credits_remaining > 0 (else 402)
+//   - admin: gating skipped, but the ledger is still debited when the project
+//     has a pass, so instructor-run builds count and the dogfood data is real
+//   - one in-flight build per project (409) regardless of who asked
 func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdminAPI(w, r) {
-		return
-	}
 	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
@@ -222,9 +251,54 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if book.SourceData == nil || len(book.SourceData) == 0 {
+	var pass *dbgen.Pass
+	if !book.ProjectID.Valid {
+		if !s.requireExeDevAdminAPI(w, r) {
+			return
+		}
+	} else {
+		var isAdmin, ok bool
+		pass, isAdmin, ok = s.requirePassAccess(w, r, book.ProjectID.Int64)
+		if !ok {
+			return
+		}
+		if pass != nil && !isAdmin && passCreditsRemaining(*pass) <= 0 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusPaymentRequired)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error":             "no builds remaining",
+				"credits_remaining": 0,
+			})
+			return
+		}
+		// One build in flight per project: builds are minutes of CPU and the
+		// status field is per-book, so a second concurrent run would race the
+		// first one's status and outputs.
+		inFlight, err := q.CountConvertingBooksByProject(r.Context(), book.ProjectID)
+		if err != nil {
+			jsonErr(w, err.Error(), 500)
+			return
+		}
+		if inFlight > 0 {
+			jsonErr(w, "a build is already running for this project; wait for it to finish", http.StatusConflict)
+			return
+		}
+	}
+
+	if len(book.SourceData) == 0 {
 		jsonErr(w, "no source file", 400)
 		return
+	}
+
+	// Debit before starting so a crashed or killed build can never hand out a
+	// free one; failConversion refunds. Debited for admins too when a pass
+	// exists (see the contract).
+	if pass != nil {
+		if err := s.debitBuildCredit(r.Context(), pass.ID, bid); err != nil {
+			slog.Error("build debit failed", "pass_id", pass.ID, "book_id", bid, "err", err)
+			jsonErr(w, "could not reserve a build credit", 500)
+			return
+		}
 	}
 
 	// Mark as converting
@@ -399,11 +473,23 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		return
 	}
 
+	// Factory Pass: the build succeeded, so the credit debited at request time
+	// stands. Send the customer their receipt (EMAIL_SYSTEM.md pathway #6).
+	// Re-read the pass so credits_remaining reflects this build.
+	if book.ProjectID.Valid {
+		if pass := s.passForProject(ctx, book.ProjectID.Int64); pass != nil {
+			s.sendBuildDeliveredEmail(*pass, book)
+		}
+	}
+
 	slog.Info("book conversion complete", "id", bid, "title", book.Title,
 		"pdf_size", len(pdfData),
 		"elapsed", time.Since(start))
 }
 
+// failConversion marks a build as failed and, when the project holds a Factory
+// Pass, refunds the credit debited at request time — a build the customer
+// can't download was never a build (+1 build_failed_refund in the ledger).
 func (s *Server) failConversion(bid int64, msg string) {
 	slog.Error("book conversion failed", "id", bid, "error", msg)
 	q := dbgen.New(s.DB)
@@ -413,6 +499,17 @@ func (s *Server) failConversion(bid int64, msg string) {
 		ErrorMsg: msg,
 		ID:       bid,
 	})
+	ref, err := q.GetBookProjectID(ctx, bid)
+	if err != nil || !ref.ProjectID.Valid {
+		return
+	}
+	pass := s.passForProject(ctx, ref.ProjectID.Int64)
+	if pass == nil {
+		return
+	}
+	if err := s.refundBuildCredit(ctx, pass.ID, bid); err != nil {
+		slog.Error("build refund failed", "pass_id", pass.ID, "book_id", bid, "err", err)
+	}
 }
 
 // handleDownloadBook serves the PDF or EPUB for a book.

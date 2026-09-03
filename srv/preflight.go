@@ -323,12 +323,12 @@ func (s *Server) preflightResponseFromRow(projectID int64, row dbgen.ManuscriptP
 }
 
 func (s *Server) handleGetManuscriptPreflight(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdminAPI(w, r) {
-		return
-	}
 	pid, err := s.projectIDFromPath(r)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
+		return
+	}
+	if _, _, ok := s.requirePassAccess(w, r, pid); !ok {
 		return
 	}
 	bookID, err := strconv.ParseInt(r.URL.Query().Get("book_id"), 10, 64)
@@ -350,12 +350,12 @@ func (s *Server) handleGetManuscriptPreflight(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) handleGetManuscriptPreflightReport(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdminAPI(w, r) {
-		return
-	}
 	pid, err := s.projectIDFromPath(r)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
+		return
+	}
+	if _, _, ok := s.requirePassAccess(w, r, pid); !ok {
 		return
 	}
 	bookID, err := strconv.ParseInt(r.URL.Query().Get("book_id"), 10, 64)
@@ -404,13 +404,18 @@ func (s *Server) handleGetManuscriptPreflightReport(w http.ResponseWriter, r *ht
 	_, _ = w.Write([]byte(row.ReportHtml))
 }
 
+// handleRunManuscriptPreflight runs (or re-runs) preflight for a project's
+// manuscript. Unmetered: preflight is the negotiation step, so a customer with
+// a live pass may run it as often as they like. Auth: requireAuth(project) +
+// live pass, or admin (docs/specs/FACTORY-PASS-API-2026-09-03.md).
 func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdminAPI(w, r) {
-		return
-	}
 	pid, err := s.projectIDFromPath(r)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
+		return
+	}
+	_, isAdmin, ok := s.requirePassAccess(w, r, pid)
+	if !ok {
 		return
 	}
 	var body preflightRequest
@@ -426,6 +431,13 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 	book, err := q.GetBook(r.Context(), body.BookID)
 	if err != nil {
 		jsonErr(w, "book not found", 404)
+		return
+	}
+	// A customer may only preflight a book that belongs to the project they
+	// authenticated for. (Admins keep the old lenient behaviour, which the
+	// admin UI relies on for not-yet-linked books.)
+	if !isAdmin && (!book.ProjectID.Valid || book.ProjectID.Int64 != pid) {
+		jsonErr(w, "that book belongs to another project", http.StatusForbidden)
 		return
 	}
 	specData := ""

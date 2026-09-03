@@ -51,7 +51,12 @@ func TestGetManuscriptPreflightReturnsExistsFalseWhenMissing(t *testing.T) {
 	}
 }
 
-func TestRunManuscriptPreflightRequiresAdminHeader(t *testing.T) {
+// TestRunManuscriptPreflightRequiresPassOrAdmin: preflight is no longer
+// admin-only, but a project without a Factory Pass still refuses non-admin
+// callers. This project is otherwise open (no project token, passwordless
+// client), so the pass check is the only thing standing between an anonymous
+// caller and the pipeline — 403 here is that check firing.
+func TestRunManuscriptPreflightRequiresPassOrAdmin(t *testing.T) {
 	s, ts, cleanup := testServer(t)
 	defer cleanup()
 
@@ -82,8 +87,8 @@ func TestRunManuscriptPreflightRequiresAdminHeader(t *testing.T) {
 	}
 
 	resp = apiRequest(t, ts, "POST", "/api/projects/"+itoa(pid)+"/preflight", map[string]any{"book_id": book.ID})
-	if resp.StatusCode != 401 {
-		t.Fatalf("run preflight without admin header: expected 401, got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("run preflight without admin header or pass: expected 403, got %d", resp.StatusCode)
 	}
 	resp.Body.Close()
 }
