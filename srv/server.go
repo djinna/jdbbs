@@ -119,6 +119,9 @@ func (s *Server) Handler() http.Handler {
 
 	// Public workshop registration (unauthenticated; honeypot + rate-limited).
 	mux.HandleFunc("POST /api/public/register", s.handlePublicRegister)
+
+	// Factory Pass redemption ("I have a code"); same honeypot + limiter shape.
+	mux.HandleFunc("POST /api/public/redeem", s.handlePublicRedeem)
 	mux.HandleFunc("GET /workshop", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "workshop.html")
 	})
@@ -145,6 +148,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/registrations/announce", s.handleAdminSendAnnouncement)
 	mux.HandleFunc("GET /api/admin/registrations.csv", s.handleAdminExportRegistrations)
 
+	// Factory Pass admin: issue codes, review passes, grant build packs.
+	mux.HandleFunc("POST /api/admin/coupons", s.handleAdminCreateCoupon)
+	mux.HandleFunc("GET /api/admin/coupons", s.handleAdminListCoupons)
+	mux.HandleFunc("GET /api/admin/passes", s.handleAdminListPasses)
+	mux.HandleFunc("POST /api/admin/passes", s.handleAdminCreatePass)
+	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
+
 	// API routes (global, no path prefix)
 	mux.HandleFunc("GET /api/projects", s.handleListProjects)
 	mux.HandleFunc("POST /api/projects", s.handleCreateProject)
@@ -163,6 +173,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/projects/{id}/seed", s.handleSeedProject)
 	mux.HandleFunc("POST /api/projects/{id}/duplicate", s.handleDuplicateProject)
 	mux.HandleFunc("GET /api/project-by-path/{client}/{project}", s.handleGetProjectByPath)
+
+	// Factory Pass (customer-facing): entitlement badge + the project's books.
+	mux.HandleFunc("GET /api/projects/{id}/pass", s.handleGetProjectPass)
+	mux.HandleFunc("GET /api/projects/{id}/books", s.handleListProjectBooks)
 
 	// Transmittal API.
 	// NB: {id} in the /api/transmittals/... routes is the PROJECT id, not a
@@ -322,6 +336,22 @@ func (s *Server) Handler() http.Handler {
 			s.serveTransmittal(w)
 			return
 		}
+		// /vgr/aog/factory/ -> serve the customer factory page (Factory Pass).
+		if len(parts) == 3 && parts[2] == "factory" && !strings.HasSuffix(path, "/") {
+			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
+			return
+		}
+		if len(parts) >= 3 && parts[2] == "factory" {
+			if len(parts) > 3 {
+				// /vgr/aog/factory/style.css -> serve static
+				assetPath := strings.Join(parts[3:], "/")
+				r.URL.Path = "/" + assetPath
+				staticServer.ServeHTTP(w, r)
+				return
+			}
+			s.serveStaticHTML(w, "static/factory.html")
+			return
+		}
 		// /vgr/aog/style.css -> serve static asset
 		if len(parts) > 2 {
 			assetPath := strings.Join(parts[2:], "/")
@@ -468,7 +498,15 @@ func (s *Server) handlePublicConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "public, max-age=300")
-	json.NewEncoder(w).Encode(map[string]string{"contact_email": contact})
+	json.NewEncoder(w).Encode(map[string]any{
+		"contact_email": contact,
+		// Factory Pass numbers, so the offer page and the redeem form quote
+		// the same figures the server enforces.
+		"factory": map[string]any{
+			"builds_included": passBuildsIncluded,
+			"storage_months":  passStorageMonths,
+		},
+	})
 }
 
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {

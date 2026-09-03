@@ -444,7 +444,7 @@ func TestPublicConfigContactEmail(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("public config: expected 200, got %d", resp.StatusCode)
 	}
-	var cfg map[string]string
+	var cfg map[string]any
 	decodeJSON(t, resp, &cfg)
 	if cfg["contact_email"] != "ops@example.com" {
 		t.Errorf("with CONTACT_EMAIL set: contact_email = %q, want \"ops@example.com\"", cfg["contact_email"])
@@ -458,5 +458,18 @@ func TestPublicConfigContactEmail(t *testing.T) {
 	decodeJSON(t, resp, &cfg)
 	if cfg["contact_email"] != "j@djinna.com" {
 		t.Errorf("without CONTACT_EMAIL: contact_email = %q, want \"j@djinna.com\"", cfg["contact_email"])
+	}
+
+	// The factory block is page copy for the offer/redeem pages: they must be
+	// able to quote the same numbers the server enforces.
+	factory, ok := cfg["factory"].(map[string]any)
+	if !ok {
+		t.Fatalf("public config: expected a factory block, got %+v", cfg["factory"])
+	}
+	if factory["builds_included"] != float64(passBuildsIncluded) {
+		t.Errorf("factory.builds_included = %v, want %d", factory["builds_included"], passBuildsIncluded)
+	}
+	if factory["storage_months"] != float64(passStorageMonths) {
+		t.Errorf("factory.storage_months = %v, want %d", factory["storage_months"], passStorageMonths)
 	}
 }

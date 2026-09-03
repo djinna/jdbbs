@@ -358,16 +358,28 @@ type registrationRow struct {
 	Notes            string `json:"notes"`
 	LastEmailedAt    string `json:"last_emailed_at"`
 	CreatedAt        string `json:"created_at"`
+	// Factory Pass tracking: the code issued to this registrant (if any) and
+	// when it was redeemed, so the tracker can show issued/redeemed at a glance.
+	CouponCode       string `json:"coupon_code"`
+	CouponRedeemedAt string `json:"coupon_redeemed_at"`
 }
 
 func (s *Server) queryRegistrations(r *http.Request) ([]registrationRow, error) {
+	// The coupons/passes LEFT JOIN adds Factory Pass state per registrant.
+	// A registrant has at most one code in practice; MAX() keeps the row
+	// count stable if one ever gets a second.
 	rows, err := s.DB.QueryContext(r.Context(), `
-		SELECT id, name, email, region, all_sessions, material, material_type,
-		       background, new_to_protocol, goals, consent_email, status,
-		       prep_status, attended_sessions, notes, last_emailed_at, created_at
-		FROM event_registrations
-		WHERE event_slug = ?
-		ORDER BY created_at ASC
+		SELECT e.id, e.name, e.email, e.region, e.all_sessions, e.material, e.material_type,
+		       e.background, e.new_to_protocol, e.goals, e.consent_email, e.status,
+		       e.prep_status, e.attended_sessions, e.notes, e.last_emailed_at, e.created_at,
+		       COALESCE(MAX(c.code), '') AS coupon_code,
+		       MAX(p.fulfilled_at)       AS coupon_redeemed_at
+		FROM event_registrations e
+		LEFT JOIN coupons c ON c.registration_id = e.id
+		LEFT JOIN passes  p ON p.coupon_id = c.id
+		WHERE e.event_slug = ?
+		GROUP BY e.id
+		ORDER BY e.created_at ASC
 	`, workshopSlug)
 	if err != nil {
 		return nil, err
@@ -377,10 +389,11 @@ func (s *Server) queryRegistrations(r *http.Request) ([]registrationRow, error) 
 	for rows.Next() {
 		var e registrationRow
 		var allS, newP, consent int
-		var notes, lastEmailed sql.NullString
+		var notes, lastEmailed, couponRedeemed sql.NullString
 		if err := rows.Scan(&e.ID, &e.Name, &e.Email, &e.Region, &allS, &e.Material,
 			&e.MaterialType, &e.Background, &newP, &e.Goals, &consent, &e.Status,
-			&e.PrepStatus, &e.AttendedSessions, &notes, &lastEmailed, &e.CreatedAt); err != nil {
+			&e.PrepStatus, &e.AttendedSessions, &notes, &lastEmailed, &e.CreatedAt,
+			&e.CouponCode, &couponRedeemed); err != nil {
 			return nil, err
 		}
 		e.AllSessions = allS == 1
@@ -388,6 +401,7 @@ func (s *Server) queryRegistrations(r *http.Request) ([]registrationRow, error) 
 		e.ConsentEmail = consent == 1
 		e.Notes = notes.String
 		e.LastEmailedAt = lastEmailed.String
+		e.CouponRedeemedAt = couponRedeemed.String
 		out = append(out, e)
 	}
 	return out, rows.Err()
@@ -732,13 +746,14 @@ func (s *Server) handleAdminExportRegistrations(w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="protocolize-registrations.csv"`)
 	var b strings.Builder
-	b.WriteString("id,created_at,name,email,region,all_sessions,material_type,material,background,new_to_protocol,goals,consent_email,status,prep_status,attended_sessions,last_emailed_at,notes\n")
+	b.WriteString("id,created_at,name,email,region,all_sessions,material_type,material,background,new_to_protocol,goals,consent_email,status,prep_status,attended_sessions,last_emailed_at,notes,coupon_code,coupon_redeemed_at\n")
 	for _, e := range rows {
 		cells := []string{
 			strconv.FormatInt(e.ID, 10), e.CreatedAt, e.Name, e.Email, e.Region,
 			strconv.FormatBool(e.AllSessions), e.MaterialType, e.Material, e.Background,
 			strconv.FormatBool(e.NewToProtocol), e.Goals, strconv.FormatBool(e.ConsentEmail),
 			e.Status, e.PrepStatus, strconv.Itoa(e.AttendedSessions), e.LastEmailedAt, e.Notes,
+			e.CouponCode, e.CouponRedeemedAt,
 		}
 		for i, c := range cells {
 			if i > 0 {

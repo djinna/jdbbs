@@ -18,7 +18,7 @@ All handlers check `s.Email == nil` and return 503 if not configured.
 
 ## Email Pathways
 
-There are **6 email pathways** in two categories (5 manual + 1 automatic):
+There are **7 email pathways** in two categories (5 manual + 2 automatic):
 
 ### Manual (button-triggered, user picks recipients)
 
@@ -39,6 +39,7 @@ First recipient = To, rest = CC.
 | # | Trigger | Recipient | File | Description |
 |---|---------|-----------|------|-------------|
 | 6 | **Client updates transmittal** (auto-save) | `j@djinna.com` | `srv/transmittal_notify.go` | Notification that a client is editing a transmittal. Throttled: max 1 per project per 30 min. Skipped when admin edits (X-ExeDev-UserID header present). |
+| 7 | **Factory Pass fulfilled** / **build delivered** | the pass customer | `srv/passes.go` | Two transactional mails for the storefront: the welcome (portal URL, client password, what's included) and the per-build receipt. |
 
 ## Pathway Details
 
@@ -87,6 +88,16 @@ First recipient = To, rest = CC.
 - Subject: `📋 Transmittal Updated: Book Title (client-slug)`
 - Lightweight email — just project/book/author/status + link
 
+### 7. Factory Pass Mail (`srv/passes.go`)
+- **Automatic/server-initiated**, transactional (the customer bought this; no consent flag applies)
+- Two messages, both to `passes.customer_email`:
+  1. **Fulfillment** — sent from `fulfillPass` callers (`POST /api/public/redeem`, `POST /api/admin/passes`). Subject: `Your Factory Pass: {title}`. Carries the portal URL (`/{client}/{project}/factory/`), the client sign-in slug, the generated 12-character password (the *only* time it exists in plaintext), what's included (3 builds, unlimited preflights, expiry date), first steps, and the support edges.
+  2. **Build delivered** — sent from `runConversion` after a successful build. Subject: `Build ready: {title}`. Links to the PDF, EPUB, and preflight report; states credits remaining.
+- Fulfillment mail is fire-and-forget in its own goroutine, so the mailer can never fail a redemption; the build mail runs on the conversion goroutine (already off the request path)
+- `s.Email == nil` (local/dev/test) → log a warning and skip; fulfillment still succeeds
+- Support-edge copy lives in one place, `passSupportEdges`, shared by both mails and the page
+- Expiry warnings (T-30/T-7) and purge notices are **deferred** — nothing expires before March 2027
+
 ## HTML Email Conventions
 
 All HTML emails follow the same pattern for email client compatibility:
@@ -105,8 +116,10 @@ Manual emails (1–5) require authentication:
 - Client-level cookie
 - `X-ExeDev-UserID` header (exe.dev admin proxy)
 
-Automatic email (5) inherits auth from the triggering request
+Automatic email (6) inherits auth from the triggering request
 (the client already authenticated to call `PUT /api/projects/{id}/transmittal`).
+Automatic email (7) is addressed from the pass row, not from the request, so a
+build run by the admin still mails the customer who owns the pass.
 
 ## Environment Variables
 
