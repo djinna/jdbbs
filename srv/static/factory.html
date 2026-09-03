@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<script>
+(function() {
+  var FONTS = { jetbrains: 1, martian: 1, plex: 1, geist: 1, literata: 1, 'ibm-serif': 1, 'source-serif': 1, newsreader: 1 };
+  var LEGACY = { menlo: 'jetbrains', 'ibm-sans': 'geist' };
+  try {
+    var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+    if (t) {
+      if (t.dark) document.documentElement.classList.add('dark');
+      var f = LEGACY[t.font] || t.font;
+      if (f && FONTS[f]) document.documentElement.setAttribute('data-font', f);
+    }
+  } catch(e) {}
+})();
+</script>
+<link rel="stylesheet" href="theme.css?v=20260705a">
+<link rel="stylesheet" href="style.css?v=20260705a">
+<link rel="stylesheet" href="factory.css?v=20260903a">
+</head>
+<body>
+<div id="app">
+
+  <!-- The whole page is static markup; factory.js fills the dynamic slots.
+       If every API call fails, the reader still sees the steps and the
+       footer, plus a visible message in #fx-banner. -->
+
+  <!-- Password gate (shown by factory.js on 401; the shell is hidden while it
+       is up). Same flow as client.html / transmittal.js. -->
+  <div class="auth-screen fx-auth" id="fx-auth" hidden>
+    <div class="kicker">Factory</div>
+    <h2>Password required</h2>
+    <p class="auth-sub" id="fx-auth-sub">Enter the password from your Factory Pass email.</p>
+    <input type="password" class="input-bare" id="fx-auth-pw" placeholder="Password" autocomplete="current-password">
+    <p class="fx-actions"><button class="btn-fill" id="fx-auth-btn">Unlock</button></p>
+    <div class="error" id="fx-auth-err" hidden></div>
+    <div class="forgot-link"><a href="#" id="fx-auth-forgot">Lost the password?</a></div>
+  </div>
+
+  <div class="fx-shell" id="fx-shell">
+
+    <header class="fx-head">
+      <div class="fx-head-top">
+        <div class="fx-head-left">
+          <div class="kicker">Factory</div>
+          <h1 id="fx-title">Loading&hellip;</h1>
+          <p class="fx-byline" id="fx-byline"></p>
+        </div>
+        <div id="theme-bar"></div>
+      </div>
+      <p class="fx-pass" id="fx-pass">Checking your pass&hellip;</p>
+      <p class="fx-note" id="fx-pass-note" hidden></p>
+    </header>
+
+    <div class="fx-banner" id="fx-banner" hidden></div>
+
+    <hr class="rule-strong">
+
+    <!-- ── Step strip ─────────────────────────────────────────── -->
+    <nav class="fx-steps" id="fx-steps" aria-label="Where you are">
+      <a class="fx-step" id="fx-step-1" href="../transmittal/">
+        <span class="fx-step-n">1</span>
+        <span class="fx-step-name">Transmittal</span>
+      </a>
+      <a class="fx-step" id="fx-step-2" href="#upload">
+        <span class="fx-step-n">2</span>
+        <span class="fx-step-name">Upload</span>
+      </a>
+      <a class="fx-step" id="fx-step-3" href="#inspect">
+        <span class="fx-step-n">3</span>
+        <span class="fx-step-name">Inspect</span>
+      </a>
+      <a class="fx-step" id="fx-step-4" href="#build">
+        <span class="fx-step-n">4</span>
+        <span class="fx-step-name">Build</span>
+      </a>
+      <a class="fx-step" id="fx-step-5" href="#download">
+        <span class="fx-step-n">5</span>
+        <span class="fx-step-name">Download</span>
+      </a>
+    </nav>
+
+    <hr class="rule-strong">
+
+    <!-- ── 1. Transmittal ─────────────────────────────────────── -->
+    <section class="fx-sec" id="transmittal">
+      <div class="fx-sec-head">
+        <span class="kicker">1 &middot; Transmittal</span>
+        <span class="fx-sec-meta" id="fx-tx-meta"></span>
+      </div>
+      <p class="fx-body">
+        The transmittal is the record of how your book should be set &mdash; trim size,
+        fonts, front matter, what to do with the odd bits. Fill it in first; the
+        build follows it.
+      </p>
+      <p class="fx-actions"><a class="link-action accent" href="../transmittal/">Open the transmittal &rarr;</a></p>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ── 2. Upload ──────────────────────────────────────────── -->
+    <section class="fx-sec" id="upload">
+      <div class="fx-sec-head">
+        <span class="kicker">2 &middot; Upload your manuscript</span>
+        <span class="fx-sec-meta" id="fx-upload-meta"></span>
+      </div>
+      <p class="fx-body">One Word file (.docx). Upload a new one any time you revise &mdash; uploading is free.</p>
+
+      <div class="fx-drop" id="fx-drop" tabindex="0" role="button" aria-label="Choose a .docx file">
+        <div class="fx-drop-main" id="fx-drop-main">Drop your Word file here, or <span class="fx-drop-link">choose a file</span></div>
+        <div class="fx-drop-sub">.docx only &middot; up to 100 MB</div>
+        <input type="file" id="fx-file" accept=".docx" hidden>
+      </div>
+
+      <div class="fx-form" id="fx-upload-form" hidden>
+        <label class="fx-field">
+          <span class="fx-label">Title</span>
+          <input type="text" class="input-bare" id="fx-book-title" autocomplete="off">
+        </label>
+        <label class="fx-field">
+          <span class="fx-label">Author</span>
+          <input type="text" class="input-bare" id="fx-book-author" autocomplete="off">
+        </label>
+        <p class="fx-actions">
+          <button class="btn-fill" id="fx-upload-btn" disabled>Upload manuscript</button>
+          <button class="link-action" id="fx-upload-cancel">Cancel</button>
+        </p>
+      </div>
+
+      <p class="fx-status" id="fx-upload-status"></p>
+
+      <div class="fx-list" id="fx-books"></div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ── 3. Inspect ─────────────────────────────────────────── -->
+    <section class="fx-sec" id="inspect">
+      <div class="fx-sec-head">
+        <span class="kicker">3 &middot; Inspect</span>
+        <span class="fx-sec-meta" id="fx-preflight-meta"></span>
+      </div>
+      <p class="fx-body">
+        Inspect reads your Word file and tells you what won&rsquo;t come through the way
+        you meant &mdash; stray styles, odd spacing, images that are too small to print.
+        <strong>Unlimited &mdash; inspect as often as you like; it doesn&rsquo;t use a build.</strong>
+      </p>
+      <p class="fx-actions">
+        <button class="btn-fill" id="fx-inspect-btn" disabled>Inspect manuscript</button>
+        <a class="link-action accent" id="fx-report-link" target="_blank" rel="noopener" hidden>Open the full report &rarr;</a>
+      </p>
+      <p class="fx-status" id="fx-inspect-status"></p>
+      <div class="fx-summary" id="fx-preflight-summary"></div>
+      <p class="fx-fine">
+        What you get is a correctly typeset PDF and EPUB of the manuscript as it
+        conforms to your transmittal. Inspect tells you what doesn&rsquo;t conform.
+      </p>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ── 4. Build ───────────────────────────────────────────── -->
+    <section class="fx-sec" id="build">
+      <div class="fx-sec-head">
+        <span class="kicker">4 &middot; Build</span>
+        <span class="fx-sec-meta" id="fx-build-meta"></span>
+      </div>
+      <p class="fx-body">
+        A build sets your manuscript and gives you both files at once: a print-ready
+        PDF and an EPUB. It takes a minute or two &mdash; you can stay on this page.
+      </p>
+      <p class="fx-actions">
+        <button class="btn-fill" id="fx-build-btn" disabled>Build PDF + EPUB</button>
+      </p>
+      <p class="fx-status" id="fx-build-status"></p>
+      <p class="fx-fine">A build that fails is not counted &mdash; you keep the credit.</p>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ── 5. Download ────────────────────────────────────────── -->
+    <section class="fx-sec" id="download">
+      <div class="fx-sec-head">
+        <span class="kicker">5 &middot; Download</span>
+        <span class="fx-sec-meta" id="fx-download-meta"></span>
+      </div>
+      <div class="fx-latest" id="fx-latest">
+        <p class="fx-body">Your files appear here after the first build.</p>
+      </div>
+      <div class="fx-earlier" id="fx-earlier"></div>
+    </section>
+
+    <hr class="rule-strong">
+
+    <!-- ── Footer ─────────────────────────────────────────────── -->
+    <footer class="fx-foot">
+      <div class="fx-foot-block">
+        <div class="kicker">Support</div>
+        <ul class="fx-foot-list">
+          <li>Included: the workshop sessions themselves (Sep 21&ndash;22).</li>
+          <li>After: email support is <strong>not</strong> included. Self-serve = preflight report + docs.
+              Live support: <strong>USD 100/hr</strong>, booked in advance, 30-min minimum.</li>
+        </ul>
+      </div>
+      <div class="fx-foot-block">
+        <div class="kicker">Storage &amp; expiry</div>
+        <p class="fx-body">
+          Your pass keeps this project live for six months from the day it was set
+          up<span id="fx-foot-expiry"></span>. Until then you can upload revisions, inspect,
+          spend any builds you have left, and download every build you&rsquo;ve made.
+        </p>
+        <p class="fx-body">
+          After that date the project goes read-only: downloads keep working for another
+          30 days, then your manuscript and its builds are deleted and we keep only the
+          record (title, dates, how many builds). Your unpublished book is yours &mdash; a hard
+          expiry is the point, not an oversight. Keep your own copy of the files you care about.
+        </p>
+      </div>
+      <p class="fx-foot-contact" id="fx-foot-contact"></p>
+    </footer>
+
+  </div>
+</div>
+<script src="theme.js?v=20260705a"></script>
+<script src="factory.js?v=20260903a"></script>
+</body>
+</html>

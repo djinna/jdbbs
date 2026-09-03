@@ -1,0 +1,264 @@
+/* factory.css — the customer-facing Factory page (Factory Pass).
+ *
+ * Tokens come from theme.css (linked first); shared primitives (.kicker,
+ * .btn-fill, .link-action, .input-bare, .tag, hr.rule, .auth-screen) come
+ * from theme.css / style.css. This sheet only adds the single-column
+ * factory layout — no new colors, no new type scale, no boxes.
+ *
+ * Design system (docs/DESIGN-SYSTEM.md): cardless ledger, hairline rules,
+ * zero radius/shadow/gradient, one filled button per *step* (this page is a
+ * wizard, so each step owns its action), tags as bracketed mono text.
+ */
+
+body { font-family: var(--body); background: var(--bg); }
+
+.fx-shell {
+  width: min(100% - 40px, 720px);
+  margin: 0 auto;
+  padding: 34px 0 72px;
+}
+@media (max-width: 620px) {
+  .fx-shell { width: min(100% - 24px, 720px); padding-top: 22px; }
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.fx-head { padding-bottom: 16px; }
+.fx-head-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px;
+}
+.fx-head-left { min-width: 0; }
+.fx-head h1 {
+  font-family: var(--mono); font-size: 25px; font-weight: 600;
+  line-height: 1.2; margin-top: 6px; color: var(--text);
+  overflow-wrap: anywhere;
+}
+.fx-byline {
+  margin-top: 5px;
+  font-family: var(--mono); font-size: 12.5px; color: var(--text-secondary);
+}
+.fx-pass {
+  margin-top: 16px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
+  color: var(--text);
+}
+.fx-pass .fx-pass-dim { color: var(--text-secondary); }
+.fx-pass .fx-pass-out { color: var(--red); }
+.fx-note {
+  margin-top: 8px; padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  font-size: 13.5px; color: var(--text-secondary);
+}
+.fx-note.warn { border-left-color: var(--red); color: var(--text); }
+
+/* A single visible place for "something went wrong" — never a blank page. */
+.fx-banner {
+  margin: 18px 0 0; padding: 10px 0 10px 12px;
+  border-left: 2px solid var(--red);
+  font-family: var(--mono); font-size: 12.5px; color: var(--text);
+}
+.fx-banner a { color: var(--accent); }
+
+/* ── Step strip ─────────────────────────────────────────────── */
+.fx-steps {
+  display: flex; flex-wrap: wrap; gap: 4px 22px;
+  padding: 14px 0;
+}
+.fx-step {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  text-decoration: none; color: var(--text-muted);
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; white-space: nowrap;
+  padding-bottom: 3px; border-bottom: 2px solid transparent;
+}
+.fx-step:hover { color: var(--text); }
+.fx-step .fx-step-n { font-weight: 600; }
+.fx-step.done { color: var(--green); }
+.fx-step.done .fx-step-n::after { content: " \2713"; }
+.fx-step.current {
+  color: var(--accent); border-bottom-color: var(--accent); font-weight: 600;
+}
+
+/* ── Sections ───────────────────────────────────────────────── */
+.fx-sec { padding: 26px 0; }
+.fx-sec.dim { opacity: 0.55; }
+.fx-sec-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px;
+}
+.fx-sec-meta {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+  color: var(--text-muted); text-align: right;
+}
+.fx-sec-meta.ok { color: var(--green); }
+.fx-sec-meta.warn { color: var(--accent); }
+.fx-sec-meta.err { color: var(--red); }
+
+.fx-body { font-size: 14.5px; line-height: 1.55; color: var(--text-secondary); }
+.fx-body + .fx-body { margin-top: 9px; }
+.fx-body strong { color: var(--text); font-weight: 600; }
+
+.fx-fine {
+  margin-top: 14px;
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.fx-actions {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 18px;
+  margin-top: 18px;
+}
+.fx-actions .btn-fill[disabled] {
+  background: var(--badge-dim-bg); color: var(--text-muted); cursor: not-allowed;
+}
+/* The step actions swap between .btn-fill (current step) and .link-action
+   (every other step) — see emphasize() in factory.js. Disabled links must
+   still read as disabled. */
+.fx-actions .link-action[disabled] {
+  color: var(--text-muted); cursor: not-allowed;
+  text-decoration-color: var(--border);
+}
+.fx-actions button.link-action {
+  font-size: 12.5px; letter-spacing: 0.06em;
+}
+
+.fx-status {
+  margin-top: 12px; min-height: 1em;
+  font-family: var(--mono); font-size: 12px; line-height: 1.5;
+  color: var(--text-secondary); overflow-wrap: anywhere;
+}
+.fx-status.ok { color: var(--green); }
+.fx-status.err { color: var(--red); }
+.fx-status.busy { color: var(--accent); }
+.fx-status .fx-status-more { display: block; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Upload: drop target. A dashed hairline is the one "box" here; it has to
+      read as a target, so it keeps a 1px dashed border and no fill. ── */
+.fx-drop {
+  margin-top: 4px; padding: 26px 18px;
+  border: 1px dashed var(--border-strong);
+  text-align: center; cursor: pointer;
+}
+.fx-drop:hover, .fx-drop:focus-visible { border-color: var(--accent); outline: none; }
+.fx-drop.dragover { border-color: var(--accent); background: var(--hover-tint); }
+.fx-drop.disabled { cursor: not-allowed; opacity: 0.5; }
+.fx-drop-main { font-size: 14px; color: var(--text); }
+.fx-drop-main .fx-drop-link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.fx-drop-sub {
+  margin-top: 6px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.fx-form { margin-top: 20px; }
+.fx-field { display: block; }
+.fx-field + .fx-field { margin-top: 14px; }
+.fx-label {
+  display: block; margin-bottom: 2px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+
+/* ── Ledger lists (books, outputs) ──────────────────────────── */
+/* Ledger lists collapse when empty so a failed load doesn't leave a gap. */
+.fx-list, .fx-earlier { margin-top: 22px; }
+.fx-list:empty, .fx-earlier:empty { margin-top: 0; }
+.fx-list-head {
+  padding-bottom: 6px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.fx-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 14px; align-items: baseline;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.fx-row-main { min-width: 0; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+.fx-row-sub {
+  margin-top: 3px;
+  font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.fx-row-sub.err { color: var(--red); }
+.fx-row-right {
+  display: flex; align-items: baseline; gap: 14px; justify-self: end;
+  font-family: var(--mono); font-size: 11.5px;
+}
+.fx-row.current .fx-row-main { font-weight: 600; }
+@media (max-width: 520px) {
+  .fx-row { grid-template-columns: minmax(0, 1fr); }
+  .fx-row-right { justify-self: start; }
+}
+
+/* ── Preflight summary: aligned counts, no boxes ────────────── */
+.fx-summary { margin-top: 18px; }
+.fx-counts {
+  display: flex; flex-wrap: wrap; gap: 8px 30px;
+  padding: 12px 0; border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+}
+.fx-count { display: flex; flex-direction: column; gap: 2px; }
+.fx-count-label {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.fx-count-value { font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--text); }
+.fx-count.high .fx-count-value { color: var(--red); }
+.fx-count.medium .fx-count-value { color: var(--accent); }
+.fx-count.low .fx-count-value { color: var(--text-secondary); }
+.fx-count.clean .fx-count-value { color: var(--green); }
+.fx-types {
+  margin-top: 10px;
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.7;
+  color: var(--text-secondary);
+}
+.fx-types-row { display: flex; justify-content: space-between; gap: 14px; }
+.fx-types-row span:last-child { color: var(--text); }
+
+/* ── Download ───────────────────────────────────────────────── */
+.fx-latest { margin-top: 4px; }
+.fx-dl {
+  display: flex; flex-wrap: wrap; gap: 12px 26px;
+  padding: 14px 0; border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+}
+.fx-dl a {
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  letter-spacing: 0.06em; color: var(--accent);
+  text-decoration: underline; text-underline-offset: 4px;
+}
+/* When Download is the current step, the PDF link becomes the page's one
+   filled button (see emphasize() in factory.js). */
+.fx-dl a.btn-fill {
+  color: var(--fill-text); text-decoration: none; font-size: 12px;
+}
+.fx-dl a.btn-fill:hover { color: var(--fill-text); }
+.fx-dl .fx-dl-missing { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.fx-foot { padding: 26px 0 0; }
+.fx-foot-block + .fx-foot-block { margin-top: 24px; }
+.fx-foot-block .kicker { display: block; margin-bottom: 9px; }
+.fx-foot-list { list-style: none; margin: 0; padding: 0; }
+.fx-foot-list li {
+  font-size: 14px; line-height: 1.55; color: var(--text-secondary);
+  padding-left: 18px; position: relative;
+}
+.fx-foot-list li + li { margin-top: 7px; }
+.fx-foot-list li::before {
+  content: "\2192"; position: absolute; left: 0; top: 0;
+  font-family: var(--mono); color: var(--text-muted);
+}
+.fx-foot-list li strong { color: var(--text); font-weight: 600; }
+.fx-foot-contact {
+  margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-muted);
+}
+.fx-foot-contact a { color: var(--accent); }
+
+/* ── Password gate ──────────────────────────────────────────── */
+.fx-auth { width: min(100% - 40px, 400px); }
+.fx-auth .fx-actions { margin-top: 20px; }
+.fx-auth .btn-fill { width: 100%; }
+.fx-auth .error { font-family: var(--mono); font-size: 12px; color: var(--red); margin-top: 12px; }
