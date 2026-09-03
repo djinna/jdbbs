@@ -18,6 +18,20 @@ make build
 sudo systemctl restart prodcal
 ```
 
+## Pipeline tools (VM)
+
+The build pipeline shells out to tools that are **not** managed by `make build`:
+
+| Tool | Required | Installed how | Check |
+|---|---|---|---|
+| pandoc | **≥ 3.2** (`-t typst+smart` needs the smart extension for the typst writer; 3.1.3 from Ubuntu apt fails with `exit 23`) | GitHub .deb: `curl -sLO https://github.com/jgm/pandoc/releases/download/3.11/pandoc-3.11-1-amd64.deb && sudo dpkg -i pandoc-3.11-1-amd64.deb` | `pandoc --version` |
+| typst | 0.12.x | `/usr/local/bin/typst` | `typst --version` |
+| python3 + python-docx | any recent | apt / pip | `python3 -c 'import docx'` |
+
+No service restart is needed after upgrading these — they are exec'd per build.
+Smoke: upload a small .docx from admin and confirm status reaches `ready`.
+(2026-09-03: found the VM at pandoc 3.1.3 with every build failing since May.)
+
 ## Database: Migrations
 
 Migrations live in `db/migrations/` and follow the naming pattern `NNN-name.sql`.
