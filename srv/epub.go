@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log/slog"
@@ -178,19 +179,13 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 		args = append(args, fmt.Sprintf("--metadata=description:%s", spec.Description))
 	}
 
-	// Embed bundled multilingual fonts so EPUBs render CJK/Thai correctly on
-	// readers that don't have Noto installed (Kindle, older Adobe Digital
-	// Editions, sideloaded devices). epubEmbedFontArgs hard-refuses any
-	// /licensed/ path, so print-only licensed fonts (TRK-DESIGN-002) can
-	// never enter the EPUB zip even if a future change adds them to this list.
-	fontPaths := make([]string, 0, 4)
-	for _, rel := range []string{
-		"noto/CJK-TC/NotoSerifTC-Regular.otf",
-		"noto/CJK-TC/NotoSerifTC-Bold.otf",
-		"noto/Thai/NotoSerifThai-Regular.ttf",
-		"noto/Thai/NotoSerifThai-Bold.ttf",
-	} {
-		fontPaths = append(fontPaths, filepath.Join(fontsDirPath(), rel))
+	// Embed only the OFL fallback families the manuscript actually needs.
+	// Latin-only books should stay tiny; CJK and Thai text still carry fonts
+	// for readers that do not have suitable system fallbacks. The selector
+	// reads text nodes from the corrected DOCX, not just the original upload.
+	fontPaths, ferr := epubFontPathsForDOCX(docxPath, fontsDirPath())
+	if ferr != nil {
+		return fmt.Errorf("inspect docx scripts: %w", ferr)
 	}
 	fontArgs, ferr := epubEmbedFontArgs(fontPaths)
 	if ferr != nil {
@@ -536,6 +531,98 @@ func escapeXMLText(s string) string {
 	s = strings.ReplaceAll(s, "<", "&lt;")
 	s = strings.ReplaceAll(s, ">", "&gt;")
 	return s
+}
+
+type epubScriptNeeds struct {
+	CJK  bool
+	Thai bool
+}
+
+// epubFontPathsForDOCX scans XML text nodes in a DOCX and selects only the OFL
+// fallback font families required by the manuscript. It intentionally ignores
+// XML attributes, so a default Word theme naming East Asian fonts does not make
+// an otherwise Latin-only book carry 16 MB of CJK font files.
+func epubFontPathsForDOCX(docxPath, fontsRoot string) ([]string, error) {
+	zr, err := zip.OpenReader(docxPath)
+	if err != nil {
+		return nil, err
+	}
+	defer zr.Close()
+
+	var needs epubScriptNeeds
+	for _, f := range zr.File {
+		name := filepath.ToSlash(f.Name)
+		if !strings.HasPrefix(name, "word/") || !strings.HasSuffix(name, ".xml") {
+			continue
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return nil, fmt.Errorf("open %s: %w", name, err)
+		}
+		decoder := xml.NewDecoder(rc)
+		for {
+			tok, err := decoder.Token()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				_ = rc.Close()
+				return nil, fmt.Errorf("parse %s: %w", name, err)
+			}
+			chars, ok := tok.(xml.CharData)
+			if !ok {
+				continue
+			}
+			for _, r := range string(chars) {
+				if isCJKRune(r) {
+					needs.CJK = true
+				}
+				if r >= 0x0E00 && r <= 0x0E7F {
+					needs.Thai = true
+				}
+			}
+		}
+		if err := rc.Close(); err != nil {
+			return nil, fmt.Errorf("close %s: %w", name, err)
+		}
+	}
+
+	var rel []string
+	if needs.CJK {
+		rel = append(rel,
+			"noto/CJK-TC/NotoSerifTC-Regular.otf",
+			"noto/CJK-TC/NotoSerifTC-Bold.otf",
+		)
+	}
+	if needs.Thai {
+		rel = append(rel,
+			"noto/Thai/NotoSerifThai-Regular.ttf",
+			"noto/Thai/NotoSerifThai-Bold.ttf",
+		)
+	}
+	paths := make([]string, 0, len(rel))
+	for _, name := range rel {
+		paths = append(paths, filepath.Join(fontsRoot, name))
+	}
+	return paths, nil
+}
+
+func isCJKRune(r rune) bool {
+	switch {
+	case r >= 0x3400 && r <= 0x4DBF, // CJK Extension A
+		r >= 0x4E00 && r <= 0x9FFF, // CJK Unified Ideographs
+		r >= 0xF900 && r <= 0xFAFF, // CJK Compatibility Ideographs
+		r >= 0x20000 && r <= 0x2FA1F,
+		r >= 0x3040 && r <= 0x30FF, // Hiragana + Katakana
+		r >= 0x31F0 && r <= 0x31FF, // Katakana phonetic extensions
+		r >= 0xFF66 && r <= 0xFF9D, // Half-width Katakana
+		r >= 0x1100 && r <= 0x11FF, // Hangul Jamo
+		r >= 0x3130 && r <= 0x318F,
+		r >= 0xAC00 && r <= 0xD7AF: // Hangul syllables
+		return true
+	default:
+		return false
+	}
 }
 
 // epubEmbedFontArgs turns absolute font paths into pandoc --epub-embed-font
