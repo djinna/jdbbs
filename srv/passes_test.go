@@ -1029,6 +1029,52 @@ func TestAdminGrantBuildsAddsCreditsAndLedgerRow(t *testing.T) {
 	resp.Body.Close()
 }
 
+// TestAdminResetClientPassword rotates the client hash, invalidates the old
+// password, and returns the replacement even when email is unavailable.
+func TestAdminResetClientPassword(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	_, oldPassword, clientSlug, _ := grantedPass(t, s, ts, "Reset Author", "Reset Book")
+
+	resp := apiRequest(t, ts, "POST", "/api/admin/clients/"+clientSlug+"/password", nil)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated reset: expected 401, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequestAdmin(t, ts, "POST", "/api/admin/clients/"+clientSlug+"/password", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("admin reset: expected 200, got %d", resp.StatusCode)
+	}
+	var body map[string]any
+	decodeJSON(t, resp, &body)
+	newPassword, _ := body["password"].(string)
+	if len(newPassword) != 12 || newPassword == oldPassword {
+		t.Fatalf("replacement password = %q; want a new 12-character password", newPassword)
+	}
+	if body["email_sent"] != false {
+		t.Errorf("email_sent = %v, want false with no configured mailer", body["email_sent"])
+	}
+	if body["portal_url"] == "" {
+		t.Error("reset response is missing portal_url")
+	}
+
+	resp = apiRequest(t, ts, "POST", "/api/clients/"+clientSlug+"/verify",
+		map[string]string{"password": oldPassword})
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("old password after reset: expected 401, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequest(t, ts, "POST", "/api/clients/"+clientSlug+"/verify",
+		map[string]string{"password": newPassword})
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("new password after reset: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}
+
 // TestAdminListPasses: the operator view — project, client, credits, expiry.
 func TestAdminListPasses(t *testing.T) {
 	s, ts, cleanup := testServer(t)

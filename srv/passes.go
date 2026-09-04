@@ -844,6 +844,95 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleAdminResetClientPassword rotates a Factory Pass client's password and
+// re-sends the fulfillment-style email. The plaintext password is returned
+// once to the authenticated admin so a customer can still be recovered when
+// mail is unconfigured or AgentMail rejects the send.
+func (s *Server) handleAdminResetClientPassword(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	clientSlug := strings.TrimSpace(r.PathValue("slug"))
+	if clientSlug == "" {
+		jsonErr(w, "client slug required", http.StatusBadRequest)
+		return
+	}
+
+	var res fulfillPassResult
+	res.ClientSlug = clientSlug
+	err := s.DB.QueryRowContext(r.Context(), `
+		SELECT p.id, p.project_id, p.customer_email, p.customer_name,
+		       p.builds_included, p.expires_at, pr.name, pr.project_slug
+		FROM clients c
+		JOIN projects pr ON pr.client_slug = c.slug
+		JOIN passes p ON p.project_id = pr.id
+		WHERE c.slug = ?
+		ORDER BY p.fulfilled_at DESC, p.id DESC
+		LIMIT 1
+	`, clientSlug).Scan(
+		&res.Pass.ID, &res.Pass.ProjectID, &res.Pass.CustomerEmail,
+		&res.Pass.CustomerName, &res.Pass.BuildsIncluded, &res.Pass.ExpiresAt,
+		&res.Title, &res.ProjectSlug,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		jsonErr(w, "factory pass client not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		slog.Error("factory pass password reset lookup failed", "client", clientSlug, "err", err)
+		jsonErr(w, "could not load factory pass client", http.StatusInternalServerError)
+		return
+	}
+
+	password, err := generateClientPassword()
+	if err != nil {
+		jsonErr(w, "could not generate a password", http.StatusInternalServerError)
+		return
+	}
+	passwordHash, err := hashPassword(password)
+	if err != nil {
+		jsonErr(w, "could not secure the password", http.StatusInternalServerError)
+		return
+	}
+	result, err := s.DB.ExecContext(r.Context(),
+		`UPDATE clients SET password_hash = ? WHERE slug = ?`, passwordHash, clientSlug)
+	if err != nil {
+		slog.Error("factory pass password reset update failed", "client", clientSlug, "err", err)
+		jsonErr(w, "could not reset the password", http.StatusInternalServerError)
+		return
+	}
+	if n, _ := result.RowsAffected(); n != 1 {
+		jsonErr(w, "factory pass client not found", http.StatusNotFound)
+		return
+	}
+
+	res.Password = password
+	res.PortalURL = s.portalURL(res.ClientSlug, res.ProjectSlug)
+	emailSent := false
+	emailMessage := "Email is not configured; copy the password now."
+	if s.Email != nil {
+		if err := s.deliverPassFulfillmentEmail(res); err != nil {
+			slog.Error("factory pass password reset email failed", "client", clientSlug,
+				"pass_id", res.Pass.ID, "err", err)
+			emailMessage = "The password was reset, but the email could not be sent; copy the password now."
+		} else {
+			emailSent = true
+			emailMessage = "The new password was emailed to the Factory Pass customer."
+		}
+	}
+
+	slog.Info("factory pass client password reset", "client", clientSlug,
+		"pass_id", res.Pass.ID, "email_sent", emailSent)
+	jsonOK(w, map[string]any{
+		"ok":            true,
+		"client_slug":   clientSlug,
+		"portal_url":    res.PortalURL,
+		"password":      password,
+		"email_sent":    emailSent,
+		"email_message": emailMessage,
+	})
+}
+
 var validGrantReasons = map[string]bool{"pack": true, "grant": true}
 
 // handleAdminGrantPassBuilds adds build credits to a pass (a bought pack, or a
@@ -923,6 +1012,18 @@ var passSupportEdges = []string{
 	"Live help is available at USD 100/hr, booked in advance, 30-minute minimum.",
 }
 
+// deliverPassFulfillmentEmail performs the actual AgentMail send. Redemption
+// calls it in a goroutine; the admin password-reset path calls it synchronously
+// so the tracker can report whether the replacement password was really sent.
+func (s *Server) deliverPassFulfillmentEmail(res fulfillPassResult) error {
+	if s.Email == nil {
+		return errors.New("email not configured")
+	}
+	subject := fmt.Sprintf("Your Factory Pass: %s", res.Title)
+	return s.Email.sendEmail([]string{res.Pass.CustomerEmail}, nil, subject,
+		passFulfillmentText(res), passFulfillmentHTML(res))
+}
+
 // sendPassFulfillmentEmail mails the customer their portal URL, client
 // password, and what the pass includes. Fire-and-forget: mail must never fail
 // a fulfillment, and s.Email is nil in local/dev/test runs.
@@ -938,9 +1039,7 @@ func (s *Server) sendPassFulfillmentEmail(res fulfillPassResult) {
 				slog.Error("pass fulfillment email panic", "recover", rec)
 			}
 		}()
-		subject := fmt.Sprintf("Your Factory Pass: %s", res.Title)
-		if err := s.Email.sendEmail([]string{res.Pass.CustomerEmail}, nil, subject,
-			passFulfillmentText(res), passFulfillmentHTML(res)); err != nil {
+		if err := s.deliverPassFulfillmentEmail(res); err != nil {
 			slog.Error("pass fulfillment email failed", "err", err, "pass_id", res.Pass.ID)
 		}
 	}()

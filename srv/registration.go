@@ -362,6 +362,8 @@ type registrationRow struct {
 	// when it was redeemed, so the tracker can show issued/redeemed at a glance.
 	CouponCode       string `json:"coupon_code"`
 	CouponRedeemedAt string `json:"coupon_redeemed_at"`
+	ClientSlug       string `json:"client_slug"`
+	ProjectPath      string `json:"project_path"`
 }
 
 func (s *Server) queryRegistrations(r *http.Request) ([]registrationRow, error) {
@@ -373,10 +375,13 @@ func (s *Server) queryRegistrations(r *http.Request) ([]registrationRow, error) 
 		       e.background, e.new_to_protocol, e.goals, e.consent_email, e.status,
 		       e.prep_status, e.attended_sessions, e.notes, e.last_emailed_at, e.created_at,
 		       COALESCE(MAX(c.code), '') AS coupon_code,
-		       MAX(p.fulfilled_at)       AS coupon_redeemed_at
+		       MAX(p.fulfilled_at)       AS coupon_redeemed_at,
+		       COALESCE(MAX(pr.client_slug), '') AS client_slug,
+		       COALESCE(MAX(pr.project_slug), '') AS project_slug
 		FROM event_registrations e
 		LEFT JOIN coupons c ON c.registration_id = e.id
 		LEFT JOIN passes  p ON p.coupon_id = c.id
+		LEFT JOIN projects pr ON pr.id = p.project_id
 		WHERE e.event_slug = ?
 		GROUP BY e.id
 		ORDER BY e.created_at ASC
@@ -390,10 +395,11 @@ func (s *Server) queryRegistrations(r *http.Request) ([]registrationRow, error) 
 		var e registrationRow
 		var allS, newP, consent int
 		var notes, lastEmailed, couponRedeemed sql.NullString
+		var projectSlug string
 		if err := rows.Scan(&e.ID, &e.Name, &e.Email, &e.Region, &allS, &e.Material,
 			&e.MaterialType, &e.Background, &newP, &e.Goals, &consent, &e.Status,
 			&e.PrepStatus, &e.AttendedSessions, &notes, &lastEmailed, &e.CreatedAt,
-			&e.CouponCode, &couponRedeemed); err != nil {
+			&e.CouponCode, &couponRedeemed, &e.ClientSlug, &projectSlug); err != nil {
 			return nil, err
 		}
 		e.AllSessions = allS == 1
@@ -402,6 +408,9 @@ func (s *Server) queryRegistrations(r *http.Request) ([]registrationRow, error) 
 		e.Notes = notes.String
 		e.LastEmailedAt = lastEmailed.String
 		e.CouponRedeemedAt = couponRedeemed.String
+		if e.ClientSlug != "" && projectSlug != "" {
+			e.ProjectPath = "/" + e.ClientSlug + "/" + projectSlug + "/factory/"
+		}
 		out = append(out, e)
 	}
 	return out, rows.Err()

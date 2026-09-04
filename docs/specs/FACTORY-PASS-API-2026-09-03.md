@@ -95,6 +95,12 @@ Code format: `PYB-XXXX-XXXX`, uppercase, no 0/O/1/I. `expires_at` default
 `GET  /api/admin/coupons` → list with redemption status + pass/project link.
 `GET  /api/admin/passes` → list (project, client, credits, expires, status).
 `POST /api/admin/passes/{id}/grant` `{"builds":3,"reason":"pack"}` → ledger +N.
+`POST /api/admin/clients/{slug}/password` → generate a new 12-character
+client password, replace the bcrypt hash (invalidating old client cookies), and
+re-send the Factory Pass fulfillment email. The admin-only response includes
+the plaintext password once plus `email_sent`, so recovery still works when the
+mailer is unavailable.
+
 `GET  /api/admin/registrations` — existing rows gain `coupon_code`,
 `coupon_redeemed_at` (LEFT JOIN) so the tracker can show issued/redeemed.
 

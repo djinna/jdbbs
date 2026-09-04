@@ -159,6 +159,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/passes", s.handleAdminListPasses)
 	mux.HandleFunc("POST /api/admin/passes", s.handleAdminCreatePass)
 	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
+	mux.HandleFunc("POST /api/admin/clients/{slug}/password", s.handleAdminResetClientPassword)
 
 	// API routes (global, no path prefix)
 	mux.HandleFunc("GET /api/projects", s.handleListProjects)
