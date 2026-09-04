@@ -128,6 +128,7 @@ body { font-family: var(--body); background: var(--bg); }
   color: var(--text-secondary); overflow-wrap: anywhere;
 }
 .fx-status.ok { color: var(--green); }
+.fx-status.warn { color: var(--accent); }
 .fx-status.err { color: var(--red); }
 .fx-status.busy { color: var(--accent); }
 .fx-status .fx-status-more { display: block; color: var(--text-muted); margin-top: 4px; }
@@ -181,6 +182,7 @@ body { font-family: var(--body); background: var(--bg); }
   overflow-wrap: anywhere;
 }
 .fx-row-sub.err { color: var(--red); }
+.fx-row-sub.warn { color: var(--accent); }
 .fx-row-right {
   display: flex; align-items: baseline; gap: 14px; justify-self: end;
   font-family: var(--mono); font-size: 11.5px;

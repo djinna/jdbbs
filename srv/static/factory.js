@@ -320,6 +320,7 @@ function renderUpload() {
       '<div class="fx-row-sub">' + esc(b.title || '') + (b.author ? ' \u00b7 ' + esc(b.author) : '') +
       (b.createdAt ? ' \u00b7 uploaded ' + esc(fmtWhen(b.createdAt)) : '') + '</div>' +
       (isFailed(b) && b.errorMsg ? '<div class="fx-row-sub err">' + esc(shortErr(b.errorMsg)) + '</div>' : '') +
+      (isBuilt(b) && b.errorMsg ? '<div class="fx-row-sub warn">Warning: ' + esc(shortErr(b.errorMsg)) + '</div>' : '') +
       '</div>' +
       '<div class="fx-row-right"><span class="tag ' + tagCls + '">' + tagTxt + '</span></div>' +
       '</div>';
@@ -491,6 +492,10 @@ function renderBuild() {
     status.innerHTML = 'That build failed: ' + esc(shortErr(S.current.errorMsg || 'unknown error')) +
       '<span class="fx-status-more">Failed builds are not counted \u2014 you still have ' + left + ' ' +
       plural(left, 'build', 'builds') + '. Try inspecting the file, or email ' + esc(S.contactEmail) + ' with the message above.</span>';
+  } else if (isBuilt(S.current) && S.current.errorMsg) {
+    status.className = 'fx-status warn';
+    status.innerHTML = 'Build warning: ' + esc(shortErr(S.current.errorMsg)) +
+      '<span class="fx-status-more">Your print PDF is still ready below. This build is counted because a deliverable was produced.</span>';
   } else if (left <= 0 && S.pass && S.pass.exists !== false) {
     status.className = 'fx-status';
     status.innerHTML = 'You\u2019ve used all ' + total + ' ' + plural(total, 'build', 'builds') + ' on this pass.' +
@@ -971,8 +976,14 @@ async function pollTick() {
   renderAll();
   var done = $('fx-build-status');
   if (done) {
-    done.className = 'fx-status ok';
-    done.textContent = 'Build finished. Your files are in step 5 below.';
+    if (b && b.errorMsg) {
+      done.className = 'fx-status warn';
+      done.innerHTML = 'Build warning: ' + esc(shortErr(b.errorMsg)) +
+        '<span class="fx-status-more">Your print PDF is ready in step 5 below.</span>';
+    } else {
+      done.className = 'fx-status ok';
+      done.textContent = 'Build finished. Your files are in step 5 below.';
+    }
   }
   var sec = $('download');
   if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });

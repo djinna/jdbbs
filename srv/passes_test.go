@@ -700,6 +700,13 @@ func TestConvertDebitsThenRefundsOnFailure(t *testing.T) {
 	waitForLedger(t, s, pass.ID, "build_failed_refund")
 
 	q := dbgen.New(s.DB)
+	reloadedBook, err := q.GetBook(t.Context(), bookID)
+	if err != nil {
+		t.Fatalf("reload failed book: %v", err)
+	}
+	if reloadedBook.ErrorMsg != "We couldn't read this Word file. Re-save it as .docx from Word and try again." {
+		t.Errorf("customer error_msg = %q", reloadedBook.ErrorMsg)
+	}
 	reloaded, err := q.GetPassByProject(t.Context(), pass.ProjectID)
 	if err != nil {
 		t.Fatalf("reload pass: %v", err)
@@ -1223,6 +1230,37 @@ func TestPassEmailBodiesCarryTheEssentials(t *testing.T) {
 	s.sendPassFulfillmentEmail(res)
 }
 
+func TestCustomerBuildErrorClassification(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{
+			name: "unknown Typst variable is a Word style",
+			raw:  "typst: exit status 1\nerror: unknown variable: tweet-p\n  ┌─ /tmp/book.typ:42:1",
+			want: "Your file uses a Word style (tweet-p) that isn't in your template. Inspect lists styles not in your transmittal — remove or remap it, or ask us to add it.",
+		},
+		{
+			name: "pandoc reader failure",
+			raw:  "pandoc typst: exit status 63\nCould not parse docx package",
+			want: "We couldn't read this Word file. Re-save it as .docx from Word and try again.",
+		},
+		{
+			name: "other pipeline failure",
+			raw:  "read pdf: unexpected EOF /srv/private/path",
+			want: "We couldn't build this file. Run Inspect for clues, then email j@djinna.com if it keeps happening.",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := customerBuildError(tt.raw); got != tt.want {
+				t.Fatalf("customerBuildError() = %q\nwant %q", got, tt.want)
+			}
+		})
+	}
+}
+
 // ─── build = PDF + EPUB ───
 
 // TestFinalizeBuildRunsEPUBBeforeReady: a build is both deliverables, so the
@@ -1316,8 +1354,8 @@ func TestFinalizeBuildKeepsPDFOnlyBuildAndDoesNotRefund(t *testing.T) {
 	if status != "ready" {
 		t.Errorf("status = %q, want \"ready\" — the PDF is downloadable", status)
 	}
-	if !strings.HasPrefix(errMsg, "EPUB failed:") {
-		t.Errorf("error_msg = %q, want a non-fatal \"EPUB failed: …\" note", errMsg)
+	if !strings.Contains(errMsg, "print PDF is ready") || strings.Contains(errMsg, "exit status") {
+		t.Errorf("error_msg = %q, want a customer-readable non-fatal EPUB warning", errMsg)
 	}
 
 	reloaded, err := q.GetPass(t.Context(), pass.ID)

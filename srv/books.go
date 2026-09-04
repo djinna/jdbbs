@@ -506,8 +506,8 @@ func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book) 
 	q := dbgen.New(s.DB)
 	if epubErr := s.getEPUBRunner()(bid, book); epubErr != nil {
 		slog.Error("build: epub stage failed but pdf succeeded; delivering pdf-only build",
-			"id", bid, "title", book.Title, "err", epubErr)
-		note := clip("EPUB failed: "+epubErr.Error(), 2000)
+			"id", bid, "title", book.Title, "raw_error", epubErr)
+		note := "Your print PDF is ready, but we couldn't generate the EPUB. Re-save the Word file as .docx and try another build, or email j@djinna.com."
 		if err := q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
 			Status: "ready", ErrorMsg: note, ID: bid,
 		}); err != nil {
@@ -525,16 +525,31 @@ func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book) 
 	return nil
 }
 
+var unknownTypstVariableRE = regexp.MustCompile(`(?mi)unknown variable:\s*([A-Za-z0-9_-]+)`)
+
+// customerBuildError turns pipeline stderr into a stable message suitable for
+// a workshop customer. The raw trace remains in structured server logs only.
+func customerBuildError(raw string) string {
+	if match := unknownTypstVariableRE.FindStringSubmatch(raw); len(match) == 2 {
+		return fmt.Sprintf("Your file uses a Word style (%s) that isn't in your template. Inspect lists styles not in your transmittal — remove or remap it, or ask us to add it.", match[1])
+	}
+	if strings.Contains(strings.ToLower(raw), "pandoc") {
+		return "We couldn't read this Word file. Re-save it as .docx from Word and try again."
+	}
+	return "We couldn't build this file. Run Inspect for clues, then email j@djinna.com if it keeps happening."
+}
+
 // failConversion marks a build as failed and, when the project holds a Factory
 // Pass, refunds the credit debited at request time — a build the customer
 // can't download was never a build (+1 build_failed_refund in the ledger).
 func (s *Server) failConversion(bid int64, msg string) {
-	slog.Error("book conversion failed", "id", bid, "error", msg)
+	customerMsg := customerBuildError(msg)
+	slog.Error("book conversion failed", "id", bid, "raw_error", msg, "customer_message", customerMsg)
 	q := dbgen.New(s.DB)
 	ctx := context.Background()
 	_ = q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
 		Status:   "error",
-		ErrorMsg: msg,
+		ErrorMsg: clip(customerMsg, 2000),
 		ID:       bid,
 	})
 	ref, err := q.GetBookProjectID(ctx, bid)
