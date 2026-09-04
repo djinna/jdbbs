@@ -282,6 +282,12 @@ func TestRedeemLinksMatchingRegistration(t *testing.T) {
 	if row["coupon_redeemed_at"] == "" {
 		t.Errorf("tracker coupon_redeemed_at should be set once redeemed, got %v", row["coupon_redeemed_at"])
 	}
+	if row["client_slug"] != "grace-hopper" {
+		t.Errorf("tracker client_slug = %v, want grace-hopper", row["client_slug"])
+	}
+	if row["project_path"] != "/grace-hopper/compiling/factory/" {
+		t.Errorf("tracker project_path = %v, want the redeemed Factory page", row["project_path"])
+	}
 }
 
 // TestRedeemSameCodeTwiceRejected: a used code is refused with 400 and never

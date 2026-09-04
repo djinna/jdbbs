@@ -102,7 +102,8 @@ the plaintext password once plus `email_sent`, so recovery still works when the
 mailer is unavailable.
 
 `GET  /api/admin/registrations` — existing rows gain `coupon_code`,
-`coupon_redeemed_at` (LEFT JOIN) so the tracker can show issued/redeemed.
+`coupon_redeemed_at`, `client_slug`, and `project_path` (LEFT JOIN) so the
+tracker can show issued/redeemed and expose password recovery after redemption.
 
 ## Emails (new pathway #6 in `srv/EMAIL_SYSTEM.md`)
 

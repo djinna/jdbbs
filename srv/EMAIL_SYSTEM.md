@@ -39,7 +39,7 @@ First recipient = To, rest = CC.
 | # | Trigger | Recipient | File | Description |
 |---|---------|-----------|------|-------------|
 | 6 | **Client updates transmittal** (auto-save) | `j@djinna.com` | `srv/transmittal_notify.go` | Notification that a client is editing a transmittal. Throttled: max 1 per project per 30 min. Skipped when admin edits (X-ExeDev-UserID header present). |
-| 7 | **Factory Pass fulfilled** / **build delivered** | the pass customer | `srv/passes.go` | Two transactional mails for the storefront: the welcome (portal URL, client password, what's included) and the per-build receipt. |
+| 7 | **Factory Pass fulfilled** / **password reset** / **build delivered** | the pass customer | `srv/passes.go` | Transactional storefront mail: the welcome/sign-in message (also re-sent after an admin password reset) and the per-build receipt. |
 
 ## Pathway Details
 
@@ -91,9 +91,9 @@ First recipient = To, rest = CC.
 ### 7. Factory Pass Mail (`srv/passes.go`)
 - **Automatic/server-initiated**, transactional (the customer bought this; no consent flag applies)
 - Two messages, both to `passes.customer_email`:
-  1. **Fulfillment** — sent from `fulfillPass` callers (`POST /api/public/redeem`, `POST /api/admin/passes`). Subject: `Your Factory Pass: {title}`. Carries the portal URL (`/{client}/{project}/factory/`), the client sign-in slug, the generated 12-character password (the *only* time it exists in plaintext), what's included (3 builds, unlimited preflights, expiry date), first steps, and the support edges.
+  1. **Fulfillment / password reset** — sent from `fulfillPass` callers (`POST /api/public/redeem`, `POST /api/admin/passes`) and re-sent by `POST /api/admin/clients/{slug}/password`. Subject: `Your Factory Pass: {title}`. Carries the portal URL (`/{client}/{project}/factory/`), the client sign-in slug, the generated 12-character password, what's included (3 builds, unlimited preflights, expiry date), first steps, and the support edges. Password-reset responses also return the replacement password once to the authenticated admin, so recovery still works if mail is unavailable; plaintext is never stored.
   2. **Build delivered** — sent from `runConversion` after a successful build. Subject: `Build ready: {title}`. Links to the PDF, EPUB, and preflight report; states credits remaining.
-- Fulfillment mail is fire-and-forget in its own goroutine, so the mailer can never fail a redemption; the build mail runs on the conversion goroutine (already off the request path)
+- Fulfillment mail is fire-and-forget in its own goroutine, so the mailer can never fail a redemption; password-reset mail is synchronous so the tracker can report whether the new credential was actually sent; the build mail runs on the conversion goroutine (already off the request path)
 - `s.Email == nil` (local/dev/test) → log a warning and skip; fulfillment still succeeds
 - Support-edge copy lives in one place, `passSupportEdges`, shared by both mails and the page
 - Expiry warnings (T-30/T-7) and purge notices are **deferred** — nothing expires before March 2027
