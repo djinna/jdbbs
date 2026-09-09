@@ -18,7 +18,10 @@ Typst `.typ`). Two output targets, two toolchains:
   (e.g. `ghosts`) are authored directly in Typst — `manuscripts/ghosts/main.typ`
   `#include`s per-chapter `.typ` files — and compiled with `typst` directly.
 - **EPUB** — `pandoc` (DOCX/MD → EPUB3) with `typesetting/templates/epub/epub-styles.css`.
-  No Typst. Fonts not embedded by default (set `EPUB_EMBED_FONTS=1` to embed).
+  No Typst. Fonts are not embedded by default. (`EPUB_EMBED_FONTS=1` is wired but its
+  paths are stale — it looks for `fonts/sourcesans/WOFF2/`, which doesn't exist; only
+  `OTF/` does — so it silently embeds nothing for Source Sans. Don't rely on it without
+  fixing the script paths first.)
 
 ### What each step needs
 
@@ -40,7 +43,9 @@ Typst `.typ`). Two output targets, two toolchains:
 | `./build-ghosts.sh` | Build the *Ghosts* anthology (real-book example) |
 | _direct_ | `typst compile --root . --font-path typesetting/fonts manuscripts/<book>/main.typ output/<book>.pdf` |
 
-Output lands in `output/`.
+**Output paths differ.** The scripts write to `typesetting/output/` — their `PROJECT_ROOT`
+resolves to `typesetting/` (one level above `typesetting/scripts/`), not the repo root. A
+direct `typst compile` writes wherever you point it (the example above → repo-root `output/`).
 
 ## Local vs VM — where it runs today
 
