@@ -32,6 +32,31 @@ only in the systemd journal, which rotates. Every send must be auditable.
 
 Also flagged, not yet acted on: Toby Shorin (reg #8, Sep 10) has NO code; Andrea Leiter (reg #2) has a code never emailed (consent_email=false). Ask user how to handle before Sep 21. Email templates are off-brand (purple gradient, emoji, "ProdCal") — offered restyle, user hasn't answered.
 
+### SECOND: restyle outbound email templates (user: "yes indeed")
+Current templates (transmittal update, registration confirm + admin alert,
+Factory Pass fulfillment, client password reset, snapshot/activity) are
+off-brand: purple gradient header, emoji, "ProdCal" name. Bring them to the
+studio's text-first look: `[jdbb] studio` wordmark line, hairline rules,
+system/mono type, no gradients, no emoji, "jdbb studio" not "ProdCal", plain
+button-as-link. Text part stays primary; HTML part is a light wrap. Builders
+live in `srv/email.go` (`buildTransmittal*Summary` ~L173/306) and alongside
+each sender (`grep -n 'htmlBody\|<html' srv/*.go`). One shared
+`emailShell(title, bodyHTML)` helper; snapshot-test each template. Do this
+BEFORE more attendee mail goes out (they're redeeming now).
+
+### THIRD: stable project slugs (user: "clients may well change book titles… maybe lname-000")
+Today `uniqueProjectSlug` (`srv/passes.go` ~L444) derives from the manuscript
+title, truncated to 24 chars → `building-in-the-wrong-ma`. Title-derived is
+fragile: titles change during production and the slug is in emailed URLs.
+Proposal to confirm with user: per-client sequence, `{lastname}-{NNN}` →
+`/mike-casey/casey-001/`. Alternatives to mention: `/mike-casey/001/` (shorter,
+no redundancy) or `/mike-casey/book-001/`. Implementation: `SELECT COUNT(*)+1
+FROM projects WHERE client_slug=?` (or MAX of parsed suffix) → zero-pad 3;
+keep `projects.name` as the human title (renamable freely). Apply to Factory
+redemption path AND the admin New Project modal (offer as default, editable).
+Existing project `mike-casey/building-in-the-wrong-ma`: leave as-is unless
+user says rename — the URL is already in Mike Casey's fulfillment email.
+
 0. Everything from the 2026-09-11 workplan is shipped. Remaining items are post-workshop polish (see docs/IDEAS.md) and the deploy freeze Sep 19–22.
 1. ~~`/stylesheet` split~~ — DONE (commit after 8e07125): `/stylesheet-pi/` tool, `/stylesheet/` public house sheet (62 items, fiction/nonfiction/both, `srv/housestyle.go`).
 2. ~~Admin projects list: pagination + filters~~ — DONE (client-side over cached list; search/client/status/sort/per-page + pager; auto-hidden when everything fits).
