@@ -7,10 +7,8 @@
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/theme.css">
 <style>
-:root{--mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace}
 *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--body)}
-.wrap{max-width:1180px;margin:auto;padding:0 24px 64px}.mast{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0 14px;border-bottom:1px solid var(--border);font-family:var(--mono)}
-.wordmark{font-weight:700;color:var(--text);text-decoration:none}.wordmark b{color:var(--accent)}.wordmark small{color:var(--text-muted);font-weight:400;margin-left:7px}.mast nav{display:flex;gap:18px;font-size:12px}.mast nav a{color:var(--text-secondary);text-decoration:none}
+.wrap{max-width:var(--shell-max);margin:auto;padding:0 var(--shell-gutter) 64px}
 .hero{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;padding:34px 0 20px;border-bottom:1px solid var(--border-strong)}.kicker,.label{font:700 11px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:var(--text-secondary)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}.btn,button,select,input,textarea{font:inherit;border-radius:0}.btn,button{border:1px solid var(--border-strong);background:var(--surface);color:var(--text);padding:8px 12px;cursor:pointer;text-decoration:none;font-family:var(--mono);font-size:12px;font-weight:600}.btn:hover,button:hover{border-color:var(--accent);color:var(--accent)}button.primary{background:var(--accent);border-color:var(--accent);color:white}button:disabled{opacity:.45;cursor:not-allowed}
 .stats{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--border);margin-bottom:26px}.stat{padding:15px 16px 15px 0}.stat+.stat{padding-left:16px;border-left:1px solid var(--border)}.stat b{display:block;font:600 24px/1 var(--mono)}.stat span{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
@@ -27,12 +25,12 @@
 }
 @page terse{size:landscape;margin:.35in}
 @media(max-width:850px){.stats{grid-template-columns:repeat(2,1fr)}.stat{border-bottom:1px solid var(--border)}.person{grid-template-columns:28px 1fr}.material,.controls{grid-column:2}.composer{grid-template-columns:1fr}.person.editing .edit-panel{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:520px){.wrap{padding:0 15px 50px}.person{grid-template-columns:24px 1fr}.controls{grid-template-columns:1fr}.attendance{flex-wrap:wrap}.stats{grid-template-columns:1fr}.stat+.stat{padding-left:0;border-left:0}.history-row{grid-template-columns:1fr}.person.editing .edit-panel{grid-template-columns:1fr}.edit-panel .wide{grid-column:auto}}
+@media(max-width:520px){.wrap{padding:0 var(--shell-gutter) 50px}.person{grid-template-columns:24px 1fr}.controls{grid-template-columns:1fr}.attendance{flex-wrap:wrap}.stats{grid-template-columns:1fr}.stat+.stat{padding-left:0;border-left:0}.history-row{grid-template-columns:1fr}.person.editing .edit-panel{grid-template-columns:1fr}.edit-panel .wide{grid-column:auto}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header class="mast"><a class="wordmark" href="/"><b>[</b>jdbb<b>]</b><small>studio</small></a><nav><a href="/admin/">Production</a><a href="/workshop">Public form ↗</a><div id="theme-bar"></div></nav></header>
+<header class="jdbb-masthead"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a><nav><a href="/admin/">Admin</a><a href="/workshop">Workshop</a><div id="theme-bar"></div></nav></header>
 <section class="hero"><div><div class="kicker">Cohort tracker · September 21–22, 2026</div><h1>Protocolize Your Book</h1><div class="sub">Registrations, prep, attendance, notes, and announcements.</div></div><div class="actions"><a class="btn" href="/api/admin/registrations.csv">Export CSV</a><button type="button" onclick="printTracker('verbose')">Print verbose</button><button type="button" onclick="printTracker('terse')">Print terse · 1 page</button></div></section>
 <div class="stats" id="stats"></div>
 
@@ -50,6 +48,7 @@
 <div class="history"><div class="label">Announcement history</div><div id="history"></div></div>
 </section>
 <div id="terse-sheet" class="terse-sheet"></div>
+<footer class="jdbb-footer"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a><nav aria-label="Footer"><a href="/admin/">Admin</a><a href="/">Home</a><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a></nav><span class="copy">&copy; 2026 Jenna Dixon</span></footer>
 </div>
 <div class="toast" id="toast"></div>
 <script src="/static/theme.js"></script>

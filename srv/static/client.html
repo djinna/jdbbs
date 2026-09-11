@@ -34,7 +34,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  .page { max-width: 1040px; margin: 0 auto; padding: 0 32px; }
+  .page { max-width: var(--shell-max); margin: 0 auto; padding: 0 var(--shell-gutter); }
 
   /* Guard against the legacy floating theme pill in style.css until it is
      re-tokened: the masthead theme bar is plain inline text. */
@@ -47,16 +47,6 @@
   .jdbb-masthead .theme-bar .theme-opt { background: none; border-radius: 0; }
   .jdbb-masthead .theme-bar .theme-opt.active { background: none; color: var(--accent); }
   .jdbb-masthead .theme-bar .dark-btn { width: auto; height: auto; border-radius: 0; background: none; font-size: 14px; }
-
-  .site-footer {
-    display: flex; justify-content: space-between; align-items: baseline;
-    gap: 1rem; font-family: var(--mono); font-size: 12px; color: var(--text-muted);
-    padding: 20px 0; margin-top: 80px;
-    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-    margin-bottom: 40px;
-  }
-  .site-footer a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
-  .site-footer a:hover { color: var(--text); }
 
   /* ---- Title block ---- */
   .dashboard { padding-top: 8px; }
@@ -225,7 +215,6 @@
   }
 
   @media (max-width: 640px) {
-    .page { padding: 0 16px; }
     .title-block { padding: 36px 0 28px; }
     .title-block h1 { font-size: 24px; }
     .stats-ledger { grid-template-columns: repeat(2, auto); }
@@ -248,9 +237,10 @@
     <span>UTC <span id="status-date"></span> &middot; <span class="ok">&#9679;</span> live</span>
   </div>
   <div id="app"></div>
-  <footer class="site-footer">
-    <a class="jdbb-wordmark" href="https://www.djinna.com" rel="noopener"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
-    <span><a href="/admin/">Admin</a> &middot; &copy; 2026 Jenna Dixon</span>
+  <footer class="jdbb-footer">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav aria-label="Footer"><a href="/">Home</a><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a></nav>
+    <span class="copy">&copy; 2026 Jenna Dixon</span>
   </footer>
 </div>
 <script src="/static/theme.js"></script>

@@ -161,6 +161,15 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
 	mux.HandleFunc("POST /api/admin/clients/{slug}/password", s.handleAdminResetClientPassword)
 
+	// Site pages registry (admin inventory of every route; see docs/PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md §7)
+	mux.HandleFunc("GET /api/admin/pages", s.handleAdminListSitePages)
+	mux.HandleFunc("PUT /api/admin/pages", s.handleAdminUpsertSitePage)
+	mux.HandleFunc("DELETE /api/admin/pages/{id}", s.handleAdminDeleteSitePage)
+
+	// Cohort roster — client-visible + cohort flag (attendee-facing sibling of /admin/registrations)
+	mux.HandleFunc("GET /cohort/{cohort}", s.handleCohortPage)
+	mux.HandleFunc("GET /api/cohort/{cohort}/roster", s.handleCohortRoster)
+
 	// API routes (global, no path prefix)
 	mux.HandleFunc("GET /api/projects", s.handleListProjects)
 	mux.HandleFunc("POST /api/projects", s.handleCreateProject)
@@ -313,9 +322,10 @@ func (s *Server) Handler() http.Handler {
 			s.serveLanding(w)
 			return
 		}
-		// /lg -> landing with a +20% type bump (review-only)
+		// /lg was a type-size review variant of the landing page; retired
+		// 2026-09-11 (the bump was folded into the landing page itself).
 		if len(parts) == 1 && parts[0] == "lg" {
-			s.serveStaticHTML(w, "static/landing-lg.html")
+			http.Redirect(w, r, "/", http.StatusMovedPermanently)
 			return
 		}
 		// /{client}/ -> client portal

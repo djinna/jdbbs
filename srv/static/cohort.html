@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Cohort roster — Protocolize Your Book · jdbb studio</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--body)}
+.hero{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;padding:34px 0 20px;border-bottom:1px solid var(--border-strong)}
+h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:var(--text-secondary);max-width:var(--prose-measure)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions[hidden]{display:none}
+.actions button{font:600 12px var(--mono);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);padding:8px 12px;cursor:pointer;border-radius:0}
+.actions button:hover{border-color:var(--accent);color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);margin-bottom:26px}
+.stat{padding:15px 16px 15px 0}.stat+.stat{padding-left:16px;border-left:1px solid var(--border)}
+.stat b{display:block;font:600 24px/1 var(--mono)}.stat span{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.intro{max-width:var(--prose-measure);color:var(--text-secondary);margin:0 0 22px}
+.participants{border-top:1px solid var(--border-strong)}
+.person{display:grid;grid-template-columns:30px minmax(180px,1fr) minmax(260px,1.8fr) 200px;gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}
+.num{font:12px var(--mono);color:var(--text-muted);padding-top:3px}
+.who h3{font:600 15px var(--mono);margin:0 0 3px}.who .you{color:var(--accent);font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-left:6px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.tag{border:1px solid var(--border);padding:2px 6px;font:10px var(--mono);color:var(--text-secondary);text-transform:uppercase}
+.material{color:var(--text-secondary)}.material .goals{margin-top:8px;color:var(--text-muted);font-style:italic;font-size:13px}
+.sessions{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}.sessions span{font:10px var(--mono);color:var(--text-muted);text-transform:uppercase;width:100%}
+.sessions i{font:13px var(--mono);font-style:normal;color:var(--text-secondary)}.sessions i.on{color:var(--green)}
+.gate{padding:40px 0;max-width:var(--prose-measure)}.gate h2{font:600 20px var(--mono);margin:0 0 10px}.gate p{color:var(--text-secondary)}.gate a{color:var(--accent)}
+.empty,.error{padding:26px 0;font-family:var(--mono);color:var(--text-muted)}.error{color:var(--red)}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.person{grid-template-columns:24px 1fr}.material,.sessions{grid-column:2}}
+@media print{@page{margin:.5in}body{background:#fff;color:#000;font-size:10.5pt}.jdbb-masthead,.actions,.gate{display:none!important}.hero{padding:0 0 10px}.person{break-inside:avoid;padding:10px 0}.stats{margin-bottom:14px}}
+</style>
+</head>
+<body>
+<div class="jdbb-shell">
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav>
+      <a href="/workshop">Workshop</a>
+      <a href="/field-notes">Field notes</a>
+      <a href="/factory">Factory</a>
+      <div id="theme-bar"></div>
+    </nav>
+  </header>
+
+  <main>
+  <section class="hero">
+    <div>
+      <div class="kicker">Cohort roster · <span id="dates">September 21–22, 2026</span></div>
+      <h1 id="title">Protocolize Your Book</h1>
+      <div class="sub">Who's in the room, what everyone is bringing, and what they hope to leave with. Shared with the cohort only.</div>
+    </div>
+    <div class="actions" id="actions" hidden><button type="button" onclick="window.print()">Print roster</button></div>
+  </section>
+
+  <div id="body"><div class="empty">Loading…</div></div>
+  </main>
+
+  <footer class="jdbb-footer">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav aria-label="Footer"><a href="/">Home</a><a href="/workshop">Workshop</a><a href="/field-notes">Field notes</a><a href="/factory">Factory</a></nav>
+    <span class="copy">&copy; 2026 Jenna Dixon</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var cohort = location.pathname.replace(/\/+$/,'').split('/').pop();
+  var body = document.getElementById('body');
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]})}
+  var TYPE={book:'Book',essays:'Essays',archive:'Archive',zine:'Zine',poetry:'Poetry',other:'Other'};
+  var BG={publishing:'Publishing',design:'Design',writing:'Writing',other:'Other'};
+  fetch('/api/cohort/'+encodeURIComponent(cohort)+'/roster',{credentials:'same-origin'}).then(function(r){
+    if(r.status===401){
+      body.innerHTML='<div class="gate"><h2>Cohort members only</h2><p>This roster is shared with participants of the workshop. Sign in to your <b>Factory</b> project first — the same client login you got when you redeemed your workshop pass — then come back to this page.</p><p><a href="/factory">Redeem or open your Factory pass →</a></p></div>';
+      return null;
+    }
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
+    if(!d) return;
+    document.getElementById('title').textContent=d.title||'Cohort';
+    document.getElementById('dates').textContent=d.dates||'';
+    document.getElementById('actions').hidden=false;
+    var ms=d.members||[];
+    var all=ms.filter(function(m){return m.all_sessions}).length;
+    var types={}; ms.forEach(function(m){types[m.material_type||'other']=(types[m.material_type||'other']||0)+1});
+    var regions={}; ms.forEach(function(m){regions[m.region||'—']=(regions[m.region||'—']||0)+1});
+    var topType=Object.keys(types).sort(function(a,b){return types[b]-types[a]})[0]||'—';
+    var h='<div class="stats"><div class="stat"><b>'+ms.length+'</b><span>Participants</span></div><div class="stat"><b>'+all+'</b><span>All four sessions</span></div><div class="stat"><b>'+Object.keys(regions).length+'</b><span>Regions</span></div><div class="stat"><b>'+esc(TYPE[topType]||topType)+'</b><span>Most common material</span></div></div>';
+    h+='<p class="intro">Sessions run on Discord. Bring the material listed beside your name; the goals column is what you told us you wanted out of the two days — read your neighbours&rsquo; and you&rsquo;ll see where to pair up.</p>';
+    if(!ms.length){ h+='<div class="empty">No participants listed yet.</div>'; body.innerHTML=h; return; }
+    h+='<div class="participants">'+ms.map(function(m,i){
+      return '<div class="person"><div class="num">'+(i+1)+'</div>'+
+        '<div class="who"><h3>'+esc(m.name)+(m.is_you?'<span class="you">you</span>':'')+'</h3>'+
+          '<div class="tags">'+(m.region?'<span class="tag">'+esc(m.region)+'</span>':'')+(m.material_type?'<span class="tag">'+esc(TYPE[m.material_type]||m.material_type)+'</span>':'')+(m.background?'<span class="tag">'+esc(BG[m.background]||m.background)+'</span>':'')+'</div></div>'+
+        '<div class="material">'+esc(m.material)+(m.goals?'<div class="goals">'+esc(m.goals)+'</div>':'')+'</div>'+
+        '<div class="sessions"><span>Sessions</span>'+[1,2,3,4].map(function(n){var on=m.attended_sessions&(1<<(n-1));return '<i class="'+(on?'on':'')+'">'+(on?'☒':'☐')+' S'+n+'</i>'}).join('')+'</div>'+
+      '</div>';
+    }).join('')+'</div>';
+    body.innerHTML=h;
+  }).catch(function(e){ body.innerHTML='<div class="error">Could not load the roster ('+esc(e.message)+').</div>'; });
+})();
+</script>
+<script src="/static/theme.js"></script>
+</body>
+</html>

@@ -102,7 +102,8 @@ input, select, textarea { accent-color: var(--accent); }
 .btn-primary:disabled { background: var(--badge-dim-bg); color: var(--text-muted); }
 .btn-sm.btn-primary { padding: 7px 14px; font-size: 11px; }
 
-/* ─── Header ─── */
+.page-header-actions > #theme-bar:not(.theme-bar) { display: none; }
+
 .page-header {
   margin-bottom: 20px;
   padding-bottom: 14px;
@@ -192,8 +193,8 @@ input, select, textarea { accent-color: var(--accent); }
 
 /* ─── Two-column ledger ─── */
 .tx-container {
-  width: min(100% - 48px, 1320px);
-  max-width: 1320px;
+  width: 100%;
+  max-width: var(--shell-max);
   margin: 0 auto;
   padding: 48px 0 72px;
 }
@@ -207,7 +208,7 @@ input, select, textarea { accent-color: var(--accent); }
 }
 @media (max-width: 800px) {
   .tx-container {
-    width: min(100% - 28px, 1320px);
+    width: 100%;
     padding-top: 28px;
   }
   .tx-columns { grid-template-columns: minmax(0, 1fr); gap: 0; }

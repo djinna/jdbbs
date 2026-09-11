@@ -304,9 +304,16 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 	if err != nil {
 		return nil, err
 	}
+	// A coupon issued to a workshop registration puts the new client in that
+	// cohort (clients.cohort_slug), which is what gates the cohort roster.
+	cohortSlug := ""
+	if couponID.Valid && coupon.RegistrationID.Valid {
+		_ = tx.QueryRowContext(ctx, `SELECT event_slug FROM event_registrations WHERE id = ?`,
+			coupon.RegistrationID.Int64).Scan(&cohortSlug)
+	}
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO clients (slug, name, password_hash) VALUES (?, ?, ?)`,
-		clientSlug, in.Name, passwordHash); err != nil {
+		`INSERT INTO clients (slug, name, password_hash, cohort_slug) VALUES (?, ?, ?, ?)`,
+		clientSlug, in.Name, passwordHash, cohortSlug); err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
 	}
 
@@ -355,6 +362,13 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 					ID:             coupon.ID,
 				}); err != nil {
 					return nil, fmt.Errorf("link coupon registration: %w", err)
+				}
+				// Late attribution: the client was created before we knew the
+				// registration, so set its cohort now.
+				if _, err := tx.ExecContext(ctx, `UPDATE clients SET cohort_slug =
+					(SELECT event_slug FROM event_registrations WHERE id = ?) WHERE slug = ?`,
+					regID, clientSlug); err != nil {
+					return nil, fmt.Errorf("set client cohort: %w", err)
 				}
 			case errors.Is(rErr, sql.ErrNoRows):
 				// Redeemed with an email we don't recognize — fine, just

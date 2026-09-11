@@ -35,7 +35,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.content { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 2rem 2.5rem; }
+.content { position: relative; z-index: 1; max-width: var(--shell-max); margin: 0 auto; padding: 0 var(--shell-gutter) 2.5rem; }
 
 .header {
   display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;
@@ -341,15 +341,6 @@ body {
 }
 .btn-link:hover { text-decoration-color: currentColor; }
 
-.colophon {
-  margin-top: 4rem; padding-top: 1.25rem; border-top: 1px solid var(--border);
-  font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); line-height: 1.6;
-}
-.colophon a {
-  color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px;
-}
-.colophon a:hover { color: var(--text); }
-.colophon .colophon-row { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: 0.6rem; border-top: 1px solid var(--border); letter-spacing: 0.06em; }
 .backup-status-line { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem 0.7rem; align-items: center; font-size: 0.68rem; }
 .backup-status-line .backup-dot { width: 7px; height: 7px; display: inline-block; background: var(--text-muted); }
 .backup-status-line.ok .backup-dot { background: var(--green); }
@@ -386,6 +377,18 @@ body {
 .backup-alert::after { content: "]"; }
 .backup-alert.on { display: inline-flex; }
 .backup-alert .backup-dot { display: none; }
+.pages-hint{font-size:12.5px;color:var(--text-secondary);margin:0 0 14px;max-width:var(--prose-measure)}
+.pages-filters{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px}.pages-filters label{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);display:flex;flex-direction:column;gap:4px}
+.pages-filters select,.pages-filters input{font:12px var(--mono);padding:5px 7px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:0;min-width:140px}
+.pages-table{width:100%;border-collapse:collapse;font-size:12.5px;border-top:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong)}
+.pages-table th{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:8px 8px 8px 0}
+.pages-table td{padding:8px 8px 8px 0;border-top:1px solid var(--border);vertical-align:top}.pages-table td.route{font-family:var(--mono);white-space:nowrap}.pages-table td.route a{color:var(--accent);text-decoration:none}.pages-table td .tag{margin:0}
+.pages-table td.note{color:var(--text-secondary);max-width:32ch}.pages-table .st-retire{color:var(--red)}.pages-table .st-review{color:var(--yellow)}.pages-table .st-live{color:var(--green)}
+.pages-edit{margin-top:22px;border-top:1px solid var(--border-strong);padding-top:14px}.pages-edit h3{font:600 14px var(--mono);margin:0 0 10px}
+.pages-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pages-grid label{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);display:flex;flex-direction:column;gap:4px}.pages-grid label.wide{grid-column:1/-1}
+.pages-grid input,.pages-grid select{font:12.5px var(--body);padding:6px 8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:0}
+.pages-actions{margin-top:12px;display:flex;gap:8px;align-items:center}#pg-saved{font:11px var(--mono);color:var(--green)}
+@media(max-width:900px){.pages-grid{grid-template-columns:1fr 1fr}.pages-table th:nth-child(3),.pages-table td:nth-child(3),.pages-table th:nth-child(6),.pages-table td:nth-child(6){display:none}}
 </style>
 </head>
 <body>
@@ -420,6 +423,7 @@ body {
     <div class="tab" data-tab="typesetting">Typesetting</div>
     <div class="tab" data-tab="files">Files</div>
     <div class="tab" data-tab="archived">Archived</div>
+    <div class="tab" data-tab="pages">Pages</div>
     <div class="status" id="status-indicator">
       <span class="dot"></span> <span id="status-label">checking…</span>
       <div class="tip" id="status-tip">Checking system health…</div>
@@ -436,6 +440,39 @@ body {
     <div class="section-label" style="margin-top:0;padding-top:0;border-top:none;display:flex;justify-content:space-between;align-items:center">Archived Projects <button class="btn btn-sm btn-secondary" onclick="showProjectsTab()">Back to Projects</button></div>
     <div id="archived-loading">Loading…</div>
     <div id="archived-projects"></div>
+  </div>
+
+  <div id="tab-pages" class="tab-panel">
+    <div class="section-label" style="margin-top:0;padding-top:0;border-top:none;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <span>Pages — every route we've spun up, and what we mean to do with it</span>
+      <button class="btn btn-sm btn-secondary" onclick="editSitePage(null)">Add page</button>
+    </div>
+    <p class="pages-hint">Authorization is decided by each route's handler; this list only records what exists. <b>Unlisted is not private.</b> Standard: <a href="https://github.com/djinna/jdbbs/blob/main/docs/PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md">PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md</a>.</p>
+    <div class="pages-filters">
+      <label>Visibility <select id="pg-vis"><option value="">all</option><option>public</option><option>client</option><option>cohort</option><option>admin</option></select></label>
+      <label>Status <select id="pg-status"><option value="">all</option><option>live</option><option>keep</option><option>review</option><option>retire</option></select></label>
+      <label>Search <input id="pg-q" placeholder="route, title, note"></label>
+    </div>
+    <div id="pages-loading">Loading…</div>
+    <table class="pages-table" id="pages-table" hidden>
+      <thead><tr><th>Route</th><th>Title</th><th>Owner</th><th>Visibility</th><th>Listed</th><th>Type</th><th>Status</th><th>Note</th><th></th></tr></thead>
+      <tbody id="pages-body"></tbody>
+    </table>
+    <form class="pages-edit" id="pages-edit" hidden onsubmit="return saveSitePage(event)">
+      <h3 id="pg-edit-title">Add page</h3>
+      <div class="pages-grid">
+        <label>Route <input name="route" required placeholder="/my-page"></label>
+        <label>Title <input name="title"></label>
+        <label>Owner <select name="owner"><option>prodcal</option><option>pi-public</option><option>generated</option><option>external</option></select></label>
+        <label>Source <input name="source" placeholder="srv/static/x.html or pi-public/x.html"></label>
+        <label>Visibility <select name="visibility"><option>public</option><option>client</option><option>cohort</option><option>admin</option></select></label>
+        <label>Listed <select name="listed"><option>listed</option><option>nav</option><option>unlisted</option><option>retired</option></select></label>
+        <label>Type <select name="page_type"><option>marketing</option><option>prose</option><option>ledger</option><option>admin</option><option>client</option><option>artifact</option><option>deck</option><option>roster</option><option>tool</option></select></label>
+        <label>Status <select name="status"><option>live</option><option>keep</option><option>review</option><option>retire</option></select></label>
+        <label class="wide">Note <input name="note"></label>
+      </div>
+      <div class="pages-actions"><button class="btn btn-sm" type="submit">Save</button> <button class="btn btn-sm btn-secondary" type="button" onclick="document.getElementById('pages-edit').hidden=true">Cancel</button> <span id="pg-saved"></span></div>
+    </form>
   </div>
 
   <div id="tab-files" class="tab-panel">
@@ -855,15 +892,13 @@ body {
     </div>
   </div>
 
-  <footer class="colophon">
-    <p>Switch the site font from the header selector. Your pick persists locally.</p>
+  <footer class="jdbb-footer">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav aria-label="Footer"><a href="/admin/">Admin</a><a href="/">Home</a><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a></nav>
+    <span class="copy">&copy; 2026 Jenna Dixon</span>
     <div id="backup-status-line" class="backup-status-line warn">
       <span class="backup-dot"></span>
       <span>Backups: checking…</span>
-    </div>
-    <div class="colophon-row">
-      <a href="https://www.djinna.com" rel="noopener">[jdbb]</a>
-      <span>Admin · © 2026 Jenna Dixon</span>
     </div>
   </footer>
 
@@ -1441,7 +1476,7 @@ document.getElementById('new-client-btn').addEventListener('click', openNewClien
 
 // ─── Tabs ───
 function normalizeAdminTab(tabName) {
-  return ['projects', 'typesetting', 'files', 'archived'].includes(tabName) ? tabName : 'projects';
+  return ['projects', 'typesetting', 'files', 'archived', 'pages'].includes(tabName) ? tabName : 'projects';
 }
 
 function showTab(tabName, opts = {}) {
@@ -1458,6 +1493,7 @@ function showTab(tabName, opts = {}) {
   if (normalized === 'projects') loadProjects();
   if (normalized === 'files') loadBooks();
   if (normalized === 'archived') loadArchivedProjects();
+  if (normalized === 'pages') loadSitePages();
   if (normalized === 'typesetting' && tsProject.value) tsLoadSpec(tsProject.value);
 }
 
@@ -3384,6 +3420,62 @@ window.addEventListener('beforeunload', (e) => {
 // ─── Init ───
 checkHealth();
 loadBackupStatus();
+// ---- Pages registry ----
+let sitePages = [];
+async function loadSitePages() {
+  const loading = document.getElementById('pages-loading');
+  try {
+    const r = await fetch('/api/admin/pages');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    sitePages = await r.json();
+    loading.hidden = true;
+    renderSitePages();
+  } catch (e) { loading.textContent = 'Could not load pages: ' + e.message; }
+}
+function renderSitePages() {
+  const vis = document.getElementById('pg-vis').value, st = document.getElementById('pg-status').value;
+  const q = document.getElementById('pg-q').value.trim().toLowerCase();
+  const rows = sitePages.filter(p => (!vis || p.visibility === vis) && (!st || p.status === st) &&
+    (!q || (p.route + ' ' + p.title + ' ' + p.note + ' ' + p.source).toLowerCase().includes(q)));
+  const tb = document.getElementById('pages-body');
+  const linkable = r => !r.includes('{');
+  tb.innerHTML = rows.map(p => `<tr>
+    <td class="route">${linkable(p.route) ? `<a href="${esc(p.route)}" target="_blank" rel="noopener">${esc(p.route)}</a>` : esc(p.route)}</td>
+    <td>${esc(p.title)}</td><td><span class="tag">${esc(p.owner)}</span></td>
+    <td><span class="tag">${esc(p.visibility)}</span></td><td><span class="tag">${esc(p.listed)}</span></td>
+    <td>${esc(p.page_type)}</td><td><span class="tag st-${esc(p.status)}">${esc(p.status)}</span></td>
+    <td class="note">${esc(p.note)}</td>
+    <td><button class="btn btn-sm btn-secondary" onclick="editSitePage(${p.id})">Edit</button> <button class="btn btn-sm btn-secondary" onclick="deleteSitePage(${p.id})" title="Remove from registry (does not remove the route)">×</button></td>
+  </tr>`).join('') || '<tr><td colspan="9" style="color:var(--text-muted)">No pages match.</td></tr>';
+  document.getElementById('pages-table').hidden = false;
+}
+['pg-vis','pg-status','pg-q'].forEach(id => document.getElementById(id).addEventListener('input', renderSitePages));
+function editSitePage(id) {
+  const f = document.getElementById('pages-edit');
+  const p = id ? sitePages.find(x => x.id === id) : { route:'', title:'', owner:'prodcal', source:'', visibility:'public', listed:'unlisted', page_type:'prose', status:'live', note:'' };
+  document.getElementById('pg-edit-title').textContent = id ? 'Edit ' + p.route : 'Add page';
+  for (const k of ['route','title','owner','source','visibility','listed','page_type','status','note']) f.elements[k].value = p[k] || '';
+  f.elements.route.readOnly = !!id;
+  f.hidden = false; f.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+async function saveSitePage(ev) {
+  ev.preventDefault();
+  const f = ev.target, body = {};
+  for (const k of ['route','title','owner','source','visibility','listed','page_type','status','note']) body[k] = f.elements[k].value;
+  const r = await fetch('/api/admin/pages', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const out = document.getElementById('pg-saved');
+  if (!r.ok) { out.style.color = 'var(--red)'; out.textContent = (await r.json().catch(()=>({error:'error'}))).error || 'error'; return false; }
+  out.style.color = ''; out.textContent = 'saved ✓'; setTimeout(() => out.textContent = '', 1500);
+  f.hidden = true; await loadSitePages();
+  return false;
+}
+async function deleteSitePage(id) {
+  const p = sitePages.find(x => x.id === id);
+  if (!p || !confirm(`Remove ${p.route} from the registry? (The route itself is untouched.)`)) return;
+  await fetch('/api/admin/pages/' + id, { method:'DELETE' });
+  await loadSitePages();
+}
+
 loadClients();
 loadProjects();
 setInterval(() => {

@@ -32,16 +32,16 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--body);
-  font-size: 16px;
+  font-size: 18.4px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 .page {
-  max-width: 1120px;
+  max-width: var(--shell-max);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--shell-gutter);
 }
 
 /* ---- masthead / statusline (chrome classes from theme.css) ---- */
@@ -64,7 +64,7 @@ body {
   margin-bottom: 28px;
 }
 .hero .subhead {
-  font-size: 18px;
+  font-size: 20.7px;
   line-height: 1.7;
   color: var(--text-secondary);
   max-width: 62ch;
@@ -80,7 +80,7 @@ body {
   gap: 4px 24px;
   padding: 18px 0 16px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13.8px;
   letter-spacing: 0.04em;
 }
 .readout-head .job { color: var(--text-muted); }
@@ -95,15 +95,15 @@ body {
   padding: 15px 0 14px;
   border-top: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14.9px;
   line-height: 1.55;
   letter-spacing: 0.02em;
 }
-.readout-row .stage { font-weight: 600; font-size: 12px; letter-spacing: 0.1em; }
-.readout-row .detail { color: var(--text-secondary); font-size: 12px; }
+.readout-row .stage { font-weight: 600; font-size: 13.8px; letter-spacing: 0.1em; }
+.readout-row .detail { color: var(--text-secondary); font-size: 13.8px; }
 .readout-row .state {
   text-align: right;
-  font-size: 11px;
+  font-size: 12.6px;
   font-weight: 600;
   letter-spacing: 0.14em;
 }
@@ -128,7 +128,7 @@ body {
   border-top: 1px solid var(--border);
   padding: 13px 0 16px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12.6px;
   letter-spacing: 0.08em;
   color: var(--text-muted);
 }
@@ -151,12 +151,12 @@ body {
   border-bottom: 1px solid var(--border-strong);
 }
 .portal-field:focus-within { border-bottom-color: var(--accent); }
-.portal-field .prompt { font-family: var(--mono); font-size: 15px; color: var(--accent); }
-.portal-field .input-bare { border-bottom: none; font-size: 15px; padding: 12px 0; }
+.portal-field .prompt { font-family: var(--mono); font-size: 17.2px; color: var(--accent); }
+.portal-field .input-bare { border-bottom: none; font-size: 17.2px; padding: 12px 0; }
 .portal .btn-fill { min-height: 44px; }
 .portal-help {
   margin-top: 22px;
-  font-size: 13px;
+  font-size: 14.9px;
   line-height: 1.7;
   color: var(--text-secondary);
 }
@@ -171,7 +171,7 @@ body {
   display: none;
   margin-top: 16px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13.8px;
   letter-spacing: 0.04em;
   color: var(--red);
 }
@@ -188,7 +188,7 @@ body {
 }
 .cap-head .meta {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12.6px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -207,19 +207,19 @@ body {
 .cap-row:last-of-type { border-bottom: 1px solid var(--border); }
 .cap-row .num {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13.8px;
   color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 .cap-row .name {
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: 18.4px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text);
 }
 .cap-row .desc {
-  font-size: 15px;
+  font-size: 17.2px;
   line-height: 1.6;
   color: var(--text-secondary);
   max-width: 52ch;
@@ -238,7 +238,7 @@ body {
 .spec-group { display: grid; row-gap: 8px; }
 .spec-group .spec-key {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12.6px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -246,7 +246,7 @@ body {
 }
 .spec-group .spec-val {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14.9px;
   line-height: 1.5;
   letter-spacing: 0.02em;
   color: var(--text);
@@ -261,11 +261,11 @@ body {
   gap: 6px 22px;
   padding: 20px 0 4px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13.8px;
   letter-spacing: 0.04em;
 }
 .resources .res-label {
-  font-size: 10px;
+  font-size: 11.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -279,36 +279,11 @@ body {
 }
 .resources a:hover { color: var(--accent); }
 
-/* ---- footer ---- */
-footer.site {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 24px;
-  padding: 24px 0 23px;
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-}
-footer.site .fm { color: var(--text); font-weight: 700; }
-footer.site .fm .bracket { color: var(--accent); }
-footer.site .fm .kj { letter-spacing: -0.08em; }
-html[data-font="literata"] footer.site .fm .kj,
-html[data-font="ibm-serif"] footer.site .fm .kj,
-html[data-font="source-serif"] footer.site .fm .kj,
-html[data-font="newsreader"] footer.site .fm .kj { letter-spacing: 0; }
-footer.site a.fm { text-decoration: none; }
-footer.site a {
-  display: inline-block;
-  padding: 12px 0;   /* tap target height */
-  color: var(--text-secondary);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-}
-footer.site a:hover { color: var(--text); }
+/* ---- footer: canonical .jdbb-footer from theme.css; homepage adds the
+   resources strip above it and an Admin link (the homepage is the one
+   public page that may point at admin). ---- */
+.jdbb-footer { margin-top: 0; }                                   /* resources strip sits directly above */
+.jdbb-footer a { display: inline-block; padding: 12px 0; }  /* tap target height */
 .footer-close { margin-bottom: 40px; }
 
 /* ---- narrow screens ---- */
@@ -350,7 +325,7 @@ footer.site a:hover { color: var(--text); }
     <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
     <nav>
       <a href="#capabilities">Capabilities</a>
-      <a href="#portal">Client&nbsp;Portal</a>
+      <a href="#portal">Client&nbsp;portal</a>
       <a href="mailto:j@djinna.com" data-contact-mail>Contact</a>
       <div id="theme-bar"></div>
     </nav>
@@ -362,6 +337,7 @@ footer.site a:hover { color: var(--text); }
     <span id="status-date">UTC 2026-07-05 &middot; nominal</span>
   </div>
 
+  <main>
   <!-- hero -->
   <section class="hero">
     <span class="kicker">Trade paperback production</span>
@@ -491,19 +467,22 @@ footer.site a:hover { color: var(--text); }
   </section>
   <hr class="rule">
 
+  </main>
+
   <!-- resources strip -->
   <nav class="resources" aria-label="Resources">
     <span class="res-label">Resources</span>
     <a href="/stylesheet/">Editorial stylesheet</a>
     <a href="/field-notes">Field notes: language as protocol</a>
     <a href="/workshop">Workshop: Protocolize Your Book</a>
+    <a href="/litmags">Lit-mag tool stack</a>
   </nav>
-  <hr class="rule">
 
   <!-- footer -->
-  <footer class="site">
-    <a class="fm" href="https://www.djinna.com" rel="noopener"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
-    <span><a href="/admin/">Admin</a> &nbsp;&middot;&nbsp; &copy; 2026 Jenna Dixon</span>
+  <footer class="jdbb-footer">
+    <a class="jdbb-wordmark" href="https://www.djinna.com" rel="noopener"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav aria-label="Footer"><a href="/workshop">Workshop</a><a href="/field-notes">Field notes</a><a href="/litmags">Lit-mag stack</a><a href="/admin/">Admin</a></nav>
+    <span class="copy">&copy; 2026 Jenna Dixon</span>
   </footer>
   <hr class="rule footer-close">
 
