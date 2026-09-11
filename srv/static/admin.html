@@ -380,6 +380,8 @@ body {
 .pages-hint{font-size:12.5px;color:var(--text-secondary);margin:0 0 14px;max-width:var(--prose-measure)}
 .pages-filters{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px}.pages-filters label{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);display:flex;flex-direction:column;gap:4px}
 .pages-filters select,.pages-filters input{font:12px var(--mono);padding:5px 7px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:0;min-width:140px}
+.proj-filters{padding:0 0 14px;border-bottom:1px solid var(--border);margin-bottom:0}.proj-filters label:first-child input{min-width:220px}
+.pager{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:14px 0;font:12px var(--mono);color:var(--text-secondary)}.pager button{font:12px var(--mono);background:none;border:1px solid var(--border);padding:5px 10px;color:var(--text);cursor:pointer;border-radius:0}.pager button:disabled{opacity:.35;cursor:default}
 .pages-table{width:100%;border-collapse:collapse;font-size:12.5px;border-top:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong)}
 .pages-table th{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:8px 8px 8px 0}
 .pages-table td{padding:8px 8px 8px 0;border-top:1px solid var(--border);vertical-align:top}.pages-table td.route{font-family:var(--mono);white-space:nowrap}.pages-table td.route a{color:var(--accent);text-decoration:none}.pages-table td .tag{margin:0}
@@ -433,8 +435,33 @@ body {
 
   <div id="tab-projects" class="tab-panel active">
     <div class="stats" id="stats"></div>
+    <div class="pages-filters proj-filters" id="proj-filters">
+      <label>Search<input type="search" id="pf-q" placeholder="name, client, slug" autocomplete="off"></label>
+      <label>Client<select id="pf-client"><option value="">All clients</option></select></label>
+      <label>Status<select id="pf-status">
+        <option value="">Any</option>
+        <option value="active">In progress</option>
+        <option value="complete">All tasks done</option>
+        <option value="untouched">No tasks done</option>
+        <option value="transmittal">Has transmittal</option>
+        <option value="open">Open access (no password)</option>
+      </select></label>
+      <label>Sort<select id="pf-sort">
+        <option value="updated">Recently updated</option>
+        <option value="created">Newest</option>
+        <option value="name">Name A–Z</option>
+        <option value="client">Client A–Z</option>
+        <option value="pct">Least complete</option>
+      </select></label>
+      <label>Per page<select id="pf-size"><option>10</option><option selected>20</option><option>50</option><option value="0">All</option></select></label>
+    </div>
     <div id="loading">Loading…</div>
     <div id="projects"></div>
+    <div class="pager" id="proj-pager" hidden>
+      <button type="button" id="pg-prev">← Prev</button>
+      <span id="pg-info"></span>
+      <button type="button" id="pg-next">Next →</button>
+    </div>
   </div>
 
   <div id="tab-archived" class="tab-panel">
@@ -1087,7 +1114,8 @@ async function loadProjects() {
     cachedProjects = projects;
     $loading.style.display = 'none';
     renderStats(projects);
-    renderProjects(projects);
+    populateProjectClientFilter(projects);
+    applyProjectFilters();
     tsPopulateProjects(projects);
     populateBookProjectSelector(projects);
   } catch(e) {
@@ -1141,9 +1169,73 @@ function absoluteURL(path) {
   return new URL(path, adminBaseURL()).toString();
 }
 
-function renderProjects(projects) {
+// ---- Projects: filters + pager (client-side over the cached list) ----
+const projView = { page: 1 };
+function pf(id) { return document.getElementById(id); }
+function populateProjectClientFilter(projects) {
+  const sel = pf('pf-client');
+  const cur = sel.value;
+  const slugs = [...new Set(projects.map(p => p.client_slug).filter(Boolean))].sort();
+  const names = Object.fromEntries((cachedClients || []).map(c => [c.slug, c.name]));
+  sel.innerHTML = '<option value="">All clients</option>' + slugs.map(sl =>
+    `<option value="${esc(sl)}">${esc(names[sl] ? names[sl] + ' · ' + sl : sl)}</option>`).join('');
+  if (slugs.includes(cur)) sel.value = cur;
+}
+function filterProjects(projects) {
+  const q = pf('pf-q').value.trim().toLowerCase();
+  const client = pf('pf-client').value;
+  const status = pf('pf-status').value;
+  const pct = p => p.task_count > 0 ? p.done_count / p.task_count : 0;
+  let out = projects.filter(p => {
+    if (client && p.client_slug !== client) return false;
+    if (q && !(`${p.name} ${p.client_slug} ${p.project_slug} ${p.path || ''}`.toLowerCase().includes(q))) return false;
+    switch (status) {
+      case 'active': return p.active_count > 0 || (p.done_count > 0 && p.done_count < p.task_count);
+      case 'complete': return p.task_count > 0 && p.done_count === p.task_count;
+      case 'untouched': return p.done_count === 0;
+      case 'transmittal': return !!p.has_transmittal;
+      case 'open': return !p.has_auth;
+    }
+    return true;
+  });
+  const by = pf('pf-sort').value;
+  const cmp = {
+    updated: (a, b) => String(b.updated_at).localeCompare(String(a.updated_at)),
+    created: (a, b) => String(b.created_at).localeCompare(String(a.created_at)),
+    name: (a, b) => a.name.localeCompare(b.name),
+    client: (a, b) => a.client_slug.localeCompare(b.client_slug) || a.name.localeCompare(b.name),
+    pct: (a, b) => pct(a) - pct(b) || String(b.updated_at).localeCompare(String(a.updated_at)),
+  }[by] || (() => 0);
+  return out.sort(cmp);
+}
+function applyProjectFilters(resetPage) {
+  if (resetPage) projView.page = 1;
+  const filtered = filterProjects(cachedProjects);
+  const size = parseInt(pf('pf-size').value, 10) || 0;
+  const pages = size ? Math.max(1, Math.ceil(filtered.length / size)) : 1;
+  projView.page = Math.min(Math.max(1, projView.page), pages);
+  const slice = size ? filtered.slice((projView.page - 1) * size, projView.page * size) : filtered;
+  renderProjects(slice, filtered.length !== cachedProjects.length);
+  const pager = pf('proj-pager');
+  pager.hidden = filtered.length === 0 || (pages === 1 && filtered.length === cachedProjects.length);
+  const from = filtered.length ? (size ? (projView.page - 1) * size + 1 : 1) : 0;
+  const to = size ? Math.min(filtered.length, projView.page * size) : filtered.length;
+  pf('pg-info').textContent = `${from}–${to} of ${filtered.length}` +
+    (filtered.length !== cachedProjects.length ? ` (${cachedProjects.length} total)` : '') +
+    (pages > 1 ? ` · page ${projView.page}/${pages}` : '');
+  pf('pg-prev').disabled = projView.page <= 1;
+  pf('pg-next').disabled = projView.page >= pages;
+}
+['pf-q', 'pf-client', 'pf-status', 'pf-sort', 'pf-size'].forEach(id =>
+  pf(id).addEventListener('input', () => applyProjectFilters(true)));
+pf('pg-prev').addEventListener('click', () => { projView.page--; applyProjectFilters(); });
+pf('pg-next').addEventListener('click', () => { projView.page++; applyProjectFilters(); });
+
+function renderProjects(projects, filtered) {
   if (!projects.length) {
-    $projects.innerHTML = '<div class="empty">No projects yet.</div>';
+    $projects.innerHTML = filtered
+      ? '<div class="empty">No projects match these filters.</div>'
+      : '<div class="empty">No projects yet.</div>';
     return;
   }
 
@@ -3477,8 +3569,7 @@ async function deleteSitePage(id) {
   await loadSitePages();
 }
 
-loadClients();
-loadProjects();
+loadClients().then(loadProjects);
 setInterval(() => {
   checkHealth();
   loadBackupStatus();

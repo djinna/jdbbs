@@ -17,8 +17,9 @@
 - Mike Check smoke account: registration #10, `bookiq@gmail.com`, client `mike-check`, project `smoke-test-manuscript`, coupon PYB-PFSA-R56E redeemed, cohort set, password reset via admin endpoint (emailed). **Uncheck him before real announcements; delete after Sep 22.**
 
 ## Next (user-confirmed, in order)
+0. Everything from the 2026-09-11 workplan is shipped. Remaining items are post-workshop polish (see docs/IDEAS.md) and the deploy freeze Sep 19–22.
 1. ~~`/stylesheet` split~~ — DONE (commit after 8e07125): `/stylesheet-pi/` tool, `/stylesheet/` public house sheet (62 items, fiction/nonfiction/both, `srv/housestyle.go`).
-2. **Admin projects list: pagination + filters** (status, client, search). Best-guess UX.
+2. ~~Admin projects list: pagination + filters~~ — DONE (client-side over cached list; search/client/status/sort/per-page + pager; auto-hidden when everything fits).
 3. Push both repos to GitHub if not done (VM: `git push git@github.com:djinna/jdbbs.git main`; pi-public has its own remote — check `git remote -v`).
 
 ## Gotchas learned
