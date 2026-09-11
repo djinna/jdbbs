@@ -29,20 +29,40 @@
     { label: 'Serif', keys: ['literata', 'ibm-serif', 'source-serif', 'newsreader'] },
   ];
   var LEGACY = { menlo: 'jetbrains', 'ibm-sans': 'geist' };
-  var STORAGE = 'prodcal-theme-v1';
+  var STORAGE = 'prodcal-theme-v1';        // localStorage: an explicit choice (sticky forever)
+  var SESSION = 'prodcal-theme-session';   // sessionStorage: first-visit random pick (sticky per tab session)
+  // First visits open in a random sans/mono face; the serifs are there for the
+  // visitor to try, never auto-picked (decision 2026-09-11).
+  var RANDOM_POOL = GROUPS[0].keys;
 
-  var state = { font: KEYS[Math.floor(Math.random() * KEYS.length)], dark: false };
+  var state = { font: null, dark: false, chosen: false };
   try {
     var saved = JSON.parse(localStorage.getItem(STORAGE));
     if (saved) {
       state.dark = !!saved.dark;
-      if (FONTS[saved.font]) state.font = saved.font;
-      else if (LEGACY[saved.font]) state.font = LEGACY[saved.font];
+      if (FONTS[saved.font]) { state.font = saved.font; state.chosen = true; }
+      else if (LEGACY[saved.font]) { state.font = LEGACY[saved.font]; state.chosen = true; }
     }
   } catch (e) { /* first visit */ }
+  if (!state.font) {
+    try {
+      var sess = sessionStorage.getItem(SESSION);
+      if (FONTS[sess]) state.font = sess;
+    } catch (e) {}
+  }
+  if (!state.font) {
+    state.font = RANDOM_POOL[Math.floor(Math.random() * RANDOM_POOL.length)];
+    try { sessionStorage.setItem(SESSION, state.font); } catch (e) {}
+  }
 
+  // save persists only what the visitor has actually chosen: the dark toggle
+  // always, the font only once they've picked one from the selector.
   function save() {
-    try { localStorage.setItem(STORAGE, JSON.stringify({ font: state.font, dark: state.dark })); } catch (e) {}
+    try {
+      var out = { dark: state.dark };
+      if (state.chosen) out.font = state.font;
+      localStorage.setItem(STORAGE, JSON.stringify(out));
+    } catch (e) {}
   }
 
   function apply(bar) {
@@ -86,6 +106,7 @@
     bar.querySelectorAll('.theme-opt[data-font]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.font = this.dataset.font;
+        state.chosen = true;
         setExpanded(false);
         apply(bar); save();
       });
@@ -98,7 +119,6 @@
       });
     }
     apply(bar);
-    save(); // persist first-visit random pick so the voice follows the visitor
   }
 
   function mount(el) {
@@ -129,6 +149,15 @@
 
   // Apply immediately (pre-mount) to avoid a flash of default type/theme.
   apply(null);
+
+  // Auto-mount: any page with <div id="theme-bar"> gets the standard bar
+  // without page-local glue (pages may still call mount/bind explicitly).
+  function autoMount() {
+    var el = document.getElementById('theme-bar');
+    if (el && !el.classList.contains('theme-bar')) mount(el);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoMount);
+  else autoMount();
 
   window.JdbbTheme = { mount: mount, bind: bind, state: state, apply: apply, save: save };
 })();

@@ -290,7 +290,7 @@ Symposium 2026 is in.
 
 This is a small hands-on lab (8 seats), so we curate for a mix of source
 material and backgrounds. We'll email within a few days to confirm your spot,
-with the Zoom link, calendar invites for all four sessions, and a short note on
+with the Discord invite, calendar invites for all four sessions, and a short note on
 prepping your manuscript. If the cohort fills, we'll offer you the session
 recordings and a spot in the next round.
 
@@ -313,7 +313,7 @@ func applicantAutoReplyHTML(name string) string {
 	return fmt.Sprintf(`<div style="font:15px/1.6 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0E1116;max-width:560px">
 <p>Hi %s,</p>
 <p>Thanks — your request for the <b>Protocolize Your Book</b> workshop at Protocol Symposium 2026 is in.</p>
-<p>This is a small hands-on lab (<b>8 seats</b>), so we curate for a mix of source material and backgrounds. We&rsquo;ll email within a few days to confirm your spot, with the Zoom link, calendar invites for all four sessions, and a short note on prepping your manuscript. If the cohort fills, we&rsquo;ll offer you the session recordings and a spot in the next round.</p>
+<p>This is a small hands-on lab (<b>8 seats</b>), so we curate for a mix of source material and backgrounds. We&rsquo;ll email within a few days to confirm your spot, with the Discord invite, calendar invites for all four sessions, and a short note on prepping your manuscript. If the cohort fills, we&rsquo;ll offer you the session recordings and a spot in the next round.</p>
 <p style="margin:0 0 6px"><b>The four sessions</b> (all times UTC, cumulative &mdash; please plan to attend all four):</p>
 <table style="border-collapse:collapse;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace">
 <tr><td style="padding:2px 14px 2px 0">1. Handshake</td><td style="padding:2px 14px 2px 0">Mon Sept 21</td><td>15:00&ndash;16:30 UTC</td></tr>

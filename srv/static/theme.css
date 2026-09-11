@@ -13,7 +13,7 @@
 
 :root {
   /* Process palette — light */
-  --bg: #F7F9FA;
+  --bg: #FCFDFD;               /* lightened 2026-09-11 from #F7F9FA */
   --surface: #FFFFFF;          /* modals + overlays only, not section cards */
   --border: #DCE3E8;
   --border-strong: #0E1116;    /* 1px strong section rules */
@@ -55,6 +55,13 @@
   --mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   --body: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
   --font-size-adjust: none;
+
+  /* Page-width contract (docs/PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md).
+     One outer shell for every studio surface; running copy takes its own
+     reading measure inside it. The deck is the only documented exception. */
+  --shell-max: 1240px;
+  --shell-gutter: 24px;
+  --prose-measure: 68ch;
 }
 
 html.dark {
@@ -98,6 +105,23 @@ html[data-font="newsreader"] { --mono: "Newsreader", Georgia, serif;            
 /* ---- Base ---- */
 html { background: var(--bg); font-size-adjust: var(--font-size-adjust); }
 
+/* ---- Page shell (the width contract) ----
+   .jdbb-shell   standard outer shell, 1240px + responsive gutters
+   .jdbb-prose   reading measure for running copy, applied to the copy block
+                 (or to individual paragraphs) inside the shell
+   Legacy page wrappers (.page, .wrap, .content) may alias these vars until
+   they are migrated; new pages use the classes directly. */
+.jdbb-shell {
+  box-sizing: border-box;
+  width: 100%; max-width: var(--shell-max);
+  margin: 0 auto; padding: 0 var(--shell-gutter);
+}
+.jdbb-prose, .jdbb-prose > p, .jdbb-prose > ul, .jdbb-prose > ol, .jdbb-prose > blockquote {
+  max-width: var(--prose-measure);
+}
+@media (max-width: 768px) { :root { --shell-gutter: 18px; } }
+@media (max-width: 480px) { :root { --shell-gutter: 14px; } }
+
 /* Old decorative layers, neutralized wherever pages still carry the markup. */
 .grid-lines { display: none !important; }
 body::before, body::after { display: none !important; }
@@ -109,33 +133,63 @@ body::before, body::after { display: none !important; }
   border-bottom: 1px solid var(--border);
   font-family: var(--mono);
 }
+/* Canonical wordmark. ONE markup, used in masthead and footer alike:
+     <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+   (omit .studio in the footer). It wears the selected face via --mono so the
+   whole studio commits to one voice; the per-font rules below are the ONLY
+   kerning patches allowed — never add page-local ones. */
 .jdbb-wordmark {
-  /* Wordmark wears the selected face (via --mono) so the whole studio commits
-     to one voice. Per-font tuning below keeps it from squashing. */
   font-family: var(--mono); font-size: 15px; font-weight: 700;
   letter-spacing: 0.02em; color: var(--text); text-decoration: none;
   white-space: nowrap;
 }
 .jdbb-wordmark .bracket { color: var(--accent); font-weight: 700; }
-/* The tight -0.08em kern on the leading "j" only suits the monospace faces
-   (equal-width glyphs leave a big gap after the bracket). Proportional faces
-   — the sans (plex/geist) and serif options — squash with it, so they keep
-   normal spacing (the default). */
+/* The tight kern on the leading "j" only suits the monospace faces (equal-
+   width glyphs leave a gap after the bracket). Proportional sans and serif
+   faces collide j/d with it, so they keep neutral spacing (the default). */
 .jdbb-wordmark .kj { letter-spacing: 0; }
 html[data-font="jetbrains"] .jdbb-wordmark .kj,
-html[data-font="martian"] .jdbb-wordmark .kj { letter-spacing: -0.08em; }
+html[data-font="martian"] .jdbb-wordmark .kj { letter-spacing: -0.06em; }
 /* Serif faces get a hair more overall tracking so "[jdbb]" breathes. */
 html[data-font="literata"] .jdbb-wordmark,
 html[data-font="ibm-serif"] .jdbb-wordmark,
 html[data-font="source-serif"] .jdbb-wordmark,
 html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
 .jdbb-wordmark .studio { color: var(--text-secondary); font-weight: 400; margin-left: 0.45em; }
+.jdbb-wordmark:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .jdbb-masthead nav { display: flex; align-items: center; gap: 1.4rem; }
 .jdbb-masthead nav a {
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text-secondary); text-decoration: none;
 }
 .jdbb-masthead nav a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.jdbb-masthead nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .jdbb-masthead { flex-wrap: wrap; row-gap: 10px; }
+  .jdbb-masthead nav { flex-wrap: wrap; gap: 0.9rem 1.1rem; width: 100%; }
+}
+
+/* ---- Canonical footer ----
+   Minimum payload: wordmark · context links · © line. Page types may add
+   a row above it (e.g. the homepage resources strip) but not replace it.
+     <footer class="jdbb-footer">
+       <a class="jdbb-wordmark" href="/">…[jdbb]…</a>
+       <nav aria-label="Footer"><a href="/">Home</a><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a></nav>
+       <span class="copy">&copy; 2026 Jenna Dixon</span>
+     </footer> */
+.jdbb-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem 1.6rem;
+  flex-wrap: wrap; padding: 22px 0 32px; margin-top: 48px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 12px; color: var(--text-secondary);
+}
+.jdbb-footer .jdbb-wordmark { font-size: 13px; }
+.jdbb-footer nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; }
+.jdbb-footer a { color: var(--text-secondary); text-decoration: none; }
+.jdbb-footer a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.jdbb-footer a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.jdbb-footer .copy { white-space: nowrap; }
+@media print { .jdbb-footer, .theme-bar, .jdbb-statusline { display: none !important; } }
 
 /* Status strip under the masthead */
 .jdbb-statusline {
