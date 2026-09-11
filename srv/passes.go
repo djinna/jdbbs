@@ -517,7 +517,7 @@ func (s *Server) handlePublicRedeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.sendPassFulfillmentEmail(*res)
+	s.sendPassFulfillmentEmail(*res, "public")
 
 	jsonOK(w, map[string]any{
 		"ok":           true,
@@ -844,7 +844,7 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if in.SendEmail == nil || *in.SendEmail {
-		s.sendPassFulfillmentEmail(*res)
+		s.sendPassFulfillmentEmail(*res, triggeredBy(r, "admin"))
 	}
 	w.WriteHeader(http.StatusCreated)
 	jsonOK(w, map[string]any{
@@ -925,7 +925,7 @@ func (s *Server) handleAdminResetClientPassword(w http.ResponseWriter, r *http.R
 	emailSent := false
 	emailMessage := "Email is not configured; copy the password now."
 	if s.Email != nil {
-		if err := s.deliverPassFulfillmentEmail(res); err != nil {
+		if err := s.deliverPassFulfillmentEmail(res, mailMeta{Kind: mailKindClientPassword, TriggeredBy: triggeredBy(r, "admin")}); err != nil {
 			slog.Error("factory pass password reset email failed", "client", clientSlug,
 				"pass_id", res.Pass.ID, "err", err)
 			emailMessage = "The password was reset, but the email could not be sent; copy the password now."
@@ -1029,19 +1029,23 @@ var passSupportEdges = []string{
 // deliverPassFulfillmentEmail performs the actual AgentMail send. Redemption
 // calls it in a goroutine; the admin password-reset path calls it synchronously
 // so the tracker can report whether the replacement password was really sent.
-func (s *Server) deliverPassFulfillmentEmail(res fulfillPassResult) error {
+func (s *Server) deliverPassFulfillmentEmail(res fulfillPassResult, meta mailMeta) error {
 	if s.Email == nil {
 		return errors.New("email not configured")
 	}
+	if meta.Kind == "" {
+		meta.Kind = mailKindFactoryPass
+	}
+	meta.RefType, meta.RefID = "pass", mailRef(res.Pass.ID)
 	subject := fmt.Sprintf("Your Factory Pass: %s", res.Title)
-	return s.Email.sendEmail([]string{res.Pass.CustomerEmail}, nil, subject,
+	return s.mail(meta, []string{res.Pass.CustomerEmail}, nil, subject,
 		passFulfillmentText(res), passFulfillmentHTML(res))
 }
 
 // sendPassFulfillmentEmail mails the customer their portal URL, client
 // password, and what the pass includes. Fire-and-forget: mail must never fail
 // a fulfillment, and s.Email is nil in local/dev/test runs.
-func (s *Server) sendPassFulfillmentEmail(res fulfillPassResult) {
+func (s *Server) sendPassFulfillmentEmail(res fulfillPassResult, by string) {
 	if s.Email == nil {
 		slog.Warn("factory pass fulfilled but email not configured",
 			"pass_id", res.Pass.ID, "email", res.Pass.CustomerEmail)
@@ -1053,7 +1057,7 @@ func (s *Server) sendPassFulfillmentEmail(res fulfillPassResult) {
 				slog.Error("pass fulfillment email panic", "recover", rec)
 			}
 		}()
-		if err := s.deliverPassFulfillmentEmail(res); err != nil {
+		if err := s.deliverPassFulfillmentEmail(res, mailMeta{Kind: mailKindFactoryPass, TriggeredBy: by}); err != nil {
 			slog.Error("pass fulfillment email failed", "err", err, "pass_id", res.Pass.ID)
 		}
 	}()
@@ -1175,7 +1179,7 @@ func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book) {
 		html.EscapeString(pdfURL), html.EscapeString(epubURL), html.EscapeString(reportURL),
 		credits, total)
 
-	if err := s.Email.sendEmail([]string{pass.CustomerEmail}, nil, subject, t.String(), htmlBody); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindBuildDelivered, RefType: "pass", RefID: mailRef(pass.ID), TriggeredBy: "system"}, []string{pass.CustomerEmail}, nil, subject, t.String(), htmlBody); err != nil {
 		slog.Error("build delivered email failed", "err", err, "pass_id", pass.ID, "book_id", book.ID)
 	}
 }

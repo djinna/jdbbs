@@ -1233,7 +1233,7 @@ func TestPassEmailBodiesCarryTheEssentials(t *testing.T) {
 	s := &Server{BaseURL: "https://example.test"}
 	// Email is unconfigured, so this must log-and-skip rather than panic.
 	s.sendBuildDeliveredEmail(res.Pass, dbgen.Book{ID: 11, Title: "Notes"})
-	s.sendPassFulfillmentEmail(res)
+	s.sendPassFulfillmentEmail(res, "test")
 }
 
 func TestCustomerBuildErrorClassification(t *testing.T) {

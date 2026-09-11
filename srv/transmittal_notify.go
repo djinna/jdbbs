@@ -95,7 +95,7 @@ func (n *transmittalNotifier) send(s *Server, projectID int64) {
 	textBody := buildTxNotifyText(projName, clientSlug, bookTitle, txData.Book.Author, status, projectURL)
 	htmlBody := buildTxNotifyHTML(projName, clientSlug, bookTitle, txData.Book.Author, status, projectURL)
 
-	if err := s.Email.sendEmail([]string{txNotifyRecipient}, nil, subject, textBody, htmlBody); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindTransmittalUpdate, RefType: "project", RefID: mailRef(projectID), TriggeredBy: "system"}, []string{txNotifyRecipient}, nil, subject, textBody, htmlBody); err != nil {
 		slog.Error("transmittal notify: send email", "error", err, "project_id", projectID)
 		// Clear throttle so it retries next time
 		n.mu.Lock()

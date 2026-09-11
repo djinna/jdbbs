@@ -185,7 +185,7 @@ func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) 
 		"List-Unsubscribe": fmt.Sprintf("<mailto:%s?subject=unsubscribe>", unsubAddr),
 	}
 
-	if err := s.Email.sendEmailWithHeaders(to, cc, subject, textBody, htmlBody, unsubHeaders); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindClientDigest, RefType: "client", RefID: clientSlug, TriggeredBy: triggeredBy(r, "client"), Headers: unsubHeaders}, to, cc, subject, textBody, htmlBody); err != nil {
 		slog.Error("send client digest email", "error", err)
 		jsonErr(w, "email send failed", 500)
 		return

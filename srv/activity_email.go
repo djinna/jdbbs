@@ -130,7 +130,7 @@ func (s *Server) handleSendActivityEmail(w http.ResponseWriter, r *http.Request)
 		cc = body.Recipients[1:]
 	}
 
-	if err := s.Email.sendEmail(to, cc, subject, textBody, htmlBody); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindActivity, RefType: "project", RefID: mailRef(pid), TriggeredBy: triggeredBy(r, "client")}, to, cc, subject, textBody, htmlBody); err != nil {
 		slog.Error("send activity email", "error", err)
 		jsonErr(w, "failed to send email: "+err.Error(), 500)
 		return

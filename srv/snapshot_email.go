@@ -240,7 +240,7 @@ func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Reques
 		cc = body.Recipients[1:]
 	}
 
-	if err := s.Email.sendEmail(to, cc, subject, textBody, htmlBody); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindSnapshot, RefType: "project", RefID: mailRef(pid), TriggeredBy: triggeredBy(r, "client")}, to, cc, subject, textBody, htmlBody); err != nil {
 		slog.Error("send snapshot email", "error", err)
 		jsonErr(w, "email send failed", 500)
 		return

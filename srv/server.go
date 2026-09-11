@@ -152,6 +152,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/admin/registrations/{id}", s.handleAdminUpdateRegistration)
 	mux.HandleFunc("POST /api/admin/registrations/announce", s.handleAdminSendAnnouncement)
 	mux.HandleFunc("GET /api/admin/registrations.csv", s.handleAdminExportRegistrations)
+	mux.HandleFunc("GET /api/admin/email", s.handleAdminListOutboundEmail) // outbound mail audit log
 
 	// Factory Pass admin: issue codes, review passes, grant build packs.
 	mux.HandleFunc("POST /api/admin/coupons", s.handleAdminCreateCoupon)

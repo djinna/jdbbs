@@ -3,12 +3,14 @@ package srv
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -54,6 +56,14 @@ func (cfg *EmailConfig) sendEmail(to []string, cc []string, subject, textBody, h
 // sendEmailWithHeaders is sendEmail plus extra MIME headers via the AgentMail
 // generic "headers" map (e.g. List-Unsubscribe for the recurring digest).
 func (cfg *EmailConfig) sendEmailWithHeaders(to []string, cc []string, subject, textBody, htmlBody string, extraHeaders map[string]string) error {
+	_, err := cfg.send(to, cc, subject, textBody, htmlBody, extraHeaders)
+	return err
+}
+
+// send is the raw AgentMail transport. It returns the HTTP status code (0 on
+// transport failure) so the outbound_email log can record it. Server.mail is
+// the logging wrapper every handler should call.
+func (cfg *EmailConfig) send(to []string, cc []string, subject, textBody, htmlBody string, extraHeaders map[string]string) (int, error) {
 	base := strings.TrimRight(cfg.APIBase, "/")
 	if base == "" {
 		base = "https://api.agentmail.to"
@@ -92,12 +102,12 @@ func (cfg *EmailConfig) sendEmailWithHeaders(to []string, cc []string, subject, 
 
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return fmt.Errorf("marshal email body: %w", err)
+		return 0, fmt.Errorf("marshal email body: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonBody))
 	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+		return 0, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
@@ -105,7 +115,7 @@ func (cfg *EmailConfig) sendEmailWithHeaders(to []string, cc []string, subject, 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("send request: %w", err)
+		return 0, fmt.Errorf("send request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -114,11 +124,176 @@ func (cfg *EmailConfig) sendEmailWithHeaders(to []string, cc []string, subject, 
 		// Log the full response body server-side only. Handlers surface this
 		// error's message to end users, so keep the body out of it.
 		slog.Error("agentmail API error", "status", resp.StatusCode, "body", string(respBody), "to", to, "subject", subject)
-		return fmt.Errorf("agentmail API error: status %d", resp.StatusCode)
+		return resp.StatusCode, fmt.Errorf("agentmail API error: status %d", resp.StatusCode)
 	}
 
 	slog.Info("email sent", "to", to, "cc", cc, "subject", subject, "status", resp.StatusCode)
-	return nil
+	return resp.StatusCode, nil
+}
+
+// ─── Outbound email log ───
+
+// Email kinds (template names) recorded in outbound_email.kind.
+const (
+	mailKindRegistrationConfirm = "registration_confirm"
+	mailKindRegistrationAlert   = "registration_admin_alert"
+	mailKindAnnouncement        = "announcement"
+	mailKindFactoryPass         = "factory_pass"
+	mailKindClientPassword      = "client_password"
+	mailKindBuildDelivered      = "build_delivered"
+	mailKindTransmittalUpdate   = "transmittal_update"
+	mailKindTransmittal         = "transmittal"
+	mailKindSnapshot            = "snapshot"
+	mailKindActivity            = "activity"
+	mailKindClientDigest        = "client_digest"
+)
+
+// mailMeta describes a send for the audit log: which template, what record it
+// concerns, and who caused it (admin email header, "client", "public", or
+// "system").
+type mailMeta struct {
+	Kind        string
+	RefType     string
+	RefID       string
+	TriggeredBy string
+	Headers     map[string]string
+}
+
+// mailRef formats an int64 id for mailMeta.RefID.
+func mailRef(id int64) string { return strconv.FormatInt(id, 10) }
+
+// triggeredBy derives the actor label from the request: the exe.dev admin
+// email when present, otherwise the supplied fallback ("client" or "public").
+func triggeredBy(r *http.Request, fallback string) string {
+	if r == nil {
+		return fallback
+	}
+	if e := strings.ToLower(strings.TrimSpace(r.Header.Get("X-ExeDev-Email"))); e != "" {
+		return e
+	}
+	if r.Header.Get("X-ExeDev-UserID") != "" {
+		return "admin"
+	}
+	return fallback
+}
+
+// mail sends via AgentMail and records the attempt — success or failure — in
+// outbound_email. It is the single path every handler should use so the admin
+// Mail report is complete. Returns the transport error unchanged.
+func (s *Server) mail(meta mailMeta, to []string, cc []string, subject, textBody, htmlBody string) error {
+	if s.Email == nil {
+		return errors.New("email not configured")
+	}
+	status, err := s.Email.send(to, cc, subject, textBody, htmlBody, meta.Headers)
+	s.logOutboundEmail(meta, to, cc, subject, status, err)
+	return err
+}
+
+func (s *Server) logOutboundEmail(meta mailMeta, to, cc []string, subject string, status int, sendErr error) {
+	if s.DB == nil {
+		return
+	}
+	errText := ""
+	if sendErr != nil {
+		errText = sendErr.Error()
+	}
+	if meta.TriggeredBy == "" {
+		meta.TriggeredBy = "system"
+	}
+	_, err := s.DB.Exec(`
+		INSERT INTO outbound_email (to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		strings.Join(to, ", "), strings.Join(cc, ", "), subject,
+		meta.Kind, meta.RefType, meta.RefID, meta.TriggeredBy, status, errText)
+	if err != nil {
+		slog.Error("outbound_email log insert failed", "err", err, "kind", meta.Kind, "to", to)
+	}
+}
+
+type outboundEmailRow struct {
+	ID          int64  `json:"id"`
+	SentAt      string `json:"sent_at"`
+	To          string `json:"to"`
+	CC          string `json:"cc"`
+	Subject     string `json:"subject"`
+	Kind        string `json:"kind"`
+	RefType     string `json:"ref_type"`
+	RefID       string `json:"ref_id"`
+	TriggeredBy string `json:"triggered_by"`
+	StatusCode  int    `json:"status_code"`
+	Error       string `json:"error"`
+	Note        string `json:"note"`
+}
+
+// handleAdminListOutboundEmail — GET /api/admin/email?kind=&to=&ref_type=&ref_id=&since=&limit=
+// Read-only audit of every send attempt, newest first.
+func (s *Server) handleAdminListOutboundEmail(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	q := r.URL.Query()
+	where := []string{"1=1"}
+	args := []any{}
+	if v := strings.TrimSpace(q.Get("kind")); v != "" {
+		where = append(where, "kind = ?")
+		args = append(args, v)
+	}
+	if v := strings.TrimSpace(q.Get("to")); v != "" {
+		where = append(where, "(to_addrs LIKE ? OR cc_addrs LIKE ?)")
+		args = append(args, "%"+v+"%", "%"+v+"%")
+	}
+	if v := strings.TrimSpace(q.Get("ref_type")); v != "" {
+		where = append(where, "ref_type = ?")
+		args = append(args, v)
+	}
+	if v := strings.TrimSpace(q.Get("ref_id")); v != "" {
+		where = append(where, "ref_id = ?")
+		args = append(args, v)
+	}
+	if v := strings.TrimSpace(q.Get("since")); v != "" {
+		where = append(where, "sent_at >= ?")
+		args = append(args, v)
+	}
+	if q.Get("failed") == "1" {
+		where = append(where, "(status_code = 0 OR status_code >= 300)")
+	}
+	limit := 200
+	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v > 0 && v <= 1000 {
+		limit = v
+	}
+	args = append(args, limit)
+	rows, err := s.DB.QueryContext(r.Context(), `
+		SELECT id, sent_at, to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note
+		FROM outbound_email WHERE `+strings.Join(where, " AND ")+`
+		ORDER BY sent_at DESC, id DESC LIMIT ?`, args...)
+	if err != nil {
+		jsonErr(w, "query failed", 500)
+		return
+	}
+	defer rows.Close()
+	out := []outboundEmailRow{}
+	for rows.Next() {
+		var m outboundEmailRow
+		if err := rows.Scan(&m.ID, &m.SentAt, &m.To, &m.CC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note); err != nil {
+			jsonErr(w, "scan failed", 500)
+			return
+		}
+		out = append(out, m)
+	}
+	// Kind counts for the filter dropdown.
+	kinds := map[string]int{}
+	krows, err := s.DB.QueryContext(r.Context(), `SELECT kind, COUNT(*) FROM outbound_email GROUP BY kind`)
+	if err == nil {
+		defer krows.Close()
+		for krows.Next() {
+			var k string
+			var n int
+			if krows.Scan(&k, &n) == nil {
+				kinds[k] = n
+			}
+		}
+	}
+	jsonOK(w, map[string]any{"emails": out, "kinds": kinds})
 }
 
 // ─── Transmittal email summary ───
@@ -569,7 +744,7 @@ func (s *Server) handleSendTransmittalEmail(w http.ResponseWriter, r *http.Reque
 		cc = body.Recipients[1:]
 	}
 
-	if err := s.Email.sendEmail(to, cc, subject, textBody, htmlBody); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindTransmittal, RefType: "project", RefID: mailRef(pid), TriggeredBy: triggeredBy(r, "client")}, to, cc, subject, textBody, htmlBody); err != nil {
 		slog.Error("send transmittal email", "error", err)
 		jsonErr(w, "email send failed", 500)
 		return

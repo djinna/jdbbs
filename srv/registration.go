@@ -261,7 +261,7 @@ func (s *Server) sendRegistrationEmails(in registrationInput, rowID int64) {
 	fmt.Fprintf(&t, "Review: %s/admin/registrations\n", strings.TrimRight(s.BaseURL, "/"))
 
 	htmlBody := "<pre style=\"font:14px/1.5 ui-monospace,Menlo,Consolas,monospace\">" + html.EscapeString(t.String()) + "</pre>"
-	if err := s.Email.sendEmail([]string{organizer}, nil, subj, t.String(), htmlBody); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindRegistrationAlert, RefType: "registration", RefID: mailRef(rowID), TriggeredBy: "public"}, []string{organizer}, nil, subj, t.String(), htmlBody); err != nil {
 		slog.Error("registration organizer email failed", "err", err, "email", in.Email)
 	}
 
@@ -269,7 +269,7 @@ func (s *Server) sendRegistrationEmails(in registrationInput, rowID int64) {
 	applicantSubj := "We got your Protocolize Your Book registration"
 	txt := applicantAutoReplyText(in.Name)
 	htmlReply := applicantAutoReplyHTML(in.Name)
-	if err := s.Email.sendEmail([]string{in.Email}, nil, applicantSubj, txt, htmlReply); err != nil {
+	if err := s.mail(mailMeta{Kind: mailKindRegistrationConfirm, RefType: "registration", RefID: mailRef(rowID), TriggeredBy: "public"}, []string{in.Email}, nil, applicantSubj, txt, htmlReply); err != nil {
 		slog.Error("registration applicant email failed", "err", err, "email", in.Email)
 	}
 }
@@ -437,9 +437,15 @@ func (s *Server) handleAdminListRegistrations(w http.ResponseWriter, r *http.Req
 		jsonErr(w, err.Error(), 500)
 		return
 	}
+	mail, err := s.queryRegistrationMail(r)
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
 	jsonOK(w, map[string]any{
 		"registrations": rows,
 		"announcements": announcements,
+		"mail":          mail,
 		"count":         len(rows),
 		"soft_cap":      workshopSoftCap,
 		"event_slug":    workshopSlug,
@@ -602,6 +608,47 @@ type announcementRow struct {
 	CreatedAt      string `json:"created_at"`
 }
 
+// registrationMailRow is one outbound_email entry tied to a registration —
+// the recipient-level view the announcement history lacks.
+type registrationMailRow struct {
+	ID             int64  `json:"id"`
+	RegistrationID int64  `json:"registration_id"`
+	SentAt         string `json:"sent_at"`
+	To             string `json:"to"`
+	Subject        string `json:"subject"`
+	Kind           string `json:"kind"`
+	StatusCode     int    `json:"status_code"`
+	Error          string `json:"error"`
+	Note           string `json:"note"`
+}
+
+// queryRegistrationMail returns every logged send addressed to a workshop
+// registrant (by ref, or by recipient address for pass/build mail), newest first.
+func (s *Server) queryRegistrationMail(r *http.Request) ([]registrationMailRow, error) {
+	rows, err := s.DB.QueryContext(r.Context(), `
+		SELECT o.id, e.id, o.sent_at, o.to_addrs, o.subject, o.kind, o.status_code, o.error, o.note
+		FROM outbound_email o
+		JOIN event_registrations e
+		  ON (o.ref_type = 'registration' AND o.ref_id = CAST(e.id AS TEXT))
+		  OR (o.ref_type <> 'registration' AND o.kind <> 'registration_admin_alert' AND LOWER(o.to_addrs) = LOWER(e.email))
+		WHERE e.event_slug = ?
+		ORDER BY o.sent_at DESC, o.id DESC LIMIT 500
+	`, workshopSlug)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []registrationMailRow{}
+	for rows.Next() {
+		var m registrationMailRow
+		if err := rows.Scan(&m.ID, &m.RegistrationID, &m.SentAt, &m.To, &m.Subject, &m.Kind, &m.StatusCode, &m.Error, &m.Note); err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
 func (s *Server) queryAnnouncements(r *http.Request) ([]announcementRow, error) {
 	rows, err := s.DB.QueryContext(r.Context(), `
 		SELECT id, subject, recipient_count, sent_count, failed_count, created_at
@@ -689,7 +736,7 @@ func (s *Server) handleAdminSendAnnouncement(w http.ResponseWriter, r *http.Requ
 	for _, rec := range recipients {
 		textBody := announcementText(rec.Name, in.Body)
 		htmlBody := announcementHTML(rec.Name, in.Body)
-		if err := s.Email.sendEmail([]string{rec.Email}, nil, in.Subject, textBody, htmlBody); err != nil {
+		if err := s.mail(mailMeta{Kind: mailKindAnnouncement, RefType: "registration", RefID: mailRef(rec.ID), TriggeredBy: triggeredBy(r, "admin")}, []string{rec.Email}, nil, in.Subject, textBody, htmlBody); err != nil {
 			slog.Error("workshop announcement failed", "err", err, "registration_id", rec.ID)
 			failures = append(failures, rec.Name)
 			continue

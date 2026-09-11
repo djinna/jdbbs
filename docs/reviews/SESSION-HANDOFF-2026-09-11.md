@@ -18,19 +18,15 @@
 
 ## Next (user-confirmed, in order)
 
-### FIRST: outbound-email log + admin "Mail" report (user asked for this explicitly, 2026-09-11 late)
-Why: user was surprised twice today by mail they couldn't see (Sep 4 code
-announcements only exist in a doc; today's transmittal notification). Sends are
-only in the systemd journal, which rotates. Every send must be auditable.
-- Migration 027: `outbound_email(id, sent_at, to_addrs, cc_addrs, subject, kind, ref_type, ref_id, status_code, error, triggered_by)`.
-  `kind` = template name (registration_confirm, registration_admin_alert, announcement, factory_pass, client_password, transmittal_update, snapshot, activity, …); `ref_*` = registration/project/client id; `triggered_by` = admin email header, 'client', 'public', or 'system'.
-- Hook point: the single sender in `srv/email.go` (the func around line 60–125 that logs `"email sent"`). Record success AND failure; make `sendEmail` take a small `emailMeta` struct or add a wrapper, then thread kind/ref through the ~8 call sites (`grep -n 'email sent\|s.sendEmail\|SendEmail' srv/*.go`).
-- API: `GET /api/admin/email?kind=&to=&since=&limit=` (admin-gated).
-- UI: "Mail" tab in `admin.html` (table: when · to · subject · kind · status · ref link) AND a "Sent mail" panel at the bottom of `/admin/registrations` filtered to workshop kinds (announcement, registration_confirm, factory_pass) with a per-registrant column "last mailed / codes sent".
-- Backfill: insert the six Sep 4 announcement rows from `docs/reviews/FACTORY-PASS-SESSION-A-DRY-RUN-2026-09-04.md` (kind=announcement, status 200, note "backfilled from doc") so the report is honest about history.
-- Test: send path writes a row on success and on AgentMail failure.
-
-Also flagged, not yet acted on: Toby Shorin (reg #8, Sep 10) has NO code; Andrea Leiter (reg #2) has a code never emailed (consent_email=false). Ask user how to handle before Sep 21. Email templates are off-brand (purple gradient, emoji, "ProdCal") — offered restyle, user hasn't answered.
+### DONE 2026-09-11 late: outbound-email log + admin Mail report
+Migration 027 `outbound_email`; `Server.mail(meta, …)` is the single logging
+sender (all 11 call sites migrated; `EmailConfig.sendEmail` is now only a thin
+shim — new code must call `s.mail`). `GET /api/admin/email` with filters;
+Admin › Mail tab; tracker cards show "Mail: N sent · code announcement ×1 ·
+Factory Pass delivered · last …" and a recipient-level "Sent mail" panel.
+Backfilled: 6 Sep 4 announcements (joined event_announcements ↔ coupons),
+9 registration confirmations, and today's 5 journal entries (one-off SQL).
+Tests: `TestOutboundEmailLog`, `TestRegistrationSendsAreLogged`.
 
 ### SECOND: restyle outbound email templates (user: "yes indeed")
 Current templates (transmittal update, registration confirm + admin alert,
