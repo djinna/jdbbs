@@ -20,7 +20,7 @@ import (
 //
 //	AGENTMAIL_API_KEY       — Bearer token
 //	AGENTMAIL_INBOX_ID      — inbox ID for jdbb@agentmail.to (also the sending address)
-//	PRODCAL_MAIL_FROM_NAME  — sender display name (default "ProdCal"; set empty to disable)
+//	PRODCAL_MAIL_FROM_NAME  — sender display name (default "jdbb studio"; set empty to disable)
 //	PRODCAL_MAIL_REPLY_TO   — Reply-To address (default "j@djinna.com"; set empty to disable)
 type EmailConfig struct {
 	APIKey   string
@@ -36,7 +36,7 @@ func LoadEmailConfig() *EmailConfig {
 	if key == "" || inbox == "" {
 		return nil
 	}
-	fromName := "ProdCal"
+	fromName := "jdbb studio"
 	if v, ok := os.LookupEnv("PRODCAL_MAIL_FROM_NAME"); ok {
 		fromName = v
 	}
@@ -519,41 +519,27 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 	var b strings.Builder
 
 	// Gmail strips <style> blocks, so all styling is inline (see EMAIL_SYSTEM.md).
-	const h2Style = `color:#555;font-size:15px;margin:24px 0 8px;`
-	const tableStyle = `width:100%;border-collapse:collapse;margin:8px 0;`
-	const labelStyle = `padding:4px 8px;font-size:14px;vertical-align:top;color:#888;width:140px;white-space:nowrap;`
-	const valueStyle = `padding:4px 8px;font-size:14px;vertical-align:top;`
-
-	// writeSection emits an <h2> plus a label/value table, skipping empty rows.
-	writeSection := func(heading string, rows [][2]string) {
-		b.WriteString(fmt.Sprintf(`<h2 style="%s">%s</h2><table style="%s">`, h2Style, heading, tableStyle))
+	// kv emits a section label plus a ledger of label/value rows, skipping empty rows.
+	kv := func(heading string, rows [][2]string) {
+		var keep [][2]string
 		for _, r := range rows {
 			if r[1] != "" {
-				b.WriteString(fmt.Sprintf(`<tr><td style="%s">%s</td><td style="%s"><strong>%s</strong></td></tr>`,
-					labelStyle, r[0], valueStyle, html.EscapeString(r[1])))
+				keep = append(keep, [2]string{r[0], html.EscapeString(r[1])})
 			}
 		}
-		b.WriteString(`</table>`)
-	}
-
-	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>`)
-	b.WriteString(`<body style="margin:0;padding:20px;font-family:-apple-system,Helvetica,Arial,sans-serif;color:#333;">`)
-	b.WriteString(`<div style="max-width:600px;margin:0 auto;">`)
-
-	badgeStyle := `display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#fef3c7;color:#92400e;`
-	if strings.ToLower(status) == "final" {
-		badgeStyle = `display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#d1fae5;color:#065f46;`
+		b.WriteString(emailH2(heading))
+		if len(keep) > 0 {
+			b.WriteString(emailKV(keep))
+		}
 	}
 
 	title := data.Book.Title
 	if title == "" {
 		title = "Untitled"
 	}
-	b.WriteString(fmt.Sprintf(`<h1 style="color:#6c63ff;font-size:20px;border-bottom:2px solid #6c63ff;padding-bottom:8px;margin:0 0 12px;">📋 Manuscript Transmittal: %s</h1>`, html.EscapeString(title)))
-	b.WriteString(fmt.Sprintf(`<span style="%s">%s</span>`, badgeStyle, html.EscapeString(strings.ToUpper(status))))
 
 	// Book info table
-	writeSection("Book Information", [][2]string{
+	kv("Book Information", [][2]string{
 		{"Title", data.Book.Title},
 		{"Subtitle", data.Book.Subtitle},
 		{"Author", data.Book.Author},
@@ -563,18 +549,25 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 		{"ISBN (cloth)", data.Book.ISBNCloth},
 	})
 
-	// Production table
-	writeSection("Production", [][2]string{
+	// Production table (status row is pre-rendered HTML, so it bypasses kv's escaping)
+	b.WriteString(emailH2("Production"))
+	prodRows := [][2]string{{"Status", emailStatus(status)}}
+	for _, r := range [][2]string{
 		{"Transmittal date", data.Production.TransmittalDate},
 		{"Mechs delivery", data.Production.MechsDelivery},
 		{"Weeks in prod", data.Production.WeeksInProd},
 		{"Bound book date", data.Production.BoundBookDate},
 		{"Print run", data.Production.PrintRun},
-	})
+	} {
+		if r[1] != "" {
+			prodRows = append(prodRows, [2]string{r[0], html.EscapeString(r[1])})
+		}
+	}
+	b.WriteString(emailKV(prodRows))
 
 	// Manuscript stats (same gate as the text version)
 	if data.ChecklistStats.Parts != "" || data.ChecklistStats.Chapters != "" {
-		writeSection("Manuscript", [][2]string{
+		kv("Manuscript", [][2]string{
 			{"Parts", data.ChecklistStats.Parts},
 			{"Chapters", data.ChecklistStats.Chapters},
 			{"Words", data.ChecklistStats.WordsChars},
@@ -583,38 +576,29 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 		})
 	}
 
-	// Checklist
-	b.WriteString(fmt.Sprintf(`<h2 style="%s">Component Checklist</h2>`, h2Style))
+	// Checklist: one ledger row per component, "here" / "to come" in mono.
+	b.WriteString(emailH2("Component Checklist"))
+	var rows [][]string
+	addRow := func(component string, hereNow bool, toComeWhen string) {
+		state := emailStatus("to come")
+		if hereNow {
+			state = fmt.Sprintf(`<span style="color:%s;font:12px/1.4 %s;letter-spacing:.04em;text-transform:uppercase">here</span>`, emailGreen, emailMono)
+		}
+		rows = append(rows, []string{html.EscapeString(component), state, html.EscapeString(toComeWhen)})
+	}
 	for _, item := range data.Checklist {
-		color := "#ccc"
-		sym := "☐"
-		if item.HereNow {
-			color = "#10b981"
-			sym = "☑"
-		}
-		extra := ""
-		if item.ToComeWhen != "" {
-			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, html.EscapeString(item.ToComeWhen))
-		}
-		b.WriteString(fmt.Sprintf(`<div style="font-size:14px;padding:3px 0;color:%s;">%s %s%s</div>`, color, sym, html.EscapeString(item.Component), extra))
+		addRow(item.Component, item.HereNow, item.ToComeWhen)
 	}
 	for _, item := range data.Backmatter {
-		color := "#ccc"
-		sym := "☐"
-		if item.HereNow {
-			color = "#10b981"
-			sym = "☑"
-		}
-		extra := ""
-		if item.ToComeWhen != "" {
-			extra = fmt.Sprintf(` <span style="color:#888">(to come: %s)</span>`, html.EscapeString(item.ToComeWhen))
-		}
-		b.WriteString(fmt.Sprintf(`<div style="font-size:14px;padding:3px 0;color:%s;">%s %s%s</div>`, color, sym, html.EscapeString(item.Component), extra))
+		addRow(item.Component, item.HereNow, item.ToComeWhen)
+	}
+	if len(rows) > 0 {
+		b.WriteString(emailTable([]string{"Component", "Status", "To come"}, rows, nil))
 	}
 
 	// Design (same gate as the text version)
 	if data.Design.Trim != "" || data.Design.EstPages != "" {
-		writeSection("Design", [][2]string{
+		kv("Design", [][2]string{
 			{"Trim", data.Design.Trim},
 			{"Est pages", data.Design.EstPages},
 			{"Complexity", data.Design.Complexity},
@@ -623,20 +607,20 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 
 	// Other instructions (same gate as the text version)
 	if data.OtherInstructions != "" {
-		b.WriteString(fmt.Sprintf(`<h2 style="%s">Other Instructions</h2>`, h2Style))
-		b.WriteString(fmt.Sprintf(`<p style="font-size:14px;margin:8px 0;">%s</p>`,
-			strings.ReplaceAll(html.EscapeString(data.OtherInstructions), "\n", "<br>")))
+		b.WriteString(emailH2("Other Instructions"))
+		b.WriteString(emailP(strings.ReplaceAll(html.EscapeString(data.OtherInstructions), "\n", "<br>")))
 	}
 
-	// Footer
-	b.WriteString(`<div style="margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:12px;color:#999;">`)
-	b.WriteString(fmt.Sprintf(`Sent %s`, time.Now().Format("January 2, 2006 at 3:04 PM MST")))
 	if projectURL != "" {
-		b.WriteString(fmt.Sprintf(` · <a href="%s" style="color:#6c63ff;">View transmittal online</a>`, projectURL))
+		b.WriteString(emailButton(projectURL, "View transmittal online"))
 	}
-	b.WriteString(`</div></div></body></html>`)
+	b.WriteString(emailSmall(fmt.Sprintf("Sent %s", time.Now().Format("January 2, 2006 at 3:04 PM MST"))))
+	b.WriteString(emailSignoff())
 
-	return b.String()
+	return emailShell(b.String(), emailShellOpts{
+		Kicker: "Transmittal · " + strings.ToUpper(status),
+		Title:  title,
+	})
 }
 
 // ─── Manual-send guardrails (H8) ───

@@ -260,7 +260,10 @@ func (s *Server) sendRegistrationEmails(in registrationInput, rowID int64) {
 	fmt.Fprintf(&t, "\nRequests so far: %d (soft cap %d)\n", total, workshopSoftCap)
 	fmt.Fprintf(&t, "Review: %s/admin/registrations\n", strings.TrimRight(s.BaseURL, "/"))
 
-	htmlBody := "<pre style=\"font:14px/1.5 ui-monospace,Menlo,Consolas,monospace\">" + html.EscapeString(t.String()) + "</pre>"
+	htmlBody := emailShell(
+		fmt.Sprintf(`<pre style="margin:0;font:13px/1.5 %s;color:%s;white-space:pre-wrap">%s</pre>`, emailMono, emailText, html.EscapeString(t.String())),
+		emailShellOpts{Kicker: "New registration", Title: subj, Footer: "Automated notice from jdbb studio registration."},
+	)
 	if err := s.mail(mailMeta{Kind: mailKindRegistrationAlert, RefType: "registration", RefID: mailRef(rowID), TriggeredBy: "public"}, []string{organizer}, nil, subj, t.String(), htmlBody); err != nil {
 		slog.Error("registration organizer email failed", "err", err, "email", in.Email)
 	}
@@ -310,21 +313,23 @@ Jenna Dixon · jdbb studio`, first)
 
 func applicantAutoReplyHTML(name string) string {
 	first := html.EscapeString(firstName(name))
-	return fmt.Sprintf(`<div style="font:15px/1.6 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0E1116;max-width:560px">
-<p>Hi %s,</p>
-<p>Thanks — your request for the <b>Protocolize Your Book</b> workshop at Protocol Symposium 2026 is in.</p>
-<p>This is a small hands-on lab (<b>8 seats</b>), so we curate for a mix of source material and backgrounds. We&rsquo;ll email within a few days to confirm your spot, with the Discord invite, calendar invites for all four sessions, and a short note on prepping your manuscript. If the cohort fills, we&rsquo;ll offer you the session recordings and a spot in the next round.</p>
-<p style="margin:0 0 6px"><b>The four sessions</b> (all times UTC, cumulative &mdash; please plan to attend all four):</p>
-<table style="border-collapse:collapse;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace">
-<tr><td style="padding:2px 14px 2px 0">1. Handshake</td><td style="padding:2px 14px 2px 0">Mon Sept 21</td><td>15:00&ndash;16:30 UTC</td></tr>
-<tr><td style="padding:2px 14px 2px 0">2. Preflight</td><td style="padding:2px 14px 2px 0">Mon Sept 21</td><td>17:00&ndash;18:30 UTC</td></tr>
-<tr><td style="padding:2px 14px 2px 0">3. Build + delegate</td><td style="padding:2px 14px 2px 0">Tue Sept 22</td><td>15:00&ndash;16:30 UTC</td></tr>
-<tr><td style="padding:2px 14px 2px 0">4. Show-and-tell</td><td style="padding:2px 14px 2px 0">Tue Sept 22</td><td>17:00&ndash;18:30 UTC</td></tr>
-</table>
-<p style="color:#5D6B76;font-size:13px">US Eastern 11:00 / 13:00 &middot; US Pacific 08:00 / 10:00 &middot; Central Europe 17:00 / 19:00</p>
-<p>One reminder: the workshop runs on <b>your</b> material, so have a real manuscript or text collection ready to bring &mdash; any size, rough is welcome.</p>
-<p>See you in the factory,<br>Jenna Dixon &middot; jdbb studio</p>
-</div>`, first)
+	var b strings.Builder
+	b.WriteString(emailP(fmt.Sprintf("Hi %s,", first)))
+	b.WriteString(emailP("Thanks &mdash; your request for the <b>Protocolize Your Book</b> workshop at Protocol Symposium 2026 is in."))
+	b.WriteString(emailP("This is a small hands-on lab (<b>8 seats</b>), so we curate for a mix of source material and backgrounds. We&rsquo;ll email within a few days to confirm your spot, with the Discord invite, calendar invites for all four sessions, and a short note on prepping your manuscript. If the cohort fills, we&rsquo;ll offer you the session recordings and a spot in the next round."))
+	b.WriteString(emailH2("The four sessions"))
+	b.WriteString(emailSmall("All times UTC, cumulative &mdash; please plan to attend all four."))
+	b.WriteString(emailTable([]string{"#", "Session", "Day", "Time (UTC)"}, [][]string{
+		{"1", "Handshake", "Mon Sept 21", "15:00&ndash;16:30"},
+		{"2", "Preflight", "Mon Sept 21", "17:00&ndash;18:30"},
+		{"3", "Build + delegate", "Tue Sept 22", "15:00&ndash;16:30"},
+		{"4", "Show-and-tell", "Tue Sept 22", "17:00&ndash;18:30"},
+	}, nil))
+	b.WriteString(emailSmall("US Eastern 11:00 / 13:00 &middot; US Pacific 08:00 / 10:00 &middot; Central Europe 17:00 / 19:00"))
+	b.WriteString(emailP("One reminder: the workshop runs on <b>your</b> material, so have a real manuscript or text collection ready to bring &mdash; any size, rough is welcome."))
+	b.WriteString(emailP("See you in the factory,"))
+	b.WriteString(emailSignoff())
+	return emailShell(b.String(), emailShellOpts{Kicker: "Protocolize Your Book", Title: "Your registration is in"})
 }
 
 func firstName(full string) string {
@@ -774,13 +779,11 @@ func announcementHTML(name, body string) string {
 	safeBody := html.EscapeString(strings.TrimSpace(body))
 	safeBody = strings.ReplaceAll(safeBody, "\r\n", "\n")
 	safeBody = strings.ReplaceAll(safeBody, "\n", "<br>")
-	return fmt.Sprintf(`<div style="font:15px/1.65 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0E1116;max-width:600px">
-<p>Hi %s,</p>
-<p>%s</p>
-<p>&mdash; Jenna<br>jdbb studio</p>
-<hr style="border:0;border-top:1px solid #DCE3E8;margin:28px 0 14px">
-<p style="color:#5D6B76;font-size:12px">You&rsquo;re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply if you&rsquo;d rather not receive further announcements.</p>
-</div>`, html.EscapeString(firstName(name)), safeBody)
+	b := emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(name)))) + emailP(safeBody) + emailSignoff()
+	return emailShell(b, emailShellOpts{
+		Kicker: "Protocolize Your Book",
+		Footer: "You&rsquo;re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply if you&rsquo;d rather not receive further announcements.",
+	})
 }
 
 func csvQuote(s string) string {

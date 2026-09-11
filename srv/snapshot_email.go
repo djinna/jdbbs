@@ -355,343 +355,173 @@ func isOverdue(currDue, today, status string) bool {
 	return currDue < today
 }
 
+// snapshotJournalWhen formats a journal timestamp for HTML tables; falls
+// back to the date-only formatter (which escapes unparseable input).
+func snapshotJournalWhen(createdAt string) string {
+	if t, err := time.Parse("2006-01-02T15:04:05", createdAt); err == nil {
+		return t.Format("Jan 2, 2006 3:04 PM")
+	}
+	if t, err := time.Parse("2006-01-02 15:04:05", createdAt); err == nil {
+		return t.Format("Jan 2, 2006 3:04 PM")
+	}
+	return snapshotFormatDate(createdAt)
+}
+
+// fileDirLabel renders a file-log direction as a mono "in"/"out" label.
+func fileDirLabel(direction string) string {
+	if direction == "outbound" {
+		return emailStatus("out")
+	}
+	return emailStatus("in")
+}
+
+// fileLogTableRows builds the shared Date / Dir / File / Type / From → To
+// rows used by the snapshot, activity and digest emails. Cells are escaped.
+func fileLogTableRows(entries []fileLogEntry, withParties bool) [][]string {
+	rows := make([][]string, 0, len(entries))
+	for _, e := range entries {
+		row := []string{
+			snapshotFormatDate(e.TransferDate),
+			fileDirLabel(e.Direction),
+			html.EscapeString(e.Filename),
+			html.EscapeString(e.FileType),
+		}
+		if withParties {
+			row = append(row, html.EscapeString(e.SentBy)+" &rarr; "+html.EscapeString(e.ReceivedBy))
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+// journalTableRows builds the shared When / Type / Entry rows. Cells are escaped.
+func journalTableRows(entries []journalEntry) [][]string {
+	rows := make([][]string, 0, len(entries))
+	for _, e := range entries {
+		rows = append(rows, []string{
+			snapshotJournalWhen(e.CreatedAt),
+			emailStatus(activityJournalLabel(e.EntryType)),
+			html.EscapeString(e.Content),
+		})
+	}
+	return rows
+}
+
 // ─── HTML builder ───
 
 func buildSnapshotHTML(p snapshotParams) string {
 	var b strings.Builder
 
-	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>`)
-	b.WriteString(`<body style="margin:0;padding:0;background:#f4f3f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">`)
+	// ── Schedule overview ──
+	b.WriteString(emailH2("Schedule overview"))
+	b.WriteString(emailStats([][2]string{
+		{"Complete", fmt.Sprintf("%d%%", p.PctComplete)},
+		{"Done", fmt.Sprintf("%d", p.DoneCount)},
+		{"Active", fmt.Sprintf("%d", p.ActiveCount)},
+		{"Pending", fmt.Sprintf("%d", p.PendingCount)},
+	}))
 
-	// Outer wrapper table for email clients
-	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f9;"><tr><td align="center" style="padding:24px 12px;">`)
-	b.WriteString(`<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(108,99,255,0.08);">`)
-
-	// ── Header ──
-	b.WriteString(`<tr><td style="background:linear-gradient(135deg,#6c63ff 0%,#8b83ff 100%);padding:32px 36px;">`)
-	b.WriteString(fmt.Sprintf(`<h1 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#ffffff;">%s</h1>`, html.EscapeString(p.ProjectName)))
-	b.WriteString(fmt.Sprintf(`<p style="margin:0;font-size:13px;color:rgba(255,255,255,0.8);">Project Snapshot · %s</p>`, html.EscapeString(p.Generated)))
-	if p.ProjectURL != "" {
-		b.WriteString(fmt.Sprintf(`<p style="margin:8px 0 0;font-size:13px;"><a href="%s" style="color:#d4d0ff;text-decoration:underline;">View project online →</a></p>`, p.ProjectURL))
-	}
-	b.WriteString(`</td></tr>`)
-
-	// ── Schedule Overview ──
-	b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-	b.WriteString(`<h2 style="margin:0 0 16px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Schedule Overview</h2>`)
-
-	// Stat cards row
-	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>`)
-
-	// Pct complete card
-	b.WriteString(`<td width="25%" style="padding:0 6px 0 0;">`)
-	b.WriteString(fmt.Sprintf(`<div style="background:#f0eeff;border-radius:8px;padding:14px 16px;text-align:center;">`+
-		`<div style="font-size:28px;font-weight:700;color:#6c63ff;">%d%%</div>`+
-		`<div style="font-size:11px;color:#888;margin-top:2px;">Complete</div></div>`, p.PctComplete))
-	b.WriteString(`</td>`)
-
-	// Done card
-	b.WriteString(`<td width="25%" style="padding:0 6px;">`)
-	b.WriteString(fmt.Sprintf(`<div style="background:#d1fae5;border-radius:8px;padding:14px 16px;text-align:center;">`+
-		`<div style="font-size:28px;font-weight:700;color:#065f46;">%d</div>`+
-		`<div style="font-size:11px;color:#888;margin-top:2px;">Done</div></div>`, p.DoneCount))
-	b.WriteString(`</td>`)
-
-	// Active card
-	b.WriteString(`<td width="25%" style="padding:0 6px;">`)
-	b.WriteString(fmt.Sprintf(`<div style="background:#dbeafe;border-radius:8px;padding:14px 16px;text-align:center;">`+
-		`<div style="font-size:28px;font-weight:700;color:#1e40af;">%d</div>`+
-		`<div style="font-size:11px;color:#888;margin-top:2px;">Active</div></div>`, p.ActiveCount))
-	b.WriteString(`</td>`)
-
-	// Pending card
-	b.WriteString(`<td width="25%" style="padding:0 0 0 6px;">`)
-	b.WriteString(fmt.Sprintf(`<div style="background:#fef3c7;border-radius:8px;padding:14px 16px;text-align:center;">`+
-		`<div style="font-size:28px;font-weight:700;color:#92400e;">%d</div>`+
-		`<div style="font-size:11px;color:#888;margin-top:2px;">Pending</div></div>`, p.PendingCount))
-	b.WriteString(`</td>`)
-
-	b.WriteString(`</tr></table>`)
-	b.WriteString(`</td></tr>`)
-
-	// ── Task Schedule Table ──
+	// ── Task schedule ──
 	if len(p.Tasks) > 0 {
-		b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-		b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Task Schedule</h2>`)
-		b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;">`)
-
-		// Table header
-		b.WriteString(`<tr style="background:#6c63ff;">`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">Task</td>`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:90px;">Assignee</td>`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:72px;">Status</td>`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:100px;">Due Date</td>`)
-		b.WriteString(`</tr>`)
-
-		for i, t := range p.Tasks {
-			rowBg := "#ffffff"
-			if i%2 == 1 {
-				rowBg = "#faf9ff"
-			}
+		b.WriteString(emailH2("Task schedule"))
+		rows := make([][]string, 0, len(p.Tasks))
+		for _, t := range p.Tasks {
 			overdue := isOverdue(t.CurrDue, p.Today, t.Status)
-			if overdue {
-				rowBg = "#fef2f2"
-			}
-
-			// Status badge colors
-			var badgeBg, badgeColor string
-			switch t.Status {
-			case "done":
-				badgeBg = "#d1fae5"
-				badgeColor = "#065f46"
-			case "active", "in_progress":
-				badgeBg = "#dbeafe"
-				badgeColor = "#1e40af"
-			default:
-				badgeBg = "#f3f4f6"
-				badgeColor = "#6b7280"
-			}
-
-			titleStyle := "font-size:13px;font-weight:500;color:#333;"
+			title := html.EscapeString(t.Title)
 			if t.IsMilestone != 0 {
-				titleStyle = "font-size:13px;font-weight:700;color:#6c63ff;"
+				title = fmt.Sprintf(`<span style="color:%s">&#9670;</span> <strong>%s</strong>`, emailAccent, title)
 			}
-
-			dueDateDisplay := snapshotFormatDate(t.CurrDue)
-			dueDateStyle := "font-size:13px;color:#555;"
+			due := snapshotFormatDate(t.CurrDue)
 			if overdue {
-				dueDateStyle = "font-size:13px;color:#dc2626;font-weight:600;"
-				dueDateDisplay += " \u26a0"
+				due = fmt.Sprintf(`<span style="color:%s;font-weight:600">%s</span> %s`, emailRed, due, emailStatus("overdue"))
 			}
-
-			milestoneIcon := ""
-			if t.IsMilestone != 0 {
-				milestoneIcon = `<span style="margin-right:4px;">\u25c6</span>`
-			}
-
-			b.WriteString(fmt.Sprintf(`<tr style="background:%s;">`, rowBg))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;%s">%s%s</td>`,
-				titleStyle, milestoneIcon, html.EscapeString(t.Title)))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`,
-				html.EscapeString(t.Assignee)))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:%s;color:%s;">%s</span></td>`,
-				badgeBg, badgeColor, snapshotStatusLabel(t.Status)))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;%s">%s</td>`,
-				dueDateStyle, dueDateDisplay))
-			b.WriteString(`</tr>`)
+			rows = append(rows, []string{
+				title,
+				html.EscapeString(t.Assignee),
+				emailStatus(snapshotStatusLabel(t.Status)),
+				due,
+			})
 		}
-
-		b.WriteString(`</table>`)
-		b.WriteString(`</td></tr>`)
+		b.WriteString(emailTable([]string{"Task", "Assignee", "Status", "Due"}, rows, nil))
 	}
 
-	// ── Budget Summary ──
-	b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-	b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Budget Summary</h2>`)
-	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;">`)
-
-	// Budget header
-	b.WriteString(`<tr style="background:#6c63ff;">`)
-	b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;"></td>`)
-	b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;text-align:right;width:120px;">Original</td>`)
-	b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;text-align:right;width:120px;">Current</td>`)
-	b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;text-align:right;width:120px;">Actual</td>`)
-	b.WriteString(`</tr>`)
-
-	// Totals row
-	b.WriteString(`<tr style="background:#ffffff;">`)
-	b.WriteString(`<td style="padding:12px;font-size:14px;font-weight:600;color:#333;">Total Budget</td>`)
-	b.WriteString(fmt.Sprintf(`<td style="padding:12px;font-size:14px;text-align:right;color:#555;">%s</td>`, snapshotFormatMoney(p.TotalOrig)))
-	b.WriteString(fmt.Sprintf(`<td style="padding:12px;font-size:14px;text-align:right;color:#555;">%s</td>`, snapshotFormatMoney(p.TotalCurr)))
-	b.WriteString(fmt.Sprintf(`<td style="padding:12px;font-size:14px;text-align:right;color:#555;">%s</td>`, snapshotFormatMoney(p.TotalActual)))
-	b.WriteString(`</tr>`)
-
-	// Variance row
+	// ── Budget summary ──
+	b.WriteString(emailH2("Budget summary"))
 	variance := p.TotalCurr - p.TotalActual
-	varianceColor := "#065f46"
+	varianceColor := emailGreen
 	varianceLabel := "Under budget"
 	if variance < 0 {
-		varianceColor = "#dc2626"
+		varianceColor = emailRed
 		varianceLabel = "Over budget"
 		variance = -variance
 	} else if variance == 0 {
-		varianceColor = "#555"
+		varianceColor = emailSecondary
 		varianceLabel = "On budget"
 	}
+	b.WriteString(emailTable(
+		[]string{"", "Original", "Current", "Actual"},
+		[][]string{
+			{"<strong>Total budget</strong>", snapshotFormatMoney(p.TotalOrig), snapshotFormatMoney(p.TotalCurr), snapshotFormatMoney(p.TotalActual)},
+			{fmt.Sprintf(`<span style="color:%s;font-weight:600">%s</span>`, varianceColor, varianceLabel), "", "",
+				fmt.Sprintf(`<span style="color:%s;font-weight:600">%s</span>`, varianceColor, snapshotFormatMoney(variance))},
+		},
+		[]string{"l", "r", "r", "r"},
+	))
 
-	b.WriteString(fmt.Sprintf(`<tr style="background:#faf9ff;border-top:1px solid #eee;">`+
-		`<td colspan="3" style="padding:12px;font-size:13px;font-weight:600;color:%s;">%s</td>`+
-		`<td style="padding:12px;font-size:14px;font-weight:700;text-align:right;color:%s;">%s</td>`+
-		`</tr>`, varianceColor, varianceLabel, varianceColor, snapshotFormatMoney(variance)))
-
-	b.WriteString(`</table>`)
-	b.WriteString(`</td></tr>`)
-
-	// ── Transmittal Status ──
+	// ── Transmittal status ──
 	if p.HasTx {
-		b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-		b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Transmittal Status</h2>`)
-
-		// Transmittal card
-		b.WriteString(`<div style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;">`)
-
-		// Title bar
-		txBadgeBg := "#fef3c7"
-		txBadgeColor := "#92400e"
-		if strings.ToLower(p.TxStatus) == "final" {
-			txBadgeBg = "#d1fae5"
-			txBadgeColor = "#065f46"
-		}
+		b.WriteString(emailH2("Transmittal status"))
 		bookTitle := p.TxData.Book.Title
 		if bookTitle == "" {
 			bookTitle = "Untitled"
 		}
-		b.WriteString(fmt.Sprintf(`<div style="padding:14px 16px;background:#faf9ff;border-bottom:1px solid #eee;display:flex;align-items:center;">`+
-			`<span style="font-size:14px;font-weight:600;color:#333;">%s</span>`+
-			`<span style="display:inline-block;margin-left:10px;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;background:%s;color:%s;">%s</span>`+
-			`</div>`, html.EscapeString(bookTitle), txBadgeBg, txBadgeColor, strings.ToUpper(p.TxStatus)))
-
-		// Details table
-		b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0">`)
-
+		kv := [][2]string{
+			{"Book", html.EscapeString(bookTitle) + " &nbsp;" + emailStatus(p.TxStatus)},
+		}
 		if p.TxData.Book.Author != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td style="padding:8px 16px;font-size:12px;color:#888;width:130px;">Author</td>`+
-				`<td style="padding:8px 16px;font-size:13px;color:#333;">%s</td></tr>`, html.EscapeString(p.TxData.Book.Author)))
+			kv = append(kv, [2]string{"Author", html.EscapeString(p.TxData.Book.Author)})
 		}
 		if p.TxData.Book.Publisher != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td style="padding:8px 16px;font-size:12px;color:#888;">Publisher</td>`+
-				`<td style="padding:8px 16px;font-size:13px;color:#333;">%s</td></tr>`, html.EscapeString(p.TxData.Book.Publisher)))
+			kv = append(kv, [2]string{"Publisher", html.EscapeString(p.TxData.Book.Publisher)})
 		}
 		if p.TxData.Production.TransmittalDate != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td style="padding:8px 16px;font-size:12px;color:#888;">Transmittal date</td>`+
-				`<td style="padding:8px 16px;font-size:13px;color:#333;">%s</td></tr>`, html.EscapeString(p.TxData.Production.TransmittalDate)))
+			kv = append(kv, [2]string{"Transmittal date", html.EscapeString(p.TxData.Production.TransmittalDate)})
 		}
 		if p.TxData.Production.BoundBookDate != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td style="padding:8px 16px;font-size:12px;color:#888;">Bound book date</td>`+
-				`<td style="padding:8px 16px;font-size:13px;color:#333;">%s</td></tr>`, html.EscapeString(p.TxData.Production.BoundBookDate)))
+			kv = append(kv, [2]string{"Bound book date", html.EscapeString(p.TxData.Production.BoundBookDate)})
 		}
 		if p.TxData.Production.MechsDelivery != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td style="padding:8px 16px;font-size:12px;color:#888;">Mechs delivery</td>`+
-				`<td style="padding:8px 16px;font-size:13px;color:#333;">%s</td></tr>`, html.EscapeString(p.TxData.Production.MechsDelivery)))
+			kv = append(kv, [2]string{"Mechs delivery", html.EscapeString(p.TxData.Production.MechsDelivery)})
 		}
 		if p.TxData.Production.WeeksInProd != "" {
-			b.WriteString(fmt.Sprintf(`<tr><td style="padding:8px 16px;font-size:12px;color:#888;">Weeks in prod</td>`+
-				`<td style="padding:8px 16px;font-size:13px;color:#333;">%s</td></tr>`, html.EscapeString(p.TxData.Production.WeeksInProd)))
+			kv = append(kv, [2]string{"Weeks in prod", html.EscapeString(p.TxData.Production.WeeksInProd)})
 		}
-
-		// Checklist progress
-		b.WriteString(fmt.Sprintf(`<tr><td style="padding:8px 16px;font-size:12px;color:#888;">Checklist</td>`+
-			`<td style="padding:8px 16px;font-size:13px;color:#333;">%d / %d items received</td></tr>`, p.CheckDone, p.CheckTotal))
-
-		b.WriteString(`</table>`)
-		b.WriteString(`</div>`) // end card
-		b.WriteString(`</td></tr>`)
+		kv = append(kv, [2]string{"Checklist", fmt.Sprintf("%d / %d items received", p.CheckDone, p.CheckTotal)})
+		b.WriteString(emailKV(kv))
 	}
 
-	// ── Recent Files ──
+	// ── Recent files ──
 	if len(p.FileLog) > 0 {
-		b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-		b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Recent Files</h2>`)
-		b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;">`)
-
-		// Table header
-		b.WriteString(`<tr style="background:#6c63ff;">`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:90px;">Date</td>`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:50px;">Dir</td>`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">File</td>`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:72px;">Type</td>`)
-		b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:130px;">From → To</td>`)
-		b.WriteString(`</tr>`)
-
-		for i, e := range p.FileLog {
-			rowBg := "#ffffff"
-			if i%2 == 1 {
-				rowBg = "#faf9ff"
-			}
-			dirArrow := "↓ In"
-			if e.Direction == "outbound" {
-				dirArrow = "↑ Out"
-			}
-			fromTo := html.EscapeString(e.SentBy) + " → " + html.EscapeString(e.ReceivedBy)
-			b.WriteString(fmt.Sprintf(`<tr style="background:%s;">`, rowBg))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, snapshotFormatDate(e.TransferDate)))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, dirArrow))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;font-weight:500;color:#333;">%s</td>`, html.EscapeString(e.Filename)))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, html.EscapeString(e.FileType)))
-			b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, fromTo))
-			b.WriteString(`</tr>`)
-		}
-
-		b.WriteString(`</table>`)
-		b.WriteString(fmt.Sprintf(`<p style="margin:8px 0 0;font-size:12px;color:#aaa;">Showing %d most recent file transfers</p>`, len(p.FileLog)))
-		b.WriteString(`</td></tr>`)
+		b.WriteString(emailH2("Recent Files"))
+		b.WriteString(emailTable([]string{"Date", "Dir", "File", "Type", "From \u2192 To"}, fileLogTableRows(p.FileLog, true), nil))
+		b.WriteString(emailSmall(fmt.Sprintf("Showing %d most recent file transfers", len(p.FileLog))))
 	}
 
-	// ── Recent Journal ──
+	// ── Recent journal ──
 	if len(p.Journal) > 0 {
-		b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-		b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Recent Journal</h2>`)
-
-		for i, e := range p.Journal {
-			rowBg := "#ffffff"
-			if i%2 == 1 {
-				rowBg = "#faf9ff"
-			}
-			emoji := "📝"
-			switch e.EntryType {
-			case "call":
-				emoji = "📞"
-			case "decision":
-				emoji = "⚖️"
-			case "approval":
-				emoji = "✅"
-			}
-			dateStr := snapshotFormatDate(e.CreatedAt)
-			// Try parsing as datetime for a more detailed display
-			if t, err := time.Parse("2006-01-02T15:04:05", e.CreatedAt); err == nil {
-				dateStr = t.Format("Jan 2, 2006 3:04 PM")
-			} else if t, err := time.Parse("2006-01-02 15:04:05", e.CreatedAt); err == nil {
-				dateStr = t.Format("Jan 2, 2006 3:04 PM")
-			}
-			borderRadius := ""
-			if i == 0 {
-				borderRadius = "border-radius:8px 8px 0 0;"
-			}
-			if i == len(p.Journal)-1 {
-				if i == 0 {
-					borderRadius = "border-radius:8px;"
-				} else {
-					borderRadius = "border-radius:0 0 8px 8px;"
-				}
-			}
-			borderBottom := "border-bottom:0;"
-			if i == len(p.Journal)-1 {
-				borderBottom = ""
-			}
-			b.WriteString(fmt.Sprintf(`<div style="background:%s;padding:12px 16px;border:1px solid #e5e5e5;%s%s">`, rowBg, borderRadius, borderBottom))
-			b.WriteString(fmt.Sprintf(`<div style="font-size:12px;color:#888;margin-bottom:4px;">%s %s · %s</div>`,
-				emoji, html.EscapeString(strings.ToUpper(e.EntryType)), dateStr))
-			b.WriteString(fmt.Sprintf(`<div style="font-size:13px;color:#333;">%s</div>`, html.EscapeString(e.Content)))
-			b.WriteString(`</div>`)
-		}
-
-		b.WriteString(`</td></tr>`)
+		b.WriteString(emailH2("Recent Journal"))
+		b.WriteString(emailTable([]string{"When", "Type", "Entry"}, journalTableRows(p.Journal), nil))
 	}
 
-	// ── Footer ──
-	b.WriteString(`<tr><td style="padding:28px 36px;">`)
-	b.WriteString(`<div style="border-top:2px solid #f0eeff;padding-top:16px;text-align:center;">`)
-	b.WriteString(fmt.Sprintf(`<p style="margin:0 0 6px;font-size:12px;color:#aaa;">Generated %s</p>`, html.EscapeString(p.Generated)))
 	if p.ProjectURL != "" {
-		b.WriteString(fmt.Sprintf(`<p style="margin:0;"><a href="%s" style="font-size:13px;color:#6c63ff;text-decoration:none;font-weight:600;">View Project Online →</a></p>`, p.ProjectURL))
+		b.WriteString(emailButton(p.ProjectURL, "View project online"))
 	}
-	b.WriteString(`</div>`)
-	b.WriteString(`</td></tr>`)
 
-	b.WriteString(`</table></td></tr></table>`)
-	b.WriteString(`</body></html>`)
-
-	return b.String()
+	return emailShell(b.String(), emailShellOpts{
+		Kicker: "Project snapshot \u00b7 " + p.Generated,
+		Title:  p.ProjectName,
+		Footer: fmt.Sprintf(`Generated %s &middot; Reply to this email to reach Jenna.`, html.EscapeString(p.Generated)),
+	})
 }
 
 // ─── Plain text builder ───

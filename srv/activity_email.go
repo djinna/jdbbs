@@ -153,17 +153,13 @@ type activityParams struct {
 	Journal     []journalEntry
 }
 
-func activityJournalEmoji(entryType string) string {
-	switch entryType {
-	case "call":
-		return "📞"
-	case "decision":
-		return "⚖️"
-	case "approval":
-		return "✅"
-	default:
-		return "📝"
+// activityJournalLabel returns the journal entry type as a plain word for
+// display (mono uppercase via emailStatus). Empty types read as "note".
+func activityJournalLabel(entryType string) string {
+	if strings.TrimSpace(entryType) == "" {
+		return "note"
 	}
+	return entryType
 }
 
 // ─── HTML builder ───
@@ -171,141 +167,45 @@ func activityJournalEmoji(entryType string) string {
 func buildActivityHTML(p activityParams) string {
 	var b strings.Builder
 
-	dateRange := fmt.Sprintf("%s – %s",
+	dateRange := fmt.Sprintf("%s \u2013 %s",
 		time.Now().AddDate(0, 0, -p.Days).Format("Jan 2"),
 		time.Now().Format("Jan 2, 2006"))
 
-	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>`)
-	b.WriteString(`<body style="margin:0;padding:0;background:#f4f3f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">`)
-
-	// Outer wrapper
-	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f9;"><tr><td align="center" style="padding:24px 12px;">`)
-	b.WriteString(`<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(108,99,255,0.08);">`)
-
-	// Header
-	b.WriteString(`<tr><td style="background:linear-gradient(135deg,#6c63ff 0%,#8b83ff 100%);padding:32px 36px;">`)
-	b.WriteString(fmt.Sprintf(`<h1 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#ffffff;">%s</h1>`, html.EscapeString(p.ProjectName)))
-	b.WriteString(fmt.Sprintf(`<p style="margin:0;font-size:13px;color:rgba(255,255,255,0.8);">Activity Update · %s</p>`, html.EscapeString(dateRange)))
-	if p.ProjectURL != "" {
-		b.WriteString(fmt.Sprintf(`<p style="margin:8px 0 0;font-size:13px;"><a href="%s" style="color:#d4d0ff;text-decoration:underline;">View project online →</a></p>`, p.ProjectURL))
-	}
-	b.WriteString(`</td></tr>`)
-
-	// Summary bar
 	fileCount := len(p.FileLog)
 	journalCount := len(p.Journal)
 	if fileCount == 0 && journalCount == 0 {
-		b.WriteString(`<tr><td style="padding:36px;text-align:center;">`)
-		b.WriteString(fmt.Sprintf(`<p style="font-size:15px;color:#888;">No activity in the last %d days.</p>`, p.Days))
-		b.WriteString(`</td></tr>`)
+		b.WriteString(emailP(fmt.Sprintf("No activity in the last %d days.", p.Days)))
 	} else {
-		// Stat cards
-		b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-		b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>`)
-		b.WriteString(`<td width="50%" style="padding:0 6px 0 0;">`)
-		b.WriteString(fmt.Sprintf(`<div style="background:#f0eeff;border-radius:8px;padding:14px 16px;text-align:center;">`+
-			`<div style="font-size:28px;font-weight:700;color:#6c63ff;">%d</div>`+
-			`<div style="font-size:11px;color:#888;margin-top:2px;">File Transfers</div></div>`, fileCount))
-		b.WriteString(`</td>`)
-		b.WriteString(`<td width="50%" style="padding:0 0 0 6px;">`)
-		b.WriteString(fmt.Sprintf(`<div style="background:#f0eeff;border-radius:8px;padding:14px 16px;text-align:center;">`+
-			`<div style="font-size:28px;font-weight:700;color:#6c63ff;">%d</div>`+
-			`<div style="font-size:11px;color:#888;margin-top:2px;">Journal Entries</div></div>`, journalCount))
-		b.WriteString(`</td>`)
-		b.WriteString(`</tr></table>`)
-		b.WriteString(`</td></tr>`)
+		b.WriteString(emailStats([][2]string{
+			{"File transfers", fmt.Sprintf("%d", fileCount)},
+			{"Journal entries", fmt.Sprintf("%d", journalCount)},
+		}))
 
-		// File transfers section
 		if fileCount > 0 {
-			b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-			b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">File Transfers</h2>`)
-			b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;">`)
-
-			b.WriteString(`<tr style="background:#6c63ff;">`)
-			b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:90px;">Date</td>`)
-			b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:50px;">Dir</td>`)
-			b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">File</td>`)
-			b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:72px;">Type</td>`)
-			b.WriteString(`<td style="padding:10px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;width:130px;">From → To</td>`)
-			b.WriteString(`</tr>`)
-
-			for i, e := range p.FileLog {
-				rowBg := "#ffffff"
-				if i%2 == 1 {
-					rowBg = "#faf9ff"
-				}
-				dirArrow := "↓ In"
-				if e.Direction == "outbound" {
-					dirArrow = "↑ Out"
-				}
-				fromTo := html.EscapeString(e.SentBy) + " → " + html.EscapeString(e.ReceivedBy)
-				b.WriteString(fmt.Sprintf(`<tr style="background:%s;">`, rowBg))
-				b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, snapshotFormatDate(e.TransferDate)))
-				b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, dirArrow))
-				b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;font-weight:500;color:#333;">%s</td>`, html.EscapeString(e.Filename)))
-				b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, html.EscapeString(e.FileType)))
-				b.WriteString(fmt.Sprintf(`<td style="padding:9px 12px;border-top:1px solid #eee;font-size:13px;color:#555;">%s</td>`, fromTo))
-				b.WriteString(`</tr>`)
-			}
-
-			b.WriteString(`</table>`)
-			b.WriteString(`</td></tr>`)
+			b.WriteString(emailH2("File transfers"))
+			b.WriteString(emailTable([]string{"Date", "Dir", "File", "Type", "From \u2192 To"}, fileLogTableRows(p.FileLog, true), nil))
 		}
 
-		// Journal entries section
 		if journalCount > 0 {
-			b.WriteString(`<tr><td style="padding:28px 36px 0;">`)
-			b.WriteString(`<h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#6c63ff;text-transform:uppercase;letter-spacing:0.5px;">Journal Entries</h2>`)
-
-			for i, e := range p.Journal {
-				rowBg := "#ffffff"
-				if i%2 == 1 {
-					rowBg = "#faf9ff"
-				}
-				emoji := activityJournalEmoji(e.EntryType)
-				dateStr := snapshotFormatDate(e.CreatedAt)
-				if t, err := time.Parse("2006-01-02T15:04:05", e.CreatedAt); err == nil {
-					dateStr = t.Format("Jan 2, 2006 3:04 PM")
-				} else if t, err := time.Parse("2006-01-02 15:04:05", e.CreatedAt); err == nil {
-					dateStr = t.Format("Jan 2, 2006 3:04 PM")
-				}
-				borderRadius := ""
-				if i == 0 && i == journalCount-1 {
-					borderRadius = "border-radius:8px;"
-				} else if i == 0 {
-					borderRadius = "border-radius:8px 8px 0 0;"
-				} else if i == journalCount-1 {
-					borderRadius = "border-radius:0 0 8px 8px;"
-				}
-				borderBottom := "border-bottom:0;"
-				if i == journalCount-1 {
-					borderBottom = ""
-				}
-				b.WriteString(fmt.Sprintf(`<div style="background:%s;padding:12px 16px;border:1px solid #e5e5e5;%s%s">`, rowBg, borderRadius, borderBottom))
-				b.WriteString(fmt.Sprintf(`<div style="font-size:12px;color:#888;margin-bottom:4px;">%s %s · %s</div>`,
-					emoji, html.EscapeString(strings.ToUpper(e.EntryType)), dateStr))
-				b.WriteString(fmt.Sprintf(`<div style="font-size:13px;color:#333;">%s</div>`, html.EscapeString(e.Content)))
-				b.WriteString(`</div>`)
-			}
-
-			b.WriteString(`</td></tr>`)
+			b.WriteString(emailH2("Journal entries"))
+			b.WriteString(emailTable([]string{"When", "Type", "Entry"}, journalTableRows(p.Journal), nil))
 		}
 	}
 
-	// Footer
-	b.WriteString(`<tr><td style="padding:28px 36px;">`)
-	b.WriteString(`<div style="border-top:2px solid #f0eeff;padding-top:16px;text-align:center;">`)
-	b.WriteString(fmt.Sprintf(`<p style="margin:0 0 6px;font-size:12px;color:#aaa;">Generated %s</p>`, html.EscapeString(p.Generated)))
 	if p.ProjectURL != "" {
-		b.WriteString(fmt.Sprintf(`<p style="margin:0;"><a href="%s" style="font-size:13px;color:#6c63ff;text-decoration:none;font-weight:600;">View Project Online →</a></p>`, p.ProjectURL))
+		b.WriteString(emailButton(p.ProjectURL, "View project online"))
 	}
-	b.WriteString(`</div>`)
-	b.WriteString(`</td></tr>`)
 
-	b.WriteString(`</table></td></tr></table>`)
-	b.WriteString(`</body></html>`)
+	footer := "Reply to this email to reach Jenna."
+	if p.Generated != "" {
+		footer = fmt.Sprintf("Generated %s &middot; %s", html.EscapeString(p.Generated), footer)
+	}
 
-	return b.String()
+	return emailShell(b.String(), emailShellOpts{
+		Kicker: "Activity update \u00b7 " + dateRange,
+		Title:  p.ProjectName,
+		Footer: footer,
+	})
 }
 
 // ─── Plain text builder ───

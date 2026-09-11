@@ -105,10 +105,10 @@ func TestBuildSnapshotHTML_WithFileLog(t *testing.T) {
 	if !strings.Contains(html, "manuscript.docx") {
 		t.Error("expected filename 'manuscript.docx' in HTML")
 	}
-	if !strings.Contains(html, "↓ In") {
+	if !strings.Contains(html, ">in</span>") {
 		t.Error("expected inbound indicator in HTML")
 	}
-	if !strings.Contains(html, "↑ Out") {
+	if !strings.Contains(html, ">out</span>") {
 		t.Error("expected outbound indicator in HTML")
 	}
 
@@ -119,11 +119,11 @@ func TestBuildSnapshotHTML_WithFileLog(t *testing.T) {
 	if !strings.Contains(html, "Discussed timeline") {
 		t.Error("expected journal content in HTML")
 	}
-	if !strings.Contains(html, "📞") {
-		t.Error("expected call emoji in HTML")
+	if !strings.Contains(html, ">call</span>") {
+		t.Error("expected call entry type in HTML")
 	}
-	if !strings.Contains(html, "⚖️") {
-		t.Error("expected decision emoji in HTML")
+	if !strings.Contains(html, ">decision</span>") {
+		t.Error("expected decision entry type in HTML")
 	}
 }
 
@@ -213,8 +213,8 @@ func TestBuildActivityHTML_WithActivity(t *testing.T) {
 	if !strings.Contains(html, "Cover approved") {
 		t.Error("expected journal content in HTML")
 	}
-	if !strings.Contains(html, "✅") {
-		t.Error("expected approval emoji in HTML")
+	if !strings.Contains(html, ">approval</span>") {
+		t.Error("expected approval entry type in HTML")
 	}
 }
 
@@ -233,22 +233,23 @@ func TestBuildActivityText_NoActivity(t *testing.T) {
 	}
 }
 
-func TestActivityJournalEmoji(t *testing.T) {
+func TestActivityJournalLabel(t *testing.T) {
 	tests := []struct {
 		entryType string
 		want      string
 	}{
-		{"call", "📞"},
-		{"decision", "⚖️"},
-		{"approval", "✅"},
-		{"note", "📝"},
-		{"unknown", "📝"}, // default
+		{"call", "call"},
+		{"decision", "decision"},
+		{"approval", "approval"},
+		{"note", "note"},
+		{"unknown", "unknown"},
+		{"", "note"}, // default
 	}
 
 	for _, tt := range tests {
-		got := activityJournalEmoji(tt.entryType)
+		got := activityJournalLabel(tt.entryType)
 		if got != tt.want {
-			t.Errorf("activityJournalEmoji(%q) = %q, want %q", tt.entryType, got, tt.want)
+			t.Errorf("activityJournalLabel(%q) = %q, want %q", tt.entryType, got, tt.want)
 		}
 	}
 }
@@ -287,7 +288,8 @@ func TestTransmittalTextHTMLParity(t *testing.T) {
 		if !strings.Contains(text, s[0]) {
 			t.Errorf("text summary missing section %q", s[0])
 		}
-		if !strings.Contains(htmlOut, ">"+s[1]+"</h2>") {
+		// Section labels are emailH2 divs (mono kicker), not <h2>.
+		if !strings.Contains(htmlOut, ">"+s[1]+"</div>") {
 			t.Errorf("HTML summary missing section heading %q", s[1])
 		}
 	}

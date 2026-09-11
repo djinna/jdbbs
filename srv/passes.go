@@ -1090,40 +1090,41 @@ func passFulfillmentText(res fulfillPassResult) string {
 
 func passFulfillmentHTML(res fulfillPassResult) string {
 	expires := res.Pass.ExpiresAt.UTC().Format("2 January 2006")
-	edges := ""
+	var edges []string
 	for _, edge := range passSupportEdges {
-		edges += "<li>" + html.EscapeString(edge) + "</li>"
+		edges = append(edges, html.EscapeString(edge))
 	}
-	return fmt.Sprintf(`<div style="font:15px/1.6 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0E1116;max-width:560px">
-<p>Hi %s,</p>
-<p>Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol.</p>
-<table style="border-collapse:collapse;font:13px/1.6 ui-monospace,Menlo,Consolas,monospace;background:#F7F9FA">
-<tr><td style="padding:8px 14px">Manuscript</td><td style="padding:8px 14px"><b>%s</b></td></tr>
-<tr><td style="padding:8px 14px">Your factory</td><td style="padding:8px 14px"><a href="%s">%s</a></td></tr>
-<tr><td style="padding:8px 14px">Sign-in name</td><td style="padding:8px 14px"><b>%s</b></td></tr>
-<tr><td style="padding:8px 14px">Password</td><td style="padding:8px 14px"><b>%s</b></td></tr>
-</table>
-<p style="margin:18px 0 6px"><b>What&rsquo;s included</b></p>
-<ul style="margin:0 0 14px;padding-left:20px">
-<li>%d builds (each one a print PDF + EPUB)</li>
-<li>Unlimited preflights &mdash; the report tells you what to fix</li>
-<li>Your project stays live and rebuildable until <b>%s</b> (%d months)</li>
-</ul>
-<p style="margin:18px 0 6px"><b>First steps</b></p>
-<ol style="margin:0 0 14px;padding-left:20px">
-<li>Start with the <b>transmittal</b> &mdash; it is the spec your book is built from.</li>
-<li>Upload your Word manuscript.</li>
-<li>Run a <b>preflight</b> (free, as often as you like) and fix what it flags.</li>
-<li><b>Build.</b> Failed builds don&rsquo;t cost a credit.</li>
-</ol>
-<ul style="margin:0 0 14px;padding-left:20px;color:#5D6B76;font-size:13px">%s</ul>
-<p>See you in the factory,<br>Jenna Dixon &middot; jdbb studio</p>
-</div>`,
-		html.EscapeString(firstName(res.Pass.CustomerName)),
-		html.EscapeString(res.Title),
-		html.EscapeString(res.PortalURL), html.EscapeString(res.PortalURL),
-		html.EscapeString(res.ClientSlug), html.EscapeString(res.Password),
-		res.Pass.BuildsIncluded, html.EscapeString(expires), passStorageMonths, edges)
+	var b strings.Builder
+	b.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(res.Pass.CustomerName)))))
+	b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol."))
+	b.WriteString(emailKV([][2]string{
+		{"Manuscript", "<b>" + html.EscapeString(res.Title) + "</b>"},
+		{"Your factory", fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:none">%s</a>`, html.EscapeString(res.PortalURL), emailAccent, emailCode(res.PortalURL))},
+		{"Sign-in name", emailCode(res.ClientSlug)},
+		{"Password", emailCode(res.Password)},
+	}))
+	b.WriteString(emailH2("What's included"))
+	b.WriteString(emailList([]string{
+		fmt.Sprintf("%d builds (each one a print PDF + EPUB)", res.Pass.BuildsIncluded),
+		"Unlimited preflights &mdash; the report tells you what to fix",
+		fmt.Sprintf("Your project stays live and rebuildable until <b>%s</b> (%d months)", html.EscapeString(expires), passStorageMonths),
+	}, false))
+	b.WriteString(emailH2("First steps"))
+	b.WriteString(emailList([]string{
+		"Start with the <b>transmittal</b> &mdash; it is the spec your book is built from.",
+		"Upload your Word manuscript.",
+		"Run a <b>preflight</b> (free, as often as you like) and fix what it flags.",
+		"<b>Build.</b> Failed builds don&rsquo;t cost a credit.",
+	}, true))
+	// Support edges: same sentences as the page and the text part, in small type.
+	fmt.Fprintf(&b, `<ul style="margin:0 0 14px;padding-left:22px;font-size:13px;color:%s">`, emailSecondary)
+	for _, e := range edges {
+		fmt.Fprintf(&b, `<li style="margin:0 0 5px">%s</li>`, e)
+	}
+	b.WriteString(`</ul>`)
+	b.WriteString(emailP("See you in the factory,"))
+	b.WriteString(emailSignoff())
+	return emailShell(b.String(), emailShellOpts{Kicker: "Factory Pass", Title: res.Title})
 }
 
 // sendBuildDeliveredEmail is the receipt for a successful build: links to the
@@ -1152,6 +1153,16 @@ func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book) {
 	total := pass.BuildsIncluded + pass.BuildsExtra
 
 	subject := fmt.Sprintf("Build ready: %s", book.Title)
+	textBody := buildDeliveredText(pass, book, pdfURL, epubURL, reportURL, credits, total)
+	htmlBody := buildDeliveredHTML(pass, book, pdfURL, epubURL, reportURL, credits, total)
+
+	if err := s.mail(mailMeta{Kind: mailKindBuildDelivered, RefType: "pass", RefID: mailRef(pass.ID), TriggeredBy: "system"}, []string{pass.CustomerEmail}, nil, subject, textBody, htmlBody); err != nil {
+		slog.Error("build delivered email failed", "err", err, "pass_id", pass.ID, "book_id", book.ID)
+	}
+}
+
+// buildDeliveredText is the plain-text part of the build-ready receipt.
+func buildDeliveredText(pass dbgen.Pass, book dbgen.Book, pdfURL, epubURL, reportURL string, credits, total int64) string {
 	var t strings.Builder
 	fmt.Fprintf(&t, "Hi %s,\n\nYour build of %q is done.\n\n", firstName(pass.CustomerName), book.Title)
 	fmt.Fprintf(&t, "Print PDF:        %s\n", pdfURL)
@@ -1162,24 +1173,22 @@ func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book) {
 	fmt.Fprintf(&t, "The deliverable is a correctly typeset PDF and EPUB of the manuscript as it\n")
 	fmt.Fprintf(&t, "conforms to your transmittal. Preflight tells you what doesn't conform.\n\n")
 	fmt.Fprintf(&t, "- Jenna\njdbb studio\n")
+	return t.String()
+}
 
-	htmlBody := fmt.Sprintf(`<div style="font:15px/1.6 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0E1116;max-width:560px">
-<p>Hi %s,</p>
-<p>Your build of <b>%s</b> is done.</p>
-<ul style="margin:0 0 14px;padding-left:20px">
-<li><a href="%s">Print PDF</a></li>
-<li><a href="%s">EPUB</a></li>
-<li><a href="%s">Preflight report</a></li>
-</ul>
-<p><b>Builds remaining: %d of %d.</b></p>
-<p style="color:#5D6B76;font-size:13px">The deliverable is a correctly typeset PDF and EPUB of the manuscript as it conforms to your transmittal. Preflight tells you what doesn&rsquo;t conform.</p>
-<p>&mdash; Jenna<br>jdbb studio</p>
-</div>`,
-		html.EscapeString(firstName(pass.CustomerName)), html.EscapeString(book.Title),
-		html.EscapeString(pdfURL), html.EscapeString(epubURL), html.EscapeString(reportURL),
-		credits, total)
-
-	if err := s.mail(mailMeta{Kind: mailKindBuildDelivered, RefType: "pass", RefID: mailRef(pass.ID), TriggeredBy: "system"}, []string{pass.CustomerEmail}, nil, subject, t.String(), htmlBody); err != nil {
-		slog.Error("build delivered email failed", "err", err, "pass_id", pass.ID, "book_id", book.ID)
-	}
+// buildDeliveredHTML is the HTML part of the build-ready receipt.
+func buildDeliveredHTML(pass dbgen.Pass, book dbgen.Book, pdfURL, epubURL, reportURL string, credits, total int64) string {
+	var hb strings.Builder
+	hb.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(pass.CustomerName)))))
+	hb.WriteString(emailP(fmt.Sprintf("Your build of <b>%s</b> is done.", html.EscapeString(book.Title))))
+	hb.WriteString(emailList([]string{
+		emailLink(pdfURL, "Print PDF"),
+		emailLink(epubURL, "EPUB"),
+		emailLink(reportURL, "Preflight report"),
+	}, false))
+	hb.WriteString(emailP(fmt.Sprintf("<b>Builds remaining: %d of %d.</b>", credits, total)))
+	hb.WriteString(emailSmall("Sign in to your factory with the client password from your welcome email."))
+	hb.WriteString(emailSmall("The deliverable is a correctly typeset PDF and EPUB of the manuscript as it conforms to your transmittal. Preflight tells you what doesn&rsquo;t conform."))
+	hb.WriteString(emailSignoff())
+	return emailShell(hb.String(), emailShellOpts{Kicker: "Build ready", Title: book.Title})
 }

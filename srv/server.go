@@ -154,6 +154,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/registrations.csv", s.handleAdminExportRegistrations)
 	mux.HandleFunc("GET /api/admin/email", s.handleAdminListOutboundEmail) // outbound mail audit log
 	mux.HandleFunc("GET /api/admin/email/{id}", s.handleAdminGetOutboundEmail)
+	mux.HandleFunc("GET /admin/email-preview/{$}", s.handleAdminEmailPreview) // template gallery, fixture data
+	mux.HandleFunc("GET /admin/email-preview/{kind}", s.handleAdminEmailPreview)
 
 	// Factory Pass admin: issue codes, review passes, grant build packs.
 	mux.HandleFunc("POST /api/admin/coupons", s.handleAdminCreateCoupon)

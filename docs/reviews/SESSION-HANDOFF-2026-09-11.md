@@ -28,17 +28,15 @@ Backfilled: 6 Sep 4 announcements (joined event_announcements ↔ coupons),
 9 registration confirmations, and today's 5 journal entries (one-off SQL).
 Tests: `TestOutboundEmailLog`, `TestRegistrationSendsAreLogged`.
 
-### SECOND: restyle outbound email templates (user: "yes indeed")
-Current templates (transmittal update, registration confirm + admin alert,
-Factory Pass fulfillment, client password reset, snapshot/activity) are
-off-brand: purple gradient header, emoji, "ProdCal" name. Bring them to the
-studio's text-first look: `[jdbb] studio` wordmark line, hairline rules,
-system/mono type, no gradients, no emoji, "jdbb studio" not "ProdCal", plain
-button-as-link. Text part stays primary; HTML part is a light wrap. Builders
-live in `srv/email.go` (`buildTransmittal*Summary` ~L173/306) and alongside
-each sender (`grep -n 'htmlBody\|<html' srv/*.go`). One shared
-`emailShell(title, bodyHTML)` helper; snapshot-test each template. Do this
-BEFORE more attendee mail goes out (they're redeeming now).
+### DONE 2026-09-11 late: email template restyle
+All 10 outbound HTML templates now wrap in `emailShell()` (`srv/email_shell.go`:
+wordmark line, mono kicker, h1, hairline footer; blocks emailKV/emailTable/
+emailStats/emailH2/emailButton/emailCode/emailStatus/emailSignoff/emailList).
+No gradients, emoji, pills, or "ProdCal" (From name now "jdbb studio").
+Text parts unchanged except emoji/brand. Preview gallery with fixture data:
+`/admin/email-preview/` (admin-gated; `?part=text` for the plain part).
+Build-delivered mail extracted to `buildDeliveredText/HTML`. Any NEW email
+template must use emailShell and be added to `emailPreviewFixtures`.
 
 ### THIRD: stable project slugs (user: "clients may well change book titles… maybe lname-000")
 Today `uniqueProjectSlug` (`srv/passes.go` ~L444) derives from the manuscript

@@ -2,9 +2,9 @@ package srv
 
 import (
 	"encoding/json"
-	"strconv"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 )
 

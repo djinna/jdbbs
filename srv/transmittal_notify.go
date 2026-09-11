@@ -90,7 +90,7 @@ func (n *transmittalNotifier) send(s *Server, projectID int64) {
 		bookTitle = projName
 	}
 
-	subject := fmt.Sprintf("📋 Transmittal Updated: %s (%s)", bookTitle, clientSlug)
+	subject := fmt.Sprintf("Transmittal Updated: %s (%s)", bookTitle, clientSlug)
 
 	textBody := buildTxNotifyText(projName, clientSlug, bookTitle, txData.Book.Author, status, projectURL)
 	htmlBody := buildTxNotifyHTML(projName, clientSlug, bookTitle, txData.Book.Author, status, projectURL)
@@ -128,53 +128,23 @@ func buildTxNotifyText(projName, clientSlug, bookTitle, author, status, url stri
 }
 
 func buildTxNotifyHTML(projName, clientSlug, bookTitle, author, status, url string) string {
-	var b strings.Builder
-
-	badgeBg := "#fef3c7"
-	badgeColor := "#92400e"
-	if strings.ToLower(status) == "final" {
-		badgeBg = "#d1fae5"
-		badgeColor = "#065f46"
+	rows := [][2]string{
+		{"Project", html.EscapeString(projName)},
+		{"Client", html.EscapeString(clientSlug)},
 	}
-
-	b.WriteString(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>`)
-	b.WriteString(`<body style="margin:0;padding:0;background:#f4f3f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">`)
-	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f9;"><tr><td align="center" style="padding:24px 12px;">`)
-	b.WriteString(`<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(108,99,255,0.08);">`)
-
-	// Header
-	b.WriteString(`<tr><td style="background:linear-gradient(135deg,#6c63ff 0%,#8b83ff 100%);padding:28px 32px;">`)
-	b.WriteString(`<p style="margin:0 0 4px;font-size:13px;color:rgba(255,255,255,0.7);">📋 Transmittal Update Notification</p>`)
-	b.WriteString(fmt.Sprintf(`<h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">%s</h1>`, html.EscapeString(bookTitle)))
-	b.WriteString(`</td></tr>`)
-
-	// Body
-	b.WriteString(`<tr><td style="padding:28px 32px;">`)
-
-	// Info table
-	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">`)
-	b.WriteString(fmt.Sprintf(`<tr><td style="padding:6px 0;font-size:13px;color:#888;width:100px;">Project</td><td style="padding:6px 0;font-size:14px;font-weight:500;color:#333;">%s</td></tr>`, html.EscapeString(projName)))
-	b.WriteString(fmt.Sprintf(`<tr><td style="padding:6px 0;font-size:13px;color:#888;">Client</td><td style="padding:6px 0;font-size:14px;color:#333;">%s</td></tr>`, html.EscapeString(clientSlug)))
 	if author != "" {
-		b.WriteString(fmt.Sprintf(`<tr><td style="padding:6px 0;font-size:13px;color:#888;">Author</td><td style="padding:6px 0;font-size:14px;color:#333;">%s</td></tr>`, html.EscapeString(author)))
+		rows = append(rows, [2]string{"Author", html.EscapeString(author)})
 	}
-	b.WriteString(fmt.Sprintf(`<tr><td style="padding:6px 0;font-size:13px;color:#888;">Status</td><td style="padding:6px 0;"><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;background:%s;color:%s;">%s</span></td></tr>`,
-		badgeBg, badgeColor, strings.ToUpper(status)))
-	b.WriteString(fmt.Sprintf(`<tr><td style="padding:6px 0;font-size:13px;color:#888;">Updated</td><td style="padding:6px 0;font-size:14px;color:#333;">%s</td></tr>`, time.Now().Format("January 2, 2006 at 3:04 PM MST")))
-	b.WriteString(`</table>`)
+	rows = append(rows,
+		[2]string{"Status", emailStatus(status)},
+		[2]string{"Updated", html.EscapeString(time.Now().Format("January 2, 2006 at 3:04 PM MST"))},
+	)
 
-	// CTA button
-	b.WriteString(fmt.Sprintf(`<a href="%s" style="display:inline-block;padding:10px 24px;background:#6c63ff;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">View Transmittal →</a>`, url))
+	body := emailKV(rows) + emailButton(url, "View transmittal")
 
-	b.WriteString(`</td></tr>`)
-
-	// Footer
-	b.WriteString(`<tr><td style="padding:16px 32px;border-top:1px solid #eee;">`)
-	b.WriteString(`<p style="margin:0;font-size:12px;color:#aaa;">This is an automated notification from ProdCal. You receive this when a client updates a manuscript transmittal form.</p>`)
-	b.WriteString(`</td></tr>`)
-
-	b.WriteString(`</table></td></tr></table>`)
-	b.WriteString(`</body></html>`)
-
-	return b.String()
+	return emailShell(body, emailShellOpts{
+		Kicker: "Transmittal updated",
+		Title:  bookTitle,
+		Footer: "This is an automated notification from jdbb studio. You receive this when a client updates a manuscript transmittal form.",
+	})
 }
