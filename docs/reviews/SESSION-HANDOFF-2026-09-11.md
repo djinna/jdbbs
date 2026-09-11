@@ -17,7 +17,7 @@
 - Mike Check smoke account: registration #10, `bookiq@gmail.com`, client `mike-check`, project `smoke-test-manuscript`, coupon PYB-PFSA-R56E redeemed, cohort set, password reset via admin endpoint (emailed). **Uncheck him before real announcements; delete after Sep 22.**
 
 ## Next (user-confirmed, in order)
-1. **`/stylesheet` split.** Move current tool → `/stylesheet-pi/` (keep decision tooling, internal). New read-only anonymized public version at `/stylesheet/`: all items accepted, decision UI removed, Zoothesia-specific rows culled (DB today: 134 items, all `scope=universal`/`proposed`; "5. Series Lexicon" 46 rows + "8. Author Queries" 36 rows are the title-specific bulk), add `book_kind` fiction|nonfiction|both column + selector/tabs. Dated 2026-09-11. User does NOT need to review the curation — first cut is fine ("an example, neither binding nor exhaustive"). Register both in the Pages tab.
+1. ~~`/stylesheet` split~~ — DONE (commit after 8e07125): `/stylesheet-pi/` tool, `/stylesheet/` public house sheet (62 items, fiction/nonfiction/both, `srv/housestyle.go`).
 2. **Admin projects list: pagination + filters** (status, client, search). Best-guess UX.
 3. Push both repos to GitHub if not done (VM: `git push git@github.com:djinna/jdbbs.git main`; pi-public has its own remote — check `git remote -v`).
 

@@ -245,7 +245,8 @@ See the admin Pages registry for the live list. Snapshot:
 | `/{client}/{project}/` | prodcal | client | — | 1240 | SPA |
 | `/{client}/{project}/factory/` | prodcal | client | — | 1240 | |
 | `/{client}/{project}/transmittal/` | prodcal | client | — | 1240 | print |
-| `/stylesheet/`, `/stylesheet/authors` | prodcal | public | resources | 1240 | inner editorial UI; split pending (§11) |
+| `/stylesheet/` (+`index.md`, `/api/stylesheet/house`) | prodcal | public | home resources | 1240 | house sheet; anonymized; `?kind=fiction\|nonfiction`; `srv/housestyle.go` + `house_style_seed.json` |
+| `/stylesheet-pi/`, `/stylesheet-pi/authors` | prodcal | public read / allowlisted write | unlisted | 960 (own) | PI review tool; old `/stylesheet/<sub>` paths 301 here |
 | `/factory` | pi-public | public | unlisted | 1240 | |
 | `/exedeck` | pi-public | public | unlisted | 960 | deck |
 | `/litmags` | pi-public | public | resources | 1240 | |
@@ -258,7 +259,8 @@ See the admin Pages registry for the live list. Snapshot:
 - Retired: `/lg`; per-page `.kj` kerning; inlined theme token copies in
   pi-public; outer widths other than 1240/960(deck); `footer.site` markup
   (→ `.jdbb-footer`); ad-hoc `.wrap/.page/.content` widths.
-- Pending (post 2026-09-11): `/stylesheet` split — current tool moves to
-  `/stylesheet-pi/`; a read-only anonymized universal stylesheet publishes at
-  `/stylesheet/` with fiction/nonfiction tagging.
+- Done 2026-09-11: `/stylesheet` split — PI tool at `/stylesheet-pi/`;
+  anonymized read-only house sheet at `/stylesheet/` (table `house_style`,
+  migration 026, seeded from `srv/house_style_seed.json`; edit the seed and
+  `DELETE FROM house_style` to reseed, or SQL directly).
 - Idea log (`docs/IDEAS.md`): per-client interactive stylesheet instances.

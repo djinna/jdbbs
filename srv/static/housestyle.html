@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House editorial stylesheet · jdbb studio</title>
+<meta name="description" content="The [jdbb] studio house editorial stylesheet: mechanics, voice, dialogue, typography, and nonfiction apparatus rules we copyedit to, with fiction and nonfiction views.">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--body)}
+.hero{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;padding:34px 0 20px;border-bottom:1px solid var(--border-strong)}
+h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:var(--text-secondary);max-width:var(--prose-measure)}
+.toolbar{display:flex;justify-content:space-between;align-items:baseline;gap:16px 28px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--border)}
+.tabs{display:flex;gap:1.4rem;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.tabs a{color:var(--text-secondary);text-decoration:none;padding-bottom:3px;border-bottom:2px solid transparent}
+.tabs a:hover{color:var(--text)} .tabs a[aria-current="true"]{color:var(--text);border-bottom-color:var(--accent)}
+.exports{display:flex;gap:1rem;font-family:var(--mono);font-size:12px;color:var(--text-muted)}
+.exports a{color:var(--text-secondary)}
+.toc{display:flex;flex-wrap:wrap;gap:.35rem 1.4rem;padding:14px 0 4px;font-family:var(--mono);font-size:12px}
+.toc a{color:var(--text-secondary);text-decoration:none}.toc a:hover{color:var(--text);text-decoration:underline}
+.section{margin-top:2.4rem}
+.section>h2{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text);padding-bottom:.5rem;margin:0;border-bottom:1px solid var(--border-strong)}
+.section>h2 .n{color:var(--accent);margin-right:.6em}
+.item{padding:.95rem 0;border-bottom:1px solid var(--border)}
+.rule-grid{display:grid;grid-template-columns:200px minmax(0,1fr) minmax(0,.7fr);gap:.35rem 1.6rem;align-items:start}
+.rg-item{font-weight:600;color:var(--text)} .rg-ex{color:var(--text-secondary)}
+.rg-ex:empty{display:none}
+.kindtag{display:inline-block;margin-left:.55em;font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);vertical-align:middle}
+.prose{max-width:var(--prose-measure);font-size:.99rem;position:relative}
+.prose.tagged{padding-right:6.5em}.prose-tag{position:absolute;right:0;top:.35rem}.prose-tag .kindtag{margin-left:0}
+.prose p{margin:.35rem 0}.prose ul,.prose ol{padding-left:1.4rem;margin:.3rem 0}.prose li{margin:.15rem 0}
+.prose blockquote{border-left:2px solid var(--accent);margin:.7rem 0;padding:.2rem .9rem;color:var(--text-secondary)}
+code{font-family:var(--mono);font-size:.85em;color:var(--accent)}
+.empty{color:var(--text-muted);padding:40px 0}
+.colophon{margin:3rem 0 0;max-width:var(--prose-measure);color:var(--text-secondary);font-size:.92rem}
+@media (max-width:760px){.rule-grid{grid-template-columns:1fr;gap:.15rem}.rg-item{margin-bottom:.1rem}}
+@media print{@page{margin:.6in}body{background:#fff;color:#000;font-size:10.5pt}.toolbar,.toc{display:none!important}.hero{padding:0 0 10px}.item{break-inside:avoid}.section{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<div class="jdbb-shell">
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav>
+      <a href="/field-notes">Field notes</a>
+      <a href="/litmags">Litmags</a>
+      <a href="/workshop">Workshop</a>
+      <div id="theme-bar"></div>
+    </nav>
+  </header>
+
+  <main>
+  <section class="hero">
+    <div>
+      <div class="kicker">Editorial · house standard · <span id="stamp">2026</span></div>
+      <h1>House editorial stylesheet</h1>
+      <div class="sub">What we copyedit to unless a book's own stylesheet says otherwise. Mechanics apply everywhere; voice and dialogue rules are for fiction; the apparatus section is for nonfiction. Every project gets its own sheet derived from this one.</div>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <nav class="tabs" aria-label="Book kind" id="tabs">
+      <a href="?" data-kind="">All</a>
+      <a href="?kind=fiction" data-kind="fiction">Fiction</a>
+      <a href="?kind=nonfiction" data-kind="nonfiction">Nonfiction</a>
+    </nav>
+    <div class="exports">
+      <span>Export</span>
+      <a id="md-link" href="/stylesheet/index.md">.md</a>
+      <a href="#" onclick="window.print();return false">print</a>
+      <a id="json-link" href="/api/stylesheet/house">.json</a>
+    </div>
+  </div>
+  <nav class="toc" id="toc" aria-label="Sections"></nav>
+
+  <div id="body"><div class="empty">Loading…</div></div>
+
+  <p class="colophon">This sheet is the studio's default. It is deliberately short: a stylesheet that nobody reads protects nothing. Project sheets add a word list, character/name registry, and per-title decisions on top of these rules. Questions and disagreements: <a href="mailto:j@djinna.com">j@djinna.com</a>.</p>
+  </main>
+
+  <footer class="jdbb-footer">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav aria-label="Footer"><a href="/">Home</a><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a><a href="/factory">Factory</a></nav>
+    <span class="copy">&copy; 2026 Jenna Dixon</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var kind = (new URLSearchParams(location.search).get('kind')||'').toLowerCase();
+  if (kind!=='fiction' && kind!=='nonfiction') kind='';
+  document.querySelectorAll('#tabs a').forEach(function(a){ a.setAttribute('aria-current', a.dataset.kind===kind ? 'true' : 'false'); });
+  var q = kind ? '?kind='+kind : '';
+  document.getElementById('md-link').href = '/stylesheet/index.md'+q;
+  document.getElementById('json-link').href = '/api/stylesheet/house'+q;
+  document.getElementById('stamp').textContent = new Date().toISOString().slice(0,10);
+
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+  function inlineMd(s){
+    var t=esc(s), codes=[];
+    t=t.replace(/`([^`]+)`/g,function(_,c){codes.push(c);return '\u0000'+(codes.length-1)+'\u0000'});
+    t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+    t=t.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+    t=t.replace(/\u0000(\d+)\u0000/g,function(_,i){return '<code>'+codes[+i]+'</code>'});
+    return t;
+  }
+  function blockMd(src){
+    var lines=String(src||'').replace(/\r\n?/g,'\n').split('\n'), out=[], i=0;
+    function list(tag,items){out.push('<'+tag+'>'+items.map(function(x){return '<li>'+inlineMd(x)+'</li>'}).join('')+'</'+tag+'>')}
+    while(i<lines.length){
+      var l=lines[i];
+      if(/^\s*$/.test(l)){i++;continue}
+      if(/^\s*>/.test(l)){var qq=[];while(i<lines.length&&/^\s*>/.test(lines[i])){qq.push(lines[i].replace(/^\s*>\s?/,''));i++}out.push('<blockquote>'+inlineMd(qq.join(' '))+'</blockquote>');continue}
+      if(/^\s*[-*+]\s+/.test(l)){var ul=[];while(i<lines.length&&/^\s*[-*+]\s+/.test(lines[i])){ul.push(lines[i].replace(/^\s*[-*+]\s+/,''));i++}list('ul',ul);continue}
+      if(/^\s*\d+[.)]\s+/.test(l)){var ol=[];while(i<lines.length&&/^\s*\d+[.)]\s+/.test(lines[i])){ol.push(lines[i].replace(/^\s*\d+[.)]\s+/,''));i++}list('ol',ol);continue}
+      var p=[];while(i<lines.length&&!/^\s*$/.test(lines[i])&&!/^\s*>/.test(lines[i])&&!/^\s*[-*+]\s+/.test(lines[i])&&!/^\s*\d+[.)]\s+/.test(lines[i])){p.push(lines[i]);i++}
+      out.push('<p>'+inlineMd(p.join(' '))+'</p>');
+    }
+    return out.join('');
+  }
+  function tagOf(k){ return '<span class="kindtag">'+esc(k)+'</span>'; }
+  // Tagging: when viewing "All", a section whose items are all one kind gets
+  // one tag in its heading; mixed sections tag the odd items individually.
+  function sectionKind(s){ var ks={}; s.items.forEach(function(it){ks[it.book_kind]=1}); var a=Object.keys(ks); return a.length===1 ? a[0] : null; }
+
+  fetch('/api/stylesheet/house'+q).then(function(r){return r.json()}).then(function(d){
+    var body=document.getElementById('body'), toc=document.getElementById('toc');
+    if(!d.sections||!d.sections.length){body.innerHTML='<div class="empty">Nothing here yet.</div>';return}
+    toc.innerHTML=d.sections.map(function(s,i){return '<a href="#s'+s.ord+'">'+(i+1)+'. '+esc(s.title)+'</a>'}).join('');
+    body.innerHTML=d.sections.map(function(s,i){
+      var sk = kind ? 'both' : sectionKind(s);
+      var head = esc(s.title) + (sk && sk!=='both' ? tagOf(sk) : '');
+      function tag(it){ return (sk===null && it.book_kind!=='both') ? tagOf(it.book_kind) : ''; }
+      return '<section class="section" id="s'+s.ord+'"><h2><span class="n">'+(i+1)+'</span>'+head+'</h2>'+
+        s.items.map(function(it){
+          if(it.kind==='rule'){
+            return '<div class="item"><div class="rule-grid"><div class="rg-item">'+inlineMd(it.col1)+tag(it)+'</div><div class="rg-rule">'+inlineMd(it.col2)+'</div><div class="rg-ex">'+inlineMd(it.col3)+'</div></div></div>';
+          }
+          var t=tag(it);
+          return '<div class="item"><div class="prose'+(t?' tagged':'')+'">'+blockMd(it.body)+(t?'<span class="prose-tag">'+t+'</span>':'')+'</div></div>';
+        }).join('')+'</section>';
+    }).join('');
+  }).catch(function(e){document.getElementById('body').innerHTML='<div class="empty">Could not load the stylesheet ('+esc(e.message)+').</div>'});
+})();
+</script>
+<script src="/static/theme.js"></script>
+</body>
+</html>

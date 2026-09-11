@@ -77,17 +77,35 @@ func (s *Server) registerStylesheetRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/stylesheet/edits/{id}/accept", s.handleSSAcceptEdit)
 	mux.HandleFunc("POST /api/stylesheet/edits/{id}/reject", s.handleSSRejectEdit)
 
-	// Pages (static shells)
-	mux.HandleFunc("GET /stylesheet/{$}", s.ssServeStatic("stylesheet/index.html", "text/html; charset=utf-8"))
-	mux.HandleFunc("GET /stylesheet/authors", s.ssServeStatic("stylesheet/authors.html", "text/html; charset=utf-8"))
-	mux.HandleFunc("GET /stylesheet/app.js", s.ssServeStatic("stylesheet/app.js", "application/javascript; charset=utf-8"))
-	mux.HandleFunc("GET /stylesheet/style.css", s.ssServeStatic("stylesheet/style.css", "text/css; charset=utf-8"))
+	// Pages (static shells). The internal PI review tool lives at /stylesheet-pi/;
+	// /stylesheet/ is the public house stylesheet (housestyle.go).
+	mux.HandleFunc("GET /stylesheet-pi/{$}", s.ssServeStatic("stylesheet-pi/index.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("GET /stylesheet-pi/authors", s.ssServeStatic("stylesheet-pi/authors.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("GET /stylesheet-pi/app.js", s.ssServeStatic("stylesheet-pi/app.js", "application/javascript; charset=utf-8"))
+	mux.HandleFunc("GET /stylesheet-pi/style.css", s.ssServeStatic("stylesheet-pi/style.css", "text/css; charset=utf-8"))
 
 	// Exports (regenerated from DB — canonical)
-	mux.HandleFunc("GET /stylesheet/export.html", s.handleSSExportHTML(false))
-	mux.HandleFunc("GET /stylesheet/authors.html", s.handleSSExportHTML(true))
-	mux.HandleFunc("GET /stylesheet/export.md", s.handleSSExportMD(false))
-	mux.HandleFunc("GET /stylesheet/authors.md", s.handleSSExportMD(true))
+	mux.HandleFunc("GET /stylesheet-pi/export.html", s.handleSSExportHTML(false))
+	mux.HandleFunc("GET /stylesheet-pi/authors.html", s.handleSSExportHTML(true))
+	mux.HandleFunc("GET /stylesheet-pi/export.md", s.handleSSExportMD(false))
+	mux.HandleFunc("GET /stylesheet-pi/authors.md", s.handleSSExportMD(true))
+
+	// Legacy tool paths (pre-2026-09-11 split) → the internal tool. The bare
+	// /stylesheet/ root is NOT redirected: it is now the public house sheet.
+	for _, p := range []string{"authors", "app.js", "style.css", "export.html", "authors.html", "export.md", "authors.md"} {
+		target := "/stylesheet-pi/" + p
+		mux.HandleFunc("GET /stylesheet/"+p, func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, target+queryString(r), http.StatusMovedPermanently)
+		})
+	}
+	s.registerHouseStyleRoutes(mux)
+}
+
+func queryString(r *http.Request) string {
+	if r.URL.RawQuery == "" {
+		return ""
+	}
+	return "?" + r.URL.RawQuery
 }
 
 func (s *Server) ssServeStatic(path, ctype string) http.HandlerFunc {
