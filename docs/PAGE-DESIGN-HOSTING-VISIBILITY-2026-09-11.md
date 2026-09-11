@@ -120,7 +120,7 @@ Font selection behaviour (theme.js):
 | client tool | 1240 | — | app chrome | yes | standard, no Admin | `/{client}/`, `/{client}/{project}/`, `…/factory/`, `…/transmittal/` |
 | quoted artifact | 1240 outer | inner doc keeps own style | yes | yes | standard | `/field-guide`, `/work-notes-standard`, `/architecture-plan` — generated, see §6 |
 | deck / special | own | own | own | own controls | identity only | `/exedeck` |
-| cohort roster | 1240 | — | yes | yes | standard, no Admin | `/cohort/2026pisymposium` (client tier + cohort flag) |
+| cohort roster | 1240 | — | hero | yes | standard, no Admin | `/cohort/protocolize-your-book-2026-09` (client tier + cohort flag) |
 
 ## 6. Ownership: embedded vs on-disk
 
@@ -169,9 +169,17 @@ decision 2026-09-11). When one arrives: add `PRODCAL_CLIENT_DOCS` root
 `pi-client/{slug}/…`, a `serveClientDoc(w, r, slug, name)` that calls
 `checkClientAuth` first and never accepts `..`, and register per route.
 
-Cohort flag: `clients.cohort_slug` (migration 024). A page gated on "any
-client in cohort X" checks `checkClientAuth` for the cookie's slug AND that
-the slug's `cohort_slug` matches. Used by the attendee roster.
+Cohort flag: `clients.cohort_slug` (migration 024), set automatically when a
+Factory Pass coupon bound to a workshop registration is redeemed (or by admin
+SQL). `requireCohort(w, r, cohort)` (`srv/cohort.go`) accepts exe.dev admin
+or any valid `prodcal_client_{slug}` cookie whose client is in that cohort.
+Used by `/cohort/{cohort}` + `/api/cohort/{cohort}/roster`; the HTML shell is
+public but carries no data — the JSON is what is gated.
+
+Smoke account: **Mike Check** (`bookiq@gmail.com`, client `mike-check`,
+registration #10) is a faux cohort member for exercising every flow end to
+end. Keep it out of real announcements (uncheck it) and delete after the
+workshop.
 
 ### Admin-only
 `requireExeDevAdmin(w, r)` for pages, `requireExeDevAdminAPI` for JSON; both
@@ -205,6 +213,14 @@ record; §10 below is a snapshot.
 
 ## 9. QA checklist (per page, per change)
 
+Run 2026-09-11 (post-normalization): 1280-wide + 390 mobile emulation on
+`/`, `/workshop`, `/field-notes`, `/litmags`, `/field-guide`, `/admin/`
+(Pages tab), `/admin/registrations`, `/cohort/…` (gated + member views),
+`/{client}/{project}/` SPA; light + dark; wordmark in all 8 faces (no j/d
+collision); workshop form + config endpoint present; Factory redeem → cohort
+flag → roster 200 as member / 401 anon + outsider (`TestCohortRosterGate`).
+
+
 - Widths: 1440 / 768 / 390. No horizontal scroll; masthead wraps under 640.
 - Themes: light + dark; body bg is `--bg`, no hard-coded colors leaking.
 - Fonts: JetBrains, Martian, Plex, Newsreader at least — wordmark has no j/d collision in any.
@@ -224,7 +240,7 @@ See the admin Pages registry for the live list. Snapshot:
 | `/lg` | — | retired → 301 `/` | — | — | |
 | `/admin/` | prodcal | admin | nav | 1240 | |
 | `/admin/registrations` | prodcal | admin | admin nav | 1240 | print modes |
-| `/cohort/2026pisymposium` | prodcal | client + cohort flag | client nav | 1240 | |
+| `/cohort/protocolize-your-book-2026-09` | prodcal | client + cohort flag | admin/tracker nav | 1240 | shows names, material, goals, sessions only |
 | `/{client}/` | prodcal | client | — | 1240 | |
 | `/{client}/{project}/` | prodcal | client | — | 1240 | SPA |
 | `/{client}/{project}/factory/` | prodcal | client | — | 1240 | |

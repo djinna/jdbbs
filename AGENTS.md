@@ -6,6 +6,9 @@ See README.md for build/deploy basics.
 
 ## Key Architecture Docs
 
+- **`docs/PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md`** — page anatomy, 1240 shell contract, canonical wordmark/masthead/footer, public/client/cohort/admin visibility tiers + recipes, and the admin Pages registry. Read before adding or restyling any page.
+- **`docs/IDEAS.md`** — parked ideas / to-do log.
+
 - **`srv/EMAIL_SYSTEM.md`** — Complete reference for all email pathways (5 total: 4 manual, 1 automatic). Read before modifying any email code.
 - **`DEPLOY.md`** — Deployment and hosting notes
 - **`CHECKPOINTS.md`** — Checkpoint tags and rollback workflow
@@ -53,8 +56,9 @@ from disk at request time — so editing one of those HTML files publishes it
 immediately, with no rebuild or restart. Only adding a *new route* needs
 `make build && sudo systemctl restart prodcal`.
 
-Currently `/exedeck`, `/litmags`, `/field-notes`, and `/workshop`, all reading
-from `pi-public/`. Override the directory with `PRODCAL_PUBLIC_DOCS` for local
+Currently `/exedeck`, `/litmags`, `/field-notes`, `/workshop`, `/factory`, and
+the three generated companion pages, all reading from `pi-public/`. They link
+`/static/theme.css` + `theme.js` rather than inlining tokens. Override the directory with `PRODCAL_PUBLIC_DOCS` for local
 runs. See `pi-public/README.md`.
 
 `/workshop` is the one that talks to the server: its form POSTs to

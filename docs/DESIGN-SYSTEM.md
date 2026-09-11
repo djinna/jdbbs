@@ -82,14 +82,14 @@ migrates legacy font keys and keeps the random first-visit font pick.
 Every page's `<head>` keeps the tiny inline bootstrap that applies the dark
 class + `data-font` before first paint.
 
-## Shared chrome
+## Shared chrome, width, visibility
 
-Masthead on every surface (`.jdbb-masthead`): wordmark left —
-`<a class="jdbb-wordmark"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>`
-— nav/actions right, ending with the theme bar (`JdbbTheme.mount(el)`).
-Below it a `.jdbb-statusline` (context left, `UTC date · state` right).
-Footer: linked `[jdbb]` left, `Admin · © 2026 Jenna Dixon` right, above a
-closing hairline.
+**Source of truth: [`PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md`](PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md).**
+Summary: one 1240px shell (`.jdbb-shell`, `--shell-max`) for every page type
+with running copy at `--prose-measure` (68ch) via `.jdbb-prose`; masthead
+(`.jdbb-masthead`) with wordmark left and nav + `#theme-bar` right (theme.js
+auto-mounts it); optional `.jdbb-statusline`; canonical `.jdbb-footer`
+(wordmark · 2–4 context links · ©). The deck is the only width exception.
 
 ## Content facts (recurring copy)
 
@@ -100,7 +100,10 @@ closing hairline.
 
 ## Wordmark / favicon
 
-Working wordmark is the lowercase bracketed mono W1 lockup above, with `.kj`
-tightening the mono `j`->`d` gap by `-0.08em`. Serif site-font choices reset
-that tightening to `0`. Favicon: `/static/favicon.svg` (route `/favicon.ico`
+Working wordmark is the lowercase bracketed mono W1 lockup above. Kerning is
+centralised in theme.css and **never** patched per page: `.kj` is neutral by
+default; only JetBrains/Martian (monospace) tighten the `j`→`d` gap
+(`-0.06em`); serif faces add `+0.04em` overall tracking. First visits open in
+a random sans/mono face (never a serif), sticky for the session; a selector
+choice is sticky forever. Favicon: `/static/favicon.svg` (route `/favicon.ico`
 redirects there), using the M10 bracket + folio-dot mark.
