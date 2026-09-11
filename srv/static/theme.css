@@ -211,7 +211,7 @@ html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
   width: 146px; min-width: 146px;
   border: none; background: none; border-radius: 0; box-shadow: none;
   padding: 0; color: var(--text-secondary); cursor: pointer;
-  font-family: var(--mono); font-size: 12px; text-align: left; white-space: nowrap;
+  font-family: var(--mono); font-size: 12px; text-align: right; white-space: nowrap;
 }
 .theme-bar .font-name:hover { color: var(--text); }
 .theme-bar .font-name::before { content: "Aa "; color: var(--text-muted); }

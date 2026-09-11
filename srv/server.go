@@ -167,7 +167,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/admin/pages/{id}", s.handleAdminDeleteSitePage)
 
 	// Cohort roster — client-visible + cohort flag (attendee-facing sibling of /admin/registrations)
-	mux.HandleFunc("GET /cohort/{cohort}", s.handleCohortPage)
+	mux.HandleFunc("GET /2026-pi-symposium", s.handleCohortPage)
+	mux.HandleFunc("GET /2026-pi-symposium/", s.handleCohortPage)
+	mux.HandleFunc("GET /cohort/{cohort}", s.handleCohortLegacyPath)
 	mux.HandleFunc("GET /api/cohort/{cohort}/roster", s.handleCohortRoster)
 
 	// API routes (global, no path prefix)

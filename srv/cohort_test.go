@@ -2,7 +2,9 @@ package srv
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -58,5 +60,35 @@ func TestCohortRosterGate(t *testing.T) {
 		if _, ok := m[k]; ok {
 			t.Errorf("roster leaks %q", k)
 		}
+	}
+}
+
+func TestCohortVanityPath(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	res, err := http.Get(ts.URL + "/2026-pi-symposium")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	if res.StatusCode != 200 || !strings.Contains(string(body), "'"+workshopSlug+"'") {
+		t.Fatalf("vanity page: status %d, slug injected=%v", res.StatusCode, strings.Contains(string(body), workshopSlug))
+	}
+
+	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	res, err = client.Get(ts.URL + "/cohort/" + workshopSlug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 301 || res.Header.Get("Location") != "/2026-pi-symposium" {
+		t.Fatalf("legacy path: %d -> %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	res, _ = client.Get(ts.URL + "/cohort/nope")
+	res.Body.Close()
+	if res.StatusCode != 404 {
+		t.Fatalf("unknown cohort: %d", res.StatusCode)
 	}
 }

@@ -11,7 +11,7 @@
 ## Done this session (commits 5087c68, 451bc81, 63710a5 in prodcal; cd37546…42abad8 in pi-public)
 - theme.css/js: `--shell-max` 1240, `.jdbb-shell/.jdbb-prose/.jdbb-footer`, centralized wordmark kerning, sans-only random first face (session-sticky), auto-mount `#theme-bar`, lighter bg.
 - Every page normalized (embedded + pi-public + generated companions via `client-raw/cleanup.py`). Inline theme copies in pi-public deleted. `/lg` → 301 `/`. Homepage +15% non-heading type.
-- Cohort roster `/cohort/protocolize-your-book-2026-09` (srv/cohort.go, cohort.html, migration 024 `clients.cohort_slug`, set on Factory Pass redemption). Test `TestCohortRosterGate`.
+- Cohort roster `/2026-pi-symposium` (srv/cohort.go, cohort.html, migration 024 `clients.cohort_slug`, set on Factory Pass redemption). Test `TestCohortRosterGate`.
 - Admin **Pages** tab (site_pages registry, `/api/admin/pages` CRUD; srv/sitepages.go).
 - Zoom → Discord in registration.go + workshop.html.
 - Mike Check smoke account: registration #10, `bookiq@gmail.com`, client `mike-check`, project `smoke-test-manuscript`, coupon PYB-PFSA-R56E redeemed, cohort set, password reset via admin endpoint (emailed). **Uncheck him before real announcements; delete after Sep 22.**

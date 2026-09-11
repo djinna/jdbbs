@@ -120,7 +120,7 @@ Font selection behaviour (theme.js):
 | client tool | 1240 | — | app chrome | yes | standard, no Admin | `/{client}/`, `/{client}/{project}/`, `…/factory/`, `…/transmittal/` |
 | quoted artifact | 1240 outer | inner doc keeps own style | yes | yes | standard | `/field-guide`, `/work-notes-standard`, `/architecture-plan` — generated, see §6 |
 | deck / special | own | own | own | own controls | identity only | `/exedeck` |
-| cohort roster | 1240 | — | hero | yes | standard, no Admin | `/cohort/protocolize-your-book-2026-09` (client tier + cohort flag) |
+| cohort roster | 1240 | — | hero | yes | standard, no Admin | `/2026-pi-symposium` (client tier + cohort flag) |
 
 ## 6. Ownership: embedded vs on-disk
 
@@ -173,7 +173,7 @@ Cohort flag: `clients.cohort_slug` (migration 024), set automatically when a
 Factory Pass coupon bound to a workshop registration is redeemed (or by admin
 SQL). `requireCohort(w, r, cohort)` (`srv/cohort.go`) accepts exe.dev admin
 or any valid `prodcal_client_{slug}` cookie whose client is in that cohort.
-Used by `/cohort/{cohort}` + `/api/cohort/{cohort}/roster`; the HTML shell is
+Used by `/2026-pi-symposium` (vanity path → slug via `cohortPages`; `/cohort/{slug}` 301s) + `/api/cohort/{cohort}/roster`; the HTML shell is
 public but carries no data — the JSON is what is gated.
 
 Smoke account: **Mike Check** (`bookiq@gmail.com`, client `mike-check`,
@@ -240,7 +240,7 @@ See the admin Pages registry for the live list. Snapshot:
 | `/lg` | — | retired → 301 `/` | — | — | |
 | `/admin/` | prodcal | admin | nav | 1240 | |
 | `/admin/registrations` | prodcal | admin | admin nav | 1240 | print modes |
-| `/cohort/protocolize-your-book-2026-09` | prodcal | client + cohort flag | admin/tracker nav | 1240 | shows names, material, goals, sessions only |
+| `/2026-pi-symposium` | prodcal | client + cohort flag | admin/tracker nav | 1240 | shows names, material, goals, sessions only |
 | `/{client}/` | prodcal | client | — | 1240 | |
 | `/{client}/{project}/` | prodcal | client | — | 1240 | SPA |
 | `/{client}/{project}/factory/` | prodcal | client | — | 1240 | |

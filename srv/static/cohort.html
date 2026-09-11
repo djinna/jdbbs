@@ -66,7 +66,7 @@ h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:va
 
 <script>
 (function(){
-  var cohort = location.pathname.replace(/\/+$/,'').split('/').pop();
+  var cohort = '__COHORT_SLUG__';
   var body = document.getElementById('body');
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]})}
   var TYPE={book:'Book',essays:'Essays',archive:'Archive',zine:'Zine',poetry:'Poetry',other:'Other'};

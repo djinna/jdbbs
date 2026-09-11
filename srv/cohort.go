@@ -52,15 +52,50 @@ func (s *Server) requireCohort(w http.ResponseWriter, r *http.Request, cohort st
 	return false
 }
 
-// handleCohortPage serves the roster shell. The page itself is gated in the
-// browser by the JSON endpoint (an unauthenticated visitor sees a sign-in
-// prompt pointing at the client portal), so the HTML carries no roster data.
+// cohortPages maps the attendee-facing vanity path of a cohort roster to its
+// event slug. The vanity path is what gets shared with attendees; the slug is
+// what the DB and the JSON endpoint use.
+var cohortPages = map[string]string{
+	"/2026-pi-symposium": workshopSlug,
+}
+
+// cohortPathFor returns the vanity path for a cohort slug, "" if none.
+func cohortPathFor(slug string) string {
+	for path, s := range cohortPages {
+		if s == slug {
+			return path
+		}
+	}
+	return ""
+}
+
+// handleCohortPage serves the roster shell for a vanity path. The page itself
+// is gated in the browser by the JSON endpoint (an unauthenticated visitor sees
+// a sign-in prompt pointing at the client portal), so the HTML carries no
+// roster data — only the cohort slug it should ask for.
 func (s *Server) handleCohortPage(w http.ResponseWriter, r *http.Request) {
-	if r.PathValue("cohort") != workshopSlug {
+	slug, ok := cohortPages[strings.TrimSuffix(r.URL.Path, "/")]
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
-	s.serveStaticHTML(w, "static/cohort.html")
+	b, err := staticFS.ReadFile("static/cohort.html")
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	_, _ = w.Write([]byte(strings.Replace(string(b), "__COHORT_SLUG__", slug, 1)))
+}
+
+// handleCohortLegacyPath 301s the pre-vanity /cohort/{slug} URL.
+func (s *Server) handleCohortLegacyPath(w http.ResponseWriter, r *http.Request) {
+	if p := cohortPathFor(r.PathValue("cohort")); p != "" {
+		http.Redirect(w, r, p, http.StatusMovedPermanently)
+		return
+	}
+	http.NotFound(w, r)
 }
 
 type cohortMember struct {
