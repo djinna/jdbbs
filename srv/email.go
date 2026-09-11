@@ -185,11 +185,11 @@ func (s *Server) mail(meta mailMeta, to []string, cc []string, subject, textBody
 		return errors.New("email not configured")
 	}
 	status, err := s.Email.send(to, cc, subject, textBody, htmlBody, meta.Headers)
-	s.logOutboundEmail(meta, to, cc, subject, status, err)
+	s.logOutboundEmail(meta, to, cc, subject, textBody, htmlBody, status, err)
 	return err
 }
 
-func (s *Server) logOutboundEmail(meta mailMeta, to, cc []string, subject string, status int, sendErr error) {
+func (s *Server) logOutboundEmail(meta mailMeta, to, cc []string, subject, textBody, htmlBody string, status int, sendErr error) {
 	if s.DB == nil {
 		return
 	}
@@ -201,10 +201,10 @@ func (s *Server) logOutboundEmail(meta mailMeta, to, cc []string, subject string
 		meta.TriggeredBy = "system"
 	}
 	_, err := s.DB.Exec(`
-		INSERT INTO outbound_email (to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		INSERT INTO outbound_email (to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, text_body, html_body)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		strings.Join(to, ", "), strings.Join(cc, ", "), subject,
-		meta.Kind, meta.RefType, meta.RefID, meta.TriggeredBy, status, errText)
+		meta.Kind, meta.RefType, meta.RefID, meta.TriggeredBy, status, errText, textBody, htmlBody)
 	if err != nil {
 		slog.Error("outbound_email log insert failed", "err", err, "kind", meta.Kind, "to", to)
 	}
@@ -223,10 +223,36 @@ type outboundEmailRow struct {
 	StatusCode  int    `json:"status_code"`
 	Error       string `json:"error"`
 	Note        string `json:"note"`
+	HasBody     bool   `json:"has_body"`
 }
 
-// handleAdminListOutboundEmail — GET /api/admin/email?kind=&to=&ref_type=&ref_id=&since=&limit=
-// Read-only audit of every send attempt, newest first.
+// handleAdminGetOutboundEmail — GET /api/admin/email/{id}: one log row with
+// the exact text and HTML bodies that were sent (empty if predating the log).
+func (s *Server) handleAdminGetOutboundEmail(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	var m outboundEmailRow
+	var text, htmlBody string
+	err = s.DB.QueryRowContext(r.Context(), `
+		SELECT id, sent_at, to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note, text_body, html_body
+		FROM outbound_email WHERE id = ?`, id).Scan(
+		&m.ID, &m.SentAt, &m.To, &m.CC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note, &text, &htmlBody)
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+	m.HasBody = text != "" || htmlBody != ""
+	jsonOK(w, map[string]any{"email": m, "text_body": text, "html_body": htmlBody})
+}
+
+// handleAdminListOutboundEmail — GET /api/admin/email?kind=&to=&ref_type=&ref_id=&since=&failed=1&limit=&offset=
+// Read-only audit of every send attempt, newest first, paginated.
 func (s *Server) handleAdminListOutboundEmail(w http.ResponseWriter, r *http.Request) {
 	if !s.requireExeDevAdminAPI(w, r) {
 		return
@@ -257,15 +283,26 @@ func (s *Server) handleAdminListOutboundEmail(w http.ResponseWriter, r *http.Req
 	if q.Get("failed") == "1" {
 		where = append(where, "(status_code = 0 OR status_code >= 300)")
 	}
-	limit := 200
-	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v > 0 && v <= 1000 {
+	limit := 50
+	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v > 0 && v <= 500 {
 		limit = v
 	}
-	args = append(args, limit)
+	offset := 0
+	if v, err := strconv.Atoi(q.Get("offset")); err == nil && v > 0 {
+		offset = v
+	}
+	whereSQL := strings.Join(where, " AND ")
+	var total int
+	if err := s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM outbound_email WHERE `+whereSQL, args...).Scan(&total); err != nil {
+		jsonErr(w, "count failed", 500)
+		return
+	}
+	args = append(args, limit, offset)
 	rows, err := s.DB.QueryContext(r.Context(), `
-		SELECT id, sent_at, to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note
-		FROM outbound_email WHERE `+strings.Join(where, " AND ")+`
-		ORDER BY sent_at DESC, id DESC LIMIT ?`, args...)
+		SELECT id, sent_at, to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note,
+		       (text_body <> '' OR html_body <> '')
+		FROM outbound_email WHERE `+whereSQL+`
+		ORDER BY sent_at DESC, id DESC LIMIT ? OFFSET ?`, args...)
 	if err != nil {
 		jsonErr(w, "query failed", 500)
 		return
@@ -274,7 +311,7 @@ func (s *Server) handleAdminListOutboundEmail(w http.ResponseWriter, r *http.Req
 	out := []outboundEmailRow{}
 	for rows.Next() {
 		var m outboundEmailRow
-		if err := rows.Scan(&m.ID, &m.SentAt, &m.To, &m.CC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note); err != nil {
+		if err := rows.Scan(&m.ID, &m.SentAt, &m.To, &m.CC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note, &m.HasBody); err != nil {
 			jsonErr(w, "scan failed", 500)
 			return
 		}
@@ -293,7 +330,7 @@ func (s *Server) handleAdminListOutboundEmail(w http.ResponseWriter, r *http.Req
 			}
 		}
 	}
-	jsonOK(w, map[string]any{"emails": out, "kinds": kinds})
+	jsonOK(w, map[string]any{"emails": out, "kinds": kinds, "total": total, "limit": limit, "offset": offset})
 }
 
 // ─── Transmittal email summary ───

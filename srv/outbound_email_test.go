@@ -2,6 +2,7 @@ package srv
 
 import (
 	"encoding/json"
+	"strconv"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -85,6 +86,31 @@ func TestOutboundEmailLog(t *testing.T) {
 	}
 	if n := len(get("?ref_type=registration&ref_id=7")["emails"].([]any)); n != 1 {
 		t.Fatalf("ref filter: want 1, got %d", n)
+	}
+
+	// Pagination: limit=1 → total still 2, offset walks.
+	p1 := get("?limit=1")
+	if p1["total"] != float64(2) || len(p1["emails"].([]any)) != 1 {
+		t.Fatalf("page 1: %#v", p1)
+	}
+	p2 := get("?limit=1&offset=1")
+	if p2["emails"].([]any)[0].(map[string]any)["to"] != "ada@example.com" {
+		t.Fatalf("page 2 should be the older row: %#v", p2)
+	}
+
+	// Body retrieval: exact text + html as sent.
+	id := int64(older["id"].(float64))
+	resp = apiRequestAdmin(t, ts, "GET", "/api/admin/email/"+strconv.FormatInt(id, 10), nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("get one: %d", resp.StatusCode)
+	}
+	var one map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&one)
+	if one["text_body"] != "text" || one["html_body"] != "<p>html</p>" || one["email"].(map[string]any)["has_body"] != true {
+		t.Fatalf("body not stored verbatim: %#v", one)
+	}
+	if !older["has_body"].(bool) {
+		t.Fatal("list should flag has_body")
 	}
 }
 

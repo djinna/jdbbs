@@ -386,6 +386,7 @@ body {
 .pages-table th{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:8px 8px 8px 0}
 .pages-table td{padding:8px 8px 8px 0;border-top:1px solid var(--border);vertical-align:top}.pages-table td.route{font-family:var(--mono);white-space:nowrap}.pages-table td.route a{color:var(--accent);text-decoration:none}.pages-table td .tag{margin:0}
 .mail-table td.when{font-family:var(--mono);white-space:nowrap;color:var(--text-secondary)}.mail-table td.subj{max-width:36ch}.mail-table td.subj small{display:block;color:var(--text-muted)}.mail-table td.kind{font-family:var(--mono);font-size:11px;white-space:nowrap}.mail-table .ok{color:var(--green)}.mail-table .fail{color:var(--red)}
+.mail-table td:last-child button{font:11px var(--mono);background:none;border:1px solid var(--border);padding:3px 8px;color:var(--accent);cursor:pointer;border-radius:0}.mail-view{margin-top:18px;border-top:1px solid var(--border-strong);padding-top:14px}.mail-view-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}.mail-view-meta{font:11px var(--mono);color:var(--text-muted);margin-top:4px}.mail-view iframe{width:100%;height:560px;border:1px solid var(--border);background:#fff}.mail-view pre{font:12.5px/1.5 var(--mono);white-space:pre-wrap;border:1px solid var(--border);padding:14px;background:var(--surface);max-height:560px;overflow:auto}
 .pages-table td.note{color:var(--text-secondary);max-width:32ch}.pages-table td:last-child{white-space:nowrap}.pages-table .st-retire{color:var(--red)}.pages-table .st-review{color:var(--yellow)}.pages-table .st-live{color:var(--green)}
 .pages-edit{margin-top:22px;border-top:1px solid var(--border-strong);padding-top:14px}.pages-edit h3{font:600 14px var(--mono);margin:0 0 10px}
 .pages-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pages-grid label{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);display:flex;flex-direction:column;gap:4px}.pages-grid label.wide{grid-column:1/-1}
@@ -517,10 +518,16 @@ body {
     </div>
     <div id="mail-loading">Loading…</div>
     <table class="pages-table mail-table" id="mail-table" hidden>
-      <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Kind</th><th>About</th><th>By</th><th>Status</th></tr></thead>
+      <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Kind</th><th>About</th><th>By</th><th>Status</th><th></th></tr></thead>
       <tbody id="mail-body"></tbody>
     </table>
-    <div class="pager" id="mail-summary"></div>
+    <div class="pager" id="mail-pager"><span id="mail-summary"></span><span><button type="button" id="mail-prev">‹ Prev</button> <span id="mail-page"></span> <button type="button" id="mail-next">Next ›</button></span></div>
+    <div class="mail-view" id="mail-view" hidden>
+      <div class="mail-view-head"><div><div class="section-label" style="margin:0;padding:0;border:0" id="mv-subject"></div><div class="mail-view-meta" id="mv-meta"></div></div><div><button class="btn btn-sm btn-secondary" type="button" data-mv="html">HTML</button> <button class="btn btn-sm btn-secondary" type="button" data-mv="text">Text</button> <button class="btn btn-sm btn-secondary" type="button" onclick="document.getElementById('mail-view').hidden=true">Close</button></div></div>
+      <iframe id="mv-html" sandbox="" title="Email as sent"></iframe>
+      <pre id="mv-text" hidden></pre>
+      <div id="mv-none" class="pages-hint" hidden>Body not recorded — this send predates the log (backfilled).</div>
+    </div>
   </div>
 
   <div id="tab-files" class="tab-panel">
@@ -3537,14 +3544,16 @@ loadBackupStatus();
 // ---- Pages registry ----
 let sitePages = [];
 // ─── Mail log ───
-let mailKindsPopulated = false;
-async function loadMailLog() {
+var mailKindsPopulated = false, mailOffset = 0;
+var MAIL_PAGE = 50;
+async function loadMailLog(resetPage = true) {
+  if (resetPage === true) mailOffset = 0;
   const loading = document.getElementById('mail-loading');
   const q = new URLSearchParams();
   const kind = document.getElementById('mail-kind').value, to = document.getElementById('mail-to').value.trim();
   const since = document.getElementById('mail-since').value, failed = document.getElementById('mail-failed').value;
   if (kind) q.set('kind', kind); if (to) q.set('to', to); if (since) q.set('since', since); if (failed) q.set('failed', failed);
-  q.set('limit', '500');
+  q.set('limit', String(MAIL_PAGE)); q.set('offset', String(mailOffset));
   try {
     const r = await fetch('/api/admin/email?' + q);
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -3555,7 +3564,7 @@ async function loadMailLog() {
       Object.keys(data.kinds || {}).sort().forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = `${k} (${data.kinds[k]})`; sel.appendChild(o); });
       mailKindsPopulated = true;
     }
-    renderMailLog(data.emails || []);
+    renderMailLog(data.emails || [], data.total || 0);
   } catch (e) { loading.hidden = false; loading.textContent = 'Could not load mail log: ' + e.message; }
 }
 function mailRefLink(m) {
@@ -3566,19 +3575,47 @@ function mailRefLink(m) {
   if (m.ref_type === 'client') return `<a href="/${id}/">client ${id}</a>`;
   return `${esc(m.ref_type)} #${id}`;
 }
-function renderMailLog(rows) {
+function renderMailLog(rows, total) {
   const tb = document.getElementById('mail-body');
   tb.innerHTML = rows.map(m => {
     const ok = m.status_code >= 200 && m.status_code < 300;
     const st = ok ? `<span class="ok">${m.status_code}</span>` : `<span class="fail" title="${esc(m.error)}">${m.status_code || 'ERR'} ✕</span>`;
     const when = String(m.sent_at).replace('T',' ').replace(/(:\d\d)(\.\d+)?(Z|[+-]\d\d:?\d\d)?$/,'$1');
     const to = esc(m.to) + (m.cc ? `<br><small style="color:var(--text-muted)">cc ${esc(m.cc)}</small>` : '');
-    return `<tr><td class="when">${esc(when)}</td><td>${to}</td><td class="subj">${esc(m.subject)}${m.note ? `<small>${esc(m.note)}</small>` : ''}</td><td class="kind">${esc(m.kind)}</td><td>${mailRefLink(m)}</td><td>${esc(m.triggered_by)}</td><td>${st}</td></tr>`;
-  }).join('') || '<tr><td colspan="7" style="color:var(--text-muted);padding:18px 0">No sends match.</td></tr>';
+    return `<tr><td class="when">${esc(when)}</td><td>${to}</td><td class="subj">${esc(m.subject)}${m.note ? `<small>${esc(m.note)}</small>` : ''}</td><td class="kind">${esc(m.kind)}</td><td>${mailRefLink(m)}</td><td>${esc(m.triggered_by)}</td><td>${st}</td><td><button type="button" onclick="viewMail(${m.id})" title="${m.has_body ? 'Show the exact message as sent' : 'Body not recorded (backfilled)'}"${m.has_body ? '' : ' style="opacity:.4"'}>View</button></td></tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:var(--text-muted);padding:18px 0">No sends match.</td></tr>';
   document.getElementById('mail-table').hidden = false;
   const fails = rows.filter(m => !(m.status_code >= 200 && m.status_code < 300)).length;
-  document.getElementById('mail-summary').innerHTML = `<span>${rows.length} send${rows.length === 1 ? '' : 's'}${fails ? ` · <span class="fail" style="color:var(--red)">${fails} failed</span>` : ''}</span><span>newest first · max 500</span>`;
+  const from = total ? mailOffset + 1 : 0, to = Math.min(mailOffset + rows.length, total), pages = Math.max(1, Math.ceil(total / MAIL_PAGE)), page = Math.floor(mailOffset / MAIL_PAGE) + 1;
+  document.getElementById('mail-summary').innerHTML = `${from}–${to} of ${total} send${total === 1 ? '' : 's'}${fails ? ` · <span style="color:var(--red)">${fails} failed on this page</span>` : ''}`;
+  document.getElementById('mail-page').textContent = `page ${page} / ${pages}`;
+  document.getElementById('mail-prev').disabled = mailOffset === 0;
+  document.getElementById('mail-next').disabled = mailOffset + MAIL_PAGE >= total;
 }
+document.getElementById('mail-prev').addEventListener('click', () => { mailOffset = Math.max(0, mailOffset - MAIL_PAGE); loadMailLog(false); });
+document.getElementById('mail-next').addEventListener('click', () => { mailOffset += MAIL_PAGE; loadMailLog(false); });
+var mvMode = "html";
+async function viewMail(id) {
+  const r = await fetch('/api/admin/email/' + id);
+  if (!r.ok) { alert('Could not load message'); return; }
+  const d = await r.json(), m = d.email;
+  const v = document.getElementById('mail-view'); v.hidden = false;
+  document.getElementById('mv-subject').textContent = m.subject;
+  document.getElementById('mv-meta').textContent = `${m.sent_at.replace('T',' ').replace('Z','')} · to ${m.to}${m.cc ? ' · cc ' + m.cc : ''} · ${m.kind} · by ${m.triggered_by} · status ${m.status_code}${m.error ? ' · ' + m.error : ''}`;
+  const fr = document.getElementById('mv-html'), pre = document.getElementById('mv-text'), none = document.getElementById('mv-none');
+  v._text = d.text_body; v._html = d.html_body;
+  if (!m.has_body) { fr.hidden = true; pre.hidden = true; none.hidden = false; }
+  else { none.hidden = true; showMailMode(d.html_body ? mvMode : 'text'); }
+  v.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function showMailMode(mode) {
+  mvMode = mode;
+  const v = document.getElementById('mail-view'), fr = document.getElementById('mv-html'), pre = document.getElementById('mv-text');
+  if (mode === 'html' && v._html) { fr.hidden = false; pre.hidden = true; fr.srcdoc = v._html; }
+  else { fr.hidden = true; pre.hidden = false; pre.textContent = v._text || '(no text part)'; }
+  document.querySelectorAll('[data-mv]').forEach(b => b.classList.toggle('btn-secondary', b.dataset.mv !== mode));
+}
+document.querySelectorAll('[data-mv]').forEach(b => b.addEventListener('click', () => showMailMode(b.dataset.mv)));
 ['mail-kind','mail-failed'].forEach(id => document.getElementById(id).addEventListener('change', loadMailLog));
 document.getElementById('mail-since').addEventListener('change', loadMailLog);
 document.getElementById('mail-to').addEventListener('input', () => { clearTimeout(window._mailT); window._mailT = setTimeout(loadMailLog, 300); });
