@@ -1028,7 +1028,7 @@ func passFulfillmentText(res fulfillPassResult) string {
 	fmt.Fprintf(&b, "  - Unlimited preflights: the report tells you what to fix\n")
 	fmt.Fprintf(&b, "  - Your project stays live and rebuildable until %s (%d months)\n\n", expires, passStorageMonths)
 	fmt.Fprintf(&b, "First steps\n")
-	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from, and the studio generates the Word template you'll write in from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
+	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  2. Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  3. Run a preflight (free, as often as you like) and fix what it flags.\n")
 	fmt.Fprintf(&b, "  4. Build. Failed builds don't count against your %d.\n\n", res.Pass.BuildsIncluded)
@@ -1063,7 +1063,7 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	}, false))
 	b.WriteString(emailH2("First steps"))
 	b.WriteString(emailList([]string{
-		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from, and the studio generates the Word template you&rsquo;ll write in from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
+		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
 		"Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).",
 		"Run a <b>preflight</b> (free, as often as you like) and fix what it flags.",
 		fmt.Sprintf("<b>Build.</b> Failed builds don&rsquo;t count against your %d.", res.Pass.BuildsIncluded),

@@ -273,6 +273,19 @@ function renderSteps() {
     setText(txMeta, S.transmittalStatus === 'final' ? '[FINAL]'
       : S.transmittalStatus ? '[' + String(S.transmittalStatus).toUpperCase() + ']' : '');
   }
+  // The Word template is generated from the final transmittal, on demand.
+  var tpl = $('fx-template-link');
+  var tplStatus = $('fx-template-status');
+  var isFinal = S.transmittalStatus === 'final';
+  if (tpl) {
+    tpl.href = '/api/projects/' + S.projectId + '/word-template';
+    show(tpl, isFinal);
+  }
+  if (tplStatus) {
+    setText(tplStatus, isFinal
+      ? 'Your Word template is ready. Write in it; upload the .docx in step 2.'
+      : (S.transmittalStatus ? 'Mark the transmittal final and your Word template appears here.' : ''));
+  }
 }
 
 // ─── render: upload + book list ────────────────────────────────────────────

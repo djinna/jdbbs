@@ -244,6 +244,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/projects/{id}/book-spec/cover", s.handleGetCover)
 	mux.HandleFunc("GET /api/fonts", s.handleListFonts)
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/word-template", s.handleGenerateWordTemplate)
+	mux.HandleFunc("GET /api/projects/{id}/word-template", s.handleClientWordTemplate) // client self-serve, needs final transmittal
 
 	// Manuscript preflight
 	mux.HandleFunc("POST /api/projects/{id}/preflight", s.handleRunManuscriptPreflight)

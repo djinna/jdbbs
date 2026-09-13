@@ -114,7 +114,7 @@ def build_template(spec: dict) -> Document:
     typo = spec.get("typography", {})
     hdgs = spec.get("headings", {})
     elms = spec.get("elements", {})
-    customs = spec.get("custom_styles", [])
+    customs = spec.get("custom_styles") or []
 
     # Derived values
     body_font    = typo.get("body_font", "Libertinus Serif")

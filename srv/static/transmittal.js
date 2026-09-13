@@ -548,10 +548,15 @@ function renderForm() {
           }}, 'Duplicate'),
           h('button', { className: 'btn btn-sm', onClick: () => window.print() }, 'Print'),
           h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, 'Email'),
+          state.transmittal.status === 'final' && !isPreview
+            ? h('a', { className: 'btn btn-sm btn-primary', href: '/api/projects/' + state.projectId + '/word-template', download: '',
+                title: 'Downloads the Word template generated from this transmittal. Write your manuscript in it.' },
+                'Word template')
+            : null,
           h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? '' : ' btn-primary'),
             title: state.transmittal.status === 'final'
               ? 'Switches the transmittal back to Draft so you can keep editing.'
-              : 'Marks the transmittal final and opens the email to the studio. You can switch it back to Draft.',
+              : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
             onClick: () => {
               const wasDraft = state.transmittal.status !== 'final';
               state.transmittal.status = wasDraft ? 'final' : 'draft';
@@ -589,7 +594,9 @@ function renderForm() {
     isPreview ? null : h('p', { className: 'tx-intro' },
       'The transmittal is the mise en place for your book — the handoff record of what the book is, what’s in the file, and how it should be set, prepared before any typesetting starts. Fill in what you know; leave the rest. When it’s ready, ',
       h('b', null, 'Mark Final'),
-      ': that sends it to the studio, which generates your Word template from it; the build follows it. You can switch it back to Draft at any time.',
+      ': that generates your Word template from it (the ',
+      h('b', null, 'Word template'),
+      ' button appears above) and sends it to the studio; the build follows it. You can switch it back to Draft at any time.',
     ),
     // Progress
     h('div', { className: 'tx-progress' },

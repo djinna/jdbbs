@@ -65,6 +65,7 @@ Endpoints with no auth configured on the resource are open-access.
 | 40 | GET | `/api/projects/{id}/book-spec/cover` | ⚠️ None | Get cover image |
 | 41 | GET | `/api/fonts` | Admin | List available Typst fonts |
 | 42 | POST | `/api/projects/{id}/book-spec/word-template` | Admin | Generate .docx style template |
+| 42a | GET | `/api/projects/{id}/word-template` | Project | Client self-serve .docx template; needs a final transmittal |
 | 43 | POST | `/api/projects/{id}/preflight` | Admin | Run manuscript preflight check |
 | 44 | GET | `/api/projects/{id}/preflight` | Admin | Get latest preflight result |
 | 45 | GET | `/api/projects/{id}/preflight/report` | Admin | Get preflight HTML report |
@@ -717,6 +718,17 @@ Generate a styled .docx template from the book spec. Includes custom styles as n
 **Auth:** Admin  
 **Response:** Binary `.docx` file with Content-Disposition header.  
 **Errors:** `400` if duplicate custom style names are detected.
+
+### `GET /api/projects/{id}/word-template`
+
+Client self-serve version of the above (the **Word template** button on the transmittal and the
+step-1 link on the factory page). Requires the transmittal to be `final`; if the transmittal has
+been saved since the spec was last written, it is pulled into the spec first (same mapping as
+`pull-transmittal`), so the template always reflects what the client marked final.
+
+**Auth:** Project (client password or project token)  
+**Response:** Binary `.docx`, `Content-Disposition: attachment; filename="<project>-template.docx"`.  
+**Errors:** `409` if there is no transmittal or it is still a draft; `400` duplicate custom style names.
 
 ---
 

@@ -3,6 +3,8 @@ package srv
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -159,4 +161,105 @@ func TestWordTemplateGenerationAllowsUniqueCustomStyleNames(t *testing.T) {
 	if buf.Len() == 0 {
 		t.Fatalf("expected non-empty word template response body")
 	}
+}
+
+// TestClientWordTemplateSelfServe: the client can download the Word template
+// themselves once the transmittal is final; before that the route says so
+// instead of handing out a template built from nothing.
+func TestClientWordTemplateSelfServe(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, password, clientSlug, _ := grantedPass(t, s, ts, "Template Tester", "Template Book")
+	pid := itoa(pass.ProjectID)
+	cookie := clientCookie(t, ts, clientSlug, password)
+	get := func() *http.Response {
+		req, _ := http.NewRequest("GET", ts.URL+"/api/projects/"+pid+"/word-template", nil)
+		req.AddCookie(cookie)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("get template: %v", err)
+		}
+		return resp
+	}
+
+	// No cookie at all: unauthorized.
+	resp := apiRequest(t, ts, "GET", "/api/projects/"+pid+"/word-template", nil)
+	if resp.StatusCode != 401 {
+		t.Fatalf("anonymous: expected 401, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// Draft transmittal: refused with a reason.
+	resp = get()
+	if resp.StatusCode != 409 {
+		t.Fatalf("draft transmittal: expected 409, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// Client marks the transmittal final (same call transmittal.js makes).
+	var tx map[string]any
+	json.Unmarshal([]byte(defaultTransmittalData()), &tx)
+	tx["book"].(map[string]any)["title"] = "Template Book"
+	markFinal := func() {
+		req, _ := http.NewRequest("PUT", ts.URL+"/api/projects/"+pid+"/transmittal",
+			bytes.NewReader(mustJSONBytes(t, map[string]any{"status": "final", "data": tx})))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(cookie)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil || resp.StatusCode != 200 {
+			t.Fatalf("mark final: %v / %d", err, resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+
+	// The default transmittal has an empty custom_styles list; that used to
+	// reach the generator as JSON null and crash it.
+	markFinal()
+	resp = get()
+	if resp.StatusCode != 200 {
+		var body map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&body)
+		t.Fatalf("final transmittal, no custom styles: expected 200, got %d (%v)", resp.StatusCode, body)
+	}
+	resp.Body.Close()
+
+	tx["custom_styles"] = []map[string]any{{"name": "verse", "type": "paragraph"}}
+	markFinal()
+	resp = get()
+	if resp.StatusCode != 200 {
+		var body map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&body)
+		t.Fatalf("final transmittal: expected 200, got %d (%v)", resp.StatusCode, body)
+	}
+	defer resp.Body.Close()
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "wordprocessingml") {
+		t.Fatalf("content-type: %q", ct)
+	}
+	if cd := resp.Header.Get("Content-Disposition"); !strings.Contains(cd, "-template.docx") {
+		t.Fatalf("content-disposition: %q", cd)
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	if buf.Len() < 4 || string(buf.Bytes()[:2]) != "PK" {
+		t.Fatalf("expected a .docx (zip) body, got %d bytes", buf.Len())
+	}
+
+	// The pull happened: the spec now carries the transmittal's custom style.
+	var specData string
+	if err := s.DB.QueryRow(`SELECT data FROM book_specs WHERE project_id = ?`, pass.ProjectID).Scan(&specData); err != nil {
+		t.Fatalf("spec after pull: %v", err)
+	}
+	if !strings.Contains(specData, `"verse"`) {
+		t.Fatalf("expected transmittal custom style pulled into spec, got %s", specData)
+	}
+}
+
+func mustJSONBytes(t *testing.T, v any) []byte {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	return b
 }

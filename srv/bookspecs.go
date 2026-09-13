@@ -2,8 +2,10 @@ package srv
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"srv.exe.dev/db/dbgen"
 )
@@ -179,33 +182,50 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 		jsonErr(w, "bad id", 400)
 		return
 	}
+	newData, err := s.pullTransmittalIntoSpec(r.Context(), pid)
+	if err != nil {
+		status := 500
+		if errors.Is(err, errNoTransmittal) {
+			status = 404
+		}
+		jsonErr(w, err.Error(), status)
+		return
+	}
+	var raw json.RawMessage
+	json.Unmarshal(newData, &raw)
+	jsonOK(w, map[string]any{"ok": true, "data": raw})
+}
 
+var errNoTransmittal = errors.New("no transmittal found for this project")
+
+// pullTransmittalIntoSpec maps the project's transmittal onto its book spec
+// (creating the spec from defaults if needed), saves it, and returns the new
+// spec JSON. Shared by the admin "Pull from transmittal" button and the
+// client's self-serve Word template download.
+func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte, error) {
 	// Get transmittal data
 	var txDataStr string
-	err = s.DB.QueryRowContext(r.Context(),
+	err := s.DB.QueryRowContext(ctx,
 		`SELECT data FROM transmittals WHERE project_id = ?`, pid,
 	).Scan(&txDataStr)
 	if err != nil {
-		jsonErr(w, "no transmittal found for this project", 404)
-		return
+		return nil, errNoTransmittal
 	}
 
 	// Parse transmittal
 	var tx map[string]any
 	if err := json.Unmarshal([]byte(txDataStr), &tx); err != nil {
-		jsonErr(w, "bad transmittal data", 500)
-		return
+		return nil, errors.New("bad transmittal data")
 	}
 
 	// Get current spec (or defaults)
 	q := dbgen.New(s.DB)
-	spec, err := q.GetBookSpec(r.Context(), pid)
+	spec, err := q.GetBookSpec(ctx, pid)
 	var specData map[string]any
 	if err == sql.ErrNoRows {
 		json.Unmarshal([]byte(defaultSpecData()), &specData)
 	} else if err != nil {
-		jsonErr(w, err.Error(), 500)
-		return
+		return nil, err
 	} else {
 		json.Unmarshal([]byte(spec.Data), &specData)
 	}
@@ -310,7 +330,7 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 	}
 
 	if styles, ok := tx["custom_styles"].([]any); ok {
-		var mapped []any
+		mapped := []any{} // never nil: a JSON null here breaks the template generator
 		for _, item := range styles {
 			m, ok := item.(map[string]any)
 			if !ok {
@@ -357,18 +377,14 @@ func (s *Server) handlePullTransmittalToSpec(w http.ResponseWriter, r *http.Requ
 
 	// Save
 	newData, _ := json.Marshal(specData)
-	_, err = q.UpsertBookSpec(r.Context(), dbgen.UpsertBookSpecParams{
+	_, err = q.UpsertBookSpec(ctx, dbgen.UpsertBookSpecParams{
 		ProjectID: pid,
 		Data:      string(newData),
 	})
 	if err != nil {
-		jsonErr(w, err.Error(), 500)
-		return
+		return nil, err
 	}
-
-	var raw json.RawMessage
-	json.Unmarshal(newData, &raw)
-	jsonOK(w, map[string]any{"ok": true, "data": raw})
+	return newData, nil
 }
 
 // handleListFonts returns available font families by running `typst fonts`.
@@ -816,10 +832,27 @@ func (s *Server) handleGenerateWordTemplate(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var specData map[string]any
-	if err := json.Unmarshal([]byte(spec.Data), &specData); err != nil {
-		jsonErr(w, "invalid spec data", 500)
+	docx, err := generateWordTemplate(spec.Data)
+	if err != nil {
+		status := 500
+		if errors.Is(err, errDuplicateCustomStyles) {
+			status = 400
+		}
+		jsonErr(w, err.Error(), status)
 		return
+	}
+	project, _ := q.GetProject(r.Context(), pid)
+	serveWordTemplate(w, project.Name, docx)
+}
+
+var errDuplicateCustomStyles = errors.New("duplicate custom style names are not allowed in Word templates; use distinct names such as metadata-p and metadata-c")
+
+// generateWordTemplate validates the spec's custom styles and runs the
+// python-docx generator, returning the .docx bytes.
+func generateWordTemplate(specJSON string) ([]byte, error) {
+	var specData map[string]any
+	if err := json.Unmarshal([]byte(specJSON), &specData); err != nil {
+		return nil, errors.New("invalid spec data")
 	}
 	if styles, ok := specData["custom_styles"].([]any); ok {
 		seen := map[string]bool{}
@@ -837,8 +870,7 @@ func (s *Server) handleGenerateWordTemplate(w http.ResponseWriter, r *http.Reque
 				continue
 			}
 			if seen[key] {
-				jsonErr(w, "duplicate custom style names are not allowed in Word templates; use distinct names such as metadata-p and metadata-c", 400)
-				return
+				return nil, errDuplicateCustomStyles
 			}
 			seen[key] = true
 		}
@@ -847,29 +879,95 @@ func (s *Server) handleGenerateWordTemplate(w http.ResponseWriter, r *http.Reque
 	// Run python script with spec JSON on stdin
 	script := filepath.Join(typesettingRoot(), "scripts", "generate-word-template.py")
 	cmd := exec.Command("python3", script)
-	cmd.Stdin = strings.NewReader(spec.Data)
+	cmd.Stdin = strings.NewReader(specJSON)
 	var outBuf bytes.Buffer
 	var errBuf strings.Builder
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
-
 	if err := cmd.Run(); err != nil {
 		slog.Error("word template generation failed", "err", err, "stderr", errBuf.String())
-		jsonErr(w, "template generation failed: "+errBuf.String(), 500)
-		return
+		return nil, errors.New("template generation failed: " + errBuf.String())
 	}
+	return outBuf.Bytes(), nil
+}
 
-	// Derive filename from project name
-	project, _ := q.GetProject(r.Context(), pid)
-	filename := sanitizeFilename(project.Name)
+func serveWordTemplate(w http.ResponseWriter, projectName string, docx []byte) {
+	filename := sanitizeFilename(projectName)
 	if filename == "" {
 		filename = "template"
 	}
-
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-template.docx"`, filename))
-	w.Header().Set("Content-Length", strconv.Itoa(outBuf.Len()))
-	w.Write(outBuf.Bytes())
+	w.Header().Set("Content-Length", strconv.Itoa(len(docx)))
+	w.Header().Set("Cache-Control", "no-store")
+	w.Write(docx)
+}
+
+// handleClientWordTemplate is the self-serve Word template for the client:
+// once the transmittal is marked final, GET returns the .docx generated from
+// it. If the transmittal has been saved since the spec was last refreshed,
+// the transmittal is pulled into the spec first, so the client always gets
+// a template that matches what they marked final (the admin's later spec
+// edits are kept when they are the newer of the two).
+func (s *Server) handleClientWordTemplate(w http.ResponseWriter, r *http.Request) {
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	if !s.requireAuth(w, r, pid) {
+		return
+	}
+	var txStatus string
+	var txUpdated time.Time
+	err = s.DB.QueryRowContext(r.Context(),
+		`SELECT status, updated_at FROM transmittals WHERE project_id = ?`, pid,
+	).Scan(&txStatus, &txUpdated)
+	if err == sql.ErrNoRows {
+		jsonErr(w, "fill in the transmittal and mark it final first", 409)
+		return
+	}
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	if txStatus != "final" {
+		jsonErr(w, "mark the transmittal final first", 409)
+		return
+	}
+
+	q := dbgen.New(s.DB)
+	spec, err := q.GetBookSpec(r.Context(), pid)
+	specJSON := ""
+	switch {
+	case err == sql.ErrNoRows:
+		// no spec yet: pull below
+	case err != nil:
+		jsonErr(w, err.Error(), 500)
+		return
+	case spec.UpdatedAt.After(txUpdated): // strictly newer: timestamps are whole seconds, so ties re-pull
+		specJSON = spec.Data
+	}
+	if specJSON == "" {
+		newData, err := s.pullTransmittalIntoSpec(r.Context(), pid)
+		if err != nil {
+			jsonErr(w, err.Error(), 500)
+			return
+		}
+		specJSON = string(newData)
+	}
+
+	docx, err := generateWordTemplate(specJSON)
+	if err != nil {
+		status := 500
+		if errors.Is(err, errDuplicateCustomStyles) {
+			status = 400
+		}
+		jsonErr(w, err.Error(), status)
+		return
+	}
+	project, _ := q.GetProject(r.Context(), pid)
+	serveWordTemplate(w, project.Name, docx)
 }
 
 // helpers
