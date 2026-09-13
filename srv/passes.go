@@ -317,8 +317,8 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 		return nil, fmt.Errorf("create client: %w", err)
 	}
 
-	// 3) Project: slug from the manuscript title, unique within the client.
-	projectSlug, err := uniqueProjectSlug(ctx, tx, clientSlug, in.Title)
+	// 3) Project: next book-NNN for this client; the title lives in name.
+	projectSlug, err := nextProjectSlug(ctx, tx, clientSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -413,55 +413,6 @@ func truncateSlug(slug string) string {
 // connection — a query on s.DB inside a tx would deadlock).
 type slugQuerier interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-}
-
-// uniqueClientSlug derives a client slug from a customer name and appends
-// -2, -3, … until it is free.
-func uniqueClientSlug(ctx context.Context, db slugQuerier, name string) (string, error) {
-	base := truncateSlug(normalizeProjectSlug(name))
-	if base == "" {
-		base = "author"
-	}
-	for i := 1; i < 100; i++ {
-		candidate := base
-		if i > 1 {
-			candidate = fmt.Sprintf("%s-%d", base, i)
-		}
-		var n int
-		if err := db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM clients WHERE slug = ?`, candidate).Scan(&n); err != nil {
-			return "", fmt.Errorf("check client slug: %w", err)
-		}
-		if n == 0 {
-			return candidate, nil
-		}
-	}
-	return "", fmt.Errorf("no free client slug for %q", base)
-}
-
-// uniqueProjectSlug derives a project slug from a manuscript title, unique
-// within the client.
-func uniqueProjectSlug(ctx context.Context, db slugQuerier, clientSlug, title string) (string, error) {
-	base := truncateSlug(normalizeProjectSlug(title))
-	if base == "" {
-		base = "book"
-	}
-	for i := 1; i < 100; i++ {
-		candidate := base
-		if i > 1 {
-			candidate = fmt.Sprintf("%s-%d", base, i)
-		}
-		var n int
-		if err := db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM projects WHERE client_slug = ? AND project_slug = ?`,
-			clientSlug, candidate).Scan(&n); err != nil {
-			return "", fmt.Errorf("check project slug: %w", err)
-		}
-		if n == 0 {
-			return candidate, nil
-		}
-	}
-	return "", fmt.Errorf("no free project slug for %q", base)
 }
 
 // ─── public: redemption ───

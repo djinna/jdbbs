@@ -48,18 +48,22 @@ template must use emailShell and be added to `emailPreviewFixtures`.
   `smokeRegistrationEmail` in `srv/registration.go`). Confirmed: snapshot #23
   to him with BCC landed 200.
 
-### THIRD: stable project slugs (user: "clients may well change book titles… maybe lname-000")
-Today `uniqueProjectSlug` (`srv/passes.go` ~L444) derives from the manuscript
-title, truncated to 24 chars → `building-in-the-wrong-ma`. Title-derived is
-fragile: titles change during production and the slug is in emailed URLs.
-Proposal to confirm with user: per-client sequence, `{lastname}-{NNN}` →
-`/mike-casey/casey-001/`. Alternatives to mention: `/mike-casey/001/` (shorter,
-no redundancy) or `/mike-casey/book-001/`. Implementation: `SELECT COUNT(*)+1
-FROM projects WHERE client_slug=?` (or MAX of parsed suffix) → zero-pad 3;
-keep `projects.name` as the human title (renamable freely). Apply to Factory
-redemption path AND the admin New Project modal (offer as default, editable).
-Existing project `mike-casey/building-in-the-wrong-ma`: leave as-is unless
-user says rename — the URL is already in Mike Casey's fulfillment email.
+### DONE 2026-09-13: stable slugs + admin rename + old-URL redirects
+Scheme (`srv/slugs.go`): client slug = first initial + last name (`mcasey`,
+collision `mcasey2`); project slug = per-client sequence `book-001`,
+`book-002`… (highest existing + 1, archived counted, never reused). The
+manuscript title is `projects.name` only and renames freely. Factory
+redemption uses both; admin New Client / New Project modals prefill from
+`GET /api/admin/slug-suggest?name=|client=`. Renames: project card →
+"Rename URL" (`POST /api/admin/projects/{id}/slug`,
+`POST /api/admin/clients/{slug}/rename`). Every rename records a row in
+`slug_aliases` (migration 030) and the catch-all route 301s old paths
+(`redirectAliasedPath`; in-memory map reloaded on rename).
+
+Data: Mike Casey is now `/mcasey/book-001/` (was
+`/mike-casey/building-in-the-wrong-ma/`; old links + old portal redirect).
+Mike Check is `/mcheck/book-001/`. **TODO user: tell Mike Casey his sign-in
+address is now jdbbs.exe.xyz/mcasey/ (same password).**
 
 0. Everything from the 2026-09-11 workplan is shipped. Remaining items are post-workshop polish (see docs/IDEAS.md) and the deploy freeze Sep 19–22.
 1. ~~`/stylesheet` split~~ — DONE (commit after 8e07125): `/stylesheet-pi/` tool, `/stylesheet/` public house sheet (62 items, fiction/nonfiction/both, `srv/housestyle.go`).

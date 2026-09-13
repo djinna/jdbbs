@@ -46,6 +46,9 @@ type Server struct {
 
 	regLimiter     *regRateLimiter
 	regLimiterOnce sync.Once
+
+	aliasMu sync.RWMutex
+	aliases map[slugAlias]slugAlias // old /{client}/{project} → current
 }
 
 func New(dbPath, hostname string) (*Server, error) {
@@ -114,6 +117,9 @@ func loadOrCreateSecret(dbPath string) ([]byte, error) {
 // Handler returns the fully configured HTTP handler for the server.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	if s.DB != nil {
+		s.loadSlugAliases()
+	}
 
 	// Health check
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
@@ -164,6 +170,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/passes", s.handleAdminCreatePass)
 	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
 	mux.HandleFunc("POST /api/admin/clients/{slug}/password", s.handleAdminResetClientPassword)
+	mux.HandleFunc("POST /api/admin/clients/{slug}/rename", s.handleAdminRenameClient)
+	mux.HandleFunc("POST /api/admin/projects/{id}/slug", s.handleAdminRenameProjectSlug)
+	mux.HandleFunc("GET /api/admin/slug-suggest", s.handleAdminSlugSuggest)
 
 	// Site pages registry (admin inventory of every route; see docs/PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md §7)
 	mux.HandleFunc("GET /api/admin/pages", s.handleAdminListSitePages)
@@ -332,6 +341,10 @@ func (s *Server) Handler() http.Handler {
 		// 2026-09-11 (the bump was folded into the landing page itself).
 		if len(parts) == 1 && parts[0] == "lg" {
 			http.Redirect(w, r, "/", http.StatusMovedPermanently)
+			return
+		}
+		// Renamed client/project: old URLs 301 to the current ones.
+		if s.redirectAliasedPath(w, r, parts) {
 			return
 		}
 		// /{client}/ -> client portal

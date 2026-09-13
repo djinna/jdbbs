@@ -1307,6 +1307,7 @@ function renderProjects(projects, filtered) {
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
           ${p.has_auth ? `<!-- Remove password --> <button class="email-btn" style="color:var(--red)" onclick="removeProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Remove password</button>` : `<!-- Set password --> <button class="email-btn" style="color:var(--green)" onclick="setProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Set password</button>`}
+          <button class="email-btn" onclick="openRenameSlugModal(${p.id})">Rename URL</button>
           <button class="email-btn" style="color:var(--yellow)" onclick="archiveProject(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Archive</button>
         </div>
       </div>
@@ -1361,9 +1362,9 @@ function openNewProjectModal() {
     <div class="book-form active" style="margin-bottom:0">
       <div class="full"><label>Project name<input type="text" id="np-name" placeholder="The New Book"></label></div>
       <div><label>Client slug<input type="text" id="np-client" list="np-client-list" placeholder="vgr"></label><datalist id="np-client-list">${cachedClients.map(c => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('')}</datalist></div>
-      <div><label>Project slug<input type="text" id="np-slug" placeholder="new-book"></label></div>
+      <div><label>Project slug<input type="text" id="np-slug" placeholder="book-001"></label></div>
       <div><label>Start date<input type="date" id="np-start"></label></div>
-      <div class="full" style="font-size:0.78rem;color:var(--text-secondary)">Type an existing client slug or enter a new one.</div>
+      <div class="full" style="font-size:0.78rem;color:var(--text-secondary)">Type an existing client slug or enter a new one. The project slug fills in as the client’s next <code>book-NNN</code>; the title above stays renamable.</div>
       <div class="full" id="np-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
     </div>
     <div class="modal-actions">
@@ -1374,6 +1375,7 @@ function openNewProjectModal() {
   backdrop.appendChild(modal);
   document.body.appendChild(backdrop);
   modal.querySelector('#np-cancel').addEventListener('click', () => backdrop.remove());
+  bindSlugSuggest(modal.querySelector('#np-client'), modal.querySelector('#np-slug'), client => `client=${encodeURIComponent(client)}`, 'project_slug');
   modal.querySelector('#np-create').addEventListener('click', async () => {
     const name = modal.querySelector('#np-name').value.trim();
     const clientSlug = modal.querySelector('#np-client').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -1416,7 +1418,8 @@ function openNewClientModal() {
     <p class="subtitle">Create a client record for project grouping. Optional password adds an extra portal password if access is not already handled elsewhere.</p>
     <div class="book-form active" style="margin-bottom:0">
       <div class="full"><label>Client name<input type="text" id="nc-name" placeholder="Client Name"></label></div>
-      <div><label>Client slug<input type="text" id="nc-slug" placeholder="client-slug"></label></div>
+      <div><label>Client slug<input type="text" id="nc-slug" placeholder="mcasey"></label></div>
+      <div class="full" style="font-size:0.78rem;color:var(--text-secondary)">Suggested from the name: first initial + last name (<code>mcasey</code>, <code>mcasey2</code> if taken). Edit freely; it can be renamed later.</div>
       <div><label>Client password (optional)<input type="password" id="nc-password" autocomplete="new-password" placeholder="leave blank if handled elsewhere"></label></div>
       <div class="full" id="nc-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
     </div>
@@ -1428,6 +1431,7 @@ function openNewClientModal() {
   backdrop.appendChild(modal);
   document.body.appendChild(backdrop);
   modal.querySelector('#nc-cancel').addEventListener('click', () => backdrop.remove());
+  bindSlugSuggest(modal.querySelector('#nc-name'), modal.querySelector('#nc-slug'), name => `name=${encodeURIComponent(name)}`, 'client_slug');
   modal.querySelector('#nc-create').addEventListener('click', async () => {
     const name = modal.querySelector('#nc-name').value.trim();
     const slug = modal.querySelector('#nc-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -1883,6 +1887,83 @@ async function removeProjectPassword(id, name) {
   } catch (e) {
     showToast('Failed to remove project password: ' + e.message, 'error');
   }
+}
+
+// bindSlugSuggest: while the source field is edited, ask the server for the
+// slug it would generate and prefill the target — unless the admin has typed
+// their own value into the target.
+function bindSlugSuggest(srcEl, dstEl, query, key) {
+  let timer, lastAuto = '';
+  dstEl.addEventListener('input', () => { dstEl.dataset.manual = dstEl.value.trim() && dstEl.value.trim() !== lastAuto ? '1' : ''; });
+  srcEl.addEventListener('input', () => {
+    clearTimeout(timer);
+    const v = srcEl.value.trim();
+    if (!v || dstEl.dataset.manual) return;
+    timer = setTimeout(async () => {
+      try {
+        const r = await fetch('/api/admin/slug-suggest?' + query(v));
+        if (!r.ok) return;
+        const j = await r.json();
+        if (j[key] && !dstEl.dataset.manual) { dstEl.value = j[key]; lastAuto = j[key]; }
+      } catch (e) { /* prefill is best-effort */ }
+    }, 250);
+  });
+}
+
+// Rename a project's URL: the project slug (this book only) and/or the
+// client slug (moves every project under that client). Old addresses keep
+// working via a server-side redirect.
+function openRenameSlugModal(id) {
+  const p = (cachedProjects || []).find(x => x.id === id);
+  if (!p) return;
+  const siblings = (cachedProjects || []).filter(x => x.client_slug === p.client_slug).length;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+  const modal = document.createElement('div');
+  modal.className = 'modal-card';
+  modal.innerHTML = `
+    <h2>Rename URL</h2>
+    <p class="subtitle">${esc(p.name)} · currently <code>${esc(p.path)}</code></p>
+    <div class="book-form active" style="margin-bottom:0">
+      <div><label>Client slug<input type="text" id="rs-client" value="${esc(p.client_slug)}"></label></div>
+      <div><label>Project slug<input type="text" id="rs-project" value="${esc(p.project_slug)}"></label></div>
+      <div class="full" style="font-size:0.78rem;color:var(--text-secondary)">Changing the client slug moves ${siblings === 1 ? 'this project' : 'all ' + siblings + ' of this client’s projects'} and their sign-in address; the client will need to sign in again at the new URL. Old links redirect either way, but tell the client.</div>
+      <div class="full" id="rs-error" style="font-size:0.82rem;color:var(--red);display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="rs-cancel">Cancel</button>
+      <button class="primary" id="rs-save">Rename</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('#rs-cancel').addEventListener('click', () => backdrop.remove());
+  modal.querySelector('#rs-save').addEventListener('click', async () => {
+    const clean = v => v.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const client = clean(modal.querySelector('#rs-client').value);
+    const project = clean(modal.querySelector('#rs-project').value);
+    const errorEl = modal.querySelector('#rs-error');
+    const fail = m => { errorEl.textContent = m; errorEl.style.display = 'block'; };
+    if (!client || !project) return fail('Both slugs are required.');
+    if (client === p.client_slug && project === p.project_slug) return fail('Nothing changed.');
+    try {
+      if (project !== p.project_slug) {
+        const r = await fetch(`/api/admin/projects/${id}/slug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_slug: project }) });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+      }
+      if (client !== p.client_slug) {
+        const r = await fetch(`/api/admin/clients/${encodeURIComponent(p.client_slug)}/rename`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: client }) });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+      }
+      backdrop.remove();
+      showToast(`Now at /${client}/${project}/ — old links redirect`);
+      await loadClients();
+      await loadProjects();
+    } catch (e) { fail(e.message); }
+  });
 }
 
 async function archiveProject(id, name) {

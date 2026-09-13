@@ -170,11 +170,11 @@ func TestRedeemCreatesClientProjectAndPass(t *testing.T) {
 	}
 	clientSlug, _ := body["client_slug"].(string)
 	projectSlug, _ := body["project_slug"].(string)
-	if clientSlug != "ada-lovelace" {
-		t.Errorf("client_slug = %q, want \"ada-lovelace\"", clientSlug)
+	if clientSlug != "alovelace" {
+		t.Errorf("client_slug = %q, want \"alovelace\" (first initial + last name)", clientSlug)
 	}
-	if projectSlug != "notes-on-the-analytical" {
-		t.Errorf("project_slug = %q, want \"notes-on-the-analytical\" (24-char cap)", projectSlug)
+	if projectSlug != "book-001" {
+		t.Errorf("project_slug = %q, want \"book-001\" (title-independent sequence)", projectSlug)
 	}
 	portal, _ := body["portal_url"].(string)
 	if !strings.HasSuffix(portal, "/"+clientSlug+"/"+projectSlug+"/factory/") {
@@ -282,10 +282,10 @@ func TestRedeemLinksMatchingRegistration(t *testing.T) {
 	if row["coupon_redeemed_at"] == "" {
 		t.Errorf("tracker coupon_redeemed_at should be set once redeemed, got %v", row["coupon_redeemed_at"])
 	}
-	if row["client_slug"] != "grace-hopper" {
-		t.Errorf("tracker client_slug = %v, want grace-hopper", row["client_slug"])
+	if row["client_slug"] != "ghopper" {
+		t.Errorf("tracker client_slug = %v, want ghopper", row["client_slug"])
 	}
-	if row["project_path"] != "/grace-hopper/compiling/factory/" {
+	if row["project_path"] != "/ghopper/book-001/factory/" {
 		t.Errorf("tracker project_path = %v, want the redeemed Factory page", row["project_path"])
 	}
 }
@@ -434,8 +434,8 @@ func TestRedeemSlugCollisionsGetSuffixed(t *testing.T) {
 	if slugs[0] == slugs[1] {
 		t.Fatalf("both redemptions landed on %q; slugs must be unique-ified", slugs[0])
 	}
-	if slugs[0] != "jane-doe/same-title" || slugs[1] != "jane-doe-2/same-title" {
-		t.Errorf("unexpected slugs %v, want [jane-doe/same-title jane-doe-2/same-title]", slugs)
+	if slugs[0] != "jdoe/book-001" || slugs[1] != "jdoe2/book-001" {
+		t.Errorf("unexpected slugs %v, want [jdoe/book-001 jdoe2/book-001]", slugs)
 	}
 }
 
