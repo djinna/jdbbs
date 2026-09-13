@@ -284,7 +284,7 @@ function render() {
     box.innerHTML = `
       <div class="kicker">Client portal</div>
       <h2>Password required</h2>
-      <p class="auth-sub">${esc(state.client?.name || clientSlug)}</p>
+      <p class="auth-sub">This is the portal for <b>${esc(state.client?.name || clientSlug)}</b>. Enter the password from your welcome email &mdash; not the client code you typed on the homepage.</p>
       <input type="password" id="pw" class="input-bare" placeholder="Password" autofocus>
       <div><button class="btn-fill" id="loginBtn" style="width:100%">Unlock</button></div>
       ${state.error ? '<div class="error">' + esc(state.error) + '</div>' : ''}

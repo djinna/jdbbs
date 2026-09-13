@@ -122,182 +122,6 @@
  },
  {
   "section_ord": 2,
-  "section": "Manuscript handling",
-  "item_ord": 1,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "Request manuscripts as **.docx**, not plain text or pasted text. Word files preserve italics, smart quotes, em dashes, and scene breaks; plain-text paste loses them.",
-  "book_kind": "both"
- },
- {
-  "section_ord": 2,
-  "section": "Manuscript handling",
-  "item_ord": 2,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "Edit in a lossless round-trip (.docx → markdown → .docx or equivalent). Asterisks in the extracted text are the author's italics; verify each one is real emphasis before touching it.",
-  "book_kind": "both"
- },
- {
-  "section_ord": 2,
-  "section": "Manuscript handling",
-  "item_ord": 3,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "After rendering back, sanity-check that emphasis survived the round-trip: diff the italic spans before and after. Word-processor exports sometimes extend an italic run over the trailing `.\"` of a sentence—move closing punctuation outside the span.",
-  "book_kind": "both"
- },
- {
-  "section_ord": 2,
-  "section": "Manuscript handling",
-  "item_ord": 4,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "Deliver a **clean edited file plus a changelog** (before → after list and author queries). The changelog is the review surface; do not rely on tracked changes surviving conversion.",
-  "book_kind": "both"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 1,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "Preserve the author's voice, especially in casual or interior first-person narration. This is a *light* copyedit regime: fix mechanics, don't rewrite. **Keep:**",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 2,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Sentence fragments used for rhythm or emphasis. *\"Gone. Just like that.\" / \"Or worse.\"*",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 3,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Conversational discourse markers: \"Like, sure,…\", \"I mean\", \"I guess\", \"sure\".",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 4,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Profanity and slang in dialogue and narration (do not soften).",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 5,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Coined words and neologisms. Do not \"correct\" invented vocabulary; record each coinage and its styling on the book's word list and apply it consistently.",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 6,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Intentional repetition for effect (e.g., \"The same… The same…\").",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 7,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "**Fix:** grammar slips, missing/extra words, agreement errors, typos, mistaken homophones, dropped punctuation, inconsistent styling.",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 3,
-  "section": "Voice & register",
-  "item_ord": 8,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "When fragment vs. error is ambiguous, preserve if it scans as deliberate; query rather than rewrite.",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 4,
-  "section": "Dialogue",
-  "item_ord": 1,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Each speaker gets a new paragraph.",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 4,
-  "section": "Dialogue",
-  "item_ord": 2,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Put a question-and-answer exchange on **separate** paragraphs, even when terse (\"You coming?\" / \"Why do you care?\").",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 4,
-  "section": "Dialogue",
-  "item_ord": 3,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Dialogue tags lowercase after a comma: `she said, \"Let's go.\"` and `\"Never,\" he said.`",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 4,
-  "section": "Dialogue",
-  "item_ord": 4,
-  "kind": "prose",
-  "col1": "",
-  "col2": "",
-  "col3": "",
-  "body": "- Capitalize the first word of quoted dialogue introduced by a comma: `shrugged and said, \"Let's go.\"`",
-  "book_kind": "fiction"
- },
- {
-  "section_ord": 5,
   "section": "Typography & formatting",
   "item_ord": 1,
   "kind": "prose",
@@ -308,7 +132,7 @@
   "book_kind": "fiction"
  },
  {
-  "section_ord": 5,
+  "section_ord": 2,
   "section": "Typography & formatting",
   "item_ord": 2,
   "kind": "prose",
@@ -319,7 +143,7 @@
   "book_kind": "fiction"
  },
  {
-  "section_ord": 5,
+  "section_ord": 2,
   "section": "Typography & formatting",
   "item_ord": 3,
   "kind": "prose",
@@ -330,7 +154,7 @@
   "book_kind": "both"
  },
  {
-  "section_ord": 5,
+  "section_ord": 2,
   "section": "Typography & formatting",
   "item_ord": 4,
   "kind": "prose",
@@ -341,7 +165,7 @@
   "book_kind": "fiction"
  },
  {
-  "section_ord": 5,
+  "section_ord": 2,
   "section": "Typography & formatting",
   "item_ord": 5,
   "kind": "prose",
@@ -350,6 +174,182 @@
   "col3": "",
   "body": "- Title/part/chapter openers: keep the author's heading text verbatim; styling is a layout decision, not a copyedit.",
   "book_kind": "both"
+ },
+ {
+  "section_ord": 3,
+  "section": "Manuscript handling",
+  "item_ord": 1,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "Send manuscripts as **.docx**, not plain text or pasted text. Word files preserve italics, smart quotes, em dashes, and scene breaks; plain-text paste loses them.",
+  "book_kind": "both"
+ },
+ {
+  "section_ord": 3,
+  "section": "Manuscript handling",
+  "item_ord": 2,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "On our side: we edit in a lossless round-trip (.docx → markdown → .docx or equivalent). Asterisks in the extracted text are the author's italics; we verify each one is real emphasis before touching it.",
+  "book_kind": "both"
+ },
+ {
+  "section_ord": 3,
+  "section": "Manuscript handling",
+  "item_ord": 3,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "After rendering back, sanity-check that emphasis survived the round-trip: diff the italic spans before and after. Word-processor exports sometimes extend an italic run over the trailing `.\"` of a sentence—move closing punctuation outside the span.",
+  "book_kind": "both"
+ },
+ {
+  "section_ord": 3,
+  "section": "Manuscript handling",
+  "item_ord": 4,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "You get back a **clean edited file plus a changelog** (before → after list and author queries). Review the changelog, not tracked changes — they don't reliably survive conversion.",
+  "book_kind": "both"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 1,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "Preserve the author's voice, especially in casual or interior first-person narration. This is a *light* copyedit regime: fix mechanics, don't rewrite. **Keep:**",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 2,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Sentence fragments used for rhythm or emphasis. *\"Gone. Just like that.\" / \"Or worse.\"*",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 3,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Conversational discourse markers: \"Like, sure,…\", \"I mean\", \"I guess\", \"sure\".",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 4,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Profanity and slang in dialogue and narration (do not soften).",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 5,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Coined words and neologisms. Do not \"correct\" invented vocabulary; record each coinage and its styling on the book's word list and apply it consistently.",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 6,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Intentional repetition for effect (e.g., \"The same… The same…\").",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 7,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "**Fix:** grammar slips, missing/extra words, agreement errors, typos, mistaken homophones, dropped punctuation, inconsistent styling.",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 4,
+  "section": "Voice & register",
+  "item_ord": 8,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "When fragment vs. error is ambiguous, preserve if it scans as deliberate; query rather than rewrite.",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 5,
+  "section": "Dialogue",
+  "item_ord": 1,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Each speaker gets a new paragraph.",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 5,
+  "section": "Dialogue",
+  "item_ord": 2,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Put a question-and-answer exchange on **separate** paragraphs, even when terse (\"You coming?\" / \"Why do you care?\").",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 5,
+  "section": "Dialogue",
+  "item_ord": 3,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Dialogue tags lowercase after a comma: `she said, \"Let's go.\"` and `\"Never,\" he said.`",
+  "book_kind": "fiction"
+ },
+ {
+  "section_ord": 5,
+  "section": "Dialogue",
+  "item_ord": 4,
+  "kind": "prose",
+  "col1": "",
+  "col2": "",
+  "col3": "",
+  "body": "- Capitalize the first word of quoted dialogue introduced by a comma: `shrugged and said, \"Let's go.\"`",
+  "book_kind": "fiction"
  },
  {
   "section_ord": 6,

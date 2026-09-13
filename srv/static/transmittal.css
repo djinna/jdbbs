@@ -176,6 +176,16 @@ input, select, textarea { accent-color: var(--accent); }
 .tx-save-status.saved { color: var(--green); }
 .tx-save-status.error { color: var(--red); }
 
+/* ─── Intro line under the header ─── */
+.tx-intro {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 72ch;
+  margin: 0 0 18px;
+}
+.tx-intro b { color: var(--text); font-weight: 600; }
+
 /* ─── Progress: bare 2px line, no track box ─── */
 .tx-progress {
   height: 2px;
@@ -879,6 +889,7 @@ html.dark .email-warning { background: none; }
 
   .tx-header-actions,
   .page-header-actions,
+  .tx-intro,
   .tx-progress,
   .tx-add-btn,
   .tx-reviewer-remove,

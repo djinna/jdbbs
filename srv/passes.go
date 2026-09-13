@@ -972,9 +972,9 @@ func (s *Server) handleAdminGrantPassBuilds(w http.ResponseWriter, r *http.Reque
 // passSupportEdges is the shared copy for what is and isn't included. The
 // page and both emails say the same thing on purpose.
 var passSupportEdges = []string{
-	"Included: the workshop sessions themselves (Sep 21–22).",
-	"After that, email support is not included — the preflight report and the docs are the self-serve path.",
-	"Live help is available at USD 100/hr, booked in advance, 30-minute minimum.",
+	"Live help during the workshop sessions (Sep 21–22) is included.",
+	"Outside that, email support is not included — the preflight report and the docs are the self-serve path.",
+	"Live help is available at USD 100/hr, booked in advance, one-hour minimum.",
 }
 
 // deliverPassFulfillmentEmail performs the actual AgentMail send. Redemption
@@ -1018,7 +1018,7 @@ func passFulfillmentText(res fulfillPassResult) string {
 	expires := res.Pass.ExpiresAt.UTC().Format("2 January 2006")
 	var b strings.Builder
 	fmt.Fprintf(&b, "Hi %s,\n\n", firstName(res.Pass.CustomerName))
-	fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol.\n\n")
+	fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you'll use in the sessions; the Discord and calendar invites arrive separately.\n\n")
 	fmt.Fprintf(&b, "Manuscript:     %s\n", res.Title)
 	fmt.Fprintf(&b, "Your factory:   %s\n", res.PortalURL)
 	fmt.Fprintf(&b, "Sign-in name:   %s\n", res.ClientSlug)
@@ -1028,10 +1028,11 @@ func passFulfillmentText(res fulfillPassResult) string {
 	fmt.Fprintf(&b, "  - Unlimited preflights: the report tells you what to fix\n")
 	fmt.Fprintf(&b, "  - Your project stays live and rebuildable until %s (%d months)\n\n", expires, passStorageMonths)
 	fmt.Fprintf(&b, "First steps\n")
-	fmt.Fprintf(&b, "  1. Start with the transmittal: it is the spec your book is built from.\n")
-	fmt.Fprintf(&b, "  2. Upload your Word manuscript.\n")
+	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from, and the studio generates the Word template you'll write in from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
+	fmt.Fprintf(&b, "  2. Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  3. Run a preflight (free, as often as you like) and fix what it flags.\n")
-	fmt.Fprintf(&b, "  4. Build. Failed builds don't cost a credit.\n\n")
+	fmt.Fprintf(&b, "  4. Build. Failed builds don't count against your %d.\n\n", res.Pass.BuildsIncluded)
+	fmt.Fprintf(&b, "Support\n")
 	for _, edge := range passSupportEdges {
 		fmt.Fprintf(&b, "  - %s\n", edge)
 	}
@@ -1047,7 +1048,7 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	}
 	var b strings.Builder
 	b.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(res.Pass.CustomerName)))))
-	b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol."))
+	b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you&rsquo;ll use in the sessions; the Discord and calendar invites arrive separately."))
 	b.WriteString(emailKV([][2]string{
 		{"Manuscript", "<b>" + html.EscapeString(res.Title) + "</b>"},
 		{"Your factory", fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:none">%s</a>`, html.EscapeString(res.PortalURL), emailAccent, emailCode(res.PortalURL))},
@@ -1062,12 +1063,13 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	}, false))
 	b.WriteString(emailH2("First steps"))
 	b.WriteString(emailList([]string{
-		"Start with the <b>transmittal</b> &mdash; it is the spec your book is built from.",
-		"Upload your Word manuscript.",
+		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from, and the studio generates the Word template you&rsquo;ll write in from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
+		"Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).",
 		"Run a <b>preflight</b> (free, as often as you like) and fix what it flags.",
-		"<b>Build.</b> Failed builds don&rsquo;t cost a credit.",
+		fmt.Sprintf("<b>Build.</b> Failed builds don&rsquo;t count against your %d.", res.Pass.BuildsIncluded),
 	}, true))
 	// Support edges: same sentences as the page and the text part, in small type.
+	b.WriteString(emailH2("Support"))
 	fmt.Fprintf(&b, `<ul style="margin:0 0 14px;padding-left:22px;font-size:13px;color:%s">`, emailSecondary)
 	for _, e := range edges {
 		fmt.Fprintf(&b, `<li style="margin:0 0 5px">%s</li>`, e)

@@ -126,7 +126,7 @@ func (s *Server) handleCohortRoster(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.DB.QueryContext(r.Context(), `
 		SELECT e.name, e.region, e.all_sessions, e.material, e.material_type,
 		       e.background, e.goals, e.attended_sessions,
-		       COALESCE(MAX(pr.client_slug), '') AS client_slug
+		       COALESCE(MAX(pr.client_slug), '') AS client_slug, lower(e.email)
 		FROM event_registrations e
 		LEFT JOIN coupons c ON c.registration_id = e.id
 		LEFT JOIN passes  p ON p.coupon_id = c.id
@@ -145,14 +145,20 @@ func (s *Server) handleCohortRoster(w http.ResponseWriter, r *http.Request) {
 		var m cohortMember
 		var allS int
 		var goals sql.NullString
+		var email string
 		if err := rows.Scan(&m.Name, &m.Region, &allS, &m.Material, &m.MaterialType,
-			&m.Background, &goals, &m.AttendedSessions, &m.ClientSlug); err != nil {
+			&m.Background, &goals, &m.AttendedSessions, &m.ClientSlug, &email); err != nil {
 			jsonErr(w, err.Error(), 500)
 			return
 		}
 		m.AllSessions = allS == 1
 		m.Goals = goals.String
 		m.IsYou = you != "" && m.ClientSlug == you
+		// The smoke-test persona stays in the admin tracker but is not a
+		// participant; hide it from the cohort unless the persona is the viewer.
+		if email == smokeRegistrationEmail && !m.IsYou {
+			continue
+		}
 		out = append(out, m)
 	}
 	jsonOK(w, map[string]any{

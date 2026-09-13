@@ -549,6 +549,9 @@ function renderForm() {
           h('button', { className: 'btn btn-sm', onClick: () => window.print() }, 'Print'),
           h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, 'Email'),
           h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? '' : ' btn-primary'),
+            title: state.transmittal.status === 'final'
+              ? 'Switches the transmittal back to Draft so you can keep editing.'
+              : 'Marks the transmittal final and opens the email to the studio. You can switch it back to Draft.',
             onClick: () => {
               const wasDraft = state.transmittal.status !== 'final';
               state.transmittal.status = wasDraft ? 'final' : 'draft';
@@ -582,6 +585,12 @@ function renderForm() {
     renderVersionPanel(),
     // Duplicate modal
     renderDuplicateModal(),
+    // Intro: what this document is and what Mark Final does
+    isPreview ? null : h('p', { className: 'tx-intro' },
+      'The transmittal is the mise en place for your book — the handoff record of what the book is, what’s in the file, and how it should be set, prepared before any typesetting starts. Fill in what you know; leave the rest. When it’s ready, ',
+      h('b', null, 'Mark Final'),
+      ': that sends it to the studio, which generates your Word template from it; the build follows it. You can switch it back to Draft at any time.',
+    ),
     // Progress
     h('div', { className: 'tx-progress' },
       h('div', { className: 'tx-progress-bar', style: 'width:' + pct + '%' }),
@@ -790,7 +799,7 @@ function renderIllustrationsSection() {
     textareaField('Art & Production Plan / Budget', 'illustrations.art_plan', {
       rows: 4,
       className: 'tx-field-important',
-      helpText: 'Priority field: include art plan expectations, budget notes, and constraints.',
+      helpText: 'Interior art: what is expected, budget notes, and constraints.',
     }),
   );
 }
@@ -904,7 +913,7 @@ function renderEditingSection() {
       rows: 3,
       className: 'tx-field-important',
       placeholder: 'Any guidance for developmental edit focus, scope, or priorities...',
-      helpText: 'Priority field: use this for anything the developmental editor must not miss.',
+      helpText: 'Anything the developmental editor must not miss.',
     }),
     selectField('Level of Copyediting', 'editing.copyediting_level', [
       ['','— Select —'],['light','Light'],['medium','Medium'],['heavy','Heavy']
@@ -912,7 +921,7 @@ function renderEditingSection() {
     textareaField('Instructions for Copyeditor', 'editing.instructions', {
       rows: 4,
       className: 'tx-field-important',
-      helpText: 'Priority field: use this for anything the copyeditor must not miss.',
+      helpText: 'Anything the copyeditor must not miss.',
     }),
     textField('Special Characters', 'editing.special_characters'),
     textField('Mathematical Formulas', 'editing.math_formulas'),
@@ -946,7 +955,7 @@ function renderDesignSection() {
       rows: 3,
       className: 'tx-field-important',
       placeholder: 'e.g. coffee table, pocket book size, gift format',
-      helpText: 'Priority field: use this for trim intent, flexibility, and format direction.',
+      helpText: 'Trim intent, how flexible it is, and format direction.',
     }),
     h('div', { className: 'tx-field' },
       h('label', null, 'Trim Size'),
@@ -1029,7 +1038,7 @@ function renderCoverSection() {
     textareaField('Production Plan / Budget', 'cover.production_plan_budget', {
       rows: 3,
       className: 'tx-field-important',
-      helpText: 'Priority field: key production-plan and budget context for cover + print timing.',
+      helpText: 'Cover and print-timing plan, with budget context.',
     }),
   );
 }
