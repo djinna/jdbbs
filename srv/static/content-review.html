@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content review — jdbb studio</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--body)}
+.wrap{max-width:var(--shell-max);margin:auto;padding:0 var(--shell-gutter) 64px}
+.hero{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;padding:34px 0 20px;border-bottom:1px solid var(--border-strong)}.kicker,.label{font:700 11px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:var(--text-secondary);max-width:70ch}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn,button,select,textarea{font:inherit;border-radius:0}.btn,button{border:1px solid var(--border-strong);background:var(--surface);color:var(--text);padding:8px 12px;cursor:pointer;text-decoration:none;font-family:var(--mono);font-size:12px;font-weight:600}.btn:hover,button:hover{border-color:var(--accent);color:var(--accent)}button.primary{background:var(--accent);border-color:var(--accent);color:white}button:disabled{opacity:.45;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--border);margin-bottom:8px}.stat{padding:15px 16px 15px 0}.stat+.stat{padding-left:16px;border-left:1px solid var(--border)}.stat b{display:block;font:600 24px/1 var(--mono)}.stat span{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:12px 0 6px;font:11px var(--mono);color:var(--text-muted)}.filters button{padding:4px 9px;font-size:11px}.filters button.on{border-color:var(--accent);color:var(--accent)}
+.item{border-top:1px solid var(--border-strong);padding:22px 0 26px}.item:last-child{border-bottom:1px solid var(--border-strong)}
+.item-head{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}.item-head h2{font:600 16px var(--mono);margin:0}.item-head h2 small{font-weight:400;color:var(--text-muted);margin-left:8px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.tag{border:1px solid var(--border);padding:2px 6px;font:10px var(--mono);color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em}.tag.sev-CRITICAL{color:var(--red);border-color:var(--red)}.tag.sev-MAJOR{color:var(--yellow);border-color:var(--yellow)}.tag.dec-accepted,.tag.dec-edited{color:var(--green);border-color:var(--green)}.tag.dec-rejected{color:var(--text-muted);text-decoration:line-through}
+.where{margin:8px 0 12px;font:12px var(--mono);color:var(--text-secondary)}.where b{color:var(--text);font-weight:600}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}.col .label{margin-bottom:6px;color:var(--text-muted)}.text{white-space:pre-wrap;padding:12px 14px;border:1px solid var(--border);background:var(--surface);font-size:13.5px;line-height:1.55}.text.cur{color:var(--text-secondary)}.text.prop{border-left:3px solid var(--accent)}
+.reason{margin-top:14px;color:var(--text-secondary);max-width:90ch}.reason .label{display:inline;margin-right:8px}
+.decide{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}.decide .state{font:11px var(--mono);color:var(--text-muted);margin-left:auto}
+.editor{display:none;margin-top:12px}.item.editing .editor{display:block}.editor textarea{width:100%;min-height:120px;padding:10px 12px;border:1px solid var(--accent);background:var(--surface);color:var(--text);resize:vertical;font-size:13.5px;line-height:1.55}.editor .row{display:flex;gap:8px;margin-top:8px;align-items:center}.editor input{flex:1;font:inherit;padding:7px 9px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:0}
+.item.done .cols,.item.done .reason{opacity:.55}.item.dec-rejected .text.prop{border-left-color:var(--border)}
+.empty,.error{padding:26px 0;font-family:var(--mono);color:var(--text-muted)}.error{color:var(--red)}.toast{position:fixed;right:20px;bottom:20px;max-width:360px;padding:11px 14px;background:var(--text);color:var(--bg);font:12px var(--mono);display:none;z-index:5}
+@media(max-width:850px){.stats{grid-template-columns:repeat(2,1fr)}.stat{border-bottom:1px solid var(--border)}.cols{grid-template-columns:1fr}}
+@media(max-width:520px){.stats{grid-template-columns:1fr}.stat+.stat{padding-left:0;border-left:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="jdbb-masthead"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a><nav><a href="/admin/">Admin</a><a href="/admin/registrations">Cohort tracker</a><a href="/admin/email-preview/">Emails</a><div id="theme-bar"></div></nav></header>
+<section class="hero"><div><div class="kicker">Content review · better-documents · <span id="batch-label">—</span></div><h1>Proposed copy changes</h1><div class="sub">Each card is one change to one page. Accept it, edit the proposed text, or reject it. Nothing is applied from here — accepted items are exported as a patch list and applied by hand. Decisions save as you click.</div></div><div class="actions"><a class="btn" id="export" href="/api/admin/content-review/export" target="_blank">Export accepted</a><a class="btn" href="https://github.com/djinna/jdbbs/blob/main/docs/reviews/CONTENT-REVIEW-2026-09-13.md" target="_blank">Full report</a></div></section>
+<div class="stats" id="stats"></div>
+<div class="filters" id="filters"><span>Show</span><button data-f="all" class="on">All</button><button data-f="pending">Pending</button><button data-f="accepted">Accepted</button><button data-f="edited">Edited</button><button data-f="rejected">Rejected</button></div>
+<div id="items"><div class="empty">Loading…</div></div>
+<footer class="jdbb-footer"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a><nav aria-label="Footer"><a href="/admin/">Admin</a><a href="/">Home</a><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a></nav><span class="copy">&copy; 2026 Jenna Dixon</span></footer>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/static/theme.js"></script>
+<script>JdbbTheme.mount(document.getElementById('theme-bar'));</script>
+<script>
+let items=[], filter='all';
+const esc=s=>{const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML};
+function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3000)}
+async function load(){
+  const r=await fetch('/api/admin/content-review');
+  if(!r.ok){document.getElementById('items').innerHTML='<div class="error">Could not load ('+r.status+').</div>';return}
+  items=(await r.json()).items||[];
+  const batches=[...new Set(items.map(i=>i.batch))];
+  document.getElementById('batch-label').textContent=batches.join(' · ')||'no batch';
+  render();
+}
+function counts(){const c={total:items.length,pending:0,accepted:0,edited:0,rejected:0};items.forEach(i=>c[i.decision]=(c[i.decision]||0)+1);return c}
+function render(){
+  const c=counts();
+  document.getElementById('stats').innerHTML=[['total','proposed'],['pending','pending'],['accepted','accepted'],['edited','edited'],['rejected','rejected']].map(([k,l])=>`<div class="stat"><b>${c[k]||0}</b><span>${l}</span></div>`).join('');
+  const list=items.filter(i=>filter==='all'||i.decision===filter);
+  if(!list.length){document.getElementById('items').innerHTML='<div class="empty">Nothing here.</div>';return}
+  document.getElementById('items').innerHTML=list.map(card).join('');
+}
+function card(i){
+  const done=i.decision!=='pending';
+  const shown=i.decision==='edited'?i.edited_text:i.proposed;
+  return `<article class="item dec-${i.decision}${done?' done':''}" id="item-${i.id}">
+  <div class="item-head"><h2>${esc(i.page)}<small>${esc(i.ref)}</small></h2><div class="meta"><span class="tag sev-${esc(i.severity)}">${esc(i.severity)}</span><span class="tag">pass ${i.pass}</span><span class="tag dec-${esc(i.decision)}">${esc(i.decision)}</span>${i.applied_at?'<span class="tag dec-accepted">applied</span>':''}</div></div>
+  <div class="where"><b>${esc(i.location)}</b> · ${esc(i.file)}</div>
+  <div class="cols"><div class="col"><div class="label">Current</div><div class="text cur">${esc(i.current)}</div></div><div class="col"><div class="label">${i.decision==='edited'?'Edited':'Proposed'}</div><div class="text prop">${esc(shown)}</div></div></div>
+  <div class="reason"><span class="label">Why</span>${esc(i.reason)}</div>
+  <div class="decide">
+    <button class="primary" onclick="decide(${i.id},'accepted')" ${i.decision==='accepted'?'disabled':''}>Accept</button>
+    <button onclick="openEdit(${i.id})">Edit</button>
+    <button onclick="decide(${i.id},'rejected')" ${i.decision==='rejected'?'disabled':''}>Reject</button>
+    ${done?`<button onclick="decide(${i.id},'pending')">Undo</button>`:''}
+    ${(i.decision==='accepted'||i.decision==='edited')?`<button onclick="markApplied(${i.id},${!i.applied_at})">${i.applied_at?'Unmark applied':'Mark applied'}</button>`:''}
+    <span class="state">${i.decided_at?'decided '+esc(i.decided_at.slice(0,16).replace('T',' '))+' UTC':''}${i.note?' · '+esc(i.note):''}</span>
+  </div>
+  <div class="editor"><textarea id="ed-${i.id}">${esc(i.edited_text||i.proposed)}</textarea><div class="row"><input id="note-${i.id}" placeholder="Note (optional)" value="${esc(i.note)}"><button class="primary" onclick="saveEdit(${i.id})">Save edit</button><button onclick="closeEdit(${i.id})">Cancel</button></div></div>
+</article>`;
+}
+function openEdit(id){document.getElementById('item-'+id).classList.add('editing');document.getElementById('ed-'+id).focus()}
+function closeEdit(id){document.getElementById('item-'+id).classList.remove('editing')}
+async function put(id,body){
+  const r=await fetch('/api/admin/content-review/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){toast('Save failed: '+((await r.json()).error||r.status));return null}
+  const it=await r.json();const k=items.findIndex(x=>x.id===id);if(k>=0)items[k]=it;render();return it;
+}
+async function decide(id,decision){const i=items.find(x=>x.id===id);const it=await put(id,{decision,edited_text:decision==='edited'?i.edited_text:'',note:i.note});if(it)toast(it.ref+' → '+decision)}
+async function saveEdit(id){const t=document.getElementById('ed-'+id).value;const n=document.getElementById('note-'+id).value;const it=await put(id,{decision:'edited',edited_text:t,note:n});if(it)toast(it.ref+' → edited')}
+async function markApplied(id,on){const i=items.find(x=>x.id===id);const it=await put(id,{decision:i.decision,edited_text:i.edited_text,note:i.note,applied:on});if(it)toast(it.ref+(on?' marked applied':' unmarked'))}
+document.getElementById('filters').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;filter=b.dataset.f;document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('on',x===b));render()});
+load();
+</script>
+</body>
+</html>

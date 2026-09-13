@@ -160,6 +160,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/registrations.csv", s.handleAdminExportRegistrations)
 	mux.HandleFunc("GET /api/admin/email", s.handleAdminListOutboundEmail) // outbound mail audit log
 	mux.HandleFunc("GET /api/admin/email/{id}", s.handleAdminGetOutboundEmail)
+	mux.HandleFunc("GET /admin/content-review/{$}", s.handleAdminContentReviewPage)
+	mux.HandleFunc("GET /api/admin/content-review", s.handleAdminListContentReview)
+	mux.HandleFunc("POST /api/admin/content-review", s.handleAdminImportContentReview)
+	mux.HandleFunc("PUT /api/admin/content-review/{id}", s.handleAdminDecideContentReview)
+	mux.HandleFunc("GET /api/admin/content-review/export", s.handleAdminExportContentReview)
 	mux.HandleFunc("GET /admin/email-preview/{$}", s.handleAdminEmailPreview) // template gallery, fixture data
 	mux.HandleFunc("GET /admin/email-preview/{kind}", s.handleAdminEmailPreview)
 
