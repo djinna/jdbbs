@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -680,25 +681,84 @@ type announcementInput struct {
 	RegistrationIDs []int64 `json:"registration_ids"`
 	Subject         string  `json:"subject"`
 	Body            string  `json:"body"`
+	// Preview merges the body for each recipient and returns the letters
+	// without sending anything or logging a batch.
+	Preview bool `json:"preview"`
 }
 
 type announcementRecipient struct {
 	ID    int64
 	Name  string
 	Email string
+	// Factory Pass state, for merge fields. Code is "" when none is issued;
+	// FactoryURL is "" until the code has been redeemed.
+	Code       string
+	FactoryURL string
 }
+
+// announcementMergeFields lists what a message body may contain. Kept in one
+// place so the compose UI hint and the merge stay in step.
+const announcementMergeFields = "{{first}} {{name}} {{code}} {{factory_url}} {{#code}}…{{/code}} {{#redeemed}}…{{/redeemed}} {{#nocode}}…{{/nocode}}"
+
+var announcementBlockRe = regexp.MustCompile(`(?s)\{\{#(code|redeemed|nocode)\}\}(.*?)\{\{/(code|redeemed|nocode)\}\}`)
+
+// mergeAnnouncement personalizes one message body for one recipient.
+// Blocks: {{#code}} shows when an unredeemed code exists, {{#redeemed}} when the
+// pass has been redeemed, {{#nocode}} when no code has been issued. Blank lines
+// left by removed blocks are collapsed so the letter still reads cleanly.
+func mergeAnnouncement(body string, rec announcementRecipient) string {
+	hasCode := rec.Code != ""
+	redeemed := rec.FactoryURL != ""
+	out := announcementBlockRe.ReplaceAllStringFunc(body, func(m string) string {
+		sub := announcementBlockRe.FindStringSubmatch(m)
+		if sub[1] != sub[3] {
+			return m
+		}
+		keep := false
+		switch sub[1] {
+		case "code":
+			keep = hasCode && !redeemed
+		case "redeemed":
+			keep = redeemed
+		case "nocode":
+			keep = !hasCode
+		}
+		if keep {
+			return strings.TrimSpace(sub[2])
+		}
+		return ""
+	})
+	// {{code}} / {{factory_url}} are only substituted when the recipient has
+	// one; otherwise the tag is left in place for announcementUnmergedRe to
+	// catch, so no letter goes out with a blank where the code should be.
+	pairs := []string{"{{first}}", firstName(rec.Name), "{{name}}", rec.Name}
+	if rec.Code != "" {
+		pairs = append(pairs, "{{code}}", rec.Code)
+	}
+	if rec.FactoryURL != "" {
+		pairs = append(pairs, "{{factory_url}}", rec.FactoryURL)
+	}
+	out = strings.NewReplacer(pairs...).Replace(out)
+	out = regexp.MustCompile(`\n{3,}`).ReplaceAllString(out, "\n\n")
+	return strings.TrimSpace(out)
+}
+
+// announcementUnmergedRe catches a body that still has a bare {{code}} or
+// {{factory_url}} after merging (recipient without one) — better to refuse the
+// batch than send a letter with a hole in it.
+var announcementUnmergedRe = regexp.MustCompile(`\{\{[#/]?[a-z_]+\}\}`)
 
 func (s *Server) handleAdminSendAnnouncement(w http.ResponseWriter, r *http.Request) {
 	if !s.requireExeDevAdminAPI(w, r) {
 		return
 	}
-	if s.Email == nil {
-		jsonErr(w, "email is not configured", http.StatusServiceUnavailable)
-		return
-	}
 	var in announcementInput
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 128*1024)).Decode(&in); err != nil {
 		jsonErr(w, "invalid announcement", http.StatusBadRequest)
+		return
+	}
+	if s.Email == nil && !in.Preview {
+		jsonErr(w, "email is not configured", http.StatusServiceUnavailable)
 		return
 	}
 	in.Subject = clip(in.Subject, 200)
@@ -721,11 +781,21 @@ func (s *Server) handleAdminSendAnnouncement(w http.ResponseWriter, r *http.Requ
 		}
 		seen[id] = true
 		var rec announcementRecipient
+		var clientSlug, projectSlug string
 		err := s.DB.QueryRowContext(r.Context(), `
-			SELECT id, name, email FROM event_registrations
-			WHERE id=? AND event_slug=? AND consent_email=1 AND status != 'declined'
-		`, id, workshopSlug).Scan(&rec.ID, &rec.Name, &rec.Email)
+			SELECT e.id, e.name, e.email,
+			       COALESCE(MAX(c.code), ''), COALESCE(MAX(pr.client_slug), ''), COALESCE(MAX(pr.project_slug), '')
+			FROM event_registrations e
+			LEFT JOIN coupons c ON c.registration_id = e.id
+			LEFT JOIN passes  p ON p.coupon_id = c.id
+			LEFT JOIN projects pr ON pr.id = p.project_id
+			WHERE e.id=? AND e.event_slug=? AND e.consent_email=1 AND e.status != 'declined'
+			GROUP BY e.id
+		`, id, workshopSlug).Scan(&rec.ID, &rec.Name, &rec.Email, &rec.Code, &clientSlug, &projectSlug)
 		if err == nil {
+			if clientSlug != "" && projectSlug != "" {
+				rec.FactoryURL = s.portalURL(clientSlug, projectSlug)
+			}
 			recipients = append(recipients, rec)
 		} else if err != sql.ErrNoRows {
 			jsonErr(w, "could not load recipients", http.StatusInternalServerError)
@@ -737,12 +807,38 @@ func (s *Server) handleAdminSendAnnouncement(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Merge per recipient up front so a hole in any one letter stops the
+	// whole batch before anything is sent.
+	merged := make([]string, len(recipients))
+	for i, rec := range recipients {
+		merged[i] = mergeAnnouncement(in.Body, rec)
+		if m := announcementUnmergedRe.FindString(merged[i]); m != "" {
+			jsonErr(w, fmt.Sprintf("%s has no value for %s — issue a code first, or wrap that part in {{#code}}…{{/code}}", rec.Name, m), http.StatusBadRequest)
+			return
+		}
+	}
+
+	if in.Preview {
+		type letter struct {
+			ID    int64  `json:"id"`
+			Name  string `json:"name"`
+			Email string `json:"email"`
+			Text  string `json:"text"`
+		}
+		letters := make([]letter, len(recipients))
+		for i, rec := range recipients {
+			letters[i] = letter{rec.ID, rec.Name, rec.Email, announcementText(rec.Name, merged[i])}
+		}
+		jsonOK(w, map[string]any{"ok": true, "selected": len(recipients), "subject": in.Subject, "letters": letters})
+		return
+	}
+
 	sent := 0
 	failures := []string{}
 	sentIDs := []int64{}
-	for _, rec := range recipients {
-		textBody := announcementText(rec.Name, in.Body)
-		htmlBody := announcementHTML(rec.Name, in.Body)
+	for i, rec := range recipients {
+		textBody := announcementText(rec.Name, merged[i])
+		htmlBody := announcementHTML(rec.Name, merged[i])
 		if err := s.mail(mailMeta{Kind: mailKindAnnouncement, RefType: "registration", RefID: mailRef(rec.ID), TriggeredBy: triggeredBy(r, "admin")}, []string{rec.Email}, nil, in.Subject, textBody, htmlBody); err != nil {
 			slog.Error("workshop announcement failed", "err", err, "registration_id", rec.ID)
 			failures = append(failures, rec.Name)
@@ -802,10 +898,17 @@ func announcementText(name, body string) string {
 	return fmt.Sprintf("Hi %s,\n\n%s\n\n— Jenna\njdbb studio\n\nYou’re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply to this email if you’d rather not receive further announcements.", firstName(name), strings.TrimSpace(body))
 }
 
+// announcementURLRe matches a bare URL in already-escaped body text so the
+// HTML part can link it. Trailing punctuation is left outside the link.
+var announcementURLRe = regexp.MustCompile(`https?://[^\s<]+[^\s<.,;:!?)]`)
+
 func announcementHTML(name, body string) string {
 	safeBody := html.EscapeString(strings.TrimSpace(body))
 	safeBody = strings.ReplaceAll(safeBody, "\r\n", "\n")
 	safeBody = strings.ReplaceAll(safeBody, "\n", "<br>")
+	safeBody = announcementURLRe.ReplaceAllStringFunc(safeBody, func(u string) string {
+		return fmt.Sprintf(`<a href="%s" style="color:%s">%s</a>`, u, emailAccent, u)
+	})
 	b := emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(name)))) + emailP(safeBody) + emailSignoff()
 	return emailShell(b, emailShellOpts{
 		Kicker: "Protocolize Your Book",

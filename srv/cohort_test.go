@@ -18,8 +18,9 @@ func TestCohortRosterGate(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := s.DB.Exec(`INSERT INTO event_registrations (event_slug,name,email,region,material,goals,status,notes)
-		VALUES (?,'Mike Check','bookiq@gmail.com','US','a manuscript','ship it','requested','PRIVATE NOTE'),
-		       (?,'Declined Person','no@example.com','EU','x','y','declined','')`, workshopSlug, workshopSlug); err != nil {
+		VALUES (?,'Real Member','member@example.com','US','a manuscript','ship it','requested','PRIVATE NOTE'),
+		       (?,'Declined Person','no@example.com','EU','x','y','declined',''),
+		       (?,'Mike Check','bookiq@gmail.com','US','smoke test','verify','requested','')`, workshopSlug, workshopSlug, workshopSlug); err != nil {
 		t.Fatal(err)
 	}
 	path := "/api/cohort/" + workshopSlug + "/roster"
@@ -53,7 +54,7 @@ func TestCohortRosterGate(t *testing.T) {
 		t.Fatal(err)
 	}
 	if body.Count != 1 || len(body.Members) != 1 {
-		t.Fatalf("want 1 member (declined omitted), got %d", body.Count)
+		t.Fatalf("want 1 member (declined and smoke persona omitted), got %d", body.Count)
 	}
 	m := body.Members[0]
 	for _, k := range []string{"email", "notes", "status", "prep_status", "coupon_code", "ip"} {

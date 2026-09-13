@@ -228,3 +228,33 @@ func TestRegistrationCSVExport(t *testing.T) {
 		t.Fatalf("newline field should be quoted, got:\n%s", body)
 	}
 }
+
+func TestMergeAnnouncement(t *testing.T) {
+	body := "Hi {{first}}.\n\n{{#code}}Your code is {{code}}. Redeem it at /factory#redeem.{{/code}}\n\n{{#redeemed}}You're already in: {{factory_url}}{{/redeemed}}\n\n{{#nocode}}Your code follows separately.{{/nocode}}\n\nSee you Monday."
+	cases := []struct {
+		rec  announcementRecipient
+		want string
+	}{
+		{announcementRecipient{Name: "Toby Shorin", Code: "PYB-AAAA-BBBB"},
+			"Hi Toby.\n\nYour code is PYB-AAAA-BBBB. Redeem it at /factory#redeem.\n\nSee you Monday."},
+		{announcementRecipient{Name: "Mike Casey", Code: "PYB-CCCC-DDDD", FactoryURL: "https://x/mike-casey/casey-001/factory/"},
+			"Hi Mike.\n\nYou're already in: https://x/mike-casey/casey-001/factory/\n\nSee you Monday."},
+		{announcementRecipient{Name: "No Code"},
+			"Hi No.\n\nYour code follows separately.\n\nSee you Monday."},
+	}
+	for _, c := range cases {
+		if got := mergeAnnouncement(body, c.rec); got != c.want {
+			t.Errorf("%s:\n got %q\nwant %q", c.rec.Name, got, c.want)
+		}
+	}
+	if m := announcementUnmergedRe.FindString(mergeAnnouncement("code {{code}}", announcementRecipient{Name: "X"})); m != "{{code}}" {
+		t.Errorf("bare {{code}} with no code should be left for the guard, got %q", m)
+	}
+	if m := announcementUnmergedRe.FindString(mergeAnnouncement("{{#code}}oops", announcementRecipient{})); m == "" {
+		t.Errorf("unclosed block should be caught")
+	}
+	h := announcementHTML("A B", "see https://jdbbs.exe.xyz/factory#redeem.")
+	if !strings.Contains(h, `<a href="https://jdbbs.exe.xyz/factory#redeem"`) {
+		t.Errorf("url not linked: %s", h)
+	}
+}

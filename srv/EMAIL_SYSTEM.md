@@ -76,6 +76,13 @@ First recipient = To, rest = CC.
 - Sends one personalized message per recipient (no exposed To/CC list)
 - Updates each successful recipient's `last_emailed_at` and logs the batch in `event_announcements`
 - Includes a consent reminder and reply-to-opt-out language
+- **Merge fields** (`mergeAnnouncement`): `{{first}}` `{{name}}` `{{code}}` `{{factory_url}}`, and
+  conditional blocks `{{#code}}…{{/code}}` (unredeemed code issued), `{{#redeemed}}…{{/redeemed}}`
+  (pass redeemed; `{{factory_url}}` is the customer factory page), `{{#nocode}}…{{/nocode}}` (no code).
+  A bare `{{code}}`/`{{factory_url}}` for a recipient who has none aborts the whole batch before any send.
+- `"preview": true` in the request body returns the merged plain-text letters per recipient without
+  sending or logging anything — **Preview merge** on the tracker uses it. Works with the mailer off.
+- Bare URLs in the body are linked in the HTML part.
 
 ### 6. Transmittal Update Notification (`srv/transmittal_notify.go`)
 - **This is the only automatic/server-initiated email**
