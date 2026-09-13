@@ -2,7 +2,7 @@
 
 Shared contract between backend (`srv/passes.go`), customer UI
 (`srv/static/factory.html`), admin tracker (`srv/static/registrations.html`),
-and the public offer page (`pi-public/factory.html`). **Change here first.**
+and the public offer page (`jdbbs-public/factory.html`). **Change here first.**
 
 Decisions (2026-09-03): 3 included builds; unlimited preflights; 6-month
 storage; failed builds refunded; no Typst source; Stripe deferred (fulfillment

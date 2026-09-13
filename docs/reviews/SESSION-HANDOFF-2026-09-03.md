@@ -9,7 +9,7 @@ will each get a coupon and use the customer Factory page live.
 - `docs/reviews/FACTORY-PASS-PRICING-TAM-2026-09-03.md` — $149 pass, +3 builds $49, review $75, live $100/hr.
 - `docs/reviews/FACTORY-PASS-SMOKE-2026-09-03.md` — first e2e run, what passed, what didn't.
 - `docs/reviews/ORCHESTRATION-RETRO-2026-09-03.md` — how to fan out subagents without 90-min black boxes. **Apply its rules if you fan out again.**
-- Code: `srv/passes.go` (+`passes_test.go`), migration 023, `srv/static/factory.{html,js,css}`, `pi-public/factory.html` (→ `/factory`), tracker code issuance in `registrations.html`.
+- Code: `srv/passes.go` (+`passes_test.go`), migration 023, `srv/static/factory.{html,js,css}`, `jdbbs-public/factory.html` (→ `/factory`), tracker code issuance in `registrations.html`.
 
 Flow: admin issues code in `/admin/registrations` → attendee redeems at
 `/factory` → gets client+project+pass, emailed password → works at

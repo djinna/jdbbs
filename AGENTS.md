@@ -47,19 +47,19 @@ Commit locally → push to GitHub (`origin`) → on the VM `git pull --ff-only o
 
 - Permanent session handoffs/worknotes live in `docs/reviews/SESSION-HANDOFF-YYYY-MM-DD.md`. When the user asks to write permanent worknotes, commit and push that note to GitHub, then fast-forward the VM so the note is available from local, GitHub, and `/home/exedev/prodcal`.
 
-## Public documents (`/home/exedev/pi-public`)
+## Public documents (`/home/exedev/jdbbs-public`)
 
 Standalone share pages for outside audiences (talk decks, workshop handouts)
-live **outside this repo** in `/home/exedev/pi-public`, with their own git
+live **outside this repo** in `/home/exedev/jdbbs-public`, with their own git
 history. They are served by `servePublicDoc` (`srv/server.go`), which reads
 from disk at request time — so editing one of those HTML files publishes it
 immediately, with no rebuild or restart. Only adding a *new route* needs
 `make build && sudo systemctl restart prodcal`.
 
 Currently `/exedeck`, `/litmags`, `/field-notes`, `/workshop`, `/factory`, and
-the three generated companion pages, all reading from `pi-public/`. They link
+the three generated companion pages, all reading from `jdbbs-public/`. They link
 `/static/theme.css` + `theme.js` rather than inlining tokens. Override the directory with `PRODCAL_PUBLIC_DOCS` for local
-runs. See `pi-public/README.md`.
+runs. See `jdbbs-public/README.md`.
 
 `/workshop` is the one that talks to the server: its form POSTs to
 `/api/public/register` and reads `/api/public/config` (see `srv/registration.go`),

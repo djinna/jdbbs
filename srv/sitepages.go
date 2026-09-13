@@ -31,7 +31,7 @@ var (
 	validPageVisibility = map[string]bool{"public": true, "client": true, "cohort": true, "admin": true}
 	validPageListed     = map[string]bool{"listed": true, "nav": true, "unlisted": true, "retired": true}
 	validPageStatus     = map[string]bool{"live": true, "keep": true, "review": true, "retire": true}
-	validPageOwner      = map[string]bool{"prodcal": true, "pi-public": true, "generated": true, "external": true}
+	validPageOwner      = map[string]bool{"prodcal": true, "jdbbs-public": true, "generated": true, "external": true}
 )
 
 func (s *Server) handleAdminListSitePages(w http.ResponseWriter, r *http.Request) {

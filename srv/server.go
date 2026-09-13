@@ -313,7 +313,7 @@ func (s *Server) Handler() http.Handler {
 
 	// Companion pages for the deck: internal documents from a consulting
 	// client, republished anonymized with their permission. The anonymization
-	// mapping lives in pi-public/client-raw/ (gitignored).
+	// mapping lives in jdbbs-public/client-raw/ (gitignored).
 	mux.HandleFunc("GET /work-notes-standard", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "work-notes-standard.html")
 	})
@@ -466,7 +466,7 @@ func publicDocsDir() string {
 	if d := os.Getenv("PRODCAL_PUBLIC_DOCS"); d != "" {
 		return d
 	}
-	return "/home/exedev/pi-public"
+	return "/home/exedev/jdbbs-public"
 }
 
 // servePublicDoc serves an HTML page from publicDocsDir. name must be a bare

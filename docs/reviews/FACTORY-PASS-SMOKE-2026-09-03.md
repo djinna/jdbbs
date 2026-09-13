@@ -17,7 +17,7 @@ against the real pipeline on the VM. Prod untouched.
   credits stayed 3. Successful build → `builds_used=1`, credits 2, **PDF +
   EPUB both written in one `converting` → `ready` cycle**, delivery email
   attempted. UI showed both download buttons.
-- `GET /factory` serves `pi-public/factory.html`.
+- `GET /factory` serves `jdbbs-public/factory.html`.
 
 ## Found & fixed
 - **VM pandoc was 3.1.3 — the pipeline has been broken on this VM since

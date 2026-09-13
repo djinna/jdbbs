@@ -81,7 +81,7 @@ build a storefront for the jdbbs studio**, i.e. roughly three options to weigh:
 
 - Prior (mis-premised) analysis: Shelley conversation `cQYGD7H`
   (`steelman-critique-studio-storefront`), 2026-09-01→09-03.
-- pi-public pattern: `/home/exedev/pi-public/README.md`, `servePublicDoc` in
+- pi-public pattern: `/home/exedev/jdbbs-public/README.md`, `servePublicDoc` in
   `srv/server.go`.
 - Workshop registration flow (the existing proto-checkout): `srv/registration.go`.
 - Email pathways: `srv/EMAIL_SYSTEM.md`.

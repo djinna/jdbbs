@@ -2,7 +2,7 @@
 
 Source of truth for every jdbb web surface: how a page is shaped, where it
 lives, who can see it, and how it is found. Supersedes the width/chrome notes
-in `DESIGN-SYSTEM.md` (which keeps the visual canon) and `pi-public/README.md`
+in `DESIGN-SYSTEM.md` (which keeps the visual canon) and `jdbbs-public/README.md`
 (which keeps the per-file table). Decisions were taken 2026-08-31 → 09-11 via
 the sitemap-review tool (`~/sitemap-review`, port 8102).
 
@@ -124,7 +124,7 @@ Font selection behaviour (theme.js):
 
 ## 6. Ownership: embedded vs on-disk
 
-| belongs in `prodcal/srv/static` (embedded, rebuild to change) | belongs in `/home/exedev/pi-public` (on-disk, live on save) |
+| belongs in `prodcal/srv/static` (embedded, rebuild to change) | belongs in `/home/exedev/jdbbs-public` (on-disk, live on save) |
 |---|---|
 | anything with JS that talks to the API as an *application* (admin, client portal, SPA, factory, transmittal, roster) | documents: talks, handouts, references, offer pages |
 | `theme.css`, `theme.js`, favicon — the design system itself | anonymized client artifacts (**generated** by `client-raw/anonymize.sh`; never hand-edit outputs) |
@@ -139,8 +139,8 @@ retired). A page-local `<style>` holds only page rules.
 **Authorization ≠ discoverability. Unlisted is not private.**
 
 ### Public (no app auth)
-Route → `servePublicDoc(w, "name.html")` from `pi-public/`, or an embedded
-static file. Recipe: drop file in `pi-public/`, add
+Route → `servePublicDoc(w, "name.html")` from `jdbbs-public/`, or an embedded
+static file. Recipe: drop file in `jdbbs-public/`, add
 ```go
 mux.HandleFunc("GET /mypage", func(w http.ResponseWriter, r *http.Request) { s.servePublicDoc(w, "mypage.html") })
 ```
@@ -208,7 +208,7 @@ record; §10 below is a snapshot.
 | hosting | change content | change route/auth |
 |---|---|---|
 | embedded (`srv/static`) | `make build && sudo systemctl restart prodcal` | same |
-| on-disk (`pi-public`) | save file → live on reload | rebuild once |
+| on-disk (`jdbbs-public`) | save file → live on reload | rebuild once |
 | generated companions | edit `client-raw/anonymize.sh` (or the wrapper it emits) → rerun → live | rebuild once |
 
 ## 9. QA checklist (per page, per change)
