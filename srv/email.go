@@ -22,11 +22,15 @@ import (
 //	AGENTMAIL_INBOX_ID      — inbox ID for jdbb@agentmail.to (also the sending address)
 //	PRODCAL_MAIL_FROM_NAME  — sender display name (default "jdbb studio"; set empty to disable)
 //	PRODCAL_MAIL_REPLY_TO   — Reply-To address (default "j@djinna.com"; set empty to disable)
+//	PRODCAL_MAIL_BCC        — audit copy BCC'd on every send, batch or single
+//	                          (default "j@djinna.com"; set empty to disable).
+//	                          Skipped when that address is already in To/Cc.
 type EmailConfig struct {
 	APIKey   string
 	InboxID  string
 	FromName string
 	ReplyTo  string
+	BCC      string
 	APIBase  string // tests may override; empty uses AgentMail production API
 }
 
@@ -44,7 +48,27 @@ func LoadEmailConfig() *EmailConfig {
 	if v, ok := os.LookupEnv("PRODCAL_MAIL_REPLY_TO"); ok {
 		replyTo = v
 	}
-	return &EmailConfig{APIKey: key, InboxID: inbox, FromName: fromName, ReplyTo: replyTo}
+	bcc := "j@djinna.com"
+	if v, ok := os.LookupEnv("PRODCAL_MAIL_BCC"); ok {
+		bcc = v
+	}
+	return &EmailConfig{APIKey: key, InboxID: inbox, FromName: fromName, ReplyTo: replyTo, BCC: bcc}
+}
+
+// bccFor returns the audit BCC list for a send: the configured address unless
+// it is already a visible recipient (e.g. the organizer alert, or a snapshot
+// the admin mailed to herself).
+func (cfg *EmailConfig) bccFor(to, cc []string) []string {
+	b := strings.ToLower(strings.TrimSpace(cfg.BCC))
+	if b == "" {
+		return nil
+	}
+	for _, a := range append(append([]string{}, to...), cc...) {
+		if strings.ToLower(strings.TrimSpace(a)) == b {
+			return nil
+		}
+	}
+	return []string{cfg.BCC}
 }
 
 // sendEmail sends via AgentMail API.
@@ -76,6 +100,9 @@ func (cfg *EmailConfig) send(to []string, cc []string, subject, textBody, htmlBo
 	}
 	if len(cc) > 0 {
 		body["cc"] = cc
+	}
+	if bcc := cfg.bccFor(to, cc); len(bcc) > 0 {
+		body["bcc"] = bcc
 	}
 	if textBody != "" {
 		body["text"] = textBody
@@ -185,11 +212,11 @@ func (s *Server) mail(meta mailMeta, to []string, cc []string, subject, textBody
 		return errors.New("email not configured")
 	}
 	status, err := s.Email.send(to, cc, subject, textBody, htmlBody, meta.Headers)
-	s.logOutboundEmail(meta, to, cc, subject, textBody, htmlBody, status, err)
+	s.logOutboundEmail(meta, to, cc, s.Email.bccFor(to, cc), subject, textBody, htmlBody, status, err)
 	return err
 }
 
-func (s *Server) logOutboundEmail(meta mailMeta, to, cc []string, subject, textBody, htmlBody string, status int, sendErr error) {
+func (s *Server) logOutboundEmail(meta mailMeta, to, cc, bcc []string, subject, textBody, htmlBody string, status int, sendErr error) {
 	if s.DB == nil {
 		return
 	}
@@ -201,9 +228,9 @@ func (s *Server) logOutboundEmail(meta mailMeta, to, cc []string, subject, textB
 		meta.TriggeredBy = "system"
 	}
 	_, err := s.DB.Exec(`
-		INSERT INTO outbound_email (to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, text_body, html_body)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		strings.Join(to, ", "), strings.Join(cc, ", "), subject,
+		INSERT INTO outbound_email (to_addrs, cc_addrs, bcc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, text_body, html_body)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		strings.Join(to, ", "), strings.Join(cc, ", "), strings.Join(bcc, ", "), subject,
 		meta.Kind, meta.RefType, meta.RefID, meta.TriggeredBy, status, errText, textBody, htmlBody)
 	if err != nil {
 		slog.Error("outbound_email log insert failed", "err", err, "kind", meta.Kind, "to", to)
@@ -215,6 +242,7 @@ type outboundEmailRow struct {
 	SentAt      string `json:"sent_at"`
 	To          string `json:"to"`
 	CC          string `json:"cc"`
+	BCC         string `json:"bcc"`
 	Subject     string `json:"subject"`
 	Kind        string `json:"kind"`
 	RefType     string `json:"ref_type"`
@@ -240,9 +268,9 @@ func (s *Server) handleAdminGetOutboundEmail(w http.ResponseWriter, r *http.Requ
 	var m outboundEmailRow
 	var text, htmlBody string
 	err = s.DB.QueryRowContext(r.Context(), `
-		SELECT id, sent_at, to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note, text_body, html_body
+		SELECT id, sent_at, to_addrs, cc_addrs, bcc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note, text_body, html_body
 		FROM outbound_email WHERE id = ?`, id).Scan(
-		&m.ID, &m.SentAt, &m.To, &m.CC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note, &text, &htmlBody)
+		&m.ID, &m.SentAt, &m.To, &m.CC, &m.BCC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note, &text, &htmlBody)
 	if err != nil {
 		jsonErr(w, "not found", 404)
 		return
@@ -299,7 +327,7 @@ func (s *Server) handleAdminListOutboundEmail(w http.ResponseWriter, r *http.Req
 	}
 	args = append(args, limit, offset)
 	rows, err := s.DB.QueryContext(r.Context(), `
-		SELECT id, sent_at, to_addrs, cc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note,
+		SELECT id, sent_at, to_addrs, cc_addrs, bcc_addrs, subject, kind, ref_type, ref_id, triggered_by, status_code, error, note,
 		       (text_body <> '' OR html_body <> '')
 		FROM outbound_email WHERE `+whereSQL+`
 		ORDER BY sent_at DESC, id DESC LIMIT ? OFFSET ?`, args...)
@@ -311,7 +339,7 @@ func (s *Server) handleAdminListOutboundEmail(w http.ResponseWriter, r *http.Req
 	out := []outboundEmailRow{}
 	for rows.Next() {
 		var m outboundEmailRow
-		if err := rows.Scan(&m.ID, &m.SentAt, &m.To, &m.CC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note, &m.HasBody); err != nil {
+		if err := rows.Scan(&m.ID, &m.SentAt, &m.To, &m.CC, &m.BCC, &m.Subject, &m.Kind, &m.RefType, &m.RefID, &m.TriggeredBy, &m.StatusCode, &m.Error, &m.Note, &m.HasBody); err != nil {
 			jsonErr(w, "scan failed", 500)
 			return
 		}

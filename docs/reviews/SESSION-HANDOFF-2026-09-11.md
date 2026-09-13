@@ -38,6 +38,16 @@ Text parts unchanged except emoji/brand. Preview gallery with fixture data:
 Build-delivered mail extracted to `buildDeliveredText/HTML`. Any NEW email
 template must use emailShell and be added to `emailPreviewFixtures`.
 
+### DONE 2026-09-13: BCC audit copy + permanent smoke persona
+- Every send (batch or single) is BCC'd to `PRODCAL_MAIL_BCC` (default
+  j@djinna.com), skipped when that address is already To/Cc. Recorded in
+  `outbound_email.bcc_addrs` (migration 029), shown in Admin › Mail.
+- **Mike Check** (`bookiq@gmail.com`, reg #10, client `mike-check`, project 17,
+  pass 2) is PERMANENT — do not delete, keep `consent_email` on. Announcements
+  always include his registration (`withSmokeRegistration`,
+  `smokeRegistrationEmail` in `srv/registration.go`). Confirmed: snapshot #23
+  to him with BCC landed 200.
+
 ### THIRD: stable project slugs (user: "clients may well change book titles… maybe lname-000")
 Today `uniqueProjectSlug` (`srv/passes.go` ~L444) derives from the manuscript
 title, truncated to 24 chars → `building-in-the-wrong-ma`. Title-derived is

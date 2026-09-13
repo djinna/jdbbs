@@ -3581,7 +3581,7 @@ function renderMailLog(rows, total) {
     const ok = m.status_code >= 200 && m.status_code < 300;
     const st = ok ? `<span class="ok">${m.status_code}</span>` : `<span class="fail" title="${esc(m.error)}">${m.status_code || 'ERR'} ✕</span>`;
     const when = String(m.sent_at).replace('T',' ').replace(/(:\d\d)(\.\d+)?(Z|[+-]\d\d:?\d\d)?$/,'$1');
-    const to = esc(m.to) + (m.cc ? `<br><small style="color:var(--text-muted)">cc ${esc(m.cc)}</small>` : '');
+    const to = esc(m.to) + (m.cc ? `<br><small style="color:var(--text-muted)">cc ${esc(m.cc)}</small>` : '') + (m.bcc ? `<br><small style="color:var(--text-muted)">bcc ${esc(m.bcc)}</small>` : '');
     return `<tr><td class="when">${esc(when)}</td><td>${to}</td><td class="subj">${esc(m.subject)}${m.note ? `<small>${esc(m.note)}</small>` : ''}</td><td class="kind">${esc(m.kind)}</td><td>${mailRefLink(m)}</td><td>${esc(m.triggered_by)}</td><td>${st}</td><td><button type="button" onclick="viewMail(${m.id})" title="${m.has_body ? 'Show the exact message as sent' : 'Body not recorded (backfilled)'}"${m.has_body ? '' : ' style="opacity:.4"'}>View</button></td></tr>`;
   }).join('') || '<tr><td colspan="8" style="color:var(--text-muted);padding:18px 0">No sends match.</td></tr>';
   document.getElementById('mail-table').hidden = false;
@@ -3601,7 +3601,7 @@ async function viewMail(id) {
   const d = await r.json(), m = d.email;
   const v = document.getElementById('mail-view'); v.hidden = false;
   document.getElementById('mv-subject').textContent = m.subject;
-  document.getElementById('mv-meta').textContent = `${m.sent_at.replace('T',' ').replace('Z','')} · to ${m.to}${m.cc ? ' · cc ' + m.cc : ''} · ${m.kind} · by ${m.triggered_by} · status ${m.status_code}${m.error ? ' · ' + m.error : ''}`;
+  document.getElementById('mv-meta').textContent = `${m.sent_at.replace('T',' ').replace('Z','')} · to ${m.to}${m.cc ? ' · cc ' + m.cc : ''}${m.bcc ? ' · bcc ' + m.bcc : ''} · ${m.kind} · by ${m.triggered_by} · status ${m.status_code}${m.error ? ' · ' + m.error : ''}`;
   const fr = document.getElementById('mv-html'), pre = document.getElementById('mv-text'), none = document.getElementById('mv-none');
   v._text = d.text_body; v._html = d.html_body;
   if (!m.has_body) { fr.hidden = true; pre.hidden = true; none.hidden = false; }

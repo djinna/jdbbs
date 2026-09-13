@@ -1,6 +1,7 @@
 package srv
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -710,10 +711,11 @@ func (s *Server) handleAdminSendAnnouncement(w http.ResponseWriter, r *http.Requ
 		jsonErr(w, "select between 1 and 50 recipients", http.StatusBadRequest)
 		return
 	}
+	ids := s.withSmokeRegistration(r.Context(), in.RegistrationIDs)
 
 	seen := make(map[int64]bool)
-	recipients := make([]announcementRecipient, 0, len(in.RegistrationIDs))
-	for _, id := range in.RegistrationIDs {
+	recipients := make([]announcementRecipient, 0, len(ids))
+	for _, id := range ids {
 		if id <= 0 || seen[id] {
 			continue
 		}
@@ -769,6 +771,31 @@ func (s *Server) handleAdminSendAnnouncement(w http.ResponseWriter, r *http.Requ
 		"sent":     sent,
 		"failed":   failures,
 	})
+}
+
+// smokeRegistrationEmail is the permanent smoke-test persona ("Mike Check").
+// Every batch send includes this registration so the admin sees exactly what
+// registrants received, in a real inbox, without depending on BCC handling.
+const smokeRegistrationEmail = "bookiq@gmail.com"
+
+// withSmokeRegistration appends the smoke persona's registration id to a
+// batch recipient list when it is not already selected. No-op if the
+// persona is not registered (tests, fresh databases).
+func (s *Server) withSmokeRegistration(ctx context.Context, ids []int64) []int64 {
+	var smokeID int64
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT id FROM event_registrations
+		WHERE event_slug=? AND lower(email)=? AND consent_email=1 AND status != 'declined'
+		ORDER BY id LIMIT 1`, workshopSlug, smokeRegistrationEmail).Scan(&smokeID)
+	if err != nil {
+		return ids
+	}
+	for _, id := range ids {
+		if id == smokeID {
+			return ids
+		}
+	}
+	return append(append([]int64{}, ids...), smokeID)
 }
 
 func announcementText(name, body string) string {

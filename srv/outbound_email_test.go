@@ -1,6 +1,7 @@
 package srv
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -133,4 +134,49 @@ func TestRegistrationSendsAreLogged(t *testing.T) {
 		t.Fatalf("want 2 logged registration sends, got %d", n)
 	}
 	_ = ts
+}
+
+func TestBCCAuditCopy(t *testing.T) {
+	cfg := &EmailConfig{BCC: "j@djinna.com"}
+	if got := cfg.bccFor([]string{"a@example.com"}, nil); len(got) != 1 || got[0] != "j@djinna.com" {
+		t.Fatalf("expected bcc, got %v", got)
+	}
+	if got := cfg.bccFor([]string{"J@djinna.com"}, nil); got != nil {
+		t.Fatalf("bcc should be skipped when already a To recipient, got %v", got)
+	}
+	if got := cfg.bccFor([]string{"a@example.com"}, []string{"j@djinna.com"}); got != nil {
+		t.Fatalf("bcc should be skipped when already a Cc recipient, got %v", got)
+	}
+	if got := (&EmailConfig{}).bccFor([]string{"a@example.com"}, nil); got != nil {
+		t.Fatalf("empty BCC config should send none, got %v", got)
+	}
+}
+
+func TestAnnouncementAlwaysIncludesSmokePersona(t *testing.T) {
+	s, _, cleanup := testServer(t)
+	defer cleanup()
+	_, err := s.DB.Exec(`INSERT INTO event_registrations (event_slug, name, email, consent_email, status)
+		VALUES (?, 'Mike Check', ?, 1, 'requested'), (?, 'Real Person', 'real@example.com', 1, 'requested')`,
+		workshopSlug, smokeRegistrationEmail, workshopSlug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var smokeID, realID int64
+	_ = s.DB.QueryRow(`SELECT id FROM event_registrations WHERE email=?`, smokeRegistrationEmail).Scan(&smokeID)
+	_ = s.DB.QueryRow(`SELECT id FROM event_registrations WHERE email='real@example.com'`).Scan(&realID)
+
+	ids := s.withSmokeRegistration(context.Background(), []int64{realID})
+	if len(ids) != 2 || ids[1] != smokeID {
+		t.Fatalf("expected smoke id appended, got %v (smoke=%d)", ids, smokeID)
+	}
+	ids = s.withSmokeRegistration(context.Background(), []int64{smokeID, realID})
+	if len(ids) != 2 {
+		t.Fatalf("smoke id should not be duplicated, got %v", ids)
+	}
+	// Persona absent → list unchanged.
+	_, _ = s.DB.Exec(`DELETE FROM event_registrations WHERE id=?`, smokeID)
+	ids = s.withSmokeRegistration(context.Background(), []int64{realID})
+	if len(ids) != 1 {
+		t.Fatalf("expected unchanged list without persona, got %v", ids)
+	}
 }
