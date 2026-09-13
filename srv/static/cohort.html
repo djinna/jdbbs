@@ -17,7 +17,7 @@ h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:va
 .stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);margin-bottom:26px}
 .stat{padding:15px 16px 15px 0}.stat+.stat{padding-left:16px;border-left:1px solid var(--border)}
 .stat b{display:block;font:600 24px/1 var(--mono)}.stat span{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
-.intro{max-width:var(--prose-measure);color:var(--text-secondary);margin:0 0 22px}
+.intro{max-width:var(--prose-measure);color:var(--text-secondary);margin:0 0 22px}.intro+.intro{margin-top:-8px}.intro em{font-style:normal;color:var(--text)}.intro a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 .participants{border-top:1px solid var(--border-strong)}
 .person{display:grid;grid-template-columns:30px minmax(180px,1fr) minmax(260px,1.8fr) 200px;gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}
 .num{font:12px var(--mono);color:var(--text-muted);padding-top:3px}
@@ -90,6 +90,7 @@ h1{font:600 clamp(24px,4vw,34px)/1.15 var(--mono);margin:8px 0 5px}.sub{color:va
     var topType=Object.keys(types).sort(function(a,b){return types[b]-types[a]})[0]||'—';
     var h='<div class="stats"><div class="stat"><b>'+ms.length+'</b><span>Participants</span></div><div class="stat"><b>'+all+'</b><span>All four sessions</span></div><div class="stat"><b>'+Object.keys(regions).length+'</b><span>Regions</span></div><div class="stat"><b>'+esc(TYPE[topType]||topType)+'</b><span>Most common material</span></div></div>';
     h+='<p class="intro">Sessions run on Discord. Bring the material listed beside your name; the goals column is what you told us you wanted out of the two days — read your neighbours&rsquo; and you&rsquo;ll see where to pair up.</p>';
+    h+='<p class="intro">Why make a book at all, in a year with fewer readers and four million new titles? Because a <em>finished</em> book is the one thing the flood cannot counterfeit, and a protocol is how you tell the two apart. The short, sourced version is at <a href="/2026-pi-symposium/why-book">Why a book, now?</a> — three minutes, worth reading before session 1.</p>';
     if(!ms.length){ h+='<div class="empty">No participants listed yet.</div>'; body.innerHTML=h; return; }
     h+='<div class="participants">'+ms.map(function(m,i){
       return '<div class="person"><div class="num">'+(i+1)+'</div>'+

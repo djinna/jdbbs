@@ -187,6 +187,11 @@ func (s *Server) Handler() http.Handler {
 	// Cohort roster — client-visible + cohort flag (attendee-facing sibling of /admin/registrations)
 	mux.HandleFunc("GET /2026-pi-symposium", s.handleCohortPage)
 	mux.HandleFunc("GET /2026-pi-symposium/", s.handleCohortPage)
+	// Symposium companion pages (why-book, handout, deck): public docs under
+	// jdbbs-public/2026-pi-symposium/{page}.html. The bare path stays the roster.
+	mux.HandleFunc("GET /2026-pi-symposium/{page}", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDocIn(w, "2026-pi-symposium", r.PathValue("page")+".html")
+	})
 	mux.HandleFunc("GET /cohort/{cohort}", s.handleCohortLegacyPath)
 	mux.HandleFunc("GET /api/cohort/{cohort}/roster", s.handleCohortRoster)
 
@@ -479,11 +484,20 @@ func publicDocsDir() string {
 // file name; anything with a path separator is rejected so a route can never be
 // talked into reading outside the directory.
 func (s *Server) servePublicDoc(w http.ResponseWriter, name string) {
-	if name == "" || strings.ContainsAny(name, `/\`) || strings.Contains(name, "..") {
+	s.servePublicDocIn(w, "", name)
+}
+
+// servePublicDocIn is servePublicDoc for a one-level subdirectory of
+// publicDocsDir. Both dir and name must be bare path segments.
+func (s *Server) servePublicDocIn(w http.ResponseWriter, dir, name string) {
+	bad := func(seg string) bool {
+		return strings.ContainsAny(seg, `/\`) || strings.Contains(seg, "..") || strings.HasPrefix(seg, ".")
+	}
+	if name == "" || bad(name) || bad(dir) {
 		http.Error(w, "not found", 404)
 		return
 	}
-	data, err := os.ReadFile(filepath.Join(publicDocsDir(), name))
+	data, err := os.ReadFile(filepath.Join(publicDocsDir(), dir, name))
 	if err != nil {
 		slog.Warn("public doc unavailable", "name", name, "err", err)
 		http.Error(w, "not found", 404)

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -91,5 +93,47 @@ func TestCohortVanityPath(t *testing.T) {
 	res.Body.Close()
 	if res.StatusCode != 404 {
 		t.Fatalf("unknown cohort: %d", res.StatusCode)
+	}
+}
+
+// TestSymposiumCompanionPages: /2026-pi-symposium/{page} serves
+// jdbbs-public/2026-pi-symposium/{page}.html; the bare path is still the
+// roster; traversal and dotfiles are refused.
+func TestSymposiumCompanionPages(t *testing.T) {
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "2026-pi-symposium")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sub, "why-book.html"), []byte("<html>Why a book, now?</html>"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "secret.html"), []byte("nope"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PRODCAL_PUBLIC_DOCS", dir)
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	get := func(path string) (int, string) {
+		resp, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatalf("get %s: %v", path, err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(b)
+	}
+	if code, body := get("/2026-pi-symposium/why-book"); code != 200 || !strings.Contains(body, "Why a book") {
+		t.Fatalf("why-book: %d %q", code, body)
+	}
+	if code, body := get("/2026-pi-symposium/"); code != 200 || !strings.Contains(body, "__COHORT_SLUG__") && !strings.Contains(body, "protocolize-your-book") {
+		t.Fatalf("roster still at bare path: %d", code)
+	}
+	if code, _ := get("/2026-pi-symposium/missing"); code != 404 {
+		t.Fatalf("missing page: %d", code)
+	}
+	if code, body := get("/2026-pi-symposium/..%2Fsecret"); code != 404 || strings.Contains(body, "nope") {
+		t.Fatalf("traversal: %d %q", code, body)
 	}
 }
