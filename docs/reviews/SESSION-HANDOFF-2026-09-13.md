@@ -190,3 +190,55 @@ Sources gathered (verify primaries before slides):
 and workshop handout, since both change what those pages say. Then:
 5 prep email (today-ish) → 2 workshop handout (needs PI schedule) → 1 deck
 → directory mount + `site_pages` rows → 4 sweep.
+
+---
+
+## Addendum 2 (2026-09-13, late) — content-review decisions in, nothing applied yet
+
+All 19 cards decided at `/admin/content-review/`: 15 accepted, 4 edited,
+0 rejected. Export saved at `scratch/content-review/export-1.md` (gitignored;
+regenerate with `GET /api/admin/content-review/export`). **Nothing has been
+applied to any file yet.** Mark each card "applied" on the page as it lands.
+
+Edits and notes from the user that change the work:
+
+- **A-F25 (Factory Pass email, First steps).** Real flow is *transmittal →
+  generated Word template → upload*. Put the transmittal at step 1 ("it is
+  the spec your book is built from and generates your Word template"),
+  upload at step 2 ("workshop attendees: be ready to do this in session 2,
+  Mon Sep 21"). User asked that this flow be stated consistently everywhere
+  — emails (`srv/passes.go` ~1030 text, ~1063 HTML), customer factory page
+  step 1 (`srv/static/factory.html`), public `/factory` steps, `/workshop`.
+- **A-F26.** Live-help minimum changed **30 minutes → 1 hour** in the email
+  edit. Same string lives at `jdbbs-public/factory.html:166` and `:204`,
+  `srv/static/factory.html:214`, `srv/passes.go:977`. Change all four so
+  they agree (user has been told; confirm it was intentional if in doubt).
+  Also give the three support bullets a "Support" heading.
+- **E-F1 (stylesheet intro).** Reorder the sections in
+  `srv/static/housestyle.html` so the intro's references come up in order
+  (author-facing §1 and §5 first, then "what we do" §2), renumber, and
+  update the intro's § numbers to match.
+- **E-F11 (transmittal intro).** Work the phrase *mise en place* in a
+  couple of times on the transmittal page (`srv/static/transmittal.js`) —
+  the user finds it helps clients grasp why the transmittal comes first.
+
+Where each accepted change lands:
+- `jdbbs-public/workshop.html` — A-F2 (line under `.subtitle`, l.115), A-F3 (l.126)
+- `jdbbs-public/factory.html` — B-F1 move Availability block (l.172–173) above l.157; 1-hr minimum
+- `jdbbs-public/litmags.html` — B-F15 compute takeaways from the table for the three charts
+- `jdbbs-public/field-notes.html` — C-F1 intro, C-F2 order sentence, C-F10 kicker
+- `srv/static/landing.html` — C-F14 new-author line after hero (link /factory)
+- `srv/static/client.html` / `app.js` — C-F20 portal gate line
+- `srv/static/housestyle.html` — E-F1 (edited), E-F2 §2 rewording
+- `srv/static/transmittal.js` — E-F11 (edited), E-F12 Mark Final help, E-F13 five "Priority field" strings
+- `srv/static/factory.html` — F-F1 "Inspect — the preflight —"; 1-hr minimum; step-1 template sentence
+- `srv/passes.go` — A-F24 para 1, A-F25 steps, A-F26 support heading (text + HTML variants)
+- roster data — A-F15 hide Mike Check (reg #10) from `/2026-pi-symposium`; keep in `/admin/registrations`
+
+jdbbs-public edits publish instantly (read at request time); `srv/` edits need
+`make build && sudo systemctl restart prodcal`. Run `go test ./srv/` — the
+email tests may assert on old strings.
+
+**Next review block:** agreed to run another ~20 after the new pages exist
+(why-book, handout, deck), ~Sep 17–18, drawing from the remaining ~90
+findings in `CONTENT-REVIEW-2026-09-13.md` plus the new pages.
