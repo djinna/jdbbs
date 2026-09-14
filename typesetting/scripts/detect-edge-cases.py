@@ -76,6 +76,8 @@ class EdgeCaseDetector:
         self.detect_colored_text()
         self.detect_manual_lists()
         self.detect_manual_breaks()
+        self.detect_blank_line_breaks()
+        self.detect_heading_lookalikes()
         self.detect_mixed_styles()
         self.detect_direct_formatting()
         self.detect_image_inventory()
@@ -240,6 +242,96 @@ class EdgeCaseDetector:
                     })
                     break
     
+    def detect_blank_line_breaks(self):
+        """Two or more empty paragraphs in a row between text: a scene break
+        faked with the Return key. Blank paragraphs vanish in the build (and
+        never survive a page break), so the break is lost unless it becomes
+        a 'Section Break' paragraph."""
+        paras = self.doc.paragraphs
+        i = 0
+        seen_text = False
+        while i < len(paras):
+            if self._should_skip_paragraph(paras[i]) or paras[i].text.strip():
+                seen_text = seen_text or bool(paras[i].text.strip())
+                i += 1
+                continue
+            j = i
+            while j < len(paras) and not paras[j].text.strip():
+                j += 1
+            run_len = j - i
+            if run_len >= 2 and seen_text and j < len(paras):
+                self.edge_cases.append({
+                    'type': 'manual_break',
+                    'location': f'Paragraph {i+1}',
+                    'text': f'({run_len} empty paragraphs)',
+                    'severity': 'low',
+                    'suggestion': 'Blank lines used as a scene break - empty paragraphs are dropped in the build; use the Section Break style instead',
+                    **self._paragraph_context(i),
+                })
+            i = j
+
+    def detect_heading_lookalikes(self):
+        """Body-styled paragraphs that look like headings: short, bold
+        throughout or set larger than the body text, or starting 'Chapter N' /
+        'Part N'. The factory only finds chapter openers through Heading
+        styles, so these are the single most damaging thing a
+        written-outside-the-template manuscript can carry."""
+        import re
+        heading_words = re.compile(r'^(chapter|part|book|prologue|epilogue|interlude)\b', re.I)
+        try:
+            base_size = self.doc.styles['Normal'].font.size
+        except Exception:
+            base_size = None
+        base_pt = base_size.pt if base_size else 12.0
+
+        uses_heading_styles = False
+        candidates = []
+        for i, para in enumerate(self.doc.paragraphs):
+            if self._should_skip_paragraph(para):
+                continue
+            style = getattr(getattr(para, 'style', None), 'name', '') or ''
+            snorm = self._normalize_style_name(style)
+            if snorm.startswith('heading'):
+                uses_heading_styles = True
+                continue
+            if snorm in ('title', 'subtitle'):
+                continue
+            text = para.text.strip()
+            if not text or len(text) > 90 or text.endswith(('.', ',', ';')) and not heading_words.match(text):
+                continue
+            runs = [r for r in para.runs if r.text.strip()]
+            if not runs:
+                continue
+            all_bold = all(r.bold for r in runs)
+            max_pt = max((r.font.size.pt for r in runs if r.font.size), default=0)
+            larger = max_pt >= base_pt + 3
+            named = bool(heading_words.match(text))
+            if not (all_bold or larger or named):
+                continue
+            why = []
+            if all_bold:
+                why.append('bold')
+            if larger:
+                why.append(f'{max_pt:g}pt vs {base_pt:g}pt body')
+            if named:
+                why.append('starts like a chapter title')
+            candidates.append((i, text, style, why))
+
+        for i, text, style, why in candidates:
+            self.edge_cases.append({
+                'type': 'heading_lookalike',
+                'location': f'Paragraph {i+1}',
+                'text': text[:100],
+                'issues': why,
+                'style_name': style,
+                'severity': 'high' if not uses_heading_styles else 'medium',
+                'suggestion': (
+                    f"Looks like a heading but is styled '{style}' ({', '.join(why)}). "
+                    + ('The manuscript uses no Heading styles at all, so the factory will find no chapters. ' if not uses_heading_styles else '')
+                    + 'Apply Heading 1 (chapter) or Heading 2 (section) so the build can start chapters on a new page and list them in the EPUB contents.'
+                ),
+            })
+
     def detect_mixed_styles(self):
         """Detect paragraphs with multiple fonts/sizes"""
         for i, para in enumerate(self.doc.paragraphs):
@@ -345,6 +437,7 @@ class EdgeCaseDetector:
                         'suggestion': suggestion,
                         **self._paragraph_context(i),
                     })
+                    self._append_declaration_finding('paragraph', para_style, i, para_text, auto_decision == 'preserve')
             for run in para.runs:
                 run_text = run.text.strip()
                 run_style = getattr(getattr(run, 'style', None), 'name', None)
@@ -370,8 +463,38 @@ class EdgeCaseDetector:
                             'suggestion': suggestion,
                             **self._paragraph_context(i),
                         })
+                        self._append_declaration_finding('character', run_style, i, run_text, auto_decision == 'preserve')
                 if self._looks_like_emoji_font(run):
                     emoji_runs.append((i + 1, run.font.name or 'emoji font', run_text[:40]))
+
+    def _append_declaration_finding(self, kind: str, style_name: str, index: int, text: str, declared: bool):
+        """Mirror of srv/preflight.go appendUndeclaredStyleWarnings, so the HTML
+        report the author reads carries the same high-severity 'undeclared
+        custom style' card the JSON summary counts (the Go side dedupes on
+        style name and adds nothing when the finding is already here)."""
+        norm = self._normalize_style_name(style_name)
+        if norm in ('normal', 'default paragraph font', ''):
+            return
+        if declared:
+            self.edge_cases.append({
+                'type': 'declared_custom_style_used',
+                'style_name': style_name,
+                'style_kind': kind,
+                'location': f'Paragraph {index+1}',
+                'text': text[:100] if text else style_name,
+                'severity': 'low',
+                'suggestion': 'Declared custom style is present in the manuscript and ready for intentional EPUB/Typst handling.',
+            })
+        else:
+            self.edge_cases.append({
+                'type': 'undeclared_custom_style',
+                'style_name': style_name,
+                'style_kind': kind,
+                'location': f'Paragraph {index+1}',
+                'text': text[:100] if text else style_name,
+                'severity': 'high',
+                'suggestion': 'Custom style is used in the manuscript but not declared in the project spec/transmittal. Add it before production so EPUB and Typst can treat it intentionally.',
+            })
 
     def detect_special_typography(self):
         """Detect likely spacing-sensitive or preformatted blocks such as ASCII art."""
@@ -577,6 +700,7 @@ class EdgeCaseReviewer:
     # Section metadata: (label, description, render_order_hint)
     SECTION_META = {
         'undeclared_custom_style': ('Undeclared Custom Styles', 'Custom styles used in manuscript but not declared in production spec'),
+        'heading_lookalike': ('Headings Without Heading Styles', 'Paragraphs that look like chapter or section headings (bold, larger, "Chapter N") but carry a body style — the factory cannot find them'),
         'language_script': ('Language / Script', 'Non-Latin script content requiring special font or language handling'),
         'special_typography': ('Special Typography', 'Spacing-sensitive or preformatted content (ASCII art, code blocks)'),
         'observed_style': ('Observed Styles', 'Non-built-in Word styles found in the manuscript'),
@@ -595,7 +719,7 @@ class EdgeCaseReviewer:
 
     # Preferred display order (high-severity / small-count first)
     SECTION_ORDER_PRIORITY = [
-        'undeclared_custom_style', 'language_script', 'special_typography',
+        'undeclared_custom_style', 'heading_lookalike', 'language_script', 'special_typography',
         'colored_text', 'highlighted_text', 'unusual_font',
         'observed_style', 'declared_custom_style_used', 'font_treatment',
         'manual_formatting', 'manual_list', 'direct_spacing',
