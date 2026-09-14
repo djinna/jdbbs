@@ -301,10 +301,10 @@ recordings and a spot in the next round.
 
 The four sessions (all times UTC, cumulative — please plan to attend all four):
   1. Handshake         Mon Sept 21   15:00–16:30 UTC
-  2. Preflight         Mon Sept 21   17:00–18:30 UTC
+  2. Preflight         Mon Sept 21   16:30–18:00 UTC
   3. Build + delegate  Tue Sept 22   15:00–16:30 UTC
-  4. Show-and-tell     Tue Sept 22   17:00–18:30 UTC
-  (US Eastern 11:00 / 13:00 · US Pacific 08:00 / 10:00 · Central Europe 17:00 / 19:00)
+  4. Show-and-tell     Tue Sept 22   16:30–18:00 UTC
+  (US Eastern 11:00 / 12:30 · US Pacific 08:00 / 09:30 · Central Europe 17:00 / 18:30)
 
 One reminder: the workshop runs on YOUR material, so have a real manuscript or
 text collection ready to bring — any size, rough is welcome.
@@ -323,11 +323,11 @@ func applicantAutoReplyHTML(name string) string {
 	b.WriteString(emailSmall("All times UTC, cumulative &mdash; please plan to attend all four."))
 	b.WriteString(emailTable([]string{"#", "Session", "Day", "Time (UTC)"}, [][]string{
 		{"1", "Handshake", "Mon Sept 21", "15:00&ndash;16:30"},
-		{"2", "Preflight", "Mon Sept 21", "17:00&ndash;18:30"},
+		{"2", "Preflight", "Mon Sept 21", "16:30&ndash;18:00"},
 		{"3", "Build + delegate", "Tue Sept 22", "15:00&ndash;16:30"},
-		{"4", "Show-and-tell", "Tue Sept 22", "17:00&ndash;18:30"},
+		{"4", "Show-and-tell", "Tue Sept 22", "16:30&ndash;18:00"},
 	}, nil))
-	b.WriteString(emailSmall("US Eastern 11:00 / 13:00 &middot; US Pacific 08:00 / 10:00 &middot; Central Europe 17:00 / 19:00"))
+	b.WriteString(emailSmall("US Eastern 11:00 / 12:30 &middot; US Pacific 08:00 / 09:30 &middot; Central Europe 17:00 / 18:30"))
 	b.WriteString(emailP("One reminder: the workshop runs on <b>your</b> material, so have a real manuscript or text collection ready to bring &mdash; any size, rough is welcome."))
 	b.WriteString(emailP("See you in the factory,"))
 	b.WriteString(emailSignoff())
