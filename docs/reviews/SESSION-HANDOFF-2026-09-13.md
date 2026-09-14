@@ -265,3 +265,13 @@ State at handoff: prodcal `fe28e81`, jdbbs-public `70b78a2`, both pushed, both c
 **After smoke 2:** admin doc editor (`docs/IDEAS.md` 2026-09-14) → talk deck `/2026-pi-symposium/talk` → content-review round 2 (~Sep 17–18, `/admin/content-review/`, 19/19 decided in round 1) → freeze Sep 19.
 
 **Exact next action:** new session; `git status` + `git log -1` in both repos; open `/mcheck/` as admin and start the Book 2 transmittal.
+
+## Addendum 4 (2026-09-14, evening) — map live, announce tooling, Book 2 smoke still next
+
+State: prodcal `d2b1888`, jdbbs-public `8fe3201`, both pushed, both clean. Context ~55 % at handoff (post-compaction session); no files read in full over threshold.
+
+**Done.** Session guide: author's local copy edits merged (`6216334`). **Factory map live at `/2026-pi-symposium/map`** (Mermaid via CDN, actor-coloured S1–S4, route ledger; registry `unlisted`, migration 035; linked from guide continue-nav + admin masthead "Map"). Admin registrations: **Reuse** button on past announcements (reloads subject+body; strips `[TEST]`); **minimal Markdown** in announcement bodies (`[text](url)`, `**bold**`, `*italic*`, bare URLs autolinked; text part gets `text (url)`; `srv/announcement_md_test.go`); Preview merge now renders the HTML letter in a sandboxed iframe (srcdoc set via property — `esc()` doesn't escape quotes) with plain-text toggle. Sign-offs now `[jdbb] studio` in all emails. Prep email `scratch/prep-email.txt` synced to the guide edits; `[TEST]` #29 sent 21:29 UTC to Mike Check (BCC j@). **User sends the real one** via Reuse → drop `[TEST]` → tick cohort → Send.
+
+**Parked for the admin doc editor:** editable email signature + footer line (currently constants in `srv/email_shell.go`).
+
+**Next: Book 2 smoke** — checklist unchanged in Addendum 3. Then doc editor → deck → content-review round 2 → freeze Sep 19.
