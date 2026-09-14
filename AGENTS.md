@@ -8,6 +8,7 @@ See README.md for build/deploy basics.
 
 - **`docs/PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md`** — page anatomy, 1240 shell contract, canonical wordmark/masthead/footer, public/client/cohort/admin visibility tiers + recipes, and the admin Pages registry. Read before adding or restyling any page.
 - **`docs/IDEAS.md`** — parked ideas / to-do log.
+- **`docs/CONTEXT-HYGIENE.md`** — agent context rules: no `cat` on files over ~350 lines (enforced by `scripts/readguard.sh` via `~/.profile`), pipe through `tail`/`rg`, delegate bulk reads, handoff at ~50–65 % context. Read at session start.
 
 - **`srv/EMAIL_SYSTEM.md`** — Complete reference for all email pathways (5 total: 4 manual, 1 automatic). Read before modifying any email code.
 - **`DEPLOY.md`** — Deployment and hosting notes
