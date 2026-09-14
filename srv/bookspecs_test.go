@@ -1,6 +1,9 @@
 package srv
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestPullTransmittalMapsCustomStyles(t *testing.T) {
 	_, ts, cleanup := testServer(t)
@@ -169,5 +172,38 @@ func TestPullTransmittalMapsSharedTypesettingFields(t *testing.T) {
 	page := dataOut["page"].(map[string]any)
 	if page["trim"] != "6 x 9" {
 		t.Fatalf("expected page.trim still mapped from design.trim, got %v", page["trim"])
+	}
+}
+
+func TestTypstStyleIdent(t *testing.T) {
+	cases := map[string]string{
+		"Field Note": "field-note", "tweet-p": "tweet-p", "  Term ": "term",
+		"Sidebar__Box!": "sidebar-box", "2nd Level": "s-2nd-level", "": "my-style", "Metadata (c)": "metadata-c",
+	}
+	for in, want := range cases {
+		if got := typstStyleIdent(in); got != want {
+			t.Errorf("typstStyleIdent(%q) = %q, want %q", in, got, want)
+		}
+	}
+	// The generated #let must use the same identifier.
+	if code := defaultCustomStyleTypst("Field Note", "paragraph", ""); !strings.Contains(code, "#let field-note(") {
+		t.Errorf("defaultCustomStyleTypst did not use the ident:\n%s", code)
+	}
+}
+
+func TestDeclaredStylesForPandoc(t *testing.T) {
+	spec := `{"custom_styles":[{"name":"Field Note","type":"paragraph"},{"name":"Term","word_style":"Term Char","type":"character"},{"name":"  "}]}`
+	got := declaredStylesForPandoc(spec)
+	if len(got) != 2 {
+		t.Fatalf("want 2 styles, got %d: %#v", len(got), got)
+	}
+	if got[0] != (pandocStyle{WordStyle: "Field Note", Ident: "field-note", Type: "paragraph"}) {
+		t.Errorf("first: %#v", got[0])
+	}
+	if got[1] != (pandocStyle{WordStyle: "Term Char", Ident: "term", Type: "character"}) {
+		t.Errorf("second: %#v", got[1])
+	}
+	if declaredStylesForPandoc(`{}`) != nil || declaredStylesForPandoc(`nope`) != nil {
+		t.Error("no styles should yield nil")
 	}
 }

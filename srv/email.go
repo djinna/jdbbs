@@ -168,6 +168,7 @@ const (
 	mailKindFactoryPass         = "factory_pass"
 	mailKindClientPassword      = "client_password"
 	mailKindBuildDelivered      = "build_delivered"
+	mailKindTemplateReady       = "template_ready"
 	mailKindTransmittalUpdate   = "transmittal_update"
 	mailKindTransmittal         = "transmittal"
 	mailKindSnapshot            = "snapshot"

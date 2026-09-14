@@ -761,11 +761,35 @@ func defaultCustomStylePreset(name string, styleType string) string {
 	}
 }
 
-func defaultCustomStyleTypst(name string, styleType string, preset string) string {
-	norm := strings.ToLower(strings.TrimSpace(name))
-	if norm == "" {
-		norm = "my-style"
+// typstStyleIdent turns a Word style name into the Typst function name the
+// pipeline uses for it: lowercase, every run of non-alphanumerics collapsed to
+// one hyphen ("Field Note" → "field-note"). Must stay in step with
+// style_to_typst_func in typesetting/scripts/md-to-chapter.py, which names the
+// call sites; this names the definition.
+func typstStyleIdent(name string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			dash = false
+		} else if !dash && b.Len() > 0 {
+			b.WriteByte('-')
+			dash = true
+		}
 	}
+	out := strings.TrimRight(b.String(), "-")
+	if out == "" {
+		return "my-style"
+	}
+	if out[0] >= '0' && out[0] <= '9' {
+		out = "s-" + out
+	}
+	return out
+}
+
+func defaultCustomStyleTypst(name string, styleType string, preset string) string {
+	norm := typstStyleIdent(name)
 	p := strings.TrimSpace(preset)
 	if p == "" {
 		p = defaultCustomStylePreset(name, styleType)

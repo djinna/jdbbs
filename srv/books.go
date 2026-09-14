@@ -362,11 +362,10 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		"-o", typPath,
 	}
 
-	// TRK-DEV-012 Phase B: pass anthology chapter metadata to the Lua filter
-	// via --metadata-file so it can emit per-chapter #set-story-info() calls.
-	// Single-author books (no chapters configured) flow through unchanged.
-	if chaptersFile, ok := s.writeChaptersMetadata(book, tmpDir); ok {
-		pandocArgs = append(pandocArgs, "--metadata-file="+chaptersFile)
+	// Spec-derived metadata for the Lua filter (anthology chapters, declared
+	// custom styles) via --metadata-file. Books with neither flow through unchanged.
+	if metaFile, ok := s.writePandocMetadata(book, tmpDir); ok {
+		pandocArgs = append(pandocArgs, "--metadata-file="+metaFile)
 	}
 
 	pandocCmd := exec.Command("pandoc", pandocArgs...)
@@ -872,14 +871,19 @@ func clampTypstInlineImages(s string) string {
 	return typstImageClampRe.ReplaceAllString(s, `#image("$1", width: 100%, fit: "contain"$2)`)
 }
 
-// writeChaptersMetadata looks up the book's spec, extracts anthology chapters,
-// and writes them to a JSON metadata file that pandoc can pass to the Lua
-// filter via --metadata-file. Returns the file path and true on success.
-// Returns ("", false) if the book has no spec, no chapters, or the write
-// fails — caller should treat these as a single-author book.
+// writePandocMetadata looks up the book's spec and writes what the Lua filter
+// needs from it to a JSON metadata file passed via --metadata-file:
 //
-// TRK-DEV-012 Phase B.
-func (s *Server) writeChaptersMetadata(book dbgen.Book, tmpDir string) (string, bool) {
+//   - chapters: anthology chapters, so the filter emits per-chapter
+//     #set-story-info() calls (TRK-DEV-012 Phase B);
+//   - custom_styles: declared custom styles as {word_style, ident, type}, so a
+//     Word paragraph/character style the spec declares becomes #ident[...]
+//     instead of falling through to a bare #block. ident is typstStyleIdent of
+//     the style's name — the same function names the #let in buildTypstConfig.
+//
+// Returns ("", false) if there is no spec or nothing to pass — the caller then
+// runs pandoc without the flag.
+func (s *Server) writePandocMetadata(book dbgen.Book, tmpDir string) (string, bool) {
 	if !book.ProjectID.Valid {
 		return "", false
 	}
@@ -888,32 +892,85 @@ func (s *Server) writeChaptersMetadata(book dbgen.Book, tmpDir string) (string, 
 	if err != nil {
 		return "", false
 	}
+	payload := map[string]any{}
+
 	parsed := parseEPUBSpec(spec.Data, book)
-	if len(parsed.Chapters) == 0 {
+	if len(parsed.Chapters) > 0 {
+		type metaChapter struct {
+			Title  string `json:"title"`
+			Author string `json:"author"`
+			File   string `json:"file,omitempty"`
+		}
+		chs := make([]metaChapter, 0, len(parsed.Chapters))
+		for _, c := range parsed.Chapters {
+			chs = append(chs, metaChapter{Title: c.Title, Author: c.Author, File: c.File})
+		}
+		payload["chapters"] = chs
+	}
+
+	styles := declaredStylesForPandoc(spec.Data)
+	if len(styles) > 0 {
+		payload["custom_styles"] = styles
+	}
+
+	if len(payload) == 0 {
 		return "", false
 	}
-	type metaChapter struct {
-		Title  string `json:"title"`
-		Author string `json:"author"`
-		File   string `json:"file,omitempty"`
-	}
-	chs := make([]metaChapter, 0, len(parsed.Chapters))
-	for _, c := range parsed.Chapters {
-		chs = append(chs, metaChapter{Title: c.Title, Author: c.Author, File: c.File})
-	}
-	payload, err := json.Marshal(map[string]any{"chapters": chs})
+	data, err := json.Marshal(payload)
 	if err != nil {
 		return "", false
 	}
-	path := filepath.Join(tmpDir, "chapters.json")
-	if err := os.WriteFile(path, payload, 0644); err != nil {
-		slog.Warn("chapters metadata: write failed; PDF will lack per-chapter set-story-info()",
+	path := filepath.Join(tmpDir, "pandoc-meta.json")
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		slog.Warn("pandoc metadata: write failed; custom styles and chapters will not reach the filter",
 			"book_id", book.ID, "err", err)
 		return "", false
 	}
-	slog.Info("chapters metadata written for Lua filter",
-		"book_id", book.ID, "chapters", len(chs))
+	slog.Info("pandoc metadata written for Lua filter",
+		"book_id", book.ID, "has_chapters", payload["chapters"] != nil, "custom_styles", len(styles))
 	return path, true
+}
+
+// pandocStyle is one declared custom style as the Lua filter wants it.
+type pandocStyle struct {
+	WordStyle string `json:"word_style"`
+	Ident     string `json:"ident"`
+	Type      string `json:"type"`
+}
+
+// declaredStylesForPandoc extracts the spec's custom_styles into the
+// {word_style, ident, type} triples the filter maps on.
+func declaredStylesForPandoc(specJSON string) []pandocStyle {
+	var data map[string]any
+	if err := json.Unmarshal([]byte(specJSON), &data); err != nil {
+		return nil
+	}
+	raw, ok := data["custom_styles"].([]any)
+	if !ok {
+		return nil
+	}
+	out := []pandocStyle{}
+	for _, item := range raw {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		name, _ := m["name"].(string)
+		word, _ := m["word_style"].(string)
+		typ, _ := m["type"].(string)
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if strings.TrimSpace(word) == "" {
+			word = name
+		}
+		if typ != "character" {
+			typ = "paragraph"
+		}
+		out = append(out, pandocStyle{WordStyle: strings.TrimSpace(word), Ident: typstStyleIdent(name), Type: typ})
+	}
+	return out
 }
 
 func sanitizeFilename(s string) string {

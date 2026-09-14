@@ -1442,3 +1442,28 @@ func TestPublicFactoryOfferPageRoute(t *testing.T) {
 		t.Errorf("/factory should serve the on-disk page, got %q", string(body))
 	}
 }
+
+func TestTemplateReadyEmailBodies(t *testing.T) {
+	pass := dbgen.Pass{ID: 3, CustomerName: "Ada Lovelace", CustomerEmail: "ada@example.com", ProjectID: 7}
+	factory := "https://example.test/ada-lovelace/notes/factory/"
+	direct := "https://example.test/api/projects/7/word-template"
+	for _, body := range []string{templateReadyText(pass, "Notes", factory, direct), templateReadyHTML(pass, "Notes", factory, direct)} {
+		for _, want := range []string{"Hi Ada", "Notes", factory, direct, "Import/Export", "mark it final again"} {
+			if !strings.Contains(body, want) {
+				t.Errorf("template-ready email is missing %q:\n%s", want, body)
+			}
+		}
+	}
+	// Email unconfigured: log-and-skip, never panic.
+	s := &Server{BaseURL: "https://example.test"}
+	s.sendTemplateReadyEmail(pass, "Notes")
+}
+
+func TestTransmittalBookTitle(t *testing.T) {
+	if got := transmittalBookTitle(`{"book":{"title":"  Ghosts "}}`); got != "Ghosts" {
+		t.Fatalf("got %q", got)
+	}
+	if got := transmittalBookTitle(`not json`); got != "" {
+		t.Fatalf("got %q", got)
+	}
+}

@@ -1114,6 +1114,68 @@ func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book) {
 	}
 }
 
+// sendTemplateReadyEmail tells the customer their Word template exists, the
+// moment they mark the transmittal final (EMAIL_SYSTEM.md pathway #7). Fired
+// once per draft→final transition from handleUpdateTransmittal; the download
+// itself is the self-serve GET /api/projects/{id}/word-template, which needs
+// the client sign-in, so the mail points at the factory page where the button
+// lives and includes the direct link for a signed-in browser.
+func (s *Server) sendTemplateReadyEmail(pass dbgen.Pass, title string) {
+	if pass.CustomerEmail == "" {
+		return
+	}
+	if s.Email == nil {
+		slog.Warn("template ready but email not configured", "pass_id", pass.ID)
+		return
+	}
+	defer func() {
+		if rec := recover(); rec != nil {
+			slog.Error("template ready email panic", "recover", rec)
+		}
+	}()
+	var clientSlug, projectSlug string
+	if err := s.DB.QueryRow(`SELECT client_slug, project_slug FROM projects WHERE id = ?`, pass.ProjectID).Scan(&clientSlug, &projectSlug); err != nil {
+		slog.Error("template ready email: project lookup", "err", err, "project_id", pass.ProjectID)
+		return
+	}
+	factoryURL := s.portalURL(clientSlug, projectSlug)
+	templateURL := fmt.Sprintf("%s/api/projects/%d/word-template", strings.TrimRight(s.BaseURL, "/"), pass.ProjectID)
+	if title == "" {
+		title = "your book"
+	}
+	subject := fmt.Sprintf("Your Word template is ready: %s", title)
+	textBody := templateReadyText(pass, title, factoryURL, templateURL)
+	htmlBody := templateReadyHTML(pass, title, factoryURL, templateURL)
+	if err := s.mail(mailMeta{Kind: mailKindTemplateReady, RefType: "pass", RefID: mailRef(pass.ID), TriggeredBy: "client"}, []string{pass.CustomerEmail}, nil, subject, textBody, htmlBody); err != nil {
+		slog.Error("template ready email failed", "err", err, "pass_id", pass.ID)
+	}
+}
+
+func templateReadyText(pass dbgen.Pass, title, factoryURL, templateURL string) string {
+	var t strings.Builder
+	fmt.Fprintf(&t, "Hi %s,\n\nYou marked the transmittal for %q final, so your Word template has been generated from it.\n\n", firstName(pass.CustomerName), title)
+	fmt.Fprintf(&t, "Download it from step 1 of your factory:\n%s\n\n", factoryURL)
+	fmt.Fprintf(&t, "Direct link (works once you're signed in):\n%s\n\n", templateURL)
+	fmt.Fprintf(&t, "The template carries every paragraph style your transmittal asked for, including your custom styles, and nothing else. Move your text into it style by style, or import its styles into your working document (Word: Manage Styles > Import/Export). Then upload the finished .docx to the factory and run Inspect.\n\n")
+	fmt.Fprintf(&t, "If you change the transmittal later, mark it final again and a fresh template is generated.\n\n")
+	fmt.Fprintf(&t, "- Jenna\njdbb studio\n")
+	return t.String()
+}
+
+func templateReadyHTML(pass dbgen.Pass, title, factoryURL, templateURL string) string {
+	var hb strings.Builder
+	hb.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(pass.CustomerName)))))
+	hb.WriteString(emailP(fmt.Sprintf("You marked the transmittal for <b>%s</b> final, so your Word template has been generated from it.", html.EscapeString(title))))
+	hb.WriteString(emailList([]string{
+		emailLink(factoryURL, "Your factory") + " &mdash; the download is in step 1",
+		emailLink(templateURL, "Direct download") + " &mdash; works once you&rsquo;re signed in",
+	}, false))
+	hb.WriteString(emailP("The template carries every paragraph style your transmittal asked for, including your custom styles, and nothing else. Move your text into it style by style, or import its styles into your working document (Word: Manage Styles &rsaquo; Import/Export). Then upload the finished .docx to the factory and run Inspect."))
+	hb.WriteString(emailSmall("If you change the transmittal later, mark it final again and a fresh template is generated."))
+	hb.WriteString(emailSignoff())
+	return emailShell(hb.String(), emailShellOpts{Kicker: "Word template ready", Title: title})
+}
+
 // buildDeliveredText is the plain-text part of the build-ready receipt.
 func buildDeliveredText(pass dbgen.Pass, book dbgen.Book, pdfURL, epubURL, reportURL string, credits, total int64) string {
 	var t strings.Builder

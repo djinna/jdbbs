@@ -56,11 +56,15 @@ def style_to_typst_func(style: str) -> str | None:
     normalized = normalize_style(style)
     if normalized is None or normalized in BUILTIN_STYLES:
         return None
-    # Convert spaces/underscores to hyphens, strip non-alphanumeric except hyphens
+    # Every run of non-alphanumerics becomes one hyphen ("Field Note" →
+    # "field-note"). Mirrors typstStyleIdent in srv/bookspecs.go, which names
+    # the #let definition this call site must match.
     import re as _re
-    name = _re.sub(r'[^a-z0-9-]', '', normalized)
-    if not name or name[0].isdigit():
+    name = _re.sub(r'[^a-z0-9]+', '-', normalized).strip('-')
+    if not name:
         return None
+    if name[0].isdigit():
+        name = 's-' + name
     return name
 
 

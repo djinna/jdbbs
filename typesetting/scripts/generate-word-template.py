@@ -12,6 +12,7 @@ starting template for copyeditors working in Word.
 
 import argparse
 import io
+import datetime
 import json
 import sys
 
@@ -380,9 +381,11 @@ def build_template(spec: dict) -> Document:
         "Use 'Copyright' for the copyright page:",
         style="First Paragraph"
     )
-    publisher = meta.get("publisher", "Publisher")
+    publisher = meta.get("publisher") or "Publisher"
+    year = str(meta.get("copyright_year") or "").strip() or str(datetime.date.today().year)
+    holder = str(meta.get("copyright_holder") or "").strip() or author
     doc.add_paragraph(
-        f"Copyright © 2025 {author}. All rights reserved.\n"
+        f"Copyright © {year} {holder}. All rights reserved.\n"
         f"Published by {publisher}.\n"
         "No part of this book may be reproduced without permission.",
         style="Copyright"

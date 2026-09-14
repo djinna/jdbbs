@@ -23,9 +23,14 @@ class EdgeCaseDetector:
     ASCII_DENSE_RE = re.compile(r"[\\/_|()\[\]{}<>-]{3,}")
     CJK_RE = re.compile(r"[\u4E00-\u9FFF\u3040-\u30FF\u3400-\u4DBF]")
     THAI_RE = re.compile(r"[\u0E00-\u0E7F]")
+    # Word defaults plus every house style generate-word-template.py ships in
+    # the client's template. Anything the template hands the author must not
+    # come back from Inspect as an "undeclared custom style".
     BUILTIN_PARAGRAPH_STYLES = {
         'normal', 'body text', 'first paragraph', 'heading 1', 'heading 2', 'heading 3',
-        'title', 'subtitle', 'quote', 'block quote', 'list paragraph'
+        'heading 4', 'heading 5', 'heading 6', 'title', 'subtitle', 'quote', 'block quote',
+        'list paragraph', 'list bullet', 'list number', 'caption',
+        'code block', 'section break', 'verse', 'copyright', 'epigraph',
     }
     BUILTIN_CHARACTER_STYLES = {
         'default paragraph font', 'strong', 'emphasis', 'subtle emphasis', 'intense emphasis'

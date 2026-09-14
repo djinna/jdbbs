@@ -18,6 +18,13 @@ end
 -- CHARACTER (INLINE) STYLE MAPPINGS
 -- =============================================================================
 
+-- Declared custom styles from the book spec, passed by the server via
+-- --metadata-file as custom_styles: [{word_style, ident, type}]. Keyed by
+-- normalized Word style name → Typst function name. Consulted after the
+-- hardcoded maps so a spec-declared "Field Note" becomes #field-note[...].
+local declared_para_styles = {}
+local declared_char_styles = {}
+
 -- Normalize style name for matching
 local function normalize_style(name)
   if not name then return "" end
@@ -282,7 +289,7 @@ function Span(el)
   end
   
   local normalized = normalize_style(style)
-  local typst_func = char_style_map[normalized]
+  local typst_func = char_style_map[normalized] or declared_char_styles[normalized]
   
   if typst_func then
     -- Wrap in Typst function while preserving original inline nodes so
@@ -323,6 +330,10 @@ local para_style_map = {
   ["verse"] = "poem",
   ["poetry"] = "poem",
 
+  -- Remaining house styles shipped in the generated Word template
+  ["codeblock"] = "code-block",
+  ["copyright"] = "copyright-page",
+
   -- Project custom paragraph styles
   ["tweetp"] = "tweet-p",
   ["metadatap"] = "metadata-p",
@@ -336,7 +347,7 @@ function Div(el)
   if not style then return nil end
   
   local normalized = normalize_style(style)
-  local typst_func = para_style_map[normalized]
+  local typst_func = para_style_map[normalized] or declared_para_styles[normalized]
   
   if typst_func == "section-break" then
     -- Section break is just a marker, no content
@@ -469,7 +480,24 @@ local function typst_escape(s)
   return s
 end
 
+local function load_declared_styles(meta)
+  if not meta.custom_styles then return end
+  for _, cs in ipairs(meta.custom_styles) do
+    local word = cs.word_style and pandoc.utils.stringify(cs.word_style) or ""
+    local ident = cs.ident and pandoc.utils.stringify(cs.ident) or ""
+    local kind = cs.type and pandoc.utils.stringify(cs.type) or "paragraph"
+    if word ~= "" and ident ~= "" then
+      if kind == "character" then
+        declared_char_styles[normalize_style(word)] = ident
+      else
+        declared_para_styles[normalize_style(word)] = ident
+      end
+    end
+  end
+end
+
 function Meta(meta)
+  load_declared_styles(meta)
   local map_count = load_edge_decisions_map(meta)
   if map_count > 0 then
     edge_decisions_loaded = true

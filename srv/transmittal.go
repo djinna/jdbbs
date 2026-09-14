@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func defaultTransmittalData() string {
@@ -239,6 +240,14 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 	// Skip notification if this is an admin/exe.dev user editing
 	if r.Header.Get("X-ExeDev-UserID") == "" {
 		txNotifier.maybeNotify(s, pid)
+	}
+	// Draft→final on a Factory Pass project: the customer's Word template now
+	// exists (self-serve GET /api/projects/{id}/word-template). Tell them.
+	if body.Status == "final" && oldStatus != "final" {
+		if pass := s.passForProject(r.Context(), pid); pass != nil {
+			title := transmittalBookTitle(dataStr)
+			go s.sendTemplateReadyEmail(*pass, title)
+		}
 	}
 
 	jsonOK(w, map[string]any{"ok": true})
@@ -541,4 +550,17 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	jsonOK(w, map[string]any{"ok": true, "target_project_id": body.TargetProjectID})
+}
+
+// transmittalBookTitle pulls book.title out of raw transmittal JSON ("" if absent).
+func transmittalBookTitle(data string) string {
+	var d struct {
+		Book struct {
+			Title string `json:"title"`
+		} `json:"book"`
+	}
+	if err := json.Unmarshal([]byte(data), &d); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(d.Book.Title)
 }
