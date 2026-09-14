@@ -242,3 +242,24 @@ email tests may assert on old strings.
 **Next review block:** agreed to run another ~20 after the new pages exist
 (why-book, handout, deck), ~Sep 17–18, drawing from the remaining ~90
 findings in `CONTENT-REVIEW-2026-09-13.md` plus the new pages.
+
+## Addendum 3 (2026-09-14) — smoke 1 done, handout live, Book 2 smoke next
+
+State at handoff: prodcal `fe28e81`, jdbbs-public `70b78a2`, both pushed, both clean. Context ~60 % (post-compaction session); files read in full: 3 (all under threshold).
+
+**Done today.** S2/S4 times fixed everywhere (`1b58cb7`); favicon (`25eb9ea`); Mike Check Book 1 smoke end-to-end → 4 fixes (`eb590c0`: custom styles reach the docx build, shared `typstStyleIdent`, detector whitelist, template copyright year); template_ready email pathway confirmed live (#27), build-ready #28. Context hygiene rules + `scripts/readguard.sh` (`3375831`, see `docs/CONTEXT-HYGIENE.md`). **Participant session guide live at `/2026-pi-symposium/workshop`** (jdbbs-public, registry migration 034, linked from roster + prep email). Prep email `scratch/prep-email.txt` complete incl. Discord server/call/chat links — **user sends from `/admin/registrations`**; user is editing the handout HTML locally and will upload — diff text changes in, keep markup.
+
+**Next: Mike Check Book 2 smoke — the messy path** (Book 1 was the happy path). Mike Check is a test persona (project 17, `/mcheck/`), not a person. Fresh session; the run is output-heavy.
+
+- [ ] Book 1 state: transmittal `final`, spec pulled, 2 credits left. Leave as is; Book 2 is a **new book** on the same project (check `/mcheck/` shows both).
+- [ ] Transmittal: different trim (**6×9**), different formats mix, no or different custom styles (e.g. one paragraph "Epigraph", no character style). Mark Final → confirm template_ready email fires again.
+- [ ] Manuscript written **outside** the template: Google-Docs-style export — `scratch/make-ms-messy.py` (python-docx): manual bold/italic for headings, blank-line faked scene breaks, a pasted colored run, mixed straight/curly quotes, a "Normal (Web)"-style stray style, a hand-numbered list, a "14 Sept — …" dateline (Book 1 false-positive check).
+- [ ] Inspect → expect high findings; record counts. Keep/Strip/Convert.
+- [ ] Import template styles into the messy doc (Word Organizer path the prep email promises) — simulate via python-docx or apply template as base; re-Inspect → should drop.
+- [ ] Build 1 (dirty) → does it fail or produce ugly output? Build 2 (clean) → **second build on same book**: credit decrement to 1, artifacts superseded, build-ready email again.
+- [ ] Book 1 soft findings: chapter-opener page break (`scratch/mcheck-build.pdf` p.3–4) — check in Book 2 PDF too; dateline false "manual list item".
+- [ ] Log every catch; fix small ones inline, park big ones here.
+
+**After smoke 2:** admin doc editor (`docs/IDEAS.md` 2026-09-14) → talk deck `/2026-pi-symposium/talk` → content-review round 2 (~Sep 17–18, `/admin/content-review/`, 19/19 decided in round 1) → freeze Sep 19.
+
+**Exact next action:** new session; `git status` + `git log -1` in both repos; open `/mcheck/` as admin and start the Book 2 transmittal.
