@@ -275,3 +275,19 @@ State: prodcal `d2b1888`, jdbbs-public `8fe3201`, both pushed, both clean. Conte
 **Parked for the admin doc editor:** editable email signature + footer line (currently constants in `srv/email_shell.go`).
 
 **Next: Book 2 smoke** — checklist unchanged in Addendum 3. Then doc editor → deck → content-review round 2 → freeze Sep 19.
+
+## Addendum 4b (2026-09-14, late) — talk deck rev 1 up; rev 2 decisions taken
+
+**Talk:** *Book as Protocol Stack: Building a protocolized book-production factory* — **Wed Sep 23, 17:30 UTC** (1:30 PM EDT), 25+5, SIGP4B. PI listing: https://protocol-institute.org/events/protocol-symposium-2026/#p-77 (use that title, not the proposal's).
+
+**Rev 1 live** at `/2026-pi-symposium/talk` (jdbbs-public `c4ffa03`; registry migration 036 in prodcal `c1d7682`, applies on next restart). Cloned from `exedeck.html` stage (one tall page, arrow keys, ToC ≥1340 px / jump menu, print = slide per page) but with the legacy inlined tokens/masthead/theme-bar CSS removed — theme.css + canonical footer only.
+
+**Rev 2 — decided with the author, not yet done:**
+1. Drop the New Nature slide. Keep the observation (rules we chose vs. rules that hardened by accident); say "New Nature" once in the close because the accepted abstract ends on it.
+2. Drop *The Twitter Years* as an example. Ghosts only.
+3. **Rewrite the prose.** Rev 1 is proposal-speak cut into slides (150–250 words each). Rev 2: slides go sparse (plain first-person sentence as title, ≤ ~50 words, at most one short table/list); the talking moves into `<aside class="notes">` per slide, shown only in the print/handout rendering. Then run the better-documents five passes (`docs/reference/better-documents/SKILL.md`) and report what changed.
+4. Clips still to record: Inspect on the messy manuscript (`scratch/mcheck-book2-messy.docx` from smoke 2), and a Factory build.
+
+**Admin doc editor (next after smoke 2, not built):** `/admin/docs/` lists jdbbs-public files from the Pages registry, textarea + save + view link; publishes instantly (servePublicDoc reads disk). Include editable email signature + footer line. No preview in v1.
+
+**Smoke 2** running in subagent `book2-smoke` (owns prodcal working tree; has landed `5cf3793`, `2f240eb`, working in `srv/static/factory.js`). It will append Addendum 5 itself.
