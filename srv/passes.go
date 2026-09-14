@@ -777,9 +777,14 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 		Author    string `json:"author"`
 		Note      string `json:"note"`
 		SendEmail *bool  `json:"send_email"`
+		ProjectID int64  `json:"project_id"` // attach to an existing project (second book for an existing client)
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32*1024)).Decode(&in); err != nil {
 		jsonErr(w, "invalid pass request", http.StatusBadRequest)
+		return
+	}
+	if in.ProjectID > 0 {
+		s.attachPassToProject(w, r, in.ProjectID, in.Email, in.Name, in.Note)
 		return
 	}
 	res, err := s.fulfillPass(r.Context(), "admin", fulfillPassInput{
@@ -806,6 +811,77 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 		"client_slug":  res.ClientSlug,
 		"project_slug": res.ProjectSlug,
 		"password":     res.Password,
+	})
+}
+
+// attachPassToProject is the second-book path: a client who already holds a
+// pass created another project from the portal (POST /api/clients/{c}/projects),
+// which has no pass and so is read-only in the factory. The admin attaches a
+// fresh pass here; customer name/email default to the client's existing pass
+// (or the client row) so the build-ready / template-ready emails keep flowing.
+// No new client, no new password, no fulfillment email.
+func (s *Server) attachPassToProject(w http.ResponseWriter, r *http.Request, projectID int64, email, name, note string) {
+	ctx := r.Context()
+	q := dbgen.New(s.DB)
+	project, err := q.GetProject(ctx, projectID)
+	if errors.Is(err, sql.ErrNoRows) {
+		jsonErr(w, "project not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		jsonErr(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if _, err := q.GetPassByProject(ctx, projectID); err == nil {
+		jsonErr(w, "this project already has a factory pass", http.StatusConflict)
+		return
+	}
+	email = clip(strings.ToLower(strings.TrimSpace(email)), 320)
+	name = clip(strings.TrimSpace(name), 200)
+	if email == "" || name == "" {
+		// Sibling pass on the same client is the best source of truth.
+		var sibEmail, sibName string
+		_ = s.DB.QueryRowContext(ctx, `SELECT p.customer_email, p.customer_name FROM passes p
+			JOIN projects pr ON pr.id = p.project_id
+			WHERE pr.client_slug = ? ORDER BY p.id DESC LIMIT 1`, project.ClientSlug).Scan(&sibEmail, &sibName)
+		if email == "" {
+			email = sibEmail
+		}
+		if name == "" {
+			name = sibName
+		}
+		if name == "" {
+			_ = s.DB.QueryRowContext(ctx, `SELECT name FROM clients WHERE slug = ?`, project.ClientSlug).Scan(&name)
+		}
+	}
+	if email != "" && !looksLikeEmail(email) {
+		jsonErr(w, "That email address doesn't look right.", http.StatusBadRequest)
+		return
+	}
+	pass, err := q.CreatePass(ctx, dbgen.CreatePassParams{
+		ProjectID:      projectID,
+		Sku:            passSKU,
+		Source:         "admin",
+		CustomerEmail:  email,
+		CustomerName:   name,
+		BuildsIncluded: passBuildsIncluded,
+		Note:           clip(note, 500),
+	})
+	if err != nil {
+		jsonErr(w, "create pass: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	slog.Info("factory pass attached to existing project", "pass_id", pass.ID,
+		"project", project.ClientSlug+"/"+project.ProjectSlug, "email", email, "by", triggeredBy(r, "admin"))
+	w.WriteHeader(http.StatusCreated)
+	jsonOK(w, map[string]any{
+		"ok":           true,
+		"pass_id":      pass.ID,
+		"project_id":   projectID,
+		"portal_url":   s.portalURL(project.ClientSlug, project.ProjectSlug),
+		"client_slug":  project.ClientSlug,
+		"project_slug": project.ProjectSlug,
+		"attached":     true,
 	})
 }
 

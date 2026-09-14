@@ -1467,3 +1467,66 @@ func TestTransmittalBookTitle(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// TestAdminAttachPassToExistingProject covers the second-book path: a pass
+// holder creates another project from the portal (no pass → factory
+// read-only), the admin attaches a fresh pass with project_id, and the
+// customer identity is inherited from the sibling pass.
+func TestAdminAttachPassToExistingProject(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	_, password, clientSlug, _ := grantedPass(t, s, ts, "Mike Check", "Book One")
+	cookie := clientCookie(t, ts, clientSlug, password)
+
+	// Client creates a second project from the portal.
+	req, _ := http.NewRequest("POST", ts.URL+"/api/clients/"+clientSlug+"/projects",
+		strings.NewReader(`{"name":"Book Two","project_slug":"book-002"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(cookie)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		t.Fatalf("portal create project: got %d", resp.StatusCode)
+	}
+	var proj map[string]any
+	decodeJSON(t, resp, &proj)
+	pid := int64(proj["ID"].(float64))
+
+	// Without a pass the factory is gated for the client.
+	req, _ = http.NewRequest("POST", ts.URL+"/api/projects/"+itoa(pid)+"/preflight", nil)
+	req.AddCookie(cookie)
+	resp, _ = http.DefaultClient.Do(req)
+	if resp.StatusCode != 403 {
+		t.Fatalf("preflight without pass: expected 403, got %d", resp.StatusCode)
+	}
+
+	// Admin attaches a pass; identity defaults to the sibling pass.
+	resp = apiRequestAdmin(t, ts, "POST", "/api/admin/passes", map[string]any{"project_id": pid, "note": "second book"})
+	if resp.StatusCode != 201 {
+		t.Fatalf("attach pass: expected 201, got %d", resp.StatusCode)
+	}
+	pass, err := dbgen.New(s.DB).GetPassByProject(t.Context(), pid)
+	if err != nil {
+		t.Fatalf("pass not created: %v", err)
+	}
+	if pass.CustomerEmail != "customer@example.com" || pass.CustomerName != "Mike Check" {
+		t.Errorf("inherited identity = %q / %q", pass.CustomerName, pass.CustomerEmail)
+	}
+	if pass.BuildsIncluded != passBuildsIncluded || pass.Source != "admin" {
+		t.Errorf("pass = %+v", pass)
+	}
+
+	// Second attach is a conflict.
+	resp = apiRequestAdmin(t, ts, "POST", "/api/admin/passes", map[string]any{"project_id": pid})
+	if resp.StatusCode != 409 {
+		t.Errorf("re-attach: expected 409, got %d", resp.StatusCode)
+	}
+	// Unknown project.
+	resp = apiRequestAdmin(t, ts, "POST", "/api/admin/passes", map[string]any{"project_id": 999999})
+	if resp.StatusCode != 404 {
+		t.Errorf("unknown project: expected 404, got %d", resp.StatusCode)
+	}
+}
