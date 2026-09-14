@@ -201,7 +201,7 @@ func emailStatus(text string) string {
 
 // emailSignoff is the standard closing.
 func emailSignoff() string {
-	return fmt.Sprintf(`<p style="margin:22px 0 0">&mdash; Jenna<br><span style="color:%s">jdbb studio</span></p>`, emailSecondary)
+	return fmt.Sprintf(`<p style="margin:22px 0 0">&mdash; Jenna<br><span style="color:%s">[jdbb] studio</span></p>`, emailSecondary)
 }
 
 // emailList renders <ul> with studio spacing. Items are trusted HTML.

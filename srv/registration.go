@@ -310,7 +310,7 @@ One reminder: the workshop runs on YOUR material, so have a real manuscript or
 text collection ready to bring — any size, rough is welcome.
 
 See you in the factory,
-Jenna Dixon · jdbb studio`, first)
+Jenna Dixon · [jdbb] studio`, first)
 }
 
 func applicantAutoReplyHTML(name string) string {
@@ -914,7 +914,7 @@ func announcementPlain(body string) string {
 }
 
 func announcementText(name, body string) string {
-	return fmt.Sprintf("Hi %s,\n\n%s\n\n— Jenna\njdbb studio\n\nYou’re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply to this email if you’d rather not receive further announcements.", firstName(name), announcementPlain(strings.TrimSpace(body)))
+	return fmt.Sprintf("Hi %s,\n\n%s\n\n— Jenna\n[jdbb] studio\n\nYou’re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply to this email if you’d rather not receive further announcements.", firstName(name), announcementPlain(strings.TrimSpace(body)))
 }
 
 // announcementURLRe matches a bare URL in already-escaped body text so the
