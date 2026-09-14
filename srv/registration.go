@@ -825,10 +825,11 @@ func (s *Server) handleAdminSendAnnouncement(w http.ResponseWriter, r *http.Requ
 			Name  string `json:"name"`
 			Email string `json:"email"`
 			Text  string `json:"text"`
+			HTML  string `json:"html"`
 		}
 		letters := make([]letter, len(recipients))
 		for i, rec := range recipients {
-			letters[i] = letter{rec.ID, rec.Name, rec.Email, announcementText(rec.Name, merged[i])}
+			letters[i] = letter{rec.ID, rec.Name, rec.Email, announcementText(rec.Name, merged[i]), announcementHTML(rec.Name, merged[i])}
 		}
 		jsonOK(w, map[string]any{"ok": true, "selected": len(recipients), "subject": in.Subject, "letters": letters})
 		return
@@ -895,22 +896,57 @@ func (s *Server) withSmokeRegistration(ctx context.Context, ids []int64) []int64
 	return append(append([]int64{}, ids...), smokeID)
 }
 
+// Minimal Markdown for announcement bodies: [text](url), **bold**, *italic*.
+// Bare URLs are linked in the HTML part. Nothing else is interpreted.
+var (
+	mdLinkRe   = regexp.MustCompile(`\[([^\]\n]+)\]\((https?://[^\s)]+)\)`)
+	mdBoldRe   = regexp.MustCompile(`\*\*([^*\n]+)\*\*`)
+	mdItalicRe = regexp.MustCompile(`(^|[^*\w])\*([^*\n]+)\*`)
+)
+
+// announcementPlain renders the minimal Markdown for the text/plain part:
+// links become "text (url)", emphasis markers are dropped.
+func announcementPlain(body string) string {
+	body = mdLinkRe.ReplaceAllString(body, "$1 ($2)")
+	body = mdBoldRe.ReplaceAllString(body, "$1")
+	body = mdItalicRe.ReplaceAllString(body, "$1$2")
+	return body
+}
+
 func announcementText(name, body string) string {
-	return fmt.Sprintf("Hi %s,\n\n%s\n\n— Jenna\njdbb studio\n\nYou’re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply to this email if you’d rather not receive further announcements.", firstName(name), strings.TrimSpace(body))
+	return fmt.Sprintf("Hi %s,\n\n%s\n\n— Jenna\njdbb studio\n\nYou’re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply to this email if you’d rather not receive further announcements.", firstName(name), announcementPlain(strings.TrimSpace(body)))
 }
 
 // announcementURLRe matches a bare URL in already-escaped body text so the
 // HTML part can link it. Trailing punctuation is left outside the link.
 var announcementURLRe = regexp.MustCompile(`https?://[^\s<]+[^\s<.,;:!?)]`)
 
-func announcementHTML(name, body string) string {
-	safeBody := html.EscapeString(strings.TrimSpace(body))
-	safeBody = strings.ReplaceAll(safeBody, "\r\n", "\n")
-	safeBody = strings.ReplaceAll(safeBody, "\n", "<br>")
-	safeBody = announcementURLRe.ReplaceAllStringFunc(safeBody, func(u string) string {
+// announcementBodyHTML renders the body for the HTML part: escaped, minimal
+// Markdown applied, bare URLs linked, newlines kept.
+func announcementBodyHTML(body string) string {
+	safe := html.EscapeString(strings.TrimSpace(body))
+	safe = strings.ReplaceAll(safe, "\r\n", "\n")
+	// Explicit links first, parked as placeholders so the autolinker below
+	// does not re-link the href.
+	var links []string
+	safe = mdLinkRe.ReplaceAllStringFunc(safe, func(m string) string {
+		sm := mdLinkRe.FindStringSubmatch(m)
+		links = append(links, fmt.Sprintf(`<a href="%s" style="color:%s">%s</a>`, sm[2], emailAccent, sm[1]))
+		return fmt.Sprintf("\x00%d\x00", len(links)-1)
+	})
+	safe = announcementURLRe.ReplaceAllStringFunc(safe, func(u string) string {
 		return fmt.Sprintf(`<a href="%s" style="color:%s">%s</a>`, u, emailAccent, u)
 	})
-	b := emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(name)))) + emailP(safeBody) + emailSignoff()
+	for i, l := range links {
+		safe = strings.Replace(safe, fmt.Sprintf("\x00%d\x00", i), l, 1)
+	}
+	safe = mdBoldRe.ReplaceAllString(safe, "<strong>$1</strong>")
+	safe = mdItalicRe.ReplaceAllString(safe, "$1<em>$2</em>")
+	return strings.ReplaceAll(safe, "\n", "<br>")
+}
+
+func announcementHTML(name, body string) string {
+	b := emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(name)))) + emailP(announcementBodyHTML(body)) + emailSignoff()
 	return emailShell(b, emailShellOpts{
 		Kicker: "Protocolize Your Book",
 		Footer: "You&rsquo;re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply if you&rsquo;d rather not receive further announcements.",
