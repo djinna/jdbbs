@@ -609,6 +609,7 @@ func (s *Server) handleAdminUpdateRegistration(w http.ResponseWriter, r *http.Re
 type announcementRow struct {
 	ID             int64  `json:"id"`
 	Subject        string `json:"subject"`
+	Body           string `json:"body"`
 	RecipientCount int    `json:"recipient_count"`
 	SentCount      int    `json:"sent_count"`
 	FailedCount    int    `json:"failed_count"`
@@ -658,7 +659,7 @@ func (s *Server) queryRegistrationMail(r *http.Request) ([]registrationMailRow, 
 
 func (s *Server) queryAnnouncements(r *http.Request) ([]announcementRow, error) {
 	rows, err := s.DB.QueryContext(r.Context(), `
-		SELECT id, subject, recipient_count, sent_count, failed_count, created_at
+		SELECT id, subject, body, recipient_count, sent_count, failed_count, created_at
 		FROM event_announcements WHERE event_slug=?
 		ORDER BY created_at DESC LIMIT 20
 	`, workshopSlug)
@@ -669,7 +670,7 @@ func (s *Server) queryAnnouncements(r *http.Request) ([]announcementRow, error) 
 	out := []announcementRow{}
 	for rows.Next() {
 		var a announcementRow
-		if err := rows.Scan(&a.ID, &a.Subject, &a.RecipientCount, &a.SentCount, &a.FailedCount, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.Subject, &a.Body, &a.RecipientCount, &a.SentCount, &a.FailedCount, &a.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, a)
