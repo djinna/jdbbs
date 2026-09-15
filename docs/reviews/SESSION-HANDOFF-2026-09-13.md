@@ -291,3 +291,28 @@ State: prodcal `d2b1888`, jdbbs-public `8fe3201`, both pushed, both clean. Conte
 **Admin doc editor (next after smoke 2, not built):** `/admin/docs/` lists jdbbs-public files from the Pages registry, textarea + save + view link; publishes instantly (servePublicDoc reads disk). Include editable email signature + footer line. No preview in v1.
 
 **Smoke 2** running in subagent `book2-smoke` (owns prodcal working tree; has landed `5cf3793`, `2f240eb`, working in `srv/static/factory.js`). It will append Addendum 5 itself.
+
+## Addendum 5 (2026-09-14/15) — Book 2 smoke: messy path
+
+Run by subagent `book2-smoke`. Test persona Mike Check, client `/mcheck/`. Book 1 (project 17) untouched: transmittal `final`, pass 2 of 3 credits left.
+
+**Per step**
+
+1. **Book 2 = new project** (a "book" is a project here: one transmittal + one pass per project). Created from the client portal as Mike (`POST /api/clients/mcheck/projects`) → project 19 `/mcheck/book-002/`; `/mcheck/` lists both. **Catch (fixed, `5cf3793`):** a portal-created second project has no pass → factory read-only, and the only admin pass path (`fulfillPass`) always makes a *new* client + password. `POST /api/admin/passes {project_id}` now attaches a pass to an existing project, inheriting customer name/email from the sibling pass (test `TestAdminAttachPassToExistingProject`). API only — no admin UI button yet.
+2. **Transmittal** as Mike: 6×9, printer format "Other", deliverables PDF+EPUB+DOCX, one custom paragraph style `Epigraph`, no character style. Draft→final → `template_ready` #45 (to bookiq@, BCC j@). Template pulled to `scratch/mcheck-b2-template.docx`.
+3. **Messy manuscript**: `scripts/make-ms-messy.py` (committed; copy in `scratch/`) → `scratch/mcheck-book2-messy.docx`: 10 chapters, headings as bold 16pt centered Normal, blank-line + `***` scene breaks, green Verdana run, manual-italic epigraph, hand-typed `1.`–`4.` list, mixed quotes, tab indent, double spaces, `Normal (Web)` stray style, `14 Sept —` dateline. `--clean TEMPLATE` mode rewrites it into the template's styles (simulates Organizer import + restyle).
+4. **Inspect (dirty, book 15)**, before fixes: 43 findings (3 high / 14 med / 26 low): colored 1, unusual_font 1, manual_list 4, manual_break 3 (`***` only), direct_spacing 18, manual_formatting 14 (*the 11 bold chapter headings — "auto-preserved, no action needed"*), observed_style 1, undeclared_custom_style 1. **Three catches, fixed in `2f240eb`:** (a) no finding at all for headings that carry no Heading style — added `heading_lookalike` (bold-throughout / ≥ body+3pt / "Chapter N…"; **high** when the doc uses no Heading styles, else medium); (b) blank-line scene breaks invisible — runs of ≥2 empty paragraphs now a `manual_break`; (c) HTML report showed 2 high / 42 total while the JSON summary said 3 / 43, because `undeclared_custom_style` was appended only in Go — the detector now emits it (Go dedupes). After: **64 findings, 14 high / 14 med / 36 low** (heading_lookalike 11, manual_break 13). Dateline **not** falsely flagged as a list (Book 1 soft finding not reproduced). Book 1 manuscript + the template re-checked: no new false positives. `factory.js` type labels for the new/unlabelled types (`3931b43`). Keep/Strip/Convert: there is **no API or UI for the ruling** — it is a human reading of the report; noted, not exercised.
+5. **Import template styles** (simulated): clean docx = 49 paragraphs, styles Title/Subtitle/Copyright/Epigraph/Heading 1/First Paragraph/Normal/Section Break. Re-Inspect (book 16): **64 → 4** (the 4 hand-typed list lines, correct).
+6. **Build 1 (dirty)**: did *not* fail — produced ugly output as predicted: 2 pages, no chapter breaks, `***` came out as `˘ ˘ ˘` (each `*` mapped to the breve), EPUB one `ch001`. Trim right (432×648 pt). Credit 3→2, `build_delivered` #46. **Build 2 (clean)**: 12 pages, 6×9, **every chapter opens on a fresh page** (p3 ch1, p4 ch2 …), EPUB 11 chapter files + nav, colour/Verdana not carried. Credit **2→1** (ledger rows 7, 8), both books' outputs listed newest-first, `build_delivered` #49. Files: `scratch/mcheck-b2-{dirty,clean}.{pdf,epub}`.
+
+**Parked (owner decision / bigger):**
+- Chapter openers start on the next page, not the next *recto* (p4 is a verso) — same as Book 1's soft finding; a spec/Typst option.
+- Word `Title`/`Subtitle` paragraphs vanish from the print PDF (p1 shows only "Mike Check"); the half-title presumably comes from the spec. Decide: map Title/Subtitle → title page, or have Inspect say they're ignored.
+- Dirty build "succeeds": should Build warn/confirm when Inspect found `heading_lookalike` high findings (no chapters will be found)? UI copy today: "you can build anyway".
+- `***` → `˘ ˘ ˘`: the section-break glyph substitution applies per `*`; should collapse a manual `***` line to one Section Break.
+- Transmittal data-model drift: default JSON has `files.archives`, the form writes `files.deliverables`; nothing server-side reads either.
+- Admin UI for "attach pass to existing project" (API exists now).
+
+**Workshop-ready?** Yes for the messy path as designed: Inspect now names the real problem (headings without Heading styles) as high, the template-import route drops findings 64→4, and the second build meters correctly. Repo pushed; `prodcal.service` rebuilt and restarted.
+
+Metrics: context ~45 % at handoff; files read in full over threshold: 0.
