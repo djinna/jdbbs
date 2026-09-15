@@ -614,6 +614,9 @@ type announcementRow struct {
 	SentCount      int    `json:"sent_count"`
 	FailedCount    int    `json:"failed_count"`
 	CreatedAt      string `json:"created_at"`
+	// RecipientIDs lets the tracker re-render the letters exactly as merged
+	// for those people ("View" on the history row).
+	RecipientIDs []int64 `json:"recipient_ids"`
 }
 
 // registrationMailRow is one outbound_email entry tied to a registration —
@@ -659,7 +662,7 @@ func (s *Server) queryRegistrationMail(r *http.Request) ([]registrationMailRow, 
 
 func (s *Server) queryAnnouncements(r *http.Request) ([]announcementRow, error) {
 	rows, err := s.DB.QueryContext(r.Context(), `
-		SELECT id, subject, body, recipient_count, sent_count, failed_count, created_at
+		SELECT id, subject, body, recipient_count, sent_count, failed_count, created_at, recipient_ids
 		FROM event_announcements WHERE event_slug=?
 		ORDER BY created_at DESC LIMIT 20
 	`, workshopSlug)
@@ -670,9 +673,12 @@ func (s *Server) queryAnnouncements(r *http.Request) ([]announcementRow, error) 
 	out := []announcementRow{}
 	for rows.Next() {
 		var a announcementRow
-		if err := rows.Scan(&a.ID, &a.Subject, &a.Body, &a.RecipientCount, &a.SentCount, &a.FailedCount, &a.CreatedAt); err != nil {
+		var ids string
+		if err := rows.Scan(&a.ID, &a.Subject, &a.Body, &a.RecipientCount, &a.SentCount, &a.FailedCount, &a.CreatedAt, &ids); err != nil {
 			return nil, err
 		}
+		a.RecipientIDs = []int64{}
+		_ = json.Unmarshal([]byte(ids), &a.RecipientIDs)
 		out = append(out, a)
 	}
 	return out, rows.Err()
