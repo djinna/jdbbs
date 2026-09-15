@@ -1234,7 +1234,7 @@ func templateReadyText(pass dbgen.Pass, title, factoryURL, templateURL string) s
 	fmt.Fprintf(&t, "Direct link (works once you're signed in):\n%s\n\n", templateURL)
 	fmt.Fprintf(&t, "The template carries every paragraph style your transmittal asked for, including your custom styles, and nothing else. Move your text into it style by style, or import its styles into your working document (Word: Manage Styles > Import/Export). Then upload the finished .docx to the factory and run Inspect.\n\n")
 	fmt.Fprintf(&t, "If you change the transmittal later, mark it final again and a fresh template is generated.\n\n")
-	fmt.Fprintf(&t, "- Jenna\n[jdbb] studio\n")
+	fmt.Fprintf(&t, "%s\n", emailSignoffText())
 	return t.String()
 }
 
@@ -1263,7 +1263,7 @@ func buildDeliveredText(pass dbgen.Pass, book dbgen.Book, pdfURL, epubURL, repor
 	fmt.Fprintf(&t, "Sign in to your factory with the client password from your welcome email.\n\n")
 	fmt.Fprintf(&t, "The deliverable is a correctly typeset PDF and EPUB of the manuscript as it\n")
 	fmt.Fprintf(&t, "conforms to your transmittal. Preflight tells you what doesn't conform.\n\n")
-	fmt.Fprintf(&t, "- Jenna\n[jdbb] studio\n")
+	fmt.Fprintf(&t, "%s\n", emailSignoffText())
 	return t.String()
 }
 

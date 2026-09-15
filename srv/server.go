@@ -89,6 +89,9 @@ func (s *Server) setUpDatabase(dbPath string) error {
 	if err := db.RunMigrations(wdb); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
+	if err := s.loadSettings(context.Background()); err != nil {
+		return fmt.Errorf("failed to load studio settings: %w", err)
+	}
 	return nil
 }
 
@@ -181,6 +184,13 @@ func (s *Server) Handler() http.Handler {
 
 	// Site pages registry (admin inventory of every route; see docs/PAGE-DESIGN-HOSTING-VISIBILITY-2026-09-11.md §7)
 	mux.HandleFunc("GET /api/admin/pages", s.handleAdminListSitePages)
+	// Doc editor — edits jdbbs-public files named in the registry + studio settings
+	mux.HandleFunc("GET /admin/docs/{$}", s.handleAdminDocsPage)
+	mux.HandleFunc("GET /api/admin/docs", s.handleAdminDocsList)
+	mux.HandleFunc("GET /api/admin/docs/file", s.handleAdminDocsRead)
+	mux.HandleFunc("PUT /api/admin/docs/file", s.handleAdminDocsWrite)
+	mux.HandleFunc("POST /api/admin/docs/commit", s.handleAdminDocsCommit)
+	mux.HandleFunc("PUT /api/admin/settings/{key}", s.handleAdminSaveSetting)
 	mux.HandleFunc("PUT /api/admin/pages", s.handleAdminUpsertSitePage)
 	mux.HandleFunc("DELETE /api/admin/pages/{id}", s.handleAdminDeleteSitePage)
 

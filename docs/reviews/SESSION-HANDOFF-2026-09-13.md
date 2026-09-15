@@ -316,3 +316,17 @@ Run by subagent `book2-smoke`. Test persona Mike Check, client `/mcheck/`. Book 
 **Workshop-ready?** Yes for the messy path as designed: Inspect now names the real problem (headings without Heading styles) as high, the template-import route drops findings 64→4, and the second build meters correctly. Repo pushed; `prodcal.service` rebuilt and restarted.
 
 Metrics: context ~45 % at handoff; files read in full over threshold: 0.
+
+## Addendum 6 (2026-09-15) — talk deck rev 2 live; admin doc editor built
+
+**Deck rev 2** at `/2026-pi-symposium/talk` (jdbbs-public `7968fc4`): 12 sparse slides (≤ ~50 words on screen), speaker script in `<aside class="notes">` per slide — hidden on screen, shown by the `n` key or in print (= handout; clip cues `.note` hidden there). Ghosts only; "New Nature" once in the close. Better-documents five passes run and reported to the author, who is reviewing. Clips still to record.
+
+**Admin doc editor `/admin/docs/`** (this commit; migration 037 `studio_settings` + registry row):
+- Lists every `site_pages` row with owner `jdbbs-public` (the registry is the allow-list — unregistered paths are 400), with size, mtime, and git status from one `git status --porcelain` in `publicDocsDir()`.
+- Open → textarea; **Save** writes temp+rename, normalises CRLF, refuses empty, and returns 409 if the file's mtime moved since load. Live on the next request (servePublicDoc reads disk). Ctrl/Cmd-S saves.
+- **Commit to git** stages and commits that one file (no push — shell step). "Nothing to commit" when clean.
+- **Email strings**: `email_signature` (default `— Jenna\n[jdbb] studio`) and `email_footer` (default `https://jdbbs.exe.xyz/ · Reply to this email to reach Jenna.`), stored in `studio_settings`, cached in-process, loaded at startup and on save; empty value = revert to default. `emailSignoff()`, new `emailSignoffText()` and `emailFooterHTML()` in `srv/email_shell.go` read them; the plain-text sign-offs in `announcementText` and the two pass emails use `emailSignoffText()`. The formal `Jenna Dixon · [jdbb] studio` lines (welcome/receipt) are unchanged. No HTML allowed in values.
+- Admin masthead gets a **Docs** link. API: `GET /api/admin/docs`, `GET|PUT /api/admin/docs/file`, `POST /api/admin/docs/commit`, `PUT /api/admin/settings/{key}`.
+- Not in v1: preview, Markdown files under `notes/`, push, multi-file commits.
+
+**Next:** author review of deck rev 2 → record the two clips → content-review round 2 → freeze Sep 19.

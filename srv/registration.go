@@ -914,7 +914,7 @@ func announcementPlain(body string) string {
 }
 
 func announcementText(name, body string) string {
-	return fmt.Sprintf("Hi %s,\n\n%s\n\n— Jenna\n[jdbb] studio\n\nYou’re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply to this email if you’d rather not receive further announcements.", firstName(name), announcementPlain(strings.TrimSpace(body)))
+	return fmt.Sprintf("Hi %s,\n\n%s\n\n%s\n\nYou’re receiving this workshop announcement because you opted in when registering for Protocolize Your Book. Reply to this email if you’d rather not receive further announcements.", firstName(name), announcementPlain(strings.TrimSpace(body)), emailSignoffText())
 }
 
 // announcementURLRe matches a bare URL in already-escaped body text so the

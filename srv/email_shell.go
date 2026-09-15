@@ -3,6 +3,7 @@ package srv
 import (
 	"fmt"
 	"html"
+	"regexp"
 	"strings"
 )
 
@@ -38,7 +39,6 @@ const (
 	emailMono      = "ui-monospace,Menlo,Consolas,'Liberation Mono',monospace"
 	emailMeasure   = 560 // px; matches the prose measure
 	emailBrandName = "jdbb studio"
-	emailSignature = "Jenna Dixon · jdbb studio"
 	emailStudioURL = "https://jdbbs.exe.xyz/"
 )
 
@@ -86,7 +86,7 @@ func emailShell(bodyHTML string, o emailShellOpts) string {
 	if o.Footer != "" {
 		b.WriteString(o.Footer)
 	} else {
-		fmt.Fprintf(&b, `<a href="%s" style="color:%s;text-decoration:none">%s</a> &middot; Reply to this email to reach Jenna.`, emailStudioURL, emailMuted, emailStudioURL[len("https://"):len(emailStudioURL)-1])
+		b.WriteString(emailFooterHTML())
 	}
 	b.WriteString(`</td></tr></table></td></tr></table></body></html>`)
 	return b.String()
@@ -199,10 +199,48 @@ func emailStatus(text string) string {
 	return fmt.Sprintf(`<span style="color:%s;font:12px/1.4 %s;letter-spacing:.04em;text-transform:uppercase">%s</span>`, c, emailMono, html.EscapeString(text))
 }
 
-// emailSignoff is the standard closing.
+// emailSignoff is the standard closing, rendered from the email_signature
+// setting: first line as-is, remaining lines in the secondary colour.
 func emailSignoff() string {
-	return fmt.Sprintf(`<p style="margin:22px 0 0">&mdash; Jenna<br><span style="color:%s">[jdbb] studio</span></p>`, emailSecondary)
+	lines := strings.Split(strings.TrimSpace(setting("email_signature")), "\n")
+	var b strings.Builder
+	b.WriteString(`<p style="margin:22px 0 0">`)
+	for i, ln := range lines {
+		ln = html.EscapeString(strings.TrimSpace(ln))
+		switch {
+		case i == 0:
+			b.WriteString(ln)
+		case i == 1:
+			fmt.Fprintf(&b, `<br><span style="color:%s">%s`, emailSecondary, ln)
+		default:
+			b.WriteString("<br>" + ln)
+		}
+	}
+	if len(lines) > 1 {
+		b.WriteString(`</span>`)
+	}
+	b.WriteString(`</p>`)
+	return b.String()
 }
+
+// emailSignoffText is the text/plain twin of emailSignoff, without the
+// trailing newline.
+func emailSignoffText() string {
+	return strings.TrimSpace(setting("email_signature"))
+}
+
+// emailFooterHTML renders the email_footer setting for the shell's small
+// print: escaped, with bare URLs turned into muted links.
+func emailFooterHTML() string {
+	text := html.EscapeString(strings.TrimSpace(setting("email_footer")))
+	return emailFooterURLRe.ReplaceAllStringFunc(text, func(u string) string {
+		label := strings.TrimPrefix(strings.TrimPrefix(u, "https://"), "http://")
+		label = strings.TrimSuffix(label, "/")
+		return fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:none">%s</a>`, u, emailMuted, label)
+	})
+}
+
+var emailFooterURLRe = regexp.MustCompile(`https?://[^\s<>"'&]+`)
 
 // emailList renders <ul> with studio spacing. Items are trusted HTML.
 func emailList(items []string, ordered bool) string {
