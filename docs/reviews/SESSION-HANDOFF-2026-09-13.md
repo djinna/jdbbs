@@ -359,11 +359,9 @@ Routes: `POST /api/public/store/checkout`, `GET /api/public/store/session`,
 `GET /api/public/store/config`, `GET /api/admin/store/orders`,
 `POST /api/admin/passes/{id}/status`.
 
-**Before the Sep 19 freeze — decide:** leave `PRODCAL_STORE=on` pointing at the
-sandbox (public `/factory` shows a *real-looking* Buy button that takes test cards
-only — confusing for attendees) or remove the line and restart so `/factory`
-shows the Availability copy. Recommendation: **turn it off for the freeze**, go
-live after Sep 23.
+**Freeze decision (user, 2026-09-16): leave `PRODCAL_STORE=on` against the
+sandbox through the workshop** — the Buy flow is demoed live in the sessions with
+card 4242. Do not turn it off. Attendees use the code form, not Buy.
 
 **Go-live checklist (after Sep 23).**
 1. Stripe live account → Developers → API keys → Create restricted key
