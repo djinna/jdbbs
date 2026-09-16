@@ -102,6 +102,7 @@ var S = {
   contactEmail: 'j@djinna.com',
   retry: null,         // re-run after the password gate clears
   passUnavailable: false,
+  store: null,         // /api/public/store/config when the store is on
 };
 
 // Books come back as Go `ListBooksRow` values with no json tags, so the keys
@@ -231,9 +232,60 @@ function renderHeader() {
 
   var contact = $('fx-foot-contact');
   if (contact) {
-    contact.innerHTML = 'Need more builds, more time, or a pair of eyes on it? Email <a href="mailto:' +
-      esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.';
+    var canBuy = S.store && S.store.enabled && S.pass && S.pass.exists !== false &&
+      S.pass.status !== 'revoked' && S.pass.status !== 'purged';
+    if (canBuy) {
+      var b3 = S.store.items['builds-3'], s6 = S.store.items['storage-6mo'];
+      contact.innerHTML = 'Need more? ' +
+        '<button type="button" class="fx-link" data-addon="builds-3">+3 builds' + (b3 ? ' (' + esc(b3.display) + ')' : '') + '</button> \u00b7 ' +
+        '<button type="button" class="fx-link" data-addon="storage-6mo">+6 months storage' + (s6 ? ' (' + esc(s6.display) + ')' : '') + '</button>' +
+        ' \u2014 card checkout through Stripe. A pair of eyes on it? Email <a href="mailto:' +
+        esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.';
+    } else {
+      contact.innerHTML = 'Need more builds, more time, or a pair of eyes on it? Email <a href="mailto:' +
+        esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.';
+    }
   }
+}
+
+// ─── store: add-ons against this pass ───────────────────────────────────────
+// One click → Stripe Checkout for that add-on → back here with ?order=cs_…,
+// which we confirm with the server so the badge updates without waiting for
+// the email. All of it is dormant unless /api/public/store/config says on.
+function buyAddon(key) {
+  var btns = document.querySelectorAll('[data-addon]');
+  btns.forEach(function (b) { b.disabled = true; });
+  fetch('/api/public/store/checkout', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+    body: JSON.stringify({ kind: 'addon', project_id: S.projectId, items: [{ key: key, qty: 1 }] })
+  }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (r) {
+      if (r.ok && r.d.url) { location.href = r.d.url; return; }
+      throw new Error((r.d && r.d.error) || 'Checkout is unavailable right now.');
+    })
+    .catch(function (e) {
+      btns.forEach(function (b) { b.disabled = false; });
+      banner('<b>Couldn\u2019t start checkout.</b> ' + esc(e.message));
+    });
+}
+
+function confirmOrderFromURL() {
+  var order = new URLSearchParams(location.search).get('order');
+  if (!order) return;
+  // Drop the parameter so a reload doesn't re-confirm.
+  var u = new URL(location.href); u.searchParams.delete('order'); history.replaceState(null, '', u);
+  banner('Confirming your add-on with Stripe\u2026');
+  fetch('/api/public/store/session?session_id=' + encodeURIComponent(order))
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (r) {
+      if (r.ok && r.d.status === 'paid') {
+        banner('<b>Added to your pass.</b> ' + esc(r.d.credits_remaining) + ' builds remaining; storage until ' + esc(fmtDate(r.d.expires_at || '')) + '. A confirmation email is on its way.');
+        return loadPass().then(renderHeader);
+      }
+      if (r.ok && r.d.status === 'pending') { banner('Stripe hasn\u2019t confirmed the payment yet. If you were charged, it will land within a few minutes \u2014 reload then.'); return; }
+      throw new Error((r.d && r.d.error) || 'Could not confirm the order.');
+    })
+    .catch(function (e) { banner('<b>Order not confirmed yet.</b> ' + esc(e.message)); });
 }
 
 // ─── render: step strip ────────────────────────────────────────────────────
@@ -1146,9 +1198,19 @@ fetch('/api/public/config')
   })
   .catch(function () {});
 
+fetch('/api/public/store/config')
+  .then(function (r) { return r.ok ? r.json() : null; })
+  .then(function (c) { if (c && c.enabled) { S.store = c; renderHeader(); } })
+  .catch(function () {});
+
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-addon]');
+  if (b) buyAddon(b.getAttribute('data-addon'));
+});
+
 mountTheme();
 wire();
 renderAll();
-boot().catch(handleFatal);
+boot().then(confirmOrderFromURL).catch(handleFatal);
 
 })();

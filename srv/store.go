@@ -230,9 +230,9 @@ func (st *store) price(ctx context.Context, key string) (stripePrice, error) {
 // ---- checkout ----
 
 type checkoutInput struct {
-	Kind   string `json:"kind"` // pass | addon
-	PassID int64  `json:"pass_id,omitempty"`
-	Items  []struct {
+	Kind      string `json:"kind"`                 // pass | addon
+	ProjectID int64  `json:"project_id,omitempty"` // addon: the project whose pass gets the extras
+	Items     []struct {
 		Key string `json:"key"`
 		Qty int64  `json:"qty"`
 	} `json:"items,omitempty"` // add-on keys; ignored for kind=pass (optional_items instead)
@@ -301,14 +301,17 @@ func (s *Server) handleStoreCheckout(w http.ResponseWriter, r *http.Request) {
 		f["custom_fields[1][optional]"] = "true"
 		f["custom_fields[1][text][maximum_length]"] = "120"
 	case "addon":
-		pass, err := dbgen.New(s.DB).GetPass(ctx, in.PassID)
-		if err != nil {
-			jsonErr(w, "No such pass.", http.StatusNotFound)
+		// The customer must be signed in to this project (or be admin), and
+		// the pass must be live — requirePassAccess writes the error itself.
+		passPtr, _, ok := s.requirePassAccess(w, r, in.ProjectID)
+		if !ok {
 			return
 		}
-		if _, _, ok := s.requirePassAccess(w, r, pass.ProjectID); !ok {
+		if passPtr == nil {
+			jsonErr(w, "This project has no Factory Pass to add to.", http.StatusNotFound)
 			return
 		}
+		pass := *passPtr
 		if len(in.Items) == 0 {
 			jsonErr(w, "Choose at least one add-on.", http.StatusBadRequest)
 			return
@@ -457,47 +460,66 @@ func (s *Server) fulfillStoreSession(ctx context.Context, sessionID string) (*st
 		pass, portal = &res.Pass, res.PortalURL
 		s.sendPassFulfillmentEmail(*res, "stripe")
 	case kind == "addon":
+		// Extras and the ledger row commit together, so a failed insert can
+		// never leave credits applied without the row that stops a re-apply.
 		id, _ := strconv.ParseInt(sess.Metadata["pass_id"], 10, 64)
-		p, err := dbgen.New(s.DB).GetPass(ctx, id)
+		tx, err := s.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("begin tx: %w", err)
+		}
+		defer tx.Rollback()
+		q := dbgen.New(tx)
+		p, err := q.GetPass(ctx, id)
 		if err != nil {
 			return nil, fmt.Errorf("addon for unknown pass %d", id)
 		}
-		if err := dbgen.New(s.DB).AddPassExtras(ctx, dbgen.AddPassExtrasParams{
+		if err := q.AddPassExtras(ctx, dbgen.AddPassExtrasParams{
 			BuildsExtra: builds, Datetime: fmt.Sprintf("+%d months", months), ID: p.ID,
 		}); err != nil {
 			return nil, fmt.Errorf("add extras: %w", err)
 		}
-		p, _ = dbgen.New(s.DB).GetPass(ctx, p.ID)
+		p, _ = q.GetPass(ctx, p.ID)
 		pass = &p
-		if pr, err := dbgen.New(s.DB).GetProject(ctx, p.ProjectID); err == nil {
+		if pr, err := q.GetProject(ctx, p.ProjectID); err == nil {
 			title = pr.Name
 			portal = s.portalURL(pr.ClientSlug, pr.ProjectSlug)
 		}
+		order, err := q.CreateStoreOrder(ctx, storeOrderParams(sessionID, kind, pass, email, name, promo, string(itemsJSON), sess))
+		if err != nil {
+			return nil, fmt.Errorf("order row: %w", err)
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("commit: %w", err)
+		}
+		slog.Info("store: fulfilled", "session", sessionID, "kind", kind, "amount", sess.AmountTotal, "promo", promo, "email", email)
+		s.sendAddonEmail(*pass, order, title, portal)
+		return &storeFulfilResult{Order: order, Pass: pass, PortalURL: portal, Title: title, Fresh: true}, nil
 	default:
 		return nil, fmt.Errorf("session %s: nothing recognisable was bought", sessionID)
 	}
 
+	// Pass path: the pass row already carries stripe_session_id (unique), so
+	// even if this insert fails a retry cannot mint a second pass.
+	order, err := dbgen.New(s.DB).CreateStoreOrder(ctx, storeOrderParams(sessionID, kind, pass, email, name, promo, string(itemsJSON), sess))
+	if err != nil {
+		slog.Error("store: order row failed after pass fulfilment", "err", err, "session", sessionID)
+		return nil, err
+	}
+	slog.Info("store: fulfilled", "session", sessionID, "kind", kind, "amount", sess.AmountTotal, "promo", promo, "email", email)
+	return &storeFulfilResult{Order: order, Pass: pass, PortalURL: portal, Title: title, Fresh: true}, nil
+}
+
+func storeOrderParams(sessionID, kind string, pass *dbgen.Pass, email, name, promo, items string, sess *stripeCheckoutSession) dbgen.CreateStoreOrderParams {
 	var passID sql.NullInt64
 	if pass != nil {
 		passID = sql.NullInt64{Int64: pass.ID, Valid: true}
 	}
-	order, err := dbgen.New(s.DB).CreateStoreOrder(ctx, dbgen.CreateStoreOrderParams{
+	return dbgen.CreateStoreOrderParams{
 		StripeSessionID: sessionID, Kind: kind, PassID: passID,
 		CustomerEmail: email, CustomerName: name,
 		AmountTotal: sess.AmountTotal, Currency: sess.Currency, PromoCode: promo,
-		Items: string(itemsJSON), PaymentIntentID: sess.paymentIntentID(),
-	})
-	if err != nil {
-		// The pass exists but the ledger row failed — log loudly; the unique
-		// index on passes.stripe_session_id still blocks a second pass.
-		slog.Error("store: order row failed after fulfilment", "err", err, "session", sessionID)
-		return nil, err
+		Items: items, PaymentIntentID: sess.paymentIntentID(),
 	}
-	slog.Info("store: fulfilled", "session", sessionID, "kind", kind, "amount", sess.AmountTotal, "promo", promo, "email", email)
-	if kind == "addon" && pass != nil {
-		s.sendAddonEmail(*pass, order, title, portal)
-	}
-	return &storeFulfilResult{Order: order, Pass: pass, PortalURL: portal, Title: title, Fresh: true}, nil
 }
 
 func (s *Server) storeResultFor(ctx context.Context, o dbgen.StoreOrder, fresh bool) *storeFulfilResult {
