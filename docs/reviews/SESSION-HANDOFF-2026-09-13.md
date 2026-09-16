@@ -340,7 +340,7 @@ Balance — "Store anyway" is correct):
 
 | integration | host | key | scopes |
 |---|---|---|---|
-| `stripe-test` | `https://stripe-test.int.exe.xyz` | sandbox `rk_test_…9ba9` | Checkout Sessions, Products, Coupons, Promotion Codes **Write**; Events **Read** |
+| `stripe-test` | `https://stripe-test.int.exe.xyz` | sandbox `rk_test_…oxlO` | Checkout Sessions, Products, Prices, Coupons, Promotion Codes **Write**; Events **Read** |
 | `stripe` | `https://stripe.int.exe.xyz` (code default) | live `rk_live_…xd9V` | same |
 
 `.env` has `PRODCAL_STORE=on` and `PRODCAL_STRIPE_URL=https://stripe-test.int.exe.xyz`
