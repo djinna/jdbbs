@@ -57,6 +57,28 @@ type Client struct {
 	Name         string
 	PasswordHash string
 	CreatedAt    time.Time
+	CohortSlug   string
+}
+
+type ContentReviewItem struct {
+	ID          int64
+	Batch       string
+	Ord         int64
+	Ref         string
+	Page        string
+	File        string
+	Location    string
+	CurrentText string
+	Proposed    string
+	Reason      string
+	Severity    string
+	Pass        int64
+	Decision    string
+	EditedText  string
+	Note        string
+	DecidedAt   sql.NullTime
+	AppliedAt   sql.NullTime
+	CreatedAt   time.Time
 }
 
 type Correction struct {
@@ -133,6 +155,21 @@ type FileLog struct {
 	CreatedAt    time.Time
 }
 
+type HouseStyle struct {
+	ID         int64
+	SectionOrd int64
+	Section    string
+	ItemOrd    int64
+	Kind       string
+	Col1       string
+	Col2       string
+	Col3       string
+	Body       string
+	BookKind   string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
 type Journal struct {
 	ID        int64
 	ProjectID int64
@@ -161,21 +198,42 @@ type Migration struct {
 	ExecutedAt      time.Time
 }
 
+type OutboundEmail struct {
+	ID          int64
+	SentAt      time.Time
+	ToAddrs     string
+	CcAddrs     string
+	Subject     string
+	Kind        string
+	RefType     string
+	RefID       string
+	TriggeredBy string
+	StatusCode  int64
+	Error       string
+	Note        string
+	TextBody    string
+	HtmlBody    string
+	BccAddrs    string
+}
+
 type Pass struct {
-	ID             int64
-	ProjectID      int64
-	Sku            string
-	Source         string
-	CouponID       sql.NullInt64
-	CustomerEmail  string
-	CustomerName   string
-	BuildsIncluded int64
-	BuildsUsed     int64
-	BuildsExtra    int64
-	FulfilledAt    time.Time
-	ExpiresAt      time.Time
-	Status         string
-	Note           string
+	ID              int64
+	ProjectID       int64
+	Sku             string
+	Source          string
+	CouponID        sql.NullInt64
+	CustomerEmail   string
+	CustomerName    string
+	BuildsIncluded  int64
+	BuildsUsed      int64
+	BuildsExtra     int64
+	FulfilledAt     time.Time
+	ExpiresAt       time.Time
+	Status          string
+	Note            string
+	StripeSessionID string
+	AmountPaid      int64
+	PromoCode       string
 }
 
 type PassLedger struct {
@@ -196,6 +254,52 @@ type Project struct {
 	ClientSlug  string
 	ProjectSlug string
 	ArchivedAt  sql.NullTime
+}
+
+type SitePage struct {
+	ID         int64
+	Route      string
+	Title      string
+	Owner      string
+	Source     string
+	Visibility string
+	Listed     string
+	PageType   string
+	Status     string
+	Note       string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type SlugAlias struct {
+	ID             int64
+	OldClientSlug  string
+	OldProjectSlug string
+	NewClientSlug  string
+	NewProjectSlug string
+	CreatedAt      time.Time
+}
+
+type StoreOrder struct {
+	ID              int64
+	StripeSessionID string
+	Kind            string
+	PassID          sql.NullInt64
+	CustomerEmail   string
+	CustomerName    string
+	AmountTotal     int64
+	Currency        string
+	PromoCode       string
+	Items           string
+	PaymentIntentID string
+	FulfilledAt     time.Time
+	Note            string
+}
+
+type StudioSetting struct {
+	Key       string
+	Value     string
+	UpdatedAt time.Time
 }
 
 type StylesheetEdit struct {

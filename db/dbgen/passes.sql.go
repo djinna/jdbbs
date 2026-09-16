@@ -25,6 +25,26 @@ func (q *Queries) AddPassBuildsExtra(ctx context.Context, arg AddPassBuildsExtra
 	return err
 }
 
+const addPassExtras = `-- name: AddPassExtras :exec
+UPDATE passes
+SET builds_extra = builds_extra + ?,
+    expires_at   = datetime(expires_at, ?)
+WHERE id = ?
+`
+
+type AddPassExtrasParams struct {
+	BuildsExtra int64
+	Datetime    interface{}
+	ID          int64
+}
+
+// Add-on fulfilment: more build credits and/or a longer storage window.
+// months is a SQLite modifier string such as '+6 months' ('+0 months' = none).
+func (q *Queries) AddPassExtras(ctx context.Context, arg AddPassExtrasParams) error {
+	_, err := q.db.ExecContext(ctx, addPassExtras, arg.BuildsExtra, arg.Datetime, arg.ID)
+	return err
+}
+
 const countConvertingBooksByProject = `-- name: CountConvertingBooksByProject :one
 SELECT COUNT(*) FROM books WHERE project_id = ? AND status = 'converting'
 `
@@ -88,7 +108,7 @@ INSERT INTO passes (
     builds_included, expires_at, note
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, datetime(CURRENT_TIMESTAMP, '+6 months'), ?)
-RETURNING id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note
+RETURNING id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code
 `
 
 type CreatePassParams struct {
@@ -131,6 +151,9 @@ func (q *Queries) CreatePass(ctx context.Context, arg CreatePassParams) (Pass, e
 		&i.ExpiresAt,
 		&i.Status,
 		&i.Note,
+		&i.StripeSessionID,
+		&i.AmountPaid,
+		&i.PromoCode,
 	)
 	return i, err
 }
@@ -154,6 +177,62 @@ func (q *Queries) CreatePassLedgerEntry(ctx context.Context, arg CreatePassLedge
 		arg.Reason,
 	)
 	return err
+}
+
+const createStoreOrder = `-- name: CreateStoreOrder :one
+INSERT INTO store_orders (
+    stripe_session_id, kind, pass_id, customer_email, customer_name,
+    amount_total, currency, promo_code, items, payment_intent_id, note
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, stripe_session_id, kind, pass_id, customer_email, customer_name, amount_total, currency, promo_code, items, payment_intent_id, fulfilled_at, note
+`
+
+type CreateStoreOrderParams struct {
+	StripeSessionID string
+	Kind            string
+	PassID          sql.NullInt64
+	CustomerEmail   string
+	CustomerName    string
+	AmountTotal     int64
+	Currency        string
+	PromoCode       string
+	Items           string
+	PaymentIntentID string
+	Note            string
+}
+
+func (q *Queries) CreateStoreOrder(ctx context.Context, arg CreateStoreOrderParams) (StoreOrder, error) {
+	row := q.db.QueryRowContext(ctx, createStoreOrder,
+		arg.StripeSessionID,
+		arg.Kind,
+		arg.PassID,
+		arg.CustomerEmail,
+		arg.CustomerName,
+		arg.AmountTotal,
+		arg.Currency,
+		arg.PromoCode,
+		arg.Items,
+		arg.PaymentIntentID,
+		arg.Note,
+	)
+	var i StoreOrder
+	err := row.Scan(
+		&i.ID,
+		&i.StripeSessionID,
+		&i.Kind,
+		&i.PassID,
+		&i.CustomerEmail,
+		&i.CustomerName,
+		&i.AmountTotal,
+		&i.Currency,
+		&i.PromoCode,
+		&i.Items,
+		&i.PaymentIntentID,
+		&i.FulfilledAt,
+		&i.Note,
+	)
+	return i, err
 }
 
 const decrementPassBuildsUsed = `-- name: DecrementPassBuildsUsed :exec
@@ -200,7 +279,7 @@ func (q *Queries) GetCouponByCode(ctx context.Context, code string) (Coupon, err
 }
 
 const getPass = `-- name: GetPass :one
-SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note FROM passes WHERE id = ?
+SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code FROM passes WHERE id = ?
 `
 
 func (q *Queries) GetPass(ctx context.Context, id int64) (Pass, error) {
@@ -221,12 +300,15 @@ func (q *Queries) GetPass(ctx context.Context, id int64) (Pass, error) {
 		&i.ExpiresAt,
 		&i.Status,
 		&i.Note,
+		&i.StripeSessionID,
+		&i.AmountPaid,
+		&i.PromoCode,
 	)
 	return i, err
 }
 
 const getPassByProject = `-- name: GetPassByProject :one
-SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note FROM passes WHERE project_id = ?
+SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code FROM passes WHERE project_id = ?
 `
 
 func (q *Queries) GetPassByProject(ctx context.Context, projectID int64) (Pass, error) {
@@ -246,6 +328,34 @@ func (q *Queries) GetPassByProject(ctx context.Context, projectID int64) (Pass, 
 		&i.FulfilledAt,
 		&i.ExpiresAt,
 		&i.Status,
+		&i.Note,
+		&i.StripeSessionID,
+		&i.AmountPaid,
+		&i.PromoCode,
+	)
+	return i, err
+}
+
+const getStoreOrderBySession = `-- name: GetStoreOrderBySession :one
+SELECT id, stripe_session_id, kind, pass_id, customer_email, customer_name, amount_total, currency, promo_code, items, payment_intent_id, fulfilled_at, note FROM store_orders WHERE stripe_session_id = ?
+`
+
+func (q *Queries) GetStoreOrderBySession(ctx context.Context, stripeSessionID string) (StoreOrder, error) {
+	row := q.db.QueryRowContext(ctx, getStoreOrderBySession, stripeSessionID)
+	var i StoreOrder
+	err := row.Scan(
+		&i.ID,
+		&i.StripeSessionID,
+		&i.Kind,
+		&i.PassID,
+		&i.CustomerEmail,
+		&i.CustomerName,
+		&i.AmountTotal,
+		&i.Currency,
+		&i.PromoCode,
+		&i.Items,
+		&i.PaymentIntentID,
+		&i.FulfilledAt,
 		&i.Note,
 	)
 	return i, err
@@ -450,6 +560,116 @@ func (q *Queries) ListPasses(ctx context.Context) ([]ListPassesRow, error) {
 	return items, nil
 }
 
+const listStoreOrders = `-- name: ListStoreOrders :many
+SELECT o.id, o.stripe_session_id, o.kind, o.pass_id, o.customer_email, o.customer_name, o.amount_total, o.currency, o.promo_code, o.items, o.payment_intent_id, o.fulfilled_at, o.note, COALESCE(pr.name, '') AS project_name,
+       COALESCE(pr.client_slug, '') AS client_slug, COALESCE(pr.project_slug, '') AS project_slug
+FROM store_orders o
+LEFT JOIN passes p ON p.id = o.pass_id
+LEFT JOIN projects pr ON pr.id = p.project_id
+ORDER BY o.fulfilled_at DESC, o.id DESC
+LIMIT ?
+`
+
+type ListStoreOrdersRow struct {
+	ID              int64
+	StripeSessionID string
+	Kind            string
+	PassID          sql.NullInt64
+	CustomerEmail   string
+	CustomerName    string
+	AmountTotal     int64
+	Currency        string
+	PromoCode       string
+	Items           string
+	PaymentIntentID string
+	FulfilledAt     time.Time
+	Note            string
+	ProjectName     string
+	ClientSlug      string
+	ProjectSlug     string
+}
+
+func (q *Queries) ListStoreOrders(ctx context.Context, limit int64) ([]ListStoreOrdersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listStoreOrders, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListStoreOrdersRow
+	for rows.Next() {
+		var i ListStoreOrdersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.StripeSessionID,
+			&i.Kind,
+			&i.PassID,
+			&i.CustomerEmail,
+			&i.CustomerName,
+			&i.AmountTotal,
+			&i.Currency,
+			&i.PromoCode,
+			&i.Items,
+			&i.PaymentIntentID,
+			&i.FulfilledAt,
+			&i.Note,
+			&i.ProjectName,
+			&i.ClientSlug,
+			&i.ProjectSlug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStoreOrdersForPass = `-- name: ListStoreOrdersForPass :many
+SELECT id, stripe_session_id, kind, pass_id, customer_email, customer_name, amount_total, currency, promo_code, items, payment_intent_id, fulfilled_at, note FROM store_orders WHERE pass_id = ? ORDER BY fulfilled_at DESC, id DESC
+`
+
+func (q *Queries) ListStoreOrdersForPass(ctx context.Context, passID sql.NullInt64) ([]StoreOrder, error) {
+	rows, err := q.db.QueryContext(ctx, listStoreOrdersForPass, passID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StoreOrder
+	for rows.Next() {
+		var i StoreOrder
+		if err := rows.Scan(
+			&i.ID,
+			&i.StripeSessionID,
+			&i.Kind,
+			&i.PassID,
+			&i.CustomerEmail,
+			&i.CustomerName,
+			&i.AmountTotal,
+			&i.Currency,
+			&i.PromoCode,
+			&i.Items,
+			&i.PaymentIntentID,
+			&i.FulfilledAt,
+			&i.Note,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setCouponRegistration = `-- name: SetCouponRegistration :exec
 UPDATE coupons SET registration_id = ? WHERE id = ? AND registration_id IS NULL
 `
@@ -461,6 +681,28 @@ type SetCouponRegistrationParams struct {
 
 func (q *Queries) SetCouponRegistration(ctx context.Context, arg SetCouponRegistrationParams) error {
 	_, err := q.db.ExecContext(ctx, setCouponRegistration, arg.RegistrationID, arg.ID)
+	return err
+}
+
+const setPassPurchase = `-- name: SetPassPurchase :exec
+UPDATE passes SET stripe_session_id = ?, amount_paid = ?, promo_code = ? WHERE id = ?
+`
+
+type SetPassPurchaseParams struct {
+	StripeSessionID string
+	AmountPaid      int64
+	PromoCode       string
+	ID              int64
+}
+
+// Stamps a pass with the Checkout Session that bought it (source = stripe).
+func (q *Queries) SetPassPurchase(ctx context.Context, arg SetPassPurchaseParams) error {
+	_, err := q.db.ExecContext(ctx, setPassPurchase,
+		arg.StripeSessionID,
+		arg.AmountPaid,
+		arg.PromoCode,
+		arg.ID,
+	)
 	return err
 }
 

@@ -81,3 +81,38 @@ SELECT id FROM event_registrations WHERE email = ? ORDER BY id DESC LIMIT 1;
 -- name: CountConvertingBooksByProject :one
 -- Backs the one-in-flight-build-per-project guard on POST /api/books/{id}/convert.
 SELECT COUNT(*) FROM books WHERE project_id = ? AND status = 'converting';
+
+-- name: SetPassPurchase :exec
+-- Stamps a pass with the Checkout Session that bought it (source = stripe).
+UPDATE passes SET stripe_session_id = ?, amount_paid = ?, promo_code = ? WHERE id = ?;
+
+-- name: AddPassExtras :exec
+-- Add-on fulfilment: more build credits and/or a longer storage window.
+-- months is a SQLite modifier string such as '+6 months' ('+0 months' = none).
+UPDATE passes
+SET builds_extra = builds_extra + ?,
+    expires_at   = datetime(expires_at, ?)
+WHERE id = ?;
+
+-- name: GetStoreOrderBySession :one
+SELECT * FROM store_orders WHERE stripe_session_id = ?;
+
+-- name: CreateStoreOrder :one
+INSERT INTO store_orders (
+    stripe_session_id, kind, pass_id, customer_email, customer_name,
+    amount_total, currency, promo_code, items, payment_intent_id, note
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING *;
+
+-- name: ListStoreOrders :many
+SELECT o.*, COALESCE(pr.name, '') AS project_name,
+       COALESCE(pr.client_slug, '') AS client_slug, COALESCE(pr.project_slug, '') AS project_slug
+FROM store_orders o
+LEFT JOIN passes p ON p.id = o.pass_id
+LEFT JOIN projects pr ON pr.id = p.project_id
+ORDER BY o.fulfilled_at DESC, o.id DESC
+LIMIT ?;
+
+-- name: ListStoreOrdersForPass :many
+SELECT * FROM store_orders WHERE pass_id = ? ORDER BY fulfilled_at DESC, id DESC;

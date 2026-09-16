@@ -218,6 +218,15 @@ type fulfillPassInput struct {
 	Title  string // manuscript title → project name + slug
 	Author string
 	Note   string
+
+	// Paid purchases (source = "stripe") — stamped on the pass inside the
+	// same transaction so a crash can never leave a paid pass unlinked from
+	// its Checkout Session (which is what makes fulfilment idempotent).
+	StripeSessionID string
+	AmountPaid      int64 // cents, after discount
+	PromoCode       string
+	BuildsExtra     int64 // add-ons bought in the same cart
+	ExtraMonths     int64
 }
 
 type fulfillPassResult struct {
@@ -345,6 +354,25 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create pass: %w", err)
+	}
+	if in.StripeSessionID != "" {
+		if err := q.SetPassPurchase(ctx, dbgen.SetPassPurchaseParams{
+			StripeSessionID: in.StripeSessionID, AmountPaid: in.AmountPaid, PromoCode: in.PromoCode, ID: pass.ID,
+		}); err != nil {
+			return nil, fmt.Errorf("stamp purchase: %w", err)
+		}
+		pass.StripeSessionID, pass.AmountPaid, pass.PromoCode = in.StripeSessionID, in.AmountPaid, in.PromoCode
+	}
+	if in.BuildsExtra > 0 || in.ExtraMonths > 0 {
+		if err := q.AddPassExtras(ctx, dbgen.AddPassExtrasParams{
+			BuildsExtra: in.BuildsExtra, Datetime: fmt.Sprintf("+%d months", in.ExtraMonths), ID: pass.ID,
+		}); err != nil {
+			return nil, fmt.Errorf("add extras: %w", err)
+		}
+		pass, err = q.GetPass(ctx, pass.ID)
+		if err != nil {
+			return nil, fmt.Errorf("reload pass: %w", err)
+		}
 	}
 
 	// 5) Burn the redemption and, when the redeeming email matches a workshop

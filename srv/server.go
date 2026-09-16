@@ -40,6 +40,7 @@ type Server struct {
 	Hostname        string
 	BaseURL         string
 	Email           *EmailConfig
+	Store           *store // Factory Pass store; nil when PRODCAL_STORE is off
 	preflightRunner preflightRunnerFunc
 	epubRunner      epubRunnerFunc
 	secret          []byte
@@ -72,6 +73,7 @@ func New(dbPath, hostname string) (*Server, error) {
 		return nil, err
 	}
 	srv.Email = LoadEmailConfig()
+	srv.initStore()
 	if srv.Email != nil {
 		slog.Info("email configured", "inbox_id", srv.Email.InboxID)
 	} else {
@@ -323,6 +325,17 @@ func (s *Server) Handler() http.Handler {
 	// to /api/public/redeem.
 	mux.HandleFunc("GET /factory", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "factory.html")
+	})
+	// Store (Stripe Checkout). All 404 unless PRODCAL_STORE=on; see store.go.
+	mux.HandleFunc("POST /api/public/store/checkout", s.handleStoreCheckout)
+	mux.HandleFunc("GET /api/public/store/session", s.handleStoreSession)
+	mux.HandleFunc("GET /api/public/store/config", s.handleStoreConfig)
+	mux.HandleFunc("GET /factory/thanks", func(w http.ResponseWriter, r *http.Request) {
+		if s.Store == nil {
+			http.NotFound(w, r)
+			return
+		}
+		s.serveStaticHTML(w, "static/store-thanks.html")
 	})
 
 	// exe.dev talk deck for SIGPfB. Served from the public-docs directory on
