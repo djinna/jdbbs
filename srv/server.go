@@ -179,6 +179,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/passes", s.handleAdminListPasses)
 	mux.HandleFunc("POST /api/admin/passes", s.handleAdminCreatePass)
 	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
+	mux.HandleFunc("POST /api/admin/passes/{id}/status", s.handleAdminPassStatus)
+	mux.HandleFunc("GET /api/admin/store/orders", s.handleAdminStoreOrders)
+	mux.HandleFunc("GET /admin/store/{$}", func(w http.ResponseWriter, r *http.Request) {
+		if !s.requireExeDevAdmin(w, r) {
+			return
+		}
+		s.serveStaticHTML(w, "static/store-admin.html")
+	})
 	mux.HandleFunc("POST /api/admin/clients/{slug}/password", s.handleAdminResetClientPassword)
 	mux.HandleFunc("POST /api/admin/clients/{slug}/rename", s.handleAdminRenameClient)
 	mux.HandleFunc("POST /api/admin/projects/{id}/slug", s.handleAdminRenameProjectSlug)

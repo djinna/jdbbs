@@ -744,6 +744,9 @@ type passRow struct {
 	Status           string `json:"status"`
 	Live             bool   `json:"live"`
 	Note             string `json:"note"`
+	StripeSessionID  string `json:"stripe_session_id"`
+	AmountPaid       int64  `json:"amount_paid"` // cents, after discount; 0 for coupon/admin passes
+	PromoCode        string `json:"promo_code"`
 }
 
 func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
@@ -786,6 +789,9 @@ func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
 			Status:           p.Status,
 			Live:             passLive(as),
 			Note:             p.Note,
+			StripeSessionID:  p.StripeSessionID,
+			AmountPaid:       p.AmountPaid,
+			PromoCode:        p.PromoCode,
 		})
 	}
 	jsonOK(w, out)

@@ -49,6 +49,7 @@ SELECT
     p.id, p.project_id, p.sku, p.source, p.coupon_id, p.customer_email,
     p.customer_name, p.builds_included, p.builds_used, p.builds_extra,
     p.fulfilled_at, p.expires_at, p.status, p.note,
+    p.stripe_session_id, p.amount_paid, p.promo_code,
     pr.name AS project_name, pr.client_slug, pr.project_slug,
     COALESCE(c.code, '') AS coupon_code
 FROM passes p

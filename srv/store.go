@@ -631,3 +631,86 @@ func (s *Server) handleStoreConfig(w http.ResponseWriter, r *http.Request) {
 	out["promo_hint"] = "Promotion codes are entered on the checkout page."
 	jsonOK(w, out)
 }
+
+// ---- admin ----
+
+// handleAdminStoreOrders — GET /api/admin/store/orders: the ledger, newest first.
+func (s *Server) handleAdminStoreOrders(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	rows, err := dbgen.New(s.DB).ListStoreOrders(r.Context(), 500)
+	if err != nil {
+		jsonErr(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	type row struct {
+		ID              int64  `json:"id"`
+		StripeSessionID string `json:"stripe_session_id"`
+		PaymentIntentID string `json:"payment_intent_id"`
+		Kind            string `json:"kind"`
+		PassID          int64  `json:"pass_id"`
+		ProjectName     string `json:"project_name"`
+		ProjectPath     string `json:"project_path"`
+		CustomerEmail   string `json:"customer_email"`
+		CustomerName    string `json:"customer_name"`
+		AmountTotal     int64  `json:"amount_total"`
+		Currency        string `json:"currency"`
+		PromoCode       string `json:"promo_code"`
+		Items           string `json:"items"`
+		FulfilledAt     string `json:"fulfilled_at"`
+		Note            string `json:"note"`
+	}
+	out := make([]row, 0, len(rows))
+	for _, o := range rows {
+		path := ""
+		if o.ClientSlug != "" {
+			path = "/" + o.ClientSlug + "/" + o.ProjectSlug + "/factory/"
+		}
+		out = append(out, row{
+			ID: o.ID, StripeSessionID: o.StripeSessionID, PaymentIntentID: o.PaymentIntentID, Kind: o.Kind,
+			PassID: o.PassID.Int64, ProjectName: o.ProjectName, ProjectPath: path,
+			CustomerEmail: o.CustomerEmail, CustomerName: o.CustomerName,
+			AmountTotal: o.AmountTotal, Currency: o.Currency, PromoCode: o.PromoCode,
+			Items: storeItemsSummary(o.Items), FulfilledAt: o.FulfilledAt.UTC().Format(time.RFC3339), Note: o.Note,
+		})
+	}
+	jsonOK(w, map[string]any{"enabled": s.Store != nil, "orders": out})
+}
+
+// handleAdminPassStatus — POST /api/admin/passes/{id}/status {"status":"revoked"|"active"}.
+// Revoking is the refund companion: money back in the Stripe dashboard, pass
+// off here. Reversible (active) for the inevitable mis-click.
+func (s *Server) handleAdminPassStatus(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	var in struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&in); err != nil {
+		jsonErr(w, "bad json", http.StatusBadRequest)
+		return
+	}
+	if in.Status != "revoked" && in.Status != "active" {
+		jsonErr(w, "status must be revoked or active", http.StatusBadRequest)
+		return
+	}
+	q := dbgen.New(s.DB)
+	p, err := q.GetPass(r.Context(), id)
+	if err != nil {
+		jsonErr(w, "no such pass", http.StatusNotFound)
+		return
+	}
+	if err := q.UpdatePassStatus(r.Context(), dbgen.UpdatePassStatusParams{Status: in.Status, ID: id}); err != nil {
+		jsonErr(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	slog.Info("admin: pass status", "pass_id", id, "from", p.Status, "to", in.Status)
+	jsonOK(w, map[string]any{"ok": true, "id": id, "status": in.Status})
+}
