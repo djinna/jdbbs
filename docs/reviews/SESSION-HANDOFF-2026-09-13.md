@@ -334,10 +334,19 @@ Metrics: context ~45 % at handoff; files read in full over threshold: 0.
 ## Addendum 2026-09-16 — Factory Pass store (Stripe Checkout) live in sandbox
 
 **State.** Store code is complete, deployed, and switched ON against the Stripe
-**sandbox** `jdbbs` (`PRODCAL_STORE=on` in `/home/exedev/prodcal/.env`). Stripe is
-reached through the exe.dev integration proxy `https://stripe.int.exe.xyz` (key
-injected at the edge; nothing on the VM). Sandbox key currently attached is the
-plain `sk_test_`; user is creating a restricted key (`exe.dev prodcal`) for later.
+**sandbox** `jdbbs`. Two exe.dev Stripe integrations, both restricted keys, both
+attached to `vm:jdbbs` (exe.dev's "verify" fails on them because we don't grant
+Balance — "Store anyway" is correct):
+
+| integration | host | key | scopes |
+|---|---|---|---|
+| `stripe-test` | `https://stripe-test.int.exe.xyz` | sandbox `rk_test_…9ba9` | Checkout Sessions, Products, Coupons, Promotion Codes **Write**; Events **Read** |
+| `stripe` | `https://stripe.int.exe.xyz` (code default) | live `rk_live_…xd9V` | same |
+
+`.env` has `PRODCAL_STORE=on` and `PRODCAL_STRIPE_URL=https://stripe-test.int.exe.xyz`
+— that second line is what keeps the server on the sandbox. **Going live is:
+delete that line, restart, check the log for `store: catalog ready`.** Nothing has
+been created in the live account yet (verified 2026-09-16).
 
 **Proven end to end on 2026-09-16** (pass id 5, `mcheck2/book-001`, bookiq@gmail.com):
 pass + `+3 builds` add-on + `PYB149` → $198 (promo hit the pass only) → thanks page
@@ -364,19 +373,14 @@ sandbox through the workshop** — the Buy flow is demoed live in the sessions w
 card 4242. Do not turn it off. Attendees use the code form, not Buy.
 
 **Go-live checklist (after Sep 23).**
-1. Stripe live account → Developers → API keys → Create restricted key
-   ("Powering an integration you built"): Checkout Sessions / Products (+Prices)
-   / Coupons / Promotion Codes **Write**; Customers / Payment Intents / Events
-   **Read**. Paste at `https://exe.dev/integrations/add?service=stripe&attach=vm:jdbbs&source=shelley`
-   (replaces the sandbox key).
-2. Dashboard: Settings → Emails → turn on customer receipts; Branding (logo,
-   colour) if wanted; statement descriptor is set per-product as `JDBB STUDIO`.
-3. `PRODCAL_STORE=on` in `.env`, `sudo systemctl restart prodcal`, confirm
-   `journalctl -u prodcal | grep "store: catalog ready"` (bootstraps the three
-   products, coupon `pyb149-200-off`, promo `PYB149` exp. 31 Oct 2026 in live).
-4. One real $349 purchase with own card, refund from dashboard, Revoke on `/admin/store/`.
-5. Update `/factory` copy (`/admin/docs/`) — the "Purchasing opens after the
-   workshop" paragraph is the off-state text; on-state text is in `#buy-on`.
+1. Dashboard (live): Settings → Emails → turn on customer receipts; Branding
+   (logo, colour) if wanted. Statement descriptor is set per-product as `JDBB STUDIO`.
+2. Remove the `PRODCAL_STRIPE_URL` line from `.env`, `sudo systemctl restart prodcal`,
+   confirm `journalctl -u prodcal | grep "store: catalog ready"` — this bootstraps
+   the three products, coupon `pyb149-200-off`, promo `PYB149` (exp. 31 Oct 2026) in live.
+3. One real $349 purchase with own card, refund from dashboard, Revoke on `/admin/store/`.
+4. Update `/factory` copy (`/admin/docs/`) — "Purchasing opens after the workshop"
+   is the off-state text; on-state text is in `#buy-on`.
 
 **Known gaps / ideas.** No admin "refund" button (dashboard does it; then Revoke).
 Poller looks back 72 h on cold start — fine. Test-mode dashboard links in
