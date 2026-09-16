@@ -330,3 +330,58 @@ Metrics: context ~45 % at handoff; files read in full over threshold: 0.
 - Not in v1: preview, Markdown files under `notes/`, push, multi-file commits.
 
 **Next:** author review of deck rev 2 → record the two clips → content-review round 2 → freeze Sep 19.
+
+## Addendum 2026-09-16 — Factory Pass store (Stripe Checkout) live in sandbox
+
+**State.** Store code is complete, deployed, and switched ON against the Stripe
+**sandbox** `jdbbs` (`PRODCAL_STORE=on` in `/home/exedev/prodcal/.env`). Stripe is
+reached through the exe.dev integration proxy `https://stripe.int.exe.xyz` (key
+injected at the edge; nothing on the VM). Sandbox key currently attached is the
+plain `sk_test_`; user is creating a restricted key (`exe.dev prodcal`) for later.
+
+**Proven end to end on 2026-09-16** (pass id 5, `mcheck2/book-001`, bookiq@gmail.com):
+pass + `+3 builds` add-on + `PYB149` → $198 (promo hit the pass only) → thanks page
+→ 6 builds, fulfilment email; second thanks-page hit = no second pass. Then a
+`+6 months storage` add-on bought from the API and *never returned to* — the
+60 s event poller fulfilled it (expiry Mar→Sep 2027, add-on email sent).
+`optional_items`, `custom_fields`, `custom_text`, `expand[]=discounts.promotion_code`
+all accepted by the real API.
+
+**Pieces.** `db/migrations/038-store.sql`, `039-store-admin-page.sql`;
+`srv/stripe.go` (client), `srv/store.go` (catalog by lookup_key, checkout,
+`fulfillStoreSession`, poller, admin handlers), `srv/store_email.go`,
+`srv/store_test.go` (6 tests, fake Stripe via httptest); pages
+`srv/static/store-thanks.html` (`/factory/thanks`), `srv/static/store-admin.html`
+(`/admin/store/`, linked from admin masthead); customer add-on buttons in
+`srv/static/factory.js` footer (`?order=` confirm); `~/jdbbs-public/factory.html`
+$349 + `#buy-on`/`#buy-off` toggled by `/api/public/store/config`.
+Routes: `POST /api/public/store/checkout`, `GET /api/public/store/session`,
+`GET /api/public/store/config`, `GET /api/admin/store/orders`,
+`POST /api/admin/passes/{id}/status`.
+
+**Before the Sep 19 freeze — decide:** leave `PRODCAL_STORE=on` pointing at the
+sandbox (public `/factory` shows a *real-looking* Buy button that takes test cards
+only — confusing for attendees) or remove the line and restart so `/factory`
+shows the Availability copy. Recommendation: **turn it off for the freeze**, go
+live after Sep 23.
+
+**Go-live checklist (after Sep 23).**
+1. Stripe live account → Developers → API keys → Create restricted key
+   ("Powering an integration you built"): Checkout Sessions / Products (+Prices)
+   / Coupons / Promotion Codes **Write**; Customers / Payment Intents / Events
+   **Read**. Paste at `https://exe.dev/integrations/add?service=stripe&attach=vm:jdbbs&source=shelley`
+   (replaces the sandbox key).
+2. Dashboard: Settings → Emails → turn on customer receipts; Branding (logo,
+   colour) if wanted; statement descriptor is set per-product as `JDBB STUDIO`.
+3. `PRODCAL_STORE=on` in `.env`, `sudo systemctl restart prodcal`, confirm
+   `journalctl -u prodcal | grep "store: catalog ready"` (bootstraps the three
+   products, coupon `pyb149-200-off`, promo `PYB149` exp. 31 Oct 2026 in live).
+4. One real $349 purchase with own card, refund from dashboard, Revoke on `/admin/store/`.
+5. Update `/factory` copy (`/admin/docs/`) — the "Purchasing opens after the
+   workshop" paragraph is the off-state text; on-state text is in `#buy-on`.
+
+**Known gaps / ideas.** No admin "refund" button (dashboard does it; then Revoke).
+Poller looks back 72 h on cold start — fine. Test-mode dashboard links in
+`/admin/store/` orders table point at live `dashboard.stripe.com/payments/…`;
+sandbox needs `/test/` — cosmetic. `store_orders.note` unused. Legacy "Test mode"
+sandbox in the Stripe account can be deleted.
