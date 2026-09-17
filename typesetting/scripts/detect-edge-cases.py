@@ -172,13 +172,23 @@ class EdgeCaseDetector:
                 if run.font.color and run.font.color.rgb:
                     rgb = run.font.color.rgb
                     if rgb != RGBColor(0, 0, 0):  # Not black
+                        # Near-black greys (Google Docs exports paint body
+                        # text RGB(68,68,68); Word "Text 1 lighter" is
+                        # similar) are not a colour the author chose — the
+                        # build sets them black anyway. Reserve high for
+                        # actual colours that would vanish in print.
+                        lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+                        spread = max(rgb[0], rgb[1], rgb[2]) - min(rgb[0], rgb[1], rgb[2])
+                        near_black = lum < 0.25 * 255 and spread < 24
                         self.edge_cases.append({
                             'type': 'colored_text',
                             'location': f'Paragraph {i+1}',
                             'text': run.text[:100],
                             'color': f'RGB({rgb[0]},{rgb[1]},{rgb[2]})',
-                            'severity': 'high',
-                            'suggestion': 'Colored text detected - will be removed for print'
+                            'severity': 'low' if near_black else 'high',
+                            'suggestion': ('Dark grey text (near black) - the build sets it black; nothing to do'
+                                           if near_black else
+                                           'Colored text detected - will be removed for print')
                         })
                 
                 # Check highlight color

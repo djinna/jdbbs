@@ -230,6 +230,7 @@ body { font-family: var(--body); background: var(--bg); }
 .fx-count.medium .fx-count-value { color: var(--accent); }
 .fx-count.low .fx-count-value { color: var(--text-secondary); }
 .fx-count.clean .fx-count-value { color: var(--green); }
+.fx-count.kept .fx-count-value { color: var(--text-muted); }
 .fx-types {
   margin-top: 10px;
   font-family: var(--mono); font-size: 11.5px; line-height: 1.7;

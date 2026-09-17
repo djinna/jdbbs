@@ -487,3 +487,22 @@ func TestRunManuscriptPreflightRecordsDeclaredObservedCustomStyleUsage(t *testin
 		t.Fatalf("did not expect undeclared_custom_style warning when style is declared: %#v", byType)
 	}
 }
+
+func TestBuildPreflightSummaryExcludesPreserved(t *testing.T) {
+	raw := []byte(`[
+		{"type":"colored_text","severity":"high"},
+		{"type":"font_treatment","severity":"medium","auto_decision":"preserve"},
+		{"type":"font_treatment","severity":"medium","auto_decision":"preserve"},
+		{"type":"manual_list","severity":"low"}
+	]`)
+	sum, err := buildPreflightSummary(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum.Total != 4 || sum.High != 1 || sum.Medium != 0 || sum.Low != 1 || sum.Preserved != 2 {
+		t.Fatalf("unexpected summary: %+v", sum)
+	}
+	if sum.ByType["font_treatment"] != 2 {
+		t.Fatalf("by_type should still count preserved items: %+v", sum.ByType)
+	}
+}

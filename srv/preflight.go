@@ -23,11 +23,17 @@ type preflightRequest struct {
 }
 
 type preflightSummary struct {
-	Total  int            `json:"total"`
-	High   int            `json:"high"`
-	Medium int            `json:"medium"`
-	Low    int            `json:"low"`
-	ByType map[string]int `json:"by_type"`
+	Total  int `json:"total"`
+	High   int `json:"high"`
+	Medium int `json:"medium"`
+	Low    int `json:"low"`
+	// Preserved counts findings the detector marked auto_decision=preserve
+	// (manual bold/italic etc. the build carries through unchanged). They are
+	// excluded from High/Medium/Low so the factory page agrees with the
+	// report's "auto-preserved" bucket instead of showing them as "worth a
+	// look". Total still counts everything.
+	Preserved int            `json:"preserved"`
+	ByType    map[string]int `json:"by_type"`
 }
 
 type preflightHistoryEntry struct {
@@ -139,6 +145,10 @@ func buildPreflightSummary(raw []byte) (*preflightSummary, error) {
 		summary.Total++
 		if typ, _ := item["type"].(string); typ != "" {
 			summary.ByType[typ]++
+		}
+		if dec, _ := item["auto_decision"].(string); dec == "preserve" {
+			summary.Preserved++
+			continue
 		}
 		switch sev, _ := item["severity"].(string); sev {
 		case "high":
@@ -313,7 +323,12 @@ func (s *Server) preflightResponseFromRow(projectID int64, row dbgen.ManuscriptP
 		ReportURL:      preflightReportURL(projectID, row.BookID, row.ID),
 		History:        preflightHistoryEntries(projectID, history),
 	}
-	if summary, err := parseStoredSummary(row.SummaryJson); err == nil {
+	// Recompute from the stored findings when we have them, so runs
+	// inspected before the summary format changed (e.g. the preserved
+	// bucket) still show the current buckets; fall back to the stored one.
+	if summary, err := buildPreflightSummary([]byte(row.ReportJson)); err == nil && row.ReportJson != "" {
+		resp.Summary = summary
+	} else if summary, err := parseStoredSummary(row.SummaryJson); err == nil {
 		resp.Summary = summary
 	}
 	resp.Images = parseStoredImages(row.ReportJson)

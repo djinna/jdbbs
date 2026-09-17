@@ -493,6 +493,10 @@ function renderInspect() {
       '<span class="fx-count-value">' + Number(sum.medium || 0) + '</span></div>' +
       '<div class="fx-count low"><span class="fx-count-label">Just noting</span>' +
       '<span class="fx-count-value">' + Number(sum.low || 0) + '</span></div>';
+    if (Number(sum.preserved || 0) > 0) {
+      html += '<div class="fx-count kept"><span class="fx-count-label">Carried through automatically</span>' +
+        '<span class="fx-count-value">' + Number(sum.preserved) + '</span></div>';
+    }
   }
   html += '</div>';
 
