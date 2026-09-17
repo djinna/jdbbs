@@ -395,6 +395,22 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 			book.Author = applyPairsToString(book.Author, pairs)
 			book.Series = applyPairsToString(book.Series, pairs)
 		}
+		// The transmittal (via the book spec) is the record for title and
+		// author; the upload form's values are a fallback for unlinked
+		// books. The EPUB already reads spec metadata — the PDF must agree
+		// (C21: PDF Author was the Stripe cardholder, EPUB's the author).
+		if t, a := s.specTitleAuthor(book); t != "" || a != "" {
+			if t != "" {
+				book.Title = t
+			}
+			if a != "" {
+				book.Author = a
+			}
+			if len(pairs) > 0 {
+				book.Title = applyPairsToString(book.Title, pairs)
+				book.Author = applyPairsToString(book.Author, pairs)
+			}
+		}
 	}
 
 	// Step 1: direct pandoc docx -> typst using the bundled lua filter.
@@ -910,6 +926,27 @@ func (s *Server) handleLinkBookProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonOK(w, map[string]string{"ok": "true"})
+}
+
+// specTitleAuthor returns metadata.title / metadata.author from the
+// project's book spec (populated from the transmittal), or empty strings.
+func (s *Server) specTitleAuthor(book dbgen.Book) (string, string) {
+	if !book.ProjectID.Valid {
+		return "", ""
+	}
+	q := dbgen.New(s.DB)
+	spec, err := q.GetBookSpec(context.Background(), book.ProjectID.Int64)
+	if err != nil {
+		return "", ""
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(spec.Data), &data); err != nil {
+		return "", ""
+	}
+	meta, _ := data["metadata"].(map[string]any)
+	title, _ := meta["title"].(string)
+	author, _ := meta["author"].(string)
+	return strings.TrimSpace(title), strings.TrimSpace(author)
 }
 
 // buildTypstConfig looks up the book_spec for the linked project and returns

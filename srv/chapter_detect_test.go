@@ -2,6 +2,7 @@ package srv
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -431,5 +432,32 @@ func TestStoreChapterSuggestions_EmptyClearsStale(t *testing.T) {
 	m := specMap(t, s, pid)
 	if sug, ok := m["chapters_suggested"].([]any); !ok || len(sug) != 0 {
 		t.Errorf("chapters_suggested not cleared: got %#v", m["chapters_suggested"])
+	}
+}
+
+// C21: the PDF's title/author must come from the transmittal-fed spec, the
+// same source the EPUB uses — not the upload form (which, via the store, is
+// the Stripe cardholder).
+func TestSpecTitleAuthor(t *testing.T) {
+	s, _, cleanup := testServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	pid := newTestProject(t, s, "meta")
+
+	book := dbgen.Book{Title: "Form Title", Author: "Card Holder"}
+	if ti, au := s.specTitleAuthor(book); ti != "" || au != "" {
+		t.Fatalf("unlinked book: want empty, got %q/%q", ti, au)
+	}
+	book.ProjectID = sql.NullInt64{Int64: pid, Valid: true}
+	if ti, au := s.specTitleAuthor(book); ti != "" || au != "" {
+		t.Fatalf("no spec: want empty, got %q/%q", ti, au)
+	}
+	seed := `{"metadata":{"title":" Obliquities 1 ","author":"Venkatesh Rao"}}`
+	if _, err := dbgen.New(s.DB).UpsertBookSpec(ctx, dbgen.UpsertBookSpecParams{ProjectID: pid, Data: seed}); err != nil {
+		t.Fatalf("seed spec: %v", err)
+	}
+	ti, au := s.specTitleAuthor(book)
+	if ti != "Obliquities 1" || au != "Venkatesh Rao" {
+		t.Errorf("got %q/%q", ti, au)
 	}
 }
