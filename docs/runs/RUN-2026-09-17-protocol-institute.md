@@ -51,8 +51,8 @@ Ticked = done. This page refreshes itself every 20 s.
 
 ## 6 · Wrap — ME
 
-- [ ] 6.1 Fix small catches inline; park big ones
-- [ ] 6.2 Handoff addendum; commit, push
+- [x] 6.1 Fix small catches inline; park big ones
+- [x] 6.2 Handoff addendum; commit, push (`docs/reviews/SESSION-HANDOFF-2026-09-13.md`)
 - [ ] 6.3 BOTH — freeze / hotfix policy for Sep 19–23
 
 ## Test 1 — aborted (artefacts kept)
