@@ -187,8 +187,35 @@
     });
     nav.setAttribute('data-admin-nav', 'done');
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', adminNav);
-  else adminNav();
+  // Client nav: the four customer pages under /{client}/[{project}/[factory|transmittal]/]
+  // share one strip — Your books · Transmittal · Factory · Calendar — derived
+  // from the URL, current page marked. Opt in with <nav data-client-nav>.
+  function clientNav() {
+    var nav = document.querySelector('.jdbb-masthead nav[data-client-nav]');
+    if (!nav || nav.getAttribute('data-client-nav') === 'done') return;
+    var seg = location.pathname.split('/').filter(Boolean);
+    if (!seg.length) return;
+    var c = seg[0], p = seg[1] || '', page = seg[2] || '';
+    var items = [['/' + c + '/', 'Your books', 'All your projects']];
+    if (p) {
+      var base = '/' + c + '/' + p + '/';
+      items.push([base + 'transmittal/', 'Transmittal', 'Step 1: the spec sheet for this book']);
+      items.push([base + 'factory/', 'Factory', 'Upload, inspect, build, download']);
+      items.push([base, 'Calendar', 'Schedule, tasks, budget']);
+    }
+    var here = location.pathname.replace(/\/+$/, '') + '/';
+    var first = nav.firstChild;
+    items.forEach(function (item) {
+      var a = document.createElement('a');
+      a.href = item[0]; a.textContent = item[1]; a.title = item[2];
+      if (item[0] === here) a.setAttribute('aria-current', 'page');
+      nav.insertBefore(a, first);
+    });
+    nav.setAttribute('data-client-nav', 'done');
+  }
+  function navs() { adminNav(); clientNav(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', navs);
+  else navs();
 
-  window.JdbbTheme = { mount: mount, bind: bind, state: state, apply: apply, save: save, adminNav: adminNav };
+  window.JdbbTheme = { mount: mount, bind: bind, state: state, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav };
 })();

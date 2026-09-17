@@ -164,7 +164,7 @@ html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
 }
 .jdbb-masthead nav a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 .jdbb-masthead nav a[aria-current] { color: var(--text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--accent); }
-.jdbb-masthead nav[data-admin-nav] { gap: 1.1rem; }
+.jdbb-masthead nav[data-admin-nav], .jdbb-masthead nav[data-client-nav] { gap: 1.1rem; }
 .jdbb-masthead nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 640px) {
   .jdbb-masthead { flex-wrap: wrap; row-gap: 10px; }

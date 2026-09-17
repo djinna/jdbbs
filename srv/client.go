@@ -232,7 +232,8 @@ func (s *Server) handleClientProjects(w http.ResponseWriter, r *http.Request) {
 			SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done_count,
 			SUM(CASE WHEN t.status = 'active' OR t.status = 'in_progress' THEN 1 ELSE 0 END) as active_count,
 			COALESCE(tr.id, 0) as has_transmittal,
-			COALESCE(tr.status, '') as transmittal_status
+			COALESCE(tr.status, '') as transmittal_status,
+			EXISTS(SELECT 1 FROM passes ps WHERE ps.project_id = p.id AND ps.status = 'active' AND ps.expires_at > CURRENT_TIMESTAMP) as has_pass
 		FROM projects p
 		LEFT JOIN tasks t ON t.project_id = p.id
 		LEFT JOIN transmittals tr ON tr.project_id = p.id
@@ -258,6 +259,7 @@ func (s *Server) handleClientProjects(w http.ResponseWriter, r *http.Request) {
 		ActiveCount       int    `json:"active_count"`
 		HasTransmittal    bool   `json:"has_transmittal"`
 		TransmittalStatus string `json:"transmittal_status"`
+		HasPass           bool   `json:"has_pass"`
 		Path              string `json:"path"`
 	}
 	var projects []clientProject
@@ -266,7 +268,7 @@ func (s *Server) handleClientProjects(w http.ResponseWriter, r *http.Request) {
 		var hasTransmittalID int64
 		if err := rows.Scan(&p.ID, &p.Name, &p.ClientSlug, &p.ProjectSlug,
 			&p.StartDate, &p.UpdatedAt, &p.TaskCount, &p.DoneCount,
-			&p.ActiveCount, &hasTransmittalID, &p.TransmittalStatus); err != nil {
+			&p.ActiveCount, &hasTransmittalID, &p.TransmittalStatus, &p.HasPass); err != nil {
 			continue
 		}
 		p.HasTransmittal = hasTransmittalID != 0

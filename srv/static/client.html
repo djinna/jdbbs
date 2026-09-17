@@ -230,7 +230,7 @@
 <div class="page">
   <header class="jdbb-masthead">
     <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
-    <nav><div id="theme-bar"></div></nav>
+    <nav data-client-nav><div id="theme-bar"></div></nav>
   </header>
   <div class="jdbb-statusline">
     <span id="status-ctx">Client portal</span>
@@ -405,6 +405,8 @@ function render() {
           : (p.active_count > 0 ? '<span class="tag warn">[IN PROGRESS]</span>' : '<span class="tag">[SCHEDULED]</span>');
         const projectURL = absoluteURL(p.path);
         const transmittalURL = absoluteURL(p.path + 'transmittal/');
+        const factoryURL = absoluteURL(p.path + 'factory/');
+        const passTag = p.has_pass ? '<span class="tag ok">[FACTORY PASS]</span>' : '';
         return `
           <article class="project">
             <div class="project-head">
@@ -413,12 +415,13 @@ function render() {
             </div>
             <div class="project-status">
               <span><span class="prompt">&gt;</span>${p.done_count}/${p.task_count} tasks done${p.active_count > 0 ? ' &middot; ' + p.active_count + ' active' : ''}</span>
-              <span class="project-tags">${txTag}${statusTag}<span class="pct" style="color:${pct === 100 ? 'var(--green)' : 'var(--text)'}">${pct}%</span></span>
+              <span class="project-tags">${passTag}${txTag}${statusTag}<span class="pct" style="color:${pct === 100 ? 'var(--green)' : 'var(--text)'}">${pct}%</span></span>
             </div>
             <div class="progress-line"><span class="${pct === 100 ? 'done' : ''}" style="width:${pct}%"></span></div>
             <div class="project-actions">
-              <a class="link-action" href="${esc(projectURL)}">Calendar &rarr;</a>
               <a class="link-action" href="${esc(transmittalURL)}">Transmittal</a>
+              <a class="link-action" href="${esc(factoryURL)}">Factory &rarr;</a>
+              <a class="link-action" href="${esc(projectURL)}">Calendar</a>
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">Snapshot</button>
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="activity">Activity</button>
             </div>
