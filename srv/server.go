@@ -446,7 +446,7 @@ func (s *Server) Handler() http.Handler {
 		s.serveIndex(w)
 	})
 
-	return mux
+	return requestLog(mux)
 }
 
 func (s *Server) Serve(addr string) error {

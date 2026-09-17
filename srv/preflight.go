@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -519,6 +520,9 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 		jsonErr(w, err.Error(), 500)
 		return
 	}
+	slog.Info("inspect run", "book_id", body.BookID, "project_id", pid, "status", status,
+		"findings", summary.Total, "high", summary.High, "medium", summary.Medium, "low", summary.Low,
+		"by_type", summary.ByType, "who", requestActor(r))
 	row, err := q.CreateManuscriptPreflight(r.Context(), dbgen.CreateManuscriptPreflightParams{
 		ProjectID:      pid,
 		BookID:         body.BookID,

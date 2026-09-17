@@ -165,6 +165,8 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 	if book.ProjectID.Valid {
 		go s.detectChaptersAsync(book)
 	}
+	slog.Info("manuscript uploaded", "book_id", book.ID, "project_id", projectID.Int64,
+		"title", book.Title, "file", header.Filename, "bytes", len(data), "who", requestActor(r))
 
 	w.WriteHeader(201)
 	jsonOK(w, map[string]any{

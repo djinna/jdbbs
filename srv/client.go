@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -146,10 +147,12 @@ func (s *Server) handleClientVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !checkPassword(body.Password, passwordHash) {
+		slog.Warn("client login failed", "client", clientSlug)
 		jsonErr(w, "invalid password", http.StatusUnauthorized)
 		return
 	}
 
+	slog.Info("client login", "client", clientSlug)
 	// Set client cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "prodcal_client_" + clientSlug,
