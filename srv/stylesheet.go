@@ -110,7 +110,7 @@ func queryString(r *http.Request) string {
 
 func (s *Server) ssServeStatic(path, ctype string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := staticFS.ReadFile("static/" + path)
+		data, err := readStatic("static/" + path)
 		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return

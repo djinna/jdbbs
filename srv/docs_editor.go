@@ -3,6 +3,7 @@ package srv
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -38,6 +39,7 @@ type docFile struct {
 	GitStatus  string `json:"git_status"` // "" clean, "M" modified, "??" untracked …
 	PageType   string `json:"page_type"`
 	Visibility string `json:"visibility"`
+	Owner      string `json:"owner"`
 }
 
 func (s *Server) handleAdminDocsPage(w http.ResponseWriter, r *http.Request) {
@@ -47,34 +49,65 @@ func (s *Server) handleAdminDocsPage(w http.ResponseWriter, r *http.Request) {
 	s.serveStaticHTML(w, "static/docs-editor.html")
 }
 
-// docSourcePath validates that source is a registered jdbbs-public file and
-// returns its absolute path inside publicDocsDir.
-func (s *Server) docSourcePath(ctx context.Context, source string) (string, error) {
-	source = strings.TrimSpace(source)
-	if source == "" || strings.HasPrefix(source, "/") || strings.Contains(source, "..") || strings.Contains(source, `\`) {
-		return "", errors.New("invalid source")
+// docRoot maps a registry owner to the directory its sources are relative to.
+// jdbbs-public pages live in publicDocsDir; prodcal pages are the *.html under
+// srv/static/ in the source tree, served through the disk overlay (see
+// static_overlay.go) so a save is live without a rebuild.
+func docRoot(owner string) string {
+	switch owner {
+	case "jdbbs-public":
+		return publicDocsDir()
+	case "prodcal":
+		return repoDir()
 	}
-	var n int
-	if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM site_pages WHERE owner = 'jdbbs-public' AND source = ?`, source).Scan(&n); err != nil {
-		return "", err
-	}
-	if n == 0 {
-		return "", errors.New("source is not a registered jdbbs-public page")
-	}
-	root := publicDocsDir()
-	full := filepath.Join(root, filepath.FromSlash(source))
-	rel, err := filepath.Rel(root, full)
-	if err != nil || strings.HasPrefix(rel, "..") {
-		return "", errors.New("invalid source")
-	}
-	return full, nil
+	return ""
 }
 
-// gitStatusMap runs one `git status --porcelain` in publicDocsDir and returns
+// docEditable reports whether a registry row may be opened in the editor.
+func docEditable(owner, source string) bool {
+	switch owner {
+	case "jdbbs-public":
+		return source != ""
+	case "prodcal":
+		return strings.HasPrefix(source, "srv/static/") && strings.HasSuffix(source, ".html") && repoDir() != ""
+	}
+	return false
+}
+
+// docSourcePath validates that source is a registered, editable file and
+// returns its owner's root and its absolute path inside that root.
+func (s *Server) docSourcePath(ctx context.Context, source string) (root, full string, err error) {
+	source = strings.TrimSpace(source)
+	if source == "" || strings.HasPrefix(source, "/") || strings.Contains(source, "..") || strings.Contains(source, `\`) {
+		return "", "", errors.New("invalid source")
+	}
+	var owner string
+	if err := s.DB.QueryRowContext(ctx, `SELECT owner FROM site_pages WHERE source = ? AND owner IN ('jdbbs-public','prodcal') LIMIT 1`, source).Scan(&owner); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", errors.New("source is not a registered page")
+		}
+		return "", "", err
+	}
+	if !docEditable(owner, source) {
+		return "", "", errors.New("this page can't be edited here")
+	}
+	root = docRoot(owner)
+	full = filepath.Join(root, filepath.FromSlash(source))
+	rel, err := filepath.Rel(root, full)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return "", "", errors.New("invalid source")
+	}
+	return root, full, nil
+}
+
+// gitStatusMap runs one `git status --porcelain` in dir and returns
 // path → status code. A missing git or non-repo directory yields an empty map.
-func gitStatusMap() map[string]string {
+func gitStatusMap(dir string) map[string]string {
 	out := map[string]string{}
-	cmd := exec.Command("git", "-C", publicDocsDir(), "status", "--porcelain", "--untracked-files=all")
+	if dir == "" {
+		return out
+	}
+	cmd := exec.Command("git", "-C", dir, "status", "--porcelain", "--untracked-files=all")
 	b, err := cmd.Output()
 	if err != nil {
 		return out
@@ -93,27 +126,34 @@ func (s *Server) handleAdminDocsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := s.DB.QueryContext(r.Context(), `
-		SELECT id, route, title, source, listed, status, page_type, visibility
-		FROM site_pages WHERE owner = 'jdbbs-public' AND source <> '' ORDER BY route`)
+		SELECT id, route, title, source, listed, status, page_type, visibility, owner
+		FROM site_pages WHERE owner IN ('jdbbs-public','prodcal') AND source <> '' ORDER BY owner DESC, route`)
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
 	}
 	defer rows.Close()
-	git := gitStatusMap()
+	git := map[string]map[string]string{}
 	files := []docFile{}
 	for rows.Next() {
 		var f docFile
-		if err := rows.Scan(&f.ID, &f.Route, &f.Title, &f.Source, &f.Listed, &f.Status, &f.PageType, &f.Visibility); err != nil {
+		if err := rows.Scan(&f.ID, &f.Route, &f.Title, &f.Source, &f.Listed, &f.Status, &f.PageType, &f.Visibility, &f.Owner); err != nil {
 			jsonErr(w, err.Error(), 500)
 			return
 		}
-		if st, err := os.Stat(filepath.Join(publicDocsDir(), filepath.FromSlash(f.Source))); err == nil && !st.IsDir() {
+		if !docEditable(f.Owner, f.Source) {
+			continue
+		}
+		root := docRoot(f.Owner)
+		if _, ok := git[root]; !ok {
+			git[root] = gitStatusMap(root)
+		}
+		if st, err := os.Stat(filepath.Join(root, filepath.FromSlash(f.Source))); err == nil && !st.IsDir() {
 			f.Exists = true
 			f.Size = st.Size()
 			f.ModTime = st.ModTime().UTC().Format(time.RFC3339Nano)
 		}
-		f.GitStatus = git[f.Source]
+		f.GitStatus = git[root][f.Source]
 		files = append(files, f)
 	}
 	settings, err := s.listSettings(r.Context())
@@ -121,7 +161,7 @@ func (s *Server) handleAdminDocsList(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err.Error(), 500)
 		return
 	}
-	jsonOK(w, map[string]any{"dir": publicDocsDir(), "files": files, "settings": settings})
+	jsonOK(w, map[string]any{"dir": publicDocsDir(), "repo_dir": repoDir(), "files": files, "settings": settings})
 }
 
 func (s *Server) handleAdminDocsRead(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +169,7 @@ func (s *Server) handleAdminDocsRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	source := r.URL.Query().Get("source")
-	full, err := s.docSourcePath(r.Context(), source)
+	root, full, err := s.docSourcePath(r.Context(), source)
 	if err != nil {
 		jsonErr(w, err.Error(), http.StatusBadRequest)
 		return
@@ -145,7 +185,7 @@ func (s *Server) handleAdminDocsRead(w http.ResponseWriter, r *http.Request) {
 		"content":    string(data),
 		"size":       len(data),
 		"mtime":      st.ModTime().UTC().Format(time.RFC3339Nano),
-		"git_status": gitStatusMap()[source],
+		"git_status": gitStatusMap(root)[source],
 	})
 }
 
@@ -164,7 +204,7 @@ func (s *Server) handleAdminDocsWrite(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "invalid body (max 4 MB)", http.StatusBadRequest)
 		return
 	}
-	full, err := s.docSourcePath(r.Context(), in.Source)
+	root, full, err := s.docSourcePath(r.Context(), in.Source)
 	if err != nil {
 		jsonErr(w, err.Error(), http.StatusBadRequest)
 		return
@@ -212,7 +252,7 @@ func (s *Server) handleAdminDocsWrite(w http.ResponseWriter, r *http.Request) {
 		"ok":         true,
 		"size":       len(content),
 		"mtime":      st.ModTime().UTC().Format(time.RFC3339Nano),
-		"git_status": gitStatusMap()[in.Source],
+		"git_status": gitStatusMap(root)[in.Source],
 	})
 }
 
@@ -221,8 +261,8 @@ type docCommitInput struct {
 	Message string `json:"message"`
 }
 
-// handleAdminDocsCommit stages one registered file and commits it in
-// publicDocsDir's repo. No push: that stays a deliberate shell step.
+// handleAdminDocsCommit stages one registered file and commits it in its
+// owner's repo (jdbbs-public or the prodcal source tree). No push: that stays a deliberate shell step.
 func (s *Server) handleAdminDocsCommit(w http.ResponseWriter, r *http.Request) {
 	if !s.requireExeDevAdminAPI(w, r) {
 		return
@@ -232,7 +272,8 @@ func (s *Server) handleAdminDocsCommit(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "invalid body", http.StatusBadRequest)
 		return
 	}
-	if _, err := s.docSourcePath(r.Context(), in.Source); err != nil {
+	dir, _, err := s.docSourcePath(r.Context(), in.Source)
+	if err != nil {
 		jsonErr(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -240,7 +281,6 @@ func (s *Server) handleAdminDocsCommit(w http.ResponseWriter, r *http.Request) {
 	if msg == "" {
 		msg = "Edit " + in.Source + " (admin doc editor)"
 	}
-	dir := publicDocsDir()
 	run := func(args ...string) (string, error) {
 		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
 		var out bytes.Buffer
@@ -248,7 +288,7 @@ func (s *Server) handleAdminDocsCommit(w http.ResponseWriter, r *http.Request) {
 		err := cmd.Run()
 		return strings.TrimSpace(out.String()), err
 	}
-	if st := gitStatusMap()[in.Source]; st == "" {
+	if st := gitStatusMap(dir)[in.Source]; st == "" {
 		jsonErr(w, "nothing to commit — file matches the last commit", http.StatusBadRequest)
 		return
 	}

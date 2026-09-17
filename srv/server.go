@@ -469,7 +469,7 @@ func (s *Server) Serve(addr string) error {
 }
 
 func (s *Server) serveTransmittal(w http.ResponseWriter) {
-	data, err := staticFS.ReadFile("static/transmittal.html")
+	data, err := readStatic("static/transmittal.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
 		return
@@ -479,7 +479,7 @@ func (s *Server) serveTransmittal(w http.ResponseWriter) {
 }
 
 func (s *Server) serveClientPortal(w http.ResponseWriter) {
-	data, err := staticFS.ReadFile("static/client.html")
+	data, err := readStatic("static/client.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
 		return
@@ -489,7 +489,7 @@ func (s *Server) serveClientPortal(w http.ResponseWriter) {
 }
 
 func (s *Server) serveStaticHTML(w http.ResponseWriter, name string) {
-	data, err := staticFS.ReadFile(name)
+	data, err := readStatic(name)
 	if err != nil {
 		http.Error(w, "not found", 404)
 		return
@@ -539,7 +539,7 @@ func (s *Server) servePublicDocIn(w http.ResponseWriter, dir, name string) {
 }
 
 func (s *Server) serveLanding(w http.ResponseWriter) {
-	data, err := staticFS.ReadFile("static/landing.html")
+	data, err := readStatic("static/landing.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
 		return
@@ -549,7 +549,7 @@ func (s *Server) serveLanding(w http.ResponseWriter) {
 }
 
 func (s *Server) serveIndex(w http.ResponseWriter) {
-	data, err := staticFS.ReadFile("static/index.html")
+	data, err := readStatic("static/index.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
 		return

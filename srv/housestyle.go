@@ -174,7 +174,7 @@ func hsTitle(kind string) string {
 // renders. Kept as a shell (not server-rendered) so the fiction/nonfiction
 // tabs switch without a reload and the page shares the studio theme boot.
 func (s *Server) handleHouseStylePage(w http.ResponseWriter, r *http.Request) {
-	data, err := staticFS.ReadFile("static/housestyle.html")
+	data, err := readStatic("static/housestyle.html")
 	if err != nil {
 		http.Error(w, "not found", 404)
 		return

@@ -27,7 +27,7 @@ textarea{width:100%;min-height:60vh;padding:12px 14px;border:1px solid var(--bor
 <body>
 <div class="wrap">
 <header class="jdbb-masthead"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a><nav><a href="/admin/">Admin</a><a href="/admin/registrations">Cohorts</a><a href="/admin/email-preview/">Emails</a><div id="theme-bar"></div></nav></header>
-<section class="hero"><div class="kicker">Admin · doc editor</div><h1>Public pages and email strings</h1><div class="sub">The pages below are served from <code id="dir">…</code> on disk, so a save is live on the next request. Commit when you're happy; pushing stays a shell step. Only pages in the registry with owner <i>jdbbs-public</i> can be opened here.</div></section>
+<section class="hero"><div class="kicker">Admin · doc editor</div><h1>Pages and email strings</h1><div class="sub">Two kinds of page, both live on the next request after a save. <b>Public documents</b> are files in <code id="dir">…</code>. <b>Studio pages</b> — the portal, factory, transmittal, admin screens — are the <code>srv/static/*.html</code> in <code id="repo-dir">…</code>; the running server reads them from disk ahead of its built-in copy, so an edit takes effect without a rebuild (the next <code>make build</code> bakes it in). Each commits to its own repo; pushing stays a shell step.</div></section>
 
 <h2>Pages</h2>
 <div id="files"><div class="empty">Loading…</div></div>
@@ -57,7 +57,7 @@ const fmtTime=s=>s?s.slice(0,16).replace('T',' ')+' UTC':'—';
 async function api(url,opts){const r=await fetch(url,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
 
 async function load(){
-  try{const j=await api('/api/admin/docs');files=j.files;settings=j.settings;$('dir').textContent=j.dir;renderFiles();renderSettings();
+  try{const j=await api('/api/admin/docs');files=j.files;settings=j.settings;$('dir').textContent=j.dir;$('repo-dir').textContent=j.repo_dir||'(source tree not present)';renderFiles();renderSettings();
     const want=new URLSearchParams(location.search).get('file');if(want&&files.some(f=>f.source===want))openFile(want)}
   catch(e){$('files').innerHTML='<div class="error">Could not load: '+esc(e.message)+'</div>'}
 }
@@ -68,15 +68,17 @@ function gitTag(f){
   return '<span class="tag dirty">uncommitted</span>';
 }
 function renderFiles(){
-  if(!files.length){$('files').innerHTML='<div class="empty">No jdbbs-public pages in the registry.</div>';return}
-  $('files').innerHTML='<table><thead><tr><th>Route</th><th>Title</th><th>Source</th><th>Saved</th><th>Git</th><th></th></tr></thead><tbody>'+files.map(f=>`<tr class="${cur&&cur.source===f.source?'on':''}" id="row-${f.id}">
-    <td><a class="route" href="${esc(f.route)}" target="_blank">${esc(f.route)}</a></td>
+  if(!files.length){$('files').innerHTML='<div class="empty">No editable pages in the registry.</div>';return}
+  const groups=[['jdbbs-public','Public documents'],['prodcal','Studio pages (portal, factory, admin)']];
+  $('files').innerHTML=groups.map(([owner,label])=>{const fs=files.filter(f=>f.owner===owner);if(!fs.length)return '';
+  return '<h3>'+label+'</h3><table><thead><tr><th>Route</th><th>Title</th><th>Source</th><th>Saved</th><th>Git</th><th></th></tr></thead><tbody>'+fs.map(f=>`<tr class="${cur&&cur.source===f.source?'on':''}" id="row-${f.id}">
+    <td>${f.route.includes('{')?'<span class="route mono">'+esc(f.route)+'</span>':'<a class="route" href="'+esc(f.route)+'" target="_blank">'+esc(f.route)+'</a>'}</td>
     <td>${esc(f.title)}<br><span class="tag">${esc(f.listed)}</span> <span class="tag">${esc(f.page_type)}</span></td>
     <td class="mono">${esc(f.source)}${f.exists?'<br>'+fmtSize(f.size):''}</td>
     <td class="mono">${fmtTime(f.mtime)}</td>
     <td>${gitTag(f)}</td>
     <td><button ${f.exists?'':'disabled'} onclick="openFile(${JSON.stringify(f.source).replace(/"/g,'&quot;')})">Edit</button></td>
-  </tr>`).join('')+'</tbody></table>';
+  </tr>`).join('')+'</tbody></table>'}).join('');
 }
 async function openFile(source){
   if(cur&&dirty()&&!confirm('Discard unsaved changes to '+cur.source+'?'))return;
@@ -86,7 +88,7 @@ async function openFile(source){
     cur={source, mtime:j.mtime, loaded:j.content};
     $('ed-title').textContent=source;
     $('ed-meta').textContent=fmtSize(j.size)+' · saved '+fmtTime(j.mtime);
-    $('ed-view').href=f.route||'#';
+    $('ed-view').href=f.route||'#';$('ed-view').style.display=(f.route||'').includes('{')?'none':'';
     $('ed-text').value=j.content;
     $('ed-msg').value='';
     $('ed-state').textContent=j.git_status?'uncommitted changes on disk':'matches last commit';

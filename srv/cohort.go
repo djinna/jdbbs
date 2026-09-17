@@ -79,7 +79,7 @@ func (s *Server) handleCohortPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	b, err := staticFS.ReadFile("static/cohort.html")
+	b, err := readStatic("static/cohort.html")
 	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return

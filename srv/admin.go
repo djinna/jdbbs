@@ -51,7 +51,7 @@ func (s *Server) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
 	if !s.requireExeDevAdmin(w, r) {
 		return
 	}
-	data, err := staticFS.ReadFile("static/admin.html")
+	data, err := readStatic("static/admin.html")
 	if err != nil {
 		http.Error(w, "internal error", 500)
 		return
