@@ -1007,6 +1007,9 @@ func ensureMap(parent map[string]any, key string) map[string]any {
 
 func mapField(src map[string]any, srcKey string, dst map[string]any, dstKey string) {
 	if v, ok := src[srcKey]; ok {
+		if str, isStr := v.(string); isStr {
+			v = strings.TrimSpace(str)
+		}
 		dst[dstKey] = v
 	}
 }
