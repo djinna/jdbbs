@@ -1,0 +1,10 @@
+[Unit]
+Description=Store goes live Tue 22 Sep 2026 16:00 UTC = Wed 23 Sep 00:00 Hong Kong
+
+[Timer]
+OnCalendar=2026-09-22 16:00:00 UTC
+Persistent=true
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

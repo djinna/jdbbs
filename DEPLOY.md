@@ -32,6 +32,33 @@ No service restart is needed after upgrading these — they are exec'd per build
 Smoke: upload a small .docx from admin and confirm status reaches `ready`.
 (2026-09-03: found the VM at pandoc 3.1.3 with every build failing since May.)
 
+## Store: sandbox → live Stripe (scheduled flip)
+
+The Factory Pass store talks to Stripe through the exe.dev proxy. Which
+account it hits is one line in `.env`:
+
+- `PRODCAL_STRIPE_URL=https://stripe-test.int.exe.xyz` → test key (sandbox, `cs_test_…`)
+- line absent → `https://stripe.int.exe.xyz`, the live key (`rk_live_…`, attached 2026-09-17)
+
+`scripts/store-go-live.sh` deletes that line, restarts `prodcal` (which
+creates the live catalog + WORKSHOP49/PROTOCOL50 coupons at boot via
+`store.ensureCatalog`), checks `/api/public/store/config`, and emails Jenna.
+Idempotent; `--dry-run` edits a copy under `scratch/` and touches nothing.
+
+Scheduled once by `prodcal-store-live.timer` (units in `deploy/`) for
+**Tue 22 Sep 2026 16:00 UTC = Wed 23 Sep 00:00 Hong Kong** — workshop
+attendees build free through Tuesday HKT, billing starts Wednesday.
+
+```
+systemctl list-timers prodcal-store-live.timer      # when it fires
+sudo systemctl start prodcal-store-live.service     # fire it now instead
+sudo systemctl disable --now prodcal-store-live.timer   # cancel
+journalctl -u prodcal-store-live.service            # what it did
+```
+
+Roll back: put the `PRODCAL_STRIPE_URL` line back (copy kept as
+`.env.pre-live.<stamp>`) and `sudo systemctl restart prodcal`.
+
 ## Database: Migrations
 
 Migrations live in `db/migrations/` and follow the naming pattern `NNN-name.sql`.

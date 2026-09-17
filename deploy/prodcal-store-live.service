@@ -1,0 +1,9 @@
+[Unit]
+Description=Flip jdbb studio Factory Pass store from Stripe sandbox to live (one shot)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=exedev
+WorkingDirectory=/home/exedev/prodcal
+ExecStart=/home/exedev/prodcal/scripts/store-go-live.sh
