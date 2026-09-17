@@ -253,6 +253,28 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Which deliverables to make. EPUB builds are free and unlimited (no
+	// typst, under a second, and they're the cleanup loop for the print
+	// build); print PDF builds are the counted ones. "both" is the original
+	// single-button behaviour and costs one credit like a PDF build.
+	format := "both"
+	if r.Body != nil && r.ContentLength != 0 {
+		var body struct {
+			Format string `json:"format"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&body); err == nil && body.Format != "" {
+			format = strings.ToLower(strings.TrimSpace(body.Format))
+		}
+	}
+	if format == "" {
+		format = "both"
+	}
+	if format != "epub" && format != "pdf" && format != "both" {
+		jsonErr(w, "format must be epub, pdf or both", 400)
+		return
+	}
+	countsAsBuild := format != "epub"
+
 	var pass *dbgen.Pass
 	if !book.ProjectID.Valid {
 		if !s.requireExeDevAdminAPI(w, r) {
@@ -264,7 +286,7 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return
 		}
-		if pass != nil && !isAdmin && passCreditsRemaining(*pass) <= 0 {
+		if countsAsBuild && pass != nil && !isAdmin && passCreditsRemaining(*pass) <= 0 {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusPaymentRequired)
 			_ = json.NewEncoder(w).Encode(map[string]any{
@@ -294,8 +316,8 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 
 	// Debit before starting so a crashed or killed build can never hand out a
 	// free one; failConversion refunds. Debited for admins too when a pass
-	// exists (see the contract).
-	if pass != nil {
+	// exists (see the contract). EPUB-only builds are never debited.
+	if countsAsBuild && pass != nil {
 		if err := s.debitBuildCredit(r.Context(), pass.ID, bid); err != nil {
 			slog.Error("build debit failed", "pass_id", pass.ID, "book_id", bid, "err", err)
 			jsonErr(w, "could not reserve a build credit", 500)
@@ -309,12 +331,21 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Run conversion in background
-	go s.runConversion(bid, book)
+	go s.runConversion(bid, book, format)
 
-	jsonOK(w, map[string]string{"status": "converting"})
+	jsonOK(w, map[string]string{"status": "converting", "format": format})
 }
 
-func (s *Server) runConversion(bid int64, book dbgen.Book) {
+// epubOutputsKept is how many EPUB outputs a book keeps. EPUB builds are
+// unlimited, so without a cap the cleanup loop would fill the outputs table.
+const epubOutputsKept = 10
+
+// runConversion is the build. format is "pdf", "epub" or "both".
+func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
+	if format == "epub" {
+		s.runEPUBBuild(bid, book)
+		return
+	}
 	start := time.Now()
 	q := dbgen.New(s.DB)
 
@@ -469,10 +500,10 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 		s.failConversion(bid, "store pdf: "+err.Error())
 		return
 	}
-	// Step 4: the EPUB. A build is PDF *and* EPUB (the Factory Pass contract),
-	// so this runs inline — the book stays "converting" until both artifacts
-	// exist, which is what the customer page polls on.
-	if err := s.finalizeBuild(ctx, bid, book); err != nil {
+	// Step 4: the EPUB, when this is a "both" build. It runs inline — the
+	// book stays "converting" until every artifact exists, which is what the
+	// customer page polls on. A "pdf" build just marks ready.
+	if err := s.finalizeBuild(ctx, bid, book, format == "both"); err != nil {
 		s.failConversion(bid, err.Error())
 		return
 	}
@@ -482,7 +513,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 	// Re-read the pass so credits_remaining reflects this build.
 	if book.ProjectID.Valid {
 		if pass := s.passForProject(ctx, book.ProjectID.Int64); pass != nil {
-			s.sendBuildDeliveredEmail(*pass, book)
+			s.sendBuildDeliveredEmail(*pass, book, format)
 		}
 	}
 
@@ -503,8 +534,16 @@ func (s *Server) runConversion(bid int64, book dbgen.Book) {
 //
 // A returned error means the status write itself failed, i.e. the build
 // genuinely cannot be recorded; the caller treats that as a failed build.
-func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book) error {
+func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book, withEPUB bool) error {
 	q := dbgen.New(s.DB)
+	if !withEPUB {
+		if err := q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
+			Status: "ready", ErrorMsg: "", ID: bid,
+		}); err != nil {
+			return fmt.Errorf("mark ready: %w", err)
+		}
+		return nil
+	}
 	if epubErr := s.getEPUBRunner()(bid, book); epubErr != nil {
 		slog.Error("build: epub stage failed but pdf succeeded; delivering pdf-only build",
 			"id", bid, "title", book.Title, "raw_error", epubErr)
@@ -516,6 +555,7 @@ func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book) 
 		}
 		return nil
 	}
+	s.pruneEPUBOutputs(ctx, bid)
 	// Clear any error_msg left by an earlier attempt: "ready" plus a stale
 	// error reads as a broken build in the UI.
 	if err := q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
@@ -524,6 +564,45 @@ func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book) 
 		return fmt.Errorf("mark ready: %w", err)
 	}
 	return nil
+}
+
+// runEPUBBuild is the free, unlimited EPUB-only build. Nothing was debited,
+// so a failure is reported on the book but never refunded — failConversion
+// is deliberately not used here.
+func (s *Server) runEPUBBuild(bid int64, book dbgen.Book) {
+	start := time.Now()
+	q := dbgen.New(s.DB)
+	ctx := context.Background()
+	if err := s.getEPUBRunner()(bid, book); err != nil {
+		raw := err.Error()
+		msg := customerBuildError(raw)
+		slog.Error("epub build failed", "id", bid, "title", book.Title, "raw_error", raw, "customer_message", msg)
+		_ = q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
+			Status: "error", ErrorMsg: clip(msg, 2000), ID: bid,
+		})
+		return
+	}
+	s.pruneEPUBOutputs(ctx, bid)
+	if err := q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
+		Status: "ready", ErrorMsg: "", ID: bid,
+	}); err != nil {
+		slog.Error("epub build: mark ready failed", "id", bid, "err", err)
+		return
+	}
+	if book.ProjectID.Valid {
+		if pass := s.passForProject(ctx, book.ProjectID.Int64); pass != nil {
+			s.sendBuildDeliveredEmail(*pass, book, "epub")
+		}
+	}
+	slog.Info("epub build complete", "id", bid, "title", book.Title, "elapsed", time.Since(start))
+}
+
+func (s *Server) pruneEPUBOutputs(ctx context.Context, bid int64) {
+	if err := dbgen.New(s.DB).PruneBookOutputs(ctx, dbgen.PruneBookOutputsParams{
+		BookID: bid, OutputFormat: "epub", Limit: epubOutputsKept,
+	}); err != nil {
+		slog.Warn("prune epub outputs failed", "book_id", bid, "err", err)
+	}
 }
 
 var unknownTypstVariableRE = regexp.MustCompile(`(?mi)unknown variable:\s*([A-Za-z0-9_-]+)`)

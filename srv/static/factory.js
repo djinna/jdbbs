@@ -98,6 +98,7 @@ var S = {
   pendingFile: null,
   uploading: false,
   building: false,
+  buildingFormat: 'pdf',
   inspecting: false,
   contactEmail: 'j@djinna.com',
   retry: null,         // re-run after the password gate clears
@@ -208,7 +209,8 @@ function renderHeader() {
     var left = creditsLeft();
     var total = creditsTotal();
     var cls = left === 0 ? 'fx-pass-out' : '';
-    var builds = '<span class="' + cls + '">' + left + ' of ' + total + ' ' + plural(total, 'build', 'builds') + ' left</span>';
+    var builds = '<span class="' + cls + '">' + left + ' of ' + total + ' print ' + plural(total, 'build', 'builds') + ' left</span>' +
+      '<span class="fx-pass-dim"> \u00b7 EPUB builds unlimited</span>';
     // Past tense once the pass is over — "storage until <a date last month>"
     // reads like a bug.
     var ended = S.pass.live === false || S.pass.status === 'expired';
@@ -509,7 +511,7 @@ function renderInspect() {
   if (total === 0) {
     html += '<p class="fx-fine">Nothing flagged. Go ahead and build.</p>';
   } else if (Number(sum.high || 0) > 0) {
-    html += '<p class="fx-fine">You can build anyway \u2014 nothing here blocks it. But the report explains each item, and fixing the \u201cworth fixing\u201d ones in Word before you spend a build usually saves you one.</p>';
+    html += '<p class="fx-fine">You can build anyway \u2014 nothing here blocks it. But the report explains each item, and fixing the \u201cworth fixing\u201d ones in Word \u2014 and checking the free EPUB \u2014 before you spend a print build usually saves you one.</p>';
   } else {
     html += '<p class="fx-fine">Nothing serious. The report has the detail if you\u2019re curious.</p>';
   }
@@ -528,27 +530,43 @@ function renderBuild() {
   var left = creditsLeft();
   var total = creditsTotal();
   var btn = $('fx-build-btn');
+  var ebtn = $('fx-build-epub-btn');
   var meta = $('fx-build-meta');
+  var busy = S.building || isBuilding(S.current);
 
   if (meta) {
     meta.className = 'fx-sec-meta' + (left === 0 && S.pass && S.pass.exists !== false ? ' err' : '');
     if (!S.pass) setText(meta, '');
     else if (S.pass.exists === false) setText(meta, 'Read-only');
-    else setText(meta, left + ' of ' + total + ' left');
+    else setText(meta, left + ' of ' + total + ' print ' + plural(total, 'build', 'builds') + ' left');
+  }
+
+  // EPUB: free and unlimited — only the pass being live and a file gate it.
+  if (ebtn) {
+    if (!S.pass || S.pass.exists === false) {
+      ebtn.textContent = 'Build EPUB';
+      ebtn.disabled = true;
+    } else if (busy) {
+      ebtn.textContent = S.buildingFormat === 'epub' ? 'Building EPUB\u2026' : 'Build EPUB';
+      ebtn.disabled = true;
+    } else {
+      ebtn.textContent = 'Build EPUB \u2014 free, unlimited';
+      ebtn.disabled = !st.ok || !S.current;
+    }
   }
 
   if (btn) {
     if (!S.pass || S.pass.exists === false) {
-      btn.textContent = 'Build PDF + EPUB';
+      btn.textContent = 'Build print PDF';
       btn.disabled = true;
-    } else if (S.building || isBuilding(S.current)) {
-      btn.textContent = 'Building\u2026';
+    } else if (busy) {
+      btn.textContent = S.buildingFormat === 'epub' ? 'Build print PDF' : 'Building print PDF\u2026';
       btn.disabled = true;
     } else if (left <= 0) {
-      btn.textContent = 'No builds left';
+      btn.textContent = 'No print builds left';
       btn.disabled = true;
     } else {
-      btn.textContent = 'Build PDF + EPUB (uses 1 of ' + total + ' builds)';
+      btn.textContent = 'Build print PDF \u2014 uses 1 of ' + total;
       btn.disabled = !st.ok || !S.current;
     }
   }
@@ -557,13 +575,13 @@ function renderBuild() {
   if (!status) return;
 
   // Only own this line when we're not mid-flight with our own message.
-  if (S.building || isBuilding(S.current)) {
+  if (busy) {
     status.className = 'fx-status busy';
-    status.textContent = 'Building your PDF and EPUB\u2026 this usually takes a minute or two. You can leave this page open.';
+    status.textContent = buildingText();
   } else if (isFailed(S.current)) {
     status.className = 'fx-status err';
     status.innerHTML = 'That build failed: ' + esc(shortErr(S.current.errorMsg || 'unknown error')) +
-      '<span class="fx-status-more">Failed builds are not counted \u2014 you still have ' + left + ' ' +
+      '<span class="fx-status-more">Failed builds are not counted \u2014 you still have ' + left + ' print ' +
       plural(left, 'build', 'builds') + '. Try inspecting the file, or email ' + esc(S.contactEmail) + ' with the message above.</span>';
   } else if (isBuilt(S.current) && S.current.errorMsg) {
     status.className = 'fx-status warn';
@@ -571,8 +589,8 @@ function renderBuild() {
       '<span class="fx-status-more">Your print PDF is still ready below. This build is counted because a deliverable was produced.</span>';
   } else if (left <= 0 && S.pass && S.pass.exists !== false) {
     status.className = 'fx-status';
-    status.innerHTML = 'You\u2019ve used all ' + total + ' ' + plural(total, 'build', 'builds') + ' on this pass.' +
-      '<span class="fx-status-more">Need more builds? Email <a href="mailto:' + esc(S.contactEmail) + '">' +
+    status.innerHTML = 'You\u2019ve used all ' + total + ' print ' + plural(total, 'build', 'builds') + ' on this pass. EPUB builds still work.' +
+      '<span class="fx-status-more">Need more print builds? Email <a href="mailto:' + esc(S.contactEmail) + '">' +
       esc(S.contactEmail) + '</a>. Everything you\u2019ve already built stays downloadable below.</span>';
   } else if (!S.current && S.pass) {
     status.className = 'fx-status';
@@ -606,23 +624,22 @@ function renderDownload() {
   }
 
   var base = '/api/books/' + S.current.id + '/download/';
-  var pdfOK = haveFormats.pdf || isBuilt(S.current);
+  var pdfOK = haveFormats.pdf;
   var epubOK = haveFormats.epub;
   var html = '<div class="fx-dl">';
-  html += pdfOK ? '<a id="fx-dl-pdf" href="' + base + 'pdf">Download print PDF</a>'
+  var newest = {};
+  S.outputs.forEach(function (o) { if (!newest[o.output_format]) newest[o.output_format] = o; });
+  function when(fmt) {
+    var o = newest[fmt];
+    return o && o.created_at ? ' <span class="fx-dl-when">' + esc(fmtWhen(o.created_at)) + '</span>' : '';
+  }
+  html += pdfOK ? '<span><a id="fx-dl-pdf" href="' + base + 'pdf">Download print PDF</a>' + when('pdf') + '</span>'
                 : '<span class="fx-dl-missing">Print PDF \u2014 not built yet</span>';
-  html += epubOK ? '<a href="' + base + 'epub">Download EPUB</a>'
+  html += epubOK ? '<span><a href="' + base + 'epub">Download EPUB</a>' + when('epub') + '</span>'
                  : '<span class="fx-dl-missing">EPUB \u2014 not built yet</span>';
   html += '</div>';
-  html += '<p class="fx-fine">Latest build of \u201c' + esc(S.current.title || 'your book') + '\u201d' +
-    (S.current.updatedAt ? ' \u00b7 ' + esc(fmtWhen(S.current.updatedAt)) : '') +
-    '. Save these somewhere of your own \u2014 the PDF is the one to send a printer.</p>';
-  // A build is meant to produce both formats. If only one showed up, say so
-  // plainly rather than leaving a dead-looking label.
-  if (pdfOK && !epubOK) {
-    html += '<p class="fx-fine">The EPUB from this build isn\u2019t here yet. Reload in a moment; if it still doesn\u2019t appear, email ' +
-      esc(S.contactEmail) + ' \u2014 you shouldn\u2019t need to spend another build for it.</p>';
-  }
+  html += '<p class="fx-fine">Latest files for \u201c' + esc(S.current.title || 'your book') + '\u201d. ' +
+    'Save these somewhere of your own \u2014 the PDF is the one to send a printer.</p>';
   latest.innerHTML = html;
 
   if (!earlier) return;
@@ -650,10 +667,15 @@ function renderDownload() {
 // here" impossible to miss. Every other step's action stays an underlined link.
 function emphasize() {
   var cur = currentStep();
-  [[2, 'fx-upload-btn'], [3, 'fx-inspect-btn'], [4, 'fx-build-btn']].forEach(function (pair) {
+  // Step 4 has two actions; the fill goes to the EPUB until one exists (it's
+  // the free cleanup loop), then to the print PDF.
+  var haveEpub = S.outputs.some(function (o) { return o.output_format === 'epub'; });
+  var fillBuild = haveEpub ? 'fx-build-btn' : 'fx-build-epub-btn';
+  [[2, 'fx-upload-btn'], [3, 'fx-inspect-btn'], [4, 'fx-build-btn'], [4, 'fx-build-epub-btn']].forEach(function (pair) {
     var btn = $(pair[1]);
     if (!btn) return;
-    btn.className = pair[0] === cur ? 'btn-fill' : 'link-action accent';
+    var fill = pair[0] === cur && (pair[0] !== 4 || pair[1] === fillBuild);
+    btn.className = fill ? 'btn-fill' : 'link-action accent';
   });
   // Step 5 has no button — its action is a download link — so when that's the
   // current step the PDF link wears the fill instead.
@@ -938,28 +960,38 @@ async function doInspect() {
 }
 
 // ─── build ─────────────────────────────────────────────────────────────────
-async function doBuild() {
+function buildingText() {
+  if (S.buildingFormat === 'epub') return 'Building your EPUB\u2026 usually a few seconds. You can leave this page open.';
+  return 'Building your print PDF\u2026 this usually takes a minute or two. You can leave this page open.';
+}
+
+// format: 'pdf' (counted) or 'epub' (free, unlimited).
+async function doBuild(format) {
   if (!S.current || S.building) return;
+  format = format === 'epub' ? 'epub' : 'pdf';
   var left = creditsLeft();
   var total = creditsTotal();
-  var okToGo = window.confirm(
-    'Build \u201c' + (S.current.title || 'your book') + '\u201d now?\n\n' +
-    'This uses 1 of your ' + total + ' ' + plural(total, 'build', 'builds') +
-    '. You\u2019ll have ' + Math.max(0, left - 1) + ' left afterwards.\n\n' +
-    'A build that fails is not counted.'
-  );
-  if (!okToGo) return;
+  if (format === 'pdf') {
+    var okToGo = window.confirm(
+      'Build the print PDF of \u201c' + (S.current.title || 'your book') + '\u201d now?\n\n' +
+      'This uses 1 of your ' + total + ' print ' + plural(total, 'build', 'builds') +
+      '. You\u2019ll have ' + Math.max(0, left - 1) + ' left afterwards.\n\n' +
+      'A build that fails is not counted. EPUB builds never count.'
+    );
+    if (!okToGo) return;
+  }
 
   var status = $('fx-build-status');
   S.building = true;
+  S.buildingFormat = format;
   renderBuild();
   status.className = 'fx-status busy';
   status.textContent = 'Starting the build\u2026';
 
   try {
-    await api('/api/books/' + S.current.id + '/convert', { method: 'POST' });
+    await api('/api/books/' + S.current.id + '/convert', { method: 'POST', body: JSON.stringify({ format: format }) });
     status.className = 'fx-status busy';
-    status.textContent = 'Building your PDF and EPUB\u2026 this usually takes a minute or two. You can leave this page open.';
+    status.textContent = buildingText();
     await loadPass();
     renderHeader();
     startPolling();
@@ -969,8 +1001,8 @@ async function doBuild() {
     if (e.status === 403) { await handleForbidden(status); return; }
     if (e.status === 402) {
       status.className = 'fx-status err';
-      status.innerHTML = 'No builds left on this pass.' +
-        '<span class="fx-status-more">Need more builds? Email <a href="mailto:' + esc(S.contactEmail) + '">' +
+      status.innerHTML = 'No print builds left on this pass. EPUB builds still work.' +
+        '<span class="fx-status-more">Need more print builds? Email <a href="mailto:' + esc(S.contactEmail) + '">' +
         esc(S.contactEmail) + '</a>. Everything you\u2019ve already built stays downloadable below.</span>';
       await loadPass();
       renderAll();
@@ -1104,7 +1136,9 @@ function wire() {
   if (ins) ins.addEventListener('click', doInspect);
 
   var bld = $('fx-build-btn');
-  if (bld) bld.addEventListener('click', doBuild);
+  if (bld) bld.addEventListener('click', function () { doBuild('pdf'); });
+  var ebld = $('fx-build-epub-btn');
+  if (ebld) ebld.addEventListener('click', function () { doBuild('epub'); });
 
   var authBtn = $('fx-auth-btn');
   if (authBtn) authBtn.addEventListener('click', doUnlock);

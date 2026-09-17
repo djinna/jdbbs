@@ -1143,7 +1143,7 @@ func passIncluded(p dbgen.Pass) passIncludedSummary {
 		inc.Months = passStorageMonths
 	}
 	if p.BuildsExtra > 0 {
-		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d builds", p.BuildsExtra))
+		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d print builds", p.BuildsExtra))
 	}
 	if extra := inc.Months - passStorageMonths; extra > 0 {
 		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d months storage", extra))
@@ -1162,7 +1162,7 @@ func passFulfillmentText(res fulfillPassResult) string {
 	fmt.Fprintf(&b, "Password:       %s\n\n", res.Password)
 	inc := passIncluded(res.Pass)
 	fmt.Fprintf(&b, "What's included\n")
-	fmt.Fprintf(&b, "  - %d builds (each one a print PDF + EPUB)\n", inc.Builds)
+	fmt.Fprintf(&b, "  - %d print PDF builds, plus unlimited EPUB builds\n", inc.Builds)
 	fmt.Fprintf(&b, "  - Unlimited preflights: the report tells you what to fix\n")
 	fmt.Fprintf(&b, "  - Your project stays live and rebuildable until %s (%d months)\n", expires, inc.Months)
 	for _, a := range inc.AddOns {
@@ -1173,7 +1173,7 @@ func passFulfillmentText(res fulfillPassResult) string {
 	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  2. Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  3. Run a preflight (free, as often as you like) and fix what it flags.\n")
-	fmt.Fprintf(&b, "  4. Build. Failed builds don't count against your %d.\n\n", inc.Builds)
+	fmt.Fprintf(&b, "  4. Build. EPUBs are free and unlimited; print PDFs count. Failed builds don't count against your %d.\n\n", inc.Builds)
 	fmt.Fprintf(&b, "Support\n")
 	for _, edge := range passSupportEdges {
 		fmt.Fprintf(&b, "  - %s\n", edge)
@@ -1199,7 +1199,7 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	}))
 	inc := passIncluded(res.Pass)
 	included := []string{
-		fmt.Sprintf("%d builds (each one a print PDF + EPUB)", inc.Builds),
+		fmt.Sprintf("%d print PDF builds, plus unlimited EPUB builds", inc.Builds),
 		"Unlimited preflights &mdash; the report tells you what to fix",
 		fmt.Sprintf("Your project stays live and rebuildable until <b>%s</b> (%d months)", html.EscapeString(expires), inc.Months),
 	}
@@ -1213,7 +1213,7 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
 		"Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).",
 		"Run a <b>preflight</b> (free, as often as you like) and fix what it flags.",
-		fmt.Sprintf("<b>Build.</b> Failed builds don&rsquo;t count against your %d.", inc.Builds),
+		fmt.Sprintf("<b>Build.</b> EPUBs are free and unlimited; print PDFs count. Failed builds don&rsquo;t count against your %d.", inc.Builds),
 	}, true))
 	// Support edges: same sentences as the page and the text part, in small type.
 	b.WriteString(emailH2("Support"))
@@ -1231,7 +1231,10 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 // PDF, the EPUB, and the preflight report, plus credits remaining. Called from
 // runConversion once the artifact is stored. Runs on the conversion goroutine,
 // which has already outlived the request.
-func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book) {
+//
+// format is "pdf", "epub" or "both" — the receipt names what was made, and
+// only counted (print) builds move the "builds remaining" line.
+func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book, format string) {
 	if pass.CustomerEmail == "" {
 		return
 	}
@@ -1252,9 +1255,9 @@ func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book) {
 	credits := passCreditsRemaining(pass)
 	total := pass.BuildsIncluded + pass.BuildsExtra
 
-	subject := fmt.Sprintf("Build ready: %s", book.Title)
-	textBody := buildDeliveredText(pass, book, pdfURL, epubURL, reportURL, credits, total)
-	htmlBody := buildDeliveredHTML(pass, book, pdfURL, epubURL, reportURL, credits, total)
+	subject := fmt.Sprintf("%s: %s", buildDeliveredNoun(format), book.Title)
+	textBody := buildDeliveredText(pass, book, format, pdfURL, epubURL, reportURL, credits, total)
+	htmlBody := buildDeliveredHTML(pass, book, format, pdfURL, epubURL, reportURL, credits, total)
 
 	if err := s.mail(mailMeta{Kind: mailKindBuildDelivered, RefType: "pass", RefID: mailRef(pass.ID), TriggeredBy: "system"}, []string{pass.CustomerEmail}, nil, subject, textBody, htmlBody); err != nil {
 		slog.Error("build delivered email failed", "err", err, "pass_id", pass.ID, "book_id", book.ID)
@@ -1324,33 +1327,62 @@ func templateReadyHTML(pass dbgen.Pass, title, factoryURL, templateURL string) s
 }
 
 // buildDeliveredText is the plain-text part of the build-ready receipt.
-func buildDeliveredText(pass dbgen.Pass, book dbgen.Book, pdfURL, epubURL, reportURL string, credits, total int64) string {
+// buildDeliveredNoun is the subject/kicker for a build receipt.
+func buildDeliveredNoun(format string) string {
+	switch format {
+	case "epub":
+		return "EPUB ready"
+	case "pdf":
+		return "Print PDF ready"
+	}
+	return "Build ready"
+}
+
+func buildDeliveredWhat(format string) string {
+	switch format {
+	case "epub":
+		return "EPUB"
+	case "pdf":
+		return "print PDF"
+	}
+	return "print PDF and EPUB"
+}
+
+func buildDeliveredText(pass dbgen.Pass, book dbgen.Book, format, pdfURL, epubURL, reportURL string, credits, total int64) string {
 	var t strings.Builder
-	fmt.Fprintf(&t, "Hi %s,\n\nYour build of %q is done.\n\n", firstName(pass.CustomerName), book.Title)
-	fmt.Fprintf(&t, "Print PDF:        %s\n", pdfURL)
-	fmt.Fprintf(&t, "EPUB:             %s\n", epubURL)
+	fmt.Fprintf(&t, "Hi %s,\n\nYour %s of %q is done.\n\n", firstName(pass.CustomerName), buildDeliveredWhat(format), book.Title)
+	if format != "epub" {
+		fmt.Fprintf(&t, "Print PDF:        %s\n", pdfURL)
+	}
+	if format != "pdf" {
+		fmt.Fprintf(&t, "EPUB:             %s\n", epubURL)
+	}
 	fmt.Fprintf(&t, "Preflight report: %s\n\n", reportURL)
-	fmt.Fprintf(&t, "Builds remaining: %d of %d\n\n", credits, total)
+	fmt.Fprintf(&t, "Print builds remaining: %d of %d. EPUB builds are unlimited.\n\n", credits, total)
 	fmt.Fprintf(&t, "Sign in to your factory with the client password from your welcome email.\n\n")
-	fmt.Fprintf(&t, "The deliverable is a correctly typeset PDF and EPUB of the manuscript as it\n")
+	fmt.Fprintf(&t, "The deliverable is a correctly typeset %s of the manuscript as it\n", buildDeliveredWhat(format))
 	fmt.Fprintf(&t, "conforms to your transmittal. Preflight tells you what doesn't conform.\n\n")
 	fmt.Fprintf(&t, "%s\n", emailSignoffText())
 	return t.String()
 }
 
 // buildDeliveredHTML is the HTML part of the build-ready receipt.
-func buildDeliveredHTML(pass dbgen.Pass, book dbgen.Book, pdfURL, epubURL, reportURL string, credits, total int64) string {
+func buildDeliveredHTML(pass dbgen.Pass, book dbgen.Book, format, pdfURL, epubURL, reportURL string, credits, total int64) string {
 	var hb strings.Builder
 	hb.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(pass.CustomerName)))))
-	hb.WriteString(emailP(fmt.Sprintf("Your build of <b>%s</b> is done.", html.EscapeString(book.Title))))
-	hb.WriteString(emailList([]string{
-		emailLink(pdfURL, "Print PDF"),
-		emailLink(epubURL, "EPUB"),
-		emailLink(reportURL, "Preflight report"),
-	}, false))
-	hb.WriteString(emailP(fmt.Sprintf("<b>Builds remaining: %d of %d.</b>", credits, total)))
+	hb.WriteString(emailP(fmt.Sprintf("Your %s of <b>%s</b> is done.", buildDeliveredWhat(format), html.EscapeString(book.Title))))
+	var links []string
+	if format != "epub" {
+		links = append(links, emailLink(pdfURL, "Print PDF"))
+	}
+	if format != "pdf" {
+		links = append(links, emailLink(epubURL, "EPUB"))
+	}
+	links = append(links, emailLink(reportURL, "Preflight report"))
+	hb.WriteString(emailList(links, false))
+	hb.WriteString(emailP(fmt.Sprintf("<b>Print builds remaining: %d of %d.</b> EPUB builds are unlimited.", credits, total)))
 	hb.WriteString(emailSmall("Sign in to your factory with the client password from your welcome email."))
-	hb.WriteString(emailSmall("The deliverable is a correctly typeset PDF and EPUB of the manuscript as it conforms to your transmittal. Preflight tells you what doesn&rsquo;t conform."))
+	hb.WriteString(emailSmall(fmt.Sprintf("The deliverable is a correctly typeset %s of the manuscript as it conforms to your transmittal. Preflight tells you what doesn&rsquo;t conform.", buildDeliveredWhat(format))))
 	hb.WriteString(emailSignoff())
-	return emailShell(hb.String(), emailShellOpts{Kicker: "Build ready", Title: book.Title})
+	return emailShell(hb.String(), emailShellOpts{Kicker: buildDeliveredNoun(format), Title: book.Title})
 }

@@ -18,11 +18,11 @@ func TestPassIncludedFoldsAddOns(t *testing.T) {
 	if inc.Builds != 6 || inc.Months != 12 {
 		t.Fatalf("bundle: %+v", inc)
 	}
-	if len(inc.AddOns) != 2 || inc.AddOns[0] != "+3 builds" || inc.AddOns[1] != "+6 months storage" {
+	if len(inc.AddOns) != 2 || inc.AddOns[0] != "+3 print builds" || inc.AddOns[1] != "+6 months storage" {
 		t.Fatalf("add-ons: %v", inc.AddOns)
 	}
 	txt := passFulfillmentText(fulfillPassResult{Pass: bundle, Title: "T", ClientSlug: "c", Password: "p", PortalURL: "u"})
-	for _, want := range []string{"6 builds", "(12 months)", "Add-on: +3 builds", "Add-on: +6 months storage", "against your 6"} {
+	for _, want := range []string{"6 print PDF builds", "(12 months)", "Add-on: +3 print builds", "Add-on: +6 months storage", "against your 6"} {
 		if !contains(txt, want) {
 			t.Errorf("email text missing %q", want)
 		}

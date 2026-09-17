@@ -156,3 +156,27 @@ func (q *Queries) ListBookOutputs(ctx context.Context, arg ListBookOutputsParams
 	}
 	return items, nil
 }
+
+const pruneBookOutputs = `-- name: PruneBookOutputs :exec
+DELETE FROM book_outputs
+WHERE book_outputs.book_id = ?1 AND book_outputs.output_format = ?2
+  AND book_outputs.id NOT IN (
+    SELECT o.id FROM book_outputs AS o
+    WHERE o.book_id = ?1 AND o.output_format = ?2
+    ORDER BY o.created_at DESC, o.id DESC
+    LIMIT ?3
+  )
+`
+
+type PruneBookOutputsParams struct {
+	BookID       int64
+	OutputFormat string
+	Limit        int64
+}
+
+// Keep the newest `keep` outputs of one format for a book; delete the rest.
+// Used for EPUBs, which are unlimited per pass and would otherwise pile up.
+func (q *Queries) PruneBookOutputs(ctx context.Context, arg PruneBookOutputsParams) error {
+	_, err := q.db.ExecContext(ctx, pruneBookOutputs, arg.BookID, arg.OutputFormat, arg.Limit)
+	return err
+}

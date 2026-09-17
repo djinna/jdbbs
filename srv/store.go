@@ -49,8 +49,8 @@ type storeItem struct {
 }
 
 var storeCatalog = []storeItem{
-	{LookupKey: "factory-pass", Name: "Factory Pass", Description: "One manuscript through the jdbb studio book factory: transmittal, generated Word template, unlimited preflight, three PDF+EPUB builds, six months of storage.", Amount: 34900},
-	{LookupKey: "builds-3", Name: "+3 builds", Description: "Three more PDF+EPUB builds on the same pass.", Amount: 4900, Builds: 3},
+	{LookupKey: "factory-pass", Name: "Factory Pass", Description: "One manuscript through the jdbb studio book factory: transmittal, generated Word template, unlimited preflight, unlimited EPUB builds, three print PDF builds, six months of storage.", Amount: 34900},
+	{LookupKey: "builds-3", Name: "+3 print builds", Description: "Three more print PDF builds on the same pass. EPUB builds are always unlimited.", Amount: 4900, Builds: 3},
 	{LookupKey: "storage-6mo", Name: "+6 months storage", Description: "Keeps the project rebuildable and downloadable for six more months.", Amount: 2900, Months: 6},
 }
 

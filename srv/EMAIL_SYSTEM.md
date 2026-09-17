@@ -99,7 +99,7 @@ First recipient = To, rest = CC.
 - **Automatic/server-initiated**, transactional (the customer bought this; no consent flag applies)
 - Two messages, both to `passes.customer_email`:
   1. **Fulfillment / password reset** — sent from `fulfillPass` callers (`POST /api/public/redeem`, `POST /api/admin/passes`) and re-sent by `POST /api/admin/clients/{slug}/password`. Subject: `Your Factory Pass: {title}`. Carries the portal URL (`/{client}/{project}/factory/`), the client sign-in slug, the generated 12-character password, what's included (3 builds, unlimited preflights, expiry date), first steps, and the support edges. Password-reset responses also return the replacement password once to the authenticated admin, so recovery still works if mail is unavailable; plaintext is never stored.
-  2. **Build delivered** — sent from `runConversion` after a successful build. Subject: `Build ready: {title}`. Links to the PDF, EPUB, and preflight report; states credits remaining.
+  2. **Build delivered** — sent from `runConversion` after a successful build. Subject: `Build ready: {title}` (both), `Print PDF ready: {title}` or `EPUB ready: {title}` per the build's `format`. Links to the file(s) built plus the preflight report; states print builds remaining (EPUB builds are unlimited).
 - Fulfillment mail is fire-and-forget in its own goroutine, so the mailer can never fail a redemption; password-reset mail is synchronous so the tracker can report whether the new credential was actually sent; the build mail runs on the conversion goroutine (already off the request path)
 - `s.Email == nil` (local/dev/test) → log a warning and skip; fulfillment still succeeds
 - Support-edge copy lives in one place, `passSupportEdges`, shared by both mails and the page

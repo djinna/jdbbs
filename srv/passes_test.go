@@ -1232,7 +1232,7 @@ func TestPassEmailBodiesCarryTheEssentials(t *testing.T) {
 
 	s := &Server{BaseURL: "https://example.test"}
 	// Email is unconfigured, so this must log-and-skip rather than panic.
-	s.sendBuildDeliveredEmail(res.Pass, dbgen.Book{ID: 11, Title: "Notes"})
+	s.sendBuildDeliveredEmail(res.Pass, dbgen.Book{ID: 11, Title: "Notes"}, "both")
 	s.sendPassFulfillmentEmail(res, "test")
 }
 
@@ -1303,7 +1303,7 @@ func TestFinalizeBuildRunsEPUBBeforeReady(t *testing.T) {
 		return nil
 	}
 
-	if err := s.finalizeBuild(t.Context(), book.ID, book); err != nil {
+	if err := s.finalizeBuild(t.Context(), book.ID, book, true); err != nil {
 		t.Fatalf("finalizeBuild: %v", err)
 	}
 	if called != 1 {
@@ -1349,7 +1349,7 @@ func TestFinalizeBuildKeepsPDFOnlyBuildAndDoesNotRefund(t *testing.T) {
 	s.epubRunner = func(int64, dbgen.Book) error {
 		return errors.New("pandoc epub: exit status 43")
 	}
-	if err := s.finalizeBuild(t.Context(), book.ID, book); err != nil {
+	if err := s.finalizeBuild(t.Context(), book.ID, book, true); err != nil {
 		t.Fatalf("finalizeBuild must not fail the build when only the EPUB failed: %v", err)
 	}
 
