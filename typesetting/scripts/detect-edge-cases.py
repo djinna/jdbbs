@@ -179,7 +179,9 @@ class EdgeCaseDetector:
                         # actual colours that would vanish in print.
                         lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
                         spread = max(rgb[0], rgb[1], rgb[2]) - min(rgb[0], rgb[1], rgb[2])
-                        near_black = lum < 0.25 * 255 and spread < 24
+                        # 90/255 ≈ 35 % keeps Google Docs' RGB(68,68,68) and Word's
+                        # "Text 1, lighter 25%" (RGB(64,64,64)) in; real greys stay high.
+                        near_black = lum < 90 and spread < 24
                         self.edge_cases.append({
                             'type': 'colored_text',
                             'location': f'Paragraph {i+1}',
