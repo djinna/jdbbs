@@ -805,11 +805,20 @@ func (s *Server) handleGetProjectByPath(w http.ResponseWriter, r *http.Request) 
 	tokens, _ := q.ListAuthTokens(r.Context(), p.ID)
 	hasAuth := len(tokens) > 0 || s.clientHasPassword(r, client)
 	authed := s.checkAuth(r, p.ID)
-	jsonOK(w, map[string]any{
+	out := map[string]any{
 		"project":       p,
 		"has_auth":      hasAuth,
 		"authenticated": authed,
-	})
+		"is_admin":      r.Header.Get("X-ExeDev-UserID") != "",
+	}
+	// A pass holder's transmittal page addresses email to them, not the
+	// studio (C15); tell the page who "me" is once they're signed in.
+	if authed {
+		if pass := s.passForProject(r.Context(), p.ID); pass != nil {
+			out["pass_email"] = pass.CustomerEmail
+		}
+	}
+	jsonOK(w, out)
 }
 
 func (s *Server) handleGetProject(w http.ResponseWriter, r *http.Request) {

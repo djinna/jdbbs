@@ -42,12 +42,18 @@ func (s *Server) hasAnyProjectAuthForClient(r *http.Request, clientSlug string) 
 	if err != nil {
 		return false
 	}
-	defer rows.Close()
+	// Collect first, check after: the pool is MaxOpenConns(1), and
+	// checkAuth queries too — calling it with these rows still open
+	// deadlocks the whole server (seen 2026-09-17).
+	var ids []int64
 	for rows.Next() {
 		var pid int64
-		if err := rows.Scan(&pid); err != nil {
-			continue
+		if err := rows.Scan(&pid); err == nil {
+			ids = append(ids, pid)
 		}
+	}
+	rows.Close()
+	for _, pid := range ids {
 		if s.checkAuth(r, pid) {
 			return true
 		}

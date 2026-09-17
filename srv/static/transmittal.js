@@ -281,6 +281,8 @@ async function loadTransmittal() {
       const info = await api('/api/project-by-path/' + parts[0] + '/' + parts[1]);
       state.project = info.project;
       state.projectId = info.project.ID;
+      state.isAdmin = !!info.is_admin;
+      state.passEmail = info.pass_email || '';
       if (info.has_auth && !info.authenticated) {
         state.view = 'auth';
         render();
@@ -547,7 +549,8 @@ function renderForm() {
             state.showDuplicate = true; render();
           }}, 'Duplicate'),
           h('button', { className: 'btn btn-sm', onClick: () => window.print() }, 'Print'),
-          h('button', { className: 'btn btn-sm', onClick: () => { state.showEmail = true; render(); }}, 'Email'),
+          h('button', { className: 'btn btn-sm', title: clientMode() ? 'Emails you a copy of this transmittal.' : undefined,
+            onClick: () => { state.showEmail = true; render(); }}, clientMode() ? 'Email me a copy' : 'Email'),
           state.transmittal.status === 'final' && !isPreview
             ? h('a', { className: 'btn btn-sm btn-primary', href: '/api/projects/' + state.projectId + '/word-template', download: '',
                 title: 'Downloads the Word template generated from this transmittal. Write your manuscript in it.' },
@@ -556,12 +559,16 @@ function renderForm() {
           h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? '' : ' btn-primary'),
             title: state.transmittal.status === 'final'
               ? 'Switches the transmittal back to Draft so you can keep editing.'
-              : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
+              : clientMode()
+                ? 'Marks the transmittal final: generates your Word template and emails you the link. You can switch it back to Draft.'
+                : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
             onClick: () => {
               const wasDraft = state.transmittal.status !== 'final';
               state.transmittal.status = wasDraft ? 'final' : 'draft';
               scheduleSave();
-              if (wasDraft) {
+              // The studio's copy goes out from the server on Mark Final;
+              // only the studio itself needs the manual email step here.
+              if (wasDraft && !clientMode()) {
                 state.showEmail = true;
                 state.emailResult = null;
               }
@@ -1120,8 +1127,21 @@ function renderProofsSection() {
 
 let emailRecipients = null; // initialized on first open
 
+// A signed-in pass holder (not the studio) is looking at their own transmittal.
+function clientMode() { return !state.isAdmin && !!state.passEmail; }
+
 function initEmailRecipients() {
   if (emailRecipients) return;
+  // Pass holders: "me" first, studio opt-in. The studio already hears
+  // about Mark Final through its own notification.
+  if (clientMode()) {
+    emailRecipients = [
+      { email: state.passEmail, label: 'You', checked: true, editable: false },
+      { email: contactEmail, label: 'Studio', checked: false, editable: false },
+      { email: '', label: 'Other', checked: false, editable: true },
+    ];
+    return;
+  }
   emailRecipients = [
     { email: 'jdbb@agentmail.to', label: 'JDBB Archive', checked: true, editable: false },
     { email: contactEmail, label: 'Studio', checked: true, editable: false },
@@ -1186,7 +1206,7 @@ function renderEmailModal() {
   return h('div', { className: 'tx-modal-overlay', onClick: (e) => { if (e.target.classList.contains('tx-modal-overlay')) closeModal(); } },
     h('div', { className: 'tx-modal email-modal' },
       h('div', { className: 'tx-modal-header' },
-        h('h2', null, 'Email Transmittal'),
+        h('h2', null, clientMode() ? 'Email me a copy' : 'Email Transmittal'),
         h('button', { className: 'tx-modal-close', onClick: closeModal }, '×'),
       ),
       h('div', { className: 'tx-modal-body' },
