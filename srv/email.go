@@ -163,7 +163,9 @@ func (cfg *EmailConfig) sendResend(to []string, cc []string, subject, textBody, 
 	}
 	from := cfg.InboxID
 	if cfg.FromName != "" {
-		from = fmt.Sprintf("%q <%s>", cfg.FromName, cfg.InboxID)
+		// Resend wants the plain `Name <addr>` form; a Go-quoted name came
+		// through to Gmail as a bare address.
+		from = fmt.Sprintf("%s <%s>", cfg.FromName, cfg.InboxID)
 	}
 	body := map[string]any{
 		"from":    from,

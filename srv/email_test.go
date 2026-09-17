@@ -360,7 +360,7 @@ func TestSendResendShape(t *testing.T) {
 	if auth != "" {
 		t.Errorf("expected no Authorization header via proxy, got %q", auth)
 	}
-	if got["from"] != `"jdbb studio" <studio@mail.example.com>` {
+	if got["from"] != `jdbb studio <studio@mail.example.com>` {
 		t.Errorf("from = %v", got["from"])
 	}
 	if rt, _ := got["reply_to"].([]any); len(rt) != 1 || rt[0] != "j@example.com" {
