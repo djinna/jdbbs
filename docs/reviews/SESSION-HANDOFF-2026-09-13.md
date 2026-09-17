@@ -389,3 +389,88 @@ Poller looks back 72 h on cold start — fine. Test-mode dashboard links in
 `/admin/store/` orders table point at live `dashboard.stripe.com/payments/…`;
 sandbox needs `/test/` — cosmetic. `store_orders.note` unused. Legacy "Test mode"
 sandbox in the Stripe account can be deleted.
+
+## Addendum 2026-09-17 — Protocol Institute factory run (Test 2) done; pre-freeze fixes in
+
+**State.** The first client went through the whole factory — buy → pass email →
+portal → transmittal → Word template → upload → Inspect → build → download —
+twice. Test 1 (client `jdixon`, project 21, pass 6 **revoked**) aborted after
+signup; Test 2 (client `pinstitute`, project 22 `pinstitute/book-001`
+"Obliquities 1", book 17, **pass 7**, 2 of 3 builds used) ran to the end. The
+live checklist with every catch is `scratch/run/CHECKLIST.md`; its committed
+snapshot is **`docs/runs/RUN-2026-09-17-protocol-institute.md`** — read that
+for C1–C27 and P1–P4 in full. Last commit at writing: `9eabd7d`.
+
+**Fixed today (all deployed).**
+
+| # | what | commit |
+|---|---|---|
+| C2, C5, C14 | small run catches (see run doc) | `61e1499` `6486a72` `bf2004b` |
+| C8 | inline PNG verified DOCX → typst → PDF (353 dpi) and → EPUB; transmittal Illustrations table → guidance + "Art notes" | `0824c50` |
+| C9 | **cover upload on the factory page** (step 2): add / replace / remove, thumbnail, EPUB-only note; `POST`/`DELETE /api/projects/{id}/book-spec/cover` gated by `requirePassAccess`, type sniffed from bytes. Transmittal Cover → what-you-get / what-you-bring + credit + notes | `3022078` |
+| C16, C17 | **Word template**: stand-in fonts Georgia / Arial / Courier New (theme-font attrs were the Calibri culprit; licensed faces never embedded), black text, page = trim with mirrored margins, 160 built-ins hidden so the Styles pane shows only the 11 factory styles + customs | `4ff3b0b` |
+| C18 | Inspect report re-skinned to `theme.css` (masthead, `// INSPECT`, factory vocabulary, printable); "← Back to the factory" crumb injected at serve time (`{{FACTORY_URL}}`); 401 is an HTML sign-in page | `8093d1d` `07c4d28` |
+| C19, C20 | Inspect summary: `preserved` bucket (auto-decisions, "carried through automatically") excluded from high/med/low; summary recomputed from stored findings at read time; near-black greys (< 90/255, spread < 24) are low, not high. Project 22: 61 → 27 high | `81eebd3` `ae893ba` |
+| C25 | **Pricing**: $549 pass; every build = EPUB + PDF and costs one credit; 3 builds/pass; +3 builds $99; promos `WORKSHOP49` / `PROTOCOL50` (`storePromos`, `srv/store.go`; deadlines HKT); `~/jdbbs-public/factory.html` updated | `7371bcb` |
+| C26 | **Load test** `docs/reviews/LOADTEST-2026-09-17.md`: 139k-word build ≈ 9 s / 360 MiB; 8 at once = 50 s each, 2.9 GiB, no OOM, CPU-bound. Added global build semaphore **2** (`Server.buildSem`, `acquireBuildSlot` in `srv/books.go`); requests still return "converting" at once. VM is fine; 4 vCPU is the only worthwhile bump | `a7a0c45` |
+| C27 | 20 MB EPUB was *not* a regression: one ASCII-art tweet with fullwidth/ㅅ/づ chars trips the CJK-embed rule legitimately. Month one: require ≥ 20 ideographs and/or `pyftsubset` | `7229389` |
+
+**Tooling added.** LibreOffice (`libreoffice-writer-nogui` 24.2) + MS core fonts
+on the VM; `scripts/docx-preview.sh file.docx [dpi]` renders a .docx to PDF +
+PNGs for eyeballing templates (`42779f1`). Pipeline can be replicated by hand —
+see the run doc's "Critical context" for the pandoc/typst incantation.
+
+**Still open before Sep 21** (small): C1/C1b/C1c client slug from cardholder
+name (org buyers get an odd URL + "Hi Protocol,"); C3 add-ons not mentioned on
+the sales page; C4 email footer string (Jenna, 1 min in `/admin/docs/`); C21
+PDF `Author` metadata should come from the transmittal like the EPUB's; C15
+transmittal "Email" goes to the studio only. **Jenna to re-download the Word
+template and confirm in Word** (Styles pane, fonts, page size) — her screenshot
+was the pre-fix file.
+
+**Parked → post-run / month one** (in the run doc): C6, C7, C10, C11, C12, C13
+(the transmittal-for-the-factory rewrite — C12 makes Pub Info the copyright-page
+builder), C24 (.mobi: don't), C27 refinement; **P1** typesafe.ai review; **P2**
+new talk deck from Venkat's "Have your factory call my factory" (≤ 10 beats to
+Jenna first; template only from `/2026-pi-symposium/talk`, never edit that
+file); **P3** H&J / composition quality in the print PDF (typst `par(costs:)`,
+optimized linebreaks, a loose-lines / rivers / runts / widows scorer); **P4**
+front matter — decisions taken 2026-09-17: one rule "every section head is
+Heading 1" (Google Docs can't do custom styles, so nobody retags), classify by
+heading text against a closed vocabulary + position, Introduction = body,
+untitled pre-H1 blocks = dedication/epigraph in transmittal order, title +
+copyright pages generated from the transmittal (not typed), Parts as a
+transmittal opt-in that shifts chapters to H2, arabic 1 on a recto.
+
+**Monitoring.**
+- L1 (done, `0.1–0.2`): request log for every non-GET and every 4xx/5xx with
+  who; slog lines for login / upload / Inspect / transmittal / store; tail with
+  `scripts/factory-tail.sh` (tmux `factory-tail`) or `journalctl -u prodcal -f`.
+- L2 (proposed, not built): a `factory_events` table fed by the same slog
+  points and an `/admin/factory/` feed page — one screen for "who did what in
+  the last hour" during the sessions. Small; do it Thu/Fri if time, otherwise
+  `factory-tail` in a terminal is the plan.
+- L3 (workshop watch, Sep 21/22): Shelley session open with `factory-tail`,
+  `/admin/store/`, `/admin/registrations`; watch for `build failed`, `401`
+  bursts (password confusion), and the build semaphore queueing (> 2 at once
+  shows as "queued" in the log).
+
+**Freeze / hotfix policy Sep 19–23 (proposed — Jenna to confirm, item 6.3).**
+- Fri 19 – Sat 20: tweak / fix / clean / test allowed; each change = build,
+  `go test ./srv/`, restart, one factory-page smoke as `pinstitute`.
+- Sun 21 – Tue 23 (sessions + talk): **no deploys** except a hotfix for a
+  blocker (can't sign in, can't upload, build fails for everyone, store broken).
+  Hotfix = smallest diff, test on project 22 first, restart between sessions
+  never during one, commit tagged `hotfix-YYYY-MM-DD`.
+- Store stays `PRODCAL_STORE=on` against the **sandbox** through the workshop
+  (decision 2026-09-16); go-live checklist is in the 2026-09-16 addendum.
+- Rollback: `CHECKPOINTS.md` workflow; last known-good tag before freeze to be
+  cut Sat evening.
+
+**Where things are.** Admin API from the VM: `localhost:8799` (tmux
+`adminproxy`, forwards GET/POST/PUT/DELETE/HEAD with the admin headers) or
+`-H X-ExeDev-UserID:admin -H X-ExeDev-Email:j@djinna.com` against `:8000`.
+Checklist page `:8766` (tmux `runpage`). Scratch artefacts (gitignored):
+`scratch/spec22.json`, `scratch/template22.docx`, `scratch/c8/`,
+`scratch/cover-test.jpg`. Studio HTML is served through the disk overlay (edits
+live); CSS/JS need `make build && sudo systemctl restart prodcal`.
