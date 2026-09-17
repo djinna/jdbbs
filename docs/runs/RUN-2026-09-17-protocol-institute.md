@@ -45,8 +45,8 @@ Ticked = done. This page refreshes itself every 20 s.
 
 ## 5 · Second title (optional today) — BOTH
 
-- [ ] 5.1 New project under the same client from the portal
-- [ ] 5.2 ME — attach a pass to it (API; admin button is on the pre-freeze list)
+- [x] 5.1 New project under the same client from the portal
+- [x] 5.2 ME — attach a pass to it (API; admin button is on the pre-freeze list)
 - [ ] 5.3 Repeat 2–4
 
 ## 6 · Wrap — ME
@@ -66,6 +66,7 @@ Client `jdixon`, project 21 `jdixon/book-001` "Obliquities", **pass 6 revoked** 
 - **C1c** "Hi Protocol," — `firstName()` on an org name. Part of the C1 fix.
 - **C4 (yours, 1 min)** Email footer saved value reads "Replied to this email go to Jenna." — fix in `/admin/docs/` → Email strings (or clear to fall back to the default "Reply to this email to reach Jenna.").
 - **Obs.** Pass email "Support" (3 bullets) and the sales page "Support edges" (Preflight Review $75 / Live help / Studio typesetting $800) don't quite match. Decide which is canonical at wrap.
+- **C22 (APPROVED — doing now, pre-freeze)** Split the build. Today one build = PDF + EPUB, 3 per pass. Proposal: **EPUB builds unlimited** (like Inspect — 0.8 s, no typst, and it's the cleanup loop for the PDF), **PDF builds counted** (3 per pass, +3 add-on). Two buttons: "Build EPUB — free, as often as you like" / "Build print PDF — uses 1 of 3". Touches: `POST /api/books/{id}/convert` gets `format` (epub|pdf|both), debit only on pdf; factory page step 4 copy + buttons; sales page "3 builds" → "3 print builds, unlimited EPUB"; Build-ready email per format; keep last ~10 EPUB outputs per book. Alternative (two separate pools 3+3) rejected as more schema/UI for less clarity.
 - **C21 (small)** PDF `Author` metadata = "Protocol Institute" (books.author, i.e. Stripe cardholder) while EPUB `dc:creator` = "Venkatesh Rao" (transmittal). Build should take title/author from the book spec for the PDF too. Same root as C1.
 - **C20 (Inspect, before Sep 21)** Colored Text: 51 findings all **high** for RGB(68,68,68) — near-black grey from a Google Docs export. Treat dark greys (luminance below ~25 %) as low / "auto-normalised" (the build sets black anyway); reserve high for actual colours that would vanish in print.
 - **C19 (Inspect copy, before Sep 21)** Factory page and report disagree on the same run: factory shows 61 / **448** / 642 (worth fixing / worth a look / just noting); report shows 61 high / **2 medium** / 642 low + **446 auto-preserved**. The report is right — manual bold/italic is carried through by the build. Make the factory summary use the same buckets (add "carried through automatically: 446"), otherwise 448 "worth a look" scares people off a clean-enough file.
