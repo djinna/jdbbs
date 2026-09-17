@@ -32,6 +32,16 @@ No service restart is needed after upgrading these — they are exec'd per build
 Smoke: upload a small .docx from admin and confirm status reaches `ready`.
 (2026-09-03: found the VM at pandoc 3.1.3 with every build failing since May.)
 
+## Mail: Resend from mail.jdbb.studio (since 2026-09-18)
+
+`.env` has `PRODCAL_MAIL_FROM=studio@mail.jdbb.studio`; the app posts to the
+exe.dev Resend proxy (`https://resend.int.exe.xyz`, sending-only key injected
+at the edge — nothing on the VM). DNS for `mail.jdbb.studio` lives at
+Porkbun: CNAMEs `send.mail` + `rsend.mail` → `*.forge.rmta.net`, TXT
+`resend._domainkey.mail` (DKIM), TXT `_dmarc` (p=none, reports to Jenna).
+Roll back to AgentMail: delete the `PRODCAL_MAIL_FROM` line, restart.
+Details in `srv/EMAIL_SYSTEM.md`.
+
 ## Store: sandbox → live Stripe (scheduled flip)
 
 The Factory Pass store talks to Stripe through the exe.dev proxy. Which
