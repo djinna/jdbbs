@@ -754,7 +754,7 @@ class EdgeCaseReviewer:
 
     @staticmethod
     def _severity_label(severity: str) -> str:
-        return {'high': 'Needs attention', 'medium': 'Review', 'low': 'Noted'}.get(severity, severity.title())
+        return {'high': 'Worth fixing', 'medium': 'Worth a look', 'low': 'Just noting', 'auto-preserved': 'Carried through automatically'}.get(severity, severity.title())
 
     @staticmethod
     def _severity_counts(cases: List[Dict]) -> Dict[str, int]:
@@ -787,7 +787,7 @@ class EdgeCaseReviewer:
         parts = []
         for sev in ('high', 'medium', 'low'):
             if counts[sev]:
-                parts.append(f'<span class="badge badge-{sev}">{counts[sev]} {sev}</span>')
+                parts.append(f'<span class="badge badge-{sev}">{counts[sev]} {self._severity_label(sev)}</span>')
         return ' '.join(parts)
 
     def _render_bulk_table(self, section_id: str, cases: List[Dict], case_type: str) -> str:
@@ -965,7 +965,7 @@ class EdgeCaseReviewer:
             group_id = f'ap-{hash(group_label) % 99999}'
             parts.append(
                 f'<div class="ap-group" style="margin-bottom:0.75rem">'
-                f'<div class="ap-group-header" style="font-size:0.78rem;font-family:var(--sans);'
+                f'<div class="ap-group-header" style="font-size:0.78rem;font-family:var(--mono);'
                 f'color:var(--text-secondary);margin-bottom:0.35rem;">'
                 f'{nice_label} <span style="color:var(--text-muted)">({len(group_cases)})</span></div>'
             )
@@ -1092,7 +1092,7 @@ class EdgeCaseReviewer:
             )
 
             sections_html.append(
-                f'<section id="{self._esc(sid)}" class="report-section">'
+                f'<section id="{self._esc(sid)}" class="report-section" data-print-label="{self._esc(label)}">'
                 f'<details{open_attr}>'
                 f'<summary class="section-summary">'
                 f'<div class="section-summary-left">'
@@ -1114,15 +1114,15 @@ class EdgeCaseReviewer:
         ap_inner = self._render_auto_preserved(auto_preserve)
         nav_pills.append(
             f'<a href="#sec-auto-preserved" class="nav-pill" data-section="sec-auto-preserved">'
-            f'Auto-preserved <span class="nav-count">{ap_count}</span></a>'
+            f'Carried through automatically <span class="nav-count">{ap_count}</span></a>'
         )
         sections_html.append(
-            f'<section id="sec-auto-preserved" class="report-section">'
+            f'<section id="sec-auto-preserved" class="report-section" data-print-label="Carried through automatically">'
             f'<details{ap_open}>'
             f'<summary class="section-summary">'
             f'<div class="section-summary-left">'
             f'<span class="section-chevron"></span>'
-            f'<span class="section-label-inline">Auto-Preserved</span>'
+            f'<span class="section-label-inline">Carried through automatically</span>'
             f'<span class="badge badge-dim">{ap_count}</span>'
             f'</div>'
             f'<div class="section-summary-desc">Items detected but treated as intentional — no action needed</div>'
@@ -1133,26 +1133,18 @@ class EdgeCaseReviewer:
         )
 
         # Stacked bar HTML
-        # Per-section color palette (muted, distinguishable hues)
-        section_hues = [
-            '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
-            '#f97316', '#eab308', '#22c55e', '#14b8a6',
-            '#06b6d4', '#3b82f6', '#a855f7', '#ef4444',
-        ]
-
         bar_html = ''
         if total_actionable > 0:
             max_n = max(n for (_, n, _) in bar_segments) if bar_segments else 1
             bar_rows = []
-            for i, (t, n, sev) in enumerate(bar_segments):
+            for t, n, _sev in bar_segments:
                 pct = (n / max_n) * 100
                 lbl = self._nice_type_label(t)
-                color = section_hues[i % len(section_hues)]
                 bar_rows.append(
                     f'<div class="section-bar-row">'
                     f'<span class="section-bar-label">{self._esc(lbl)}</span>'
                     f'<span class="section-bar-track">'
-                    f'<span class="section-bar-fill" style="width:{pct:.1f}%;background:{color}"></span>'
+                    f'<span class="section-bar-fill" style="width:{pct:.1f}%"></span>'
                     f'</span>'
                     f'<span class="section-bar-count">{n}</span>'
                     f'</div>'
@@ -1165,397 +1157,192 @@ class EdgeCaseReviewer:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Preflight — {self._esc(report_title)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-<script>
-(function(){{ try {{ var t=JSON.parse(localStorage.getItem('preflight-theme-v1')); if(t&&t.dark) document.documentElement.classList.add('dark'); }} catch(e){{}} }})();
-</script>
+<title>Preflight — {self._esc(report_title)} · jdbb studio</title>
+<link rel="stylesheet" href="/static/theme.css">
+<script src="/static/theme.js" defer></script>
 <style>
-/* ── Reset + CSS Variables ───────────────────────────────── */
-* {{ margin:0; padding:0; box-sizing:border-box; }}
+* {{ box-sizing: border-box; }}
+html {{ background: var(--bg); }}
+body {{ margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); line-height: 1.55; }}
+body, body * {{ font-weight: 400; }}
 
-:root {{
-  --bg:#f8f9fa; --surface:#ffffff; --border:#e0e2e6;
-  --text:#111827; --text-secondary:#6b7280; --text-muted:#9ca3af;
-  --accent:#2563eb; --green:#16a34a; --red:#dc2626; --yellow:#ca8a04; --orange:#ea580c;
-  --badge-green-bg:rgba(22,163,74,0.1); --badge-red-bg:rgba(220,38,38,0.1);
-  --badge-yellow-bg:rgba(202,138,4,0.1);
-  --badge-dim-bg:#f1f3f5; --progress-bg:#f1f3f5;
-  --noise-opacity:0.035; --grid-color:rgba(160,168,180,0.6);
-  --gradient-wash:linear-gradient(to bottom,rgba(230,233,240,0.3) 0%,transparent 60%);
-  --theme-bg:rgba(255,255,255,0.92);
-  --sans:'IBM Plex Sans',Arial,sans-serif;
-  --serif:'IBM Plex Serif',Georgia,serif;
-  --mono:'SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace;
+.pf-back {{
+  display: inline-block; margin: 13px 0 0; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .06em; color: var(--text-secondary); text-decoration: none;
 }}
-
-html.dark {{
-  --bg:#0f1115; --surface:#1a1d24; --border:#2a2d35;
-  --text:#e4e5e7; --text-secondary:#9ca0a8; --text-muted:#6b7074;
-  --accent:#5b9aff; --green:#34d399; --red:#f87171; --yellow:#fbbf24; --orange:#fb923c;
-  --badge-green-bg:rgba(52,211,153,0.12); --badge-red-bg:rgba(248,113,113,0.12);
-  --badge-yellow-bg:rgba(251,191,36,0.12);
-  --badge-dim-bg:#23262e; --progress-bg:#23262e;
-  --noise-opacity:0.012; --grid-color:rgba(90,96,110,0.7);
-  --gradient-wash:linear-gradient(to bottom,rgba(20,22,28,0.4) 0%,transparent 60%);
-  --theme-bg:rgba(26,29,36,0.92);
-}}
-
-/* ── Base ────────────────────────────────────────────────── */
-body {{
-  background:var(--bg); color:var(--text);
-  font-family:var(--serif); line-height:1.55;
-  min-height:100vh; position:relative;
-  transition:background .3s,color .3s;
-}}
-body, body * {{ font-weight:400; }}
-
-body::before {{
-  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:180px; opacity:var(--noise-opacity);
-}}
-body::after {{
-  content:''; position:fixed; top:0; left:0; right:0; height:50vh;
-  z-index:0; pointer-events:none; background:var(--gradient-wash);
-}}
-
-.grid-lines {{ position:fixed; inset:0; z-index:0; pointer-events:none; display:flex; justify-content:center; }}
-.grid-lines-inner {{ width:1120px; max-width:100vw; display:flex; justify-content:space-between; }}
-.grid-line {{ width:1px; background:repeating-linear-gradient(to bottom,var(--grid-color) 0px,var(--grid-color) 4px,transparent 4px,transparent 10px); }}
-
-.content {{ position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:2.5rem 2rem 4rem; }}
-
-/* ── Typography ──────────────────────────────────────────── */
-h1,h2,h3 {{ margin:0; font-weight:400; }}
-p,li {{ font-size:0.95rem; }}
-
+.pf-back:hover {{ color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }}
+.pf-report {{ max-width: 880px; padding: 30px 0 72px; }}
 .eyebrow {{
-  font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;
-  letter-spacing:0.08em; font-family:var(--sans); margin-bottom:0.5rem;
+  margin: 0 0 7px; font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
 }}
+.eyebrow::before {{ content: "// "; }}
+h1, h2, h3 {{ margin: 0; color: var(--text); font-weight: 600; }}
+.header {{ padding-bottom: 20px; border-bottom: 1px solid var(--border-strong); }}
+.header h1 {{ font-size: clamp(22px, 3vw, 30px); line-height: 1.18; overflow-wrap: anywhere; }}
+.meta {{ margin-top: 7px; font-family: var(--mono); font-size: 12px; color: var(--text-secondary); }}
 
-/* ── Header ──────────────────────────────────────────────── */
-.header {{
-  padding-bottom:1.25rem; border-bottom:1px solid var(--border); margin-bottom:1.25rem;
-}}
-.header h1 {{ font-size:1.5rem; letter-spacing:-0.03em; }}
-.meta {{ margin-top:0.65rem; color:var(--text-secondary); font-size:0.9rem; }}
-
-/* ── Dark mode toggle ────────────────────────────────────── */
-.dark-toggle {{
-  position:fixed; top:1rem; right:2rem; z-index:200;
-  width:28px; height:28px; border-radius:50%; border:1px solid var(--border);
-  background:var(--theme-bg); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  color:var(--text-secondary); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  font-size:13px; transition:all .2s;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}}
-.dark-toggle:hover {{ color:var(--text); border-color:var(--accent); }}
-
-/* ── Sticky nav ──────────────────────────────────────────── */
 .sticky-nav {{
-  position:sticky; top:0; z-index:100;
-  background:var(--theme-bg); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-  margin:0 -2rem 0; padding:0.5rem 2rem;
-  display:flex; gap:0.35rem; overflow-x:auto;
-  opacity:0; pointer-events:none; transition:opacity .25s, max-height .25s;
-  max-height:0; overflow:hidden;
-  -ms-overflow-style:none; scrollbar-width:none;
+  position: sticky; top: 0; z-index: 20; display: flex; gap: 8px 18px; overflow-x: auto;
+  margin: 0; padding: 10px 0; border-bottom: 1px solid var(--border);
+  background: var(--bg); font-family: var(--mono); white-space: nowrap;
+  opacity: 0; pointer-events: none; max-height: 0; overflow-y: hidden;
+  transition: opacity .2s, max-height .2s;
 }}
-.sticky-nav::-webkit-scrollbar {{ display:none; }}
-.sticky-nav.visible {{ opacity:1; pointer-events:auto; max-height:3rem; overflow-x:auto; overflow-y:hidden; }}
-
+.sticky-nav.visible {{ opacity: 1; pointer-events: auto; max-height: 48px; overflow-x: auto; }}
 .nav-pill {{
-  flex-shrink:0; padding:0.2rem 0.6rem; border-radius:9999px;
-  font-size:0.68rem; font-family:var(--sans); color:var(--text-secondary);
-  text-decoration:none; white-space:nowrap;
-  border:1px solid transparent; transition:all .15s;
+  flex: none; color: var(--text-secondary); font-size: 10.5px; letter-spacing: .08em;
+  text-transform: uppercase; text-decoration: none; border-bottom: 1px solid transparent; padding-bottom: 2px;
 }}
-.nav-pill:hover {{ border-color:var(--border); background:var(--surface); }}
-.nav-pill.active {{ border-color:var(--accent); color:var(--accent); background:rgba(37,99,235,0.06); }}
-html.dark .nav-pill.active {{ background:rgba(91,154,255,0.1); }}
-.nav-count {{
-  display:inline-block; min-width:1.1em; text-align:center;
-  font-size:0.62rem; color:var(--text-muted);
-}}
+.nav-pill:hover {{ color: var(--text); }}
+.nav-pill.active {{ color: var(--accent); border-bottom-color: var(--accent); }}
+.nav-count {{ color: var(--text-muted); font-variant-numeric: tabular-nums; }}
 
-/* ── Overview card ────────────────────────────────────────── */
-.overview {{
-  background:var(--surface); border:1px solid var(--border); border-radius:6px;
-  padding:1.25rem 1.5rem; margin-bottom:1.5rem;
-}}
+.overview {{ padding: 24px 0; border-bottom: 1px solid var(--border-strong); }}
 .overview-label {{
-  font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;
-  letter-spacing:0.08em; font-family:var(--sans); margin-bottom:0.6rem;
+  margin-bottom: 7px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-muted);
 }}
-.overview h2 {{ font-size:1.05rem; margin-bottom:0.25rem; }}
-.overview-copy {{ color:var(--text-secondary); font-size:0.88rem; margin-bottom:0.85rem; }}
-.summary-grid {{ display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1rem; }}
-
-/* Section breakdown bars */
-.section-bars {{ display:flex; flex-direction:column; gap:0.35rem; }}
-.section-bar-row {{
-  display:flex; align-items:center; gap:0.5rem;
-  font-size:0.72rem; font-family:var(--sans);
-}}
-.section-bar-label {{
-  width:160px; flex-shrink:0; text-align:right;
-  color:var(--text-secondary); white-space:nowrap;
-  overflow:hidden; text-overflow:ellipsis;
-}}
-.section-bar-track {{
-  flex:1; height:6px; border-radius:3px;
-  background:var(--progress-bg); overflow:hidden;
-}}
-.section-bar-fill {{
-  height:100%; border-radius:3px; transition:width .3s;
-}}
-.section-bar-count {{
-  width:32px; flex-shrink:0; text-align:right;
-  color:var(--text-muted); font-size:0.68rem;
-  font-variant-numeric:tabular-nums;
-}}
-@media (max-width:800px) {{
-  .section-bar-label {{ width:100px; font-size:0.65rem; }}
-}}
-
-/* ── Badges ──────────────────────────────────────────────── */
+.overview h2 {{ font-size: 19px; }}
+.overview-copy {{ margin: 5px 0 16px; color: var(--text-secondary); font-size: 14px; }}
+.summary-grid {{ display: flex; flex-wrap: wrap; gap: 7px 18px; margin-bottom: 18px; }}
 .badge {{
-  display:inline-flex; align-items:center; gap:0.3rem;
-  padding:0.18rem 0.55rem; border-radius:9999px;
-  font-size:0.7rem; font-family:var(--sans);
-  background:var(--badge-dim-bg); color:var(--text-secondary);
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border); padding-bottom: 2px; white-space: nowrap;
 }}
-.badge-high {{ background:var(--badge-red-bg); color:var(--red); }}
-.badge-medium {{ background:var(--badge-yellow-bg); color:var(--yellow); }}
-.badge-low {{ background:var(--badge-green-bg); color:var(--green); }}
+.badge-high {{ color: var(--red); border-color: var(--red); }}
+.badge-medium {{ color: var(--orange); border-color: var(--orange); }}
+.badge-low {{ color: var(--green); border-color: var(--green); }}
+.badge-dim {{ color: var(--text-muted); }}
+.section-bars {{ display: flex; flex-direction: column; gap: 7px; }}
+.section-bar-row {{ display: grid; grid-template-columns: minmax(120px, 160px) minmax(80px, 1fr) 28px; gap: 10px; align-items: center; font-family: var(--mono); font-size: 10.5px; }}
+.section-bar-label {{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }}
+.section-bar-track {{ height: 4px; background: var(--progress-bg); overflow: hidden; }}
+.section-bar-fill {{ display: block; height: 100%; background: var(--accent); }}
+.section-bar-count {{ color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }}
 
-/* ── Section (collapsible details) ───────────────────────── */
-.report-section {{
-  margin-bottom:0.75rem;
-}}
-.report-section details {{
-  background:var(--surface); border:1px solid var(--border); border-radius:6px;
-  overflow:hidden;
-}}
+.report-section {{ border-bottom: 1px solid var(--border); }}
+.report-section details {{ border: 0; }}
 .section-summary {{
-  list-style:none; cursor:pointer; padding:0.85rem 1.25rem;
-  display:flex; flex-wrap:wrap; align-items:center;
-  gap:0.4rem 0.6rem; user-select:none;
-  transition:background .15s;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 16px 0; cursor: pointer; list-style: none;
 }}
-.section-summary:hover {{ background:var(--progress-bg); }}
-.section-summary::-webkit-details-marker {{ display:none; }}
-
-.section-chevron {{
-  display:inline-block; width:12px; height:12px; flex-shrink:0;
-  transition:transform .2s;
-  background:none; position:relative;
-}}
+.section-summary::-webkit-details-marker {{ display: none; }}
+.section-summary:hover .section-label-inline {{ color: var(--accent); }}
+.section-summary-left {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px 12px; min-width: 0; }}
+.section-chevron {{ width: 11px; height: 11px; position: relative; flex: none; }}
 .section-chevron::after {{
-  content:''; position:absolute; top:3px; left:2px;
-  width:6px; height:6px; border-right:1.5px solid var(--text-muted);
-  border-bottom:1.5px solid var(--text-muted); transform:rotate(-45deg);
-  transition:transform .2s;
+  content: ""; position: absolute; top: 2px; left: 1px; width: 6px; height: 6px;
+  border-right: 1px solid var(--text-muted); border-bottom: 1px solid var(--text-muted); transform: rotate(-45deg);
 }}
-details[open] > .section-summary .section-chevron::after {{
-  transform:rotate(45deg); top:2px;
-}}
+details[open] > .section-summary .section-chevron::after {{ top: 1px; transform: rotate(45deg); }}
+.section-label-inline {{ font-size: 17px; font-weight: 600; }}
+.section-summary-desc {{ max-width: 37ch; color: var(--text-muted); font-size: 12px; text-align: right; }}
+.section-body {{ padding: 0 0 20px; }}
 
-.section-summary-left {{
-  display:flex; align-items:center; gap:0.5rem; flex-shrink:0;
-}}
-.section-label-inline {{
-  font-size:0.88rem; font-family:var(--serif); color:var(--text);
-}}
-.section-summary-desc {{
-  font-size:0.78rem; color:var(--text-muted); font-family:var(--sans);
-  margin-left:auto;
-}}
-
-.section-body {{
-  padding:0 1.25rem 1.25rem;
-}}
-
-/* ── Finding cards ───────────────────────────────────────── */
-.finding-list {{
-  border:1px solid var(--border); border-radius:4px; overflow:hidden;
-}}
-.finding {{
-  padding:0.75rem 0.9rem; border-top:1px solid var(--border);
-}}
-.finding:first-child {{ border-top:none; }}
-.finding-top {{
-  display:flex; justify-content:space-between; align-items:baseline;
-  gap:0.75rem; margin-bottom:0.35rem;
-}}
-.location {{ font-size:0.8rem; color:var(--text-secondary); font-family:var(--sans); }}
-.severity-note {{
-  font-size:0.68rem; color:var(--text-muted); text-transform:uppercase;
-  letter-spacing:0.05em; font-family:var(--sans);
-}}
-.severity-high .severity-note {{ color:var(--red); }}
-.severity-medium .severity-note {{ color:var(--orange); }}
-.severity-low .severity-note {{ color:var(--green); }}
-
+.finding-list {{ border-top: 1px solid var(--border); }}
+.finding {{ padding: 14px 0; border-bottom: 1px solid var(--border); }}
+.finding-top {{ display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 7px; }}
+.location, .severity-note {{ font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; }}
+.location {{ color: var(--text-secondary); }}
+.severity-note {{ color: var(--text-muted); white-space: nowrap; }}
+.severity-high .severity-note {{ color: var(--red); }}
+.severity-medium .severity-note {{ color: var(--orange); }}
+.severity-low .severity-note {{ color: var(--green); }}
 .text-sample {{
-  background:var(--bg); border:1px solid var(--border); border-radius:3px;
-  padding:0.5rem 0.65rem; margin:0.4rem 0;
-  font-family:var(--mono); font-size:0.8rem;
-  white-space:pre-wrap; overflow-wrap:anywhere;
-  max-height:4.5em; overflow-y:auto;
+  margin: 7px 0; padding: 8px 10px; border-left: 1px solid var(--border-strong);
+  font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere;
 }}
-.detail {{ font-size:0.82rem; color:var(--text-secondary); margin:0.25rem 0; }}
-.detail strong {{ color:var(--text); font-weight:500; }}
-.detail-inline {{ font-size:0.8rem; color:var(--text-muted); }}
-.suggestion {{ font-size:0.82rem; color:var(--text-muted); margin-top:0.35rem; font-style:italic; }}
-.script-tag {{
-  display:inline-block; padding:0.15rem 0.5rem; border-radius:999px;
-  background:rgba(37,99,235,0.08); color:var(--accent);
-  font-size:0.7rem; font-family:var(--sans); margin-bottom:0.3rem;
-}}
+.detail {{ margin-top: 4px; color: var(--text-secondary); font-size: 12.5px; }}
+.detail strong {{ color: var(--text); font-weight: 600; }}
+.suggestion {{ margin-top: 8px; padding-left: 10px; border-left: 1px solid var(--accent); color: var(--text-secondary); font-size: 12.5px; }}
+.script-tag {{ display: inline-block; margin-bottom: 3px; font-family: var(--mono); font-size: 10.5px; color: var(--accent); }}
 
-/* ── Bulk table ──────────────────────────────────────────── */
-.bulk-summary {{ font-size:0.88rem; color:var(--text-secondary); margin-bottom:0.75rem; }}
-.table-wrap {{ overflow-x:auto; }}
-.bulk-table {{
-  width:100%; border-collapse:collapse; font-size:0.8rem;
-  font-family:var(--sans);
-}}
-.bulk-table th {{
-  text-align:left; font-size:0.65rem; text-transform:uppercase;
-  letter-spacing:0.06em; color:var(--text-muted); padding:0.45rem 0.6rem;
-  border-bottom:1px solid var(--border); font-weight:400;
-}}
-.bulk-table td {{
-  padding:0.35rem 0.6rem; border-bottom:1px solid var(--border);
-  color:var(--text-secondary); vertical-align:top;
-}}
-.col-loc {{ white-space:nowrap; width:100px; color:var(--text-muted); font-size:0.75rem; }}
-.col-text {{ font-family:var(--mono); font-size:0.75rem; max-width:500px; overflow-wrap:anywhere; }}
-.col-sub {{ font-size:0.72rem; color:var(--text-muted); max-width:180px; overflow-wrap:anywhere; }}
-.col-sev {{ width:20px; text-align:center; }}
-.sev-dot {{ display:inline-block; width:6px; height:6px; border-radius:50%; }}
-.sev-dot-high {{ background:var(--red); }}
-.sev-dot-medium {{ background:var(--yellow); }}
-.sev-dot-low {{ background:var(--green); }}
+.bulk-summary {{ margin: 0 0 12px; color: var(--text-secondary); font-size: 13px; }}
+.table-wrap {{ overflow-x: auto; }}
+.bulk-table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
+.bulk-table th {{ padding: 7px 8px; border-bottom: 1px solid var(--border-strong); color: var(--text-muted); font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .1em; text-align: left; text-transform: uppercase; }}
+.bulk-table td {{ padding: 8px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }}
+.col-loc {{ width: 100px; color: var(--text-muted); font-family: var(--mono); font-size: 10.5px; white-space: nowrap; }}
+.col-text {{ max-width: 500px; font-family: var(--mono); font-size: 11px; overflow-wrap: anywhere; }}
+.col-sub {{ max-width: 180px; color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }}
+.col-sev {{ width: 20px; text-align: center; }}
+.sev-dot {{ display: inline-block; width: 6px; height: 6px; }}
+.sev-dot-high {{ background: var(--red); }} .sev-dot-medium {{ background: var(--orange); }} .sev-dot-low {{ background: var(--green); }}
+.btn-show-all {{ margin-top: 10px; padding: 0; border: 0; background: none; color: var(--accent); cursor: pointer; font-family: var(--mono); font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }}
 
-.btn-show-all {{
-  margin-top:0.5rem; padding:0.35rem 0.9rem; border-radius:4px;
-  border:1px solid var(--border); background:var(--surface); color:var(--text-secondary);
-  font-size:0.78rem; font-family:var(--sans); cursor:pointer; transition:all .15s;
-}}
-.btn-show-all:hover {{ border-color:var(--accent); color:var(--accent); }}
+.img-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); border-top: 1px solid var(--border); border-left: 1px solid var(--border); }}
+.img-cell {{ padding: 12px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); text-align: center; }}
+.img-cell-icon {{ font-size: 18px; }} .img-cell-label {{ margin-top: 3px; font-size: 12px; }} .img-cell-dims {{ font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }}
+.empty-note {{ padding: 12px 0; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; }}
+.ap-group {{ margin-bottom: 16px !important; }}
+.ap-group-header {{ margin-bottom: 6px !important; font-family: var(--mono) !important; font-size: 10.5px !important; letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary) !important; }}
 
-/* ── Image grid ──────────────────────────────────────────── */
-.img-grid {{
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-  gap:0.5rem;
+@media (max-width: 640px) {{
+  .pf-report {{ padding-top: 22px; }}
+  .section-summary {{ align-items: flex-start; flex-direction: column; gap: 5px; }}
+  .section-summary-desc {{ max-width: none; text-align: left; }}
+  .finding-top {{ align-items: flex-start; flex-direction: column; gap: 3px; }}
+  .section-bar-row {{ grid-template-columns: minmax(90px, 120px) minmax(60px, 1fr) 22px; gap: 7px; }}
 }}
-.img-cell {{
-  background:var(--bg); border:1px solid var(--border); border-radius:4px;
-  padding:0.65rem; text-align:center;
-}}
-.img-cell-icon {{ font-size:1.4rem; margin-bottom:0.15rem; }}
-.img-cell-label {{ font-size:0.78rem; font-family:var(--sans); color:var(--text); }}
-.img-cell-dims {{ font-size:0.7rem; color:var(--text-muted); font-family:var(--sans); }}
-
-.empty-note {{
-  background:var(--surface); border:1px solid var(--border); border-radius:4px;
-  padding:1rem; color:var(--text-secondary); font-size:0.88rem;
-}}
-.empty-note .detail {{ font-size:0.82rem; margin-top:0.35rem; }}
-
-/* ── Responsive ──────────────────────────────────────────── */
-@media (max-width:800px) {{
-  .content {{ padding:1.5rem 1rem 3rem; }}
-  .sticky-nav {{ margin:0 -1rem 1.5rem; padding:0.5rem 1rem; }}
-  .finding-top {{ flex-direction:column; align-items:flex-start; gap:0.2rem; }}
-  .section-summary {{ padding:0.7rem 1rem; }}
-  .section-body {{ padding:0 1rem 1rem; }}
-  .section-summary-desc {{ margin-left:0; margin-top:0.15rem; }}
-  .dark-toggle {{ top:0.5rem; right:0.75rem; }}
-  .img-grid {{ grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); }}
-}}
-
-/* ── Print ───────────────────────────────────────────────── */
 @media print {{
-  .dark-toggle, .sticky-nav, .grid-lines {{ display:none !important; }}
-  body::before, body::after {{ display:none !important; }}
-  details {{ display:block !important; }}
-  details > summary {{ display:none !important; }}
-  details > .section-body {{ display:block !important; }}
-  .report-section details {{ border:1px solid #ccc; page-break-inside:avoid; }}
-  .bulk-row-hidden {{ display:table-row !important; }}
-  .btn-show-all {{ display:none !important; }}
-  .content {{ max-width:100%; padding:1rem; }}
-  .section-body {{ padding:0.5rem 1rem 1rem !important; }}
-  /* Print needs a header for each section */
-  .report-section::before {{
-    content:attr(data-print-label);
-    display:block; font-size:0.8rem; font-weight:500;
-    text-transform:uppercase; letter-spacing:0.06em;
-    color:#666; margin-bottom:0.5rem; padding-top:0.75rem;
-    border-top:1px solid #ccc;
+  html, html.dark {{
+    --bg: #fff; --surface: #fff; --border: #ccc; --border-strong: #000;
+    --text: #000; --text-secondary: #333; --text-muted: #555; --accent: #000;
+    --green: #000; --red: #000; --orange: #000; --progress-bg: #ddd;
   }}
+  .jdbb-masthead, .pf-back, .sticky-nav, #theme-bar {{ display: none !important; }}
+  body {{ background: #fff; color: #000; }}
+  .jdbb-shell {{ max-width: none; padding: 0; }} .pf-report {{ max-width: none; padding: 0; }}
+  .report-section details, .report-section details > .section-body {{ display: block !important; }}
+  .report-section details > summary {{ display: none !important; }}
+  .report-section::before {{ content: attr(data-print-label); display: block; padding: 12px 0 6px; border-top: 1px solid #000; font-family: monospace; font-size: 10pt; text-transform: uppercase; }}
+  .bulk-row-hidden {{ display: table-row !important; }} .btn-show-all {{ display: none !important; }}
+  .finding, .report-section {{ break-inside: avoid; }}
 }}
 </style>
 </head>
 <body>
-<div class="grid-lines"><div class="grid-lines-inner"><div class="grid-line"></div><div class="grid-line"></div></div></div>
-
-<button class="dark-toggle" id="darkToggle" type="button" aria-label="Toggle dark mode">☀</button>
-
-<main class="content">
-  <header class="header">
-    <div class="eyebrow">Production · Typesetting</div>
-    <h1>{self._esc(report_title)}</h1>
-    <div class="meta">Manuscript preflight check before generating EPUB or PDF.</div>
-    <div class="meta">Generated {report_generated_at}</div>
+<div class="jdbb-shell">
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav><div id="theme-bar"></div></nav>
   </header>
 
-  <nav class="sticky-nav" id="stickyNav">
-    {''.join(nav_pills)}
-  </nav>
+  <a class="pf-back" href="{{{{FACTORY_URL}}}}">← Back to the factory</a>
 
-  <section class="overview">
-    <div class="overview-label">Overview</div>
-    <h2>Preflight summary</h2>
-    <p class="overview-copy">Review findings, make fixes in Word if needed, then rerun inspection.</p>
-    <div class="summary-grid">
-      <span class="badge">{len(self.edge_cases)} total</span>
-      <span class="badge">{len(actionable)} actionable</span>
-      <span class="badge">{ap_count} auto-preserved</span>
-      <span class="badge badge-high">{sev_totals['high']} high</span>
-      <span class="badge badge-medium">{sev_totals['medium']} medium</span>
-      <span class="badge badge-low">{sev_totals['low']} low</span>
-    </div>
-    {bar_html}
-  </section>
+  <main class="pf-report">
+    <header class="header">
+      <div class="eyebrow">Inspect</div>
+      <h1>{self._esc(report_title)}</h1>
+      <div class="meta">Manuscript preflight check before generating EPUB or PDF.</div>
+      <div class="meta">Generated {report_generated_at}</div>
+    </header>
 
-  {''.join(sections_html)}
-</main>
+    <nav class="sticky-nav" id="stickyNav" aria-label="Preflight sections">
+      {''.join(nav_pills)}
+    </nav>
+
+    <section class="overview">
+      <div class="overview-label">Overview</div>
+      <h2>Preflight summary</h2>
+      <p class="overview-copy">Review findings, make fixes in Word if needed, then rerun inspection.</p>
+      <div class="summary-grid">
+        <span class="badge">{len(self.edge_cases)} total</span>
+        <span class="badge">{len(actionable)} actionable</span>
+        <span class="badge">{ap_count} carried through automatically</span>
+        <span class="badge badge-high">{sev_totals['high']} Worth fixing</span>
+        <span class="badge badge-medium">{sev_totals['medium']} Worth a look</span>
+        <span class="badge badge-low">{sev_totals['low']} Just noting</span>
+      </div>
+      {bar_html}
+    </section>
+
+    {''.join(sections_html)}
+  </main>
+</div>
 
 <script>
-/* ── Dark mode ───────────────────────────────────────────── */
-(function() {{
-  var KEY = 'preflight-theme-v1';
-  var btn = document.getElementById('darkToggle');
-  function isDark() {{ return document.documentElement.classList.contains('dark'); }}
-  function updateIcon() {{ btn.textContent = isDark() ? '☾' : '☀'; }}
-  updateIcon();
-  btn.addEventListener('click', function() {{
-    document.documentElement.classList.toggle('dark');
-    try {{ localStorage.setItem(KEY, JSON.stringify({{ dark: isDark() }})); }} catch(e) {{}}
-    updateIcon();
-  }});
-}})();
-
 /* ── Sticky nav visibility ───────────────────────────────── */
 (function() {{
   var nav = document.getElementById('stickyNav');
@@ -1577,7 +1364,6 @@ details[open] > .section-summary .section-chevron::after {{
 
   function update() {{
     var current = null;
-    var scrollY = window.scrollY || window.pageYOffset;
     sections.forEach(function(s) {{
       if (s.getBoundingClientRect().top <= 120) current = s.id;
     }});
@@ -1611,7 +1397,6 @@ function toggleBulkRows(btn, sectionId) {{
   var showing = btn.getAttribute('data-expanded') === '1';
   rows.forEach(function(r) {{ r.style.display = showing ? 'none' : ''; }});
   btn.setAttribute('data-expanded', showing ? '0' : '1');
-  // Count visible rows (non-hidden siblings) to get correct total
   var table = btn.closest('.table-wrap').querySelector('table');
   var allRows = table ? table.querySelectorAll('tbody tr') : [];
   var total = allRows.length;
@@ -1627,9 +1412,7 @@ function toggleBulkRows(btn, sectionId) {{
     if (!target) return;
     var details = target.querySelector('details');
     if (details && !details.open) details.open = true;
-    setTimeout(function() {{
-      target.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
-    }}, 100);
+    setTimeout(function() {{ target.scrollIntoView({{ behavior: 'smooth', block: 'start' }}); }}, 100);
   }}
   openHash();
   window.addEventListener('hashchange', openHash);
