@@ -32,16 +32,17 @@ func newFakeStoreStripe(t *testing.T) *fakeStoreStripe {
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
-			{"id": "price_pass", "lookup_key": "factory-pass", "unit_amount": 34900, "currency": "usd", "active": true, "product": "prod_pass"},
-			{"id": "price_b3", "lookup_key": "builds-3", "unit_amount": 4900, "currency": "usd", "active": true, "product": "prod_b3"},
+			{"id": "price_pass", "lookup_key": "factory-pass", "unit_amount": 54900, "currency": "usd", "active": true, "product": "prod_pass"},
+			{"id": "price_b3", "lookup_key": "builds-3", "unit_amount": 9900, "currency": "usd", "active": true, "product": "prod_b3"},
 			{"id": "price_s6", "lookup_key": "storage-6mo", "unit_amount": 2900, "currency": "usd", "active": true, "product": "prod_s6"},
 		}, "has_more": false})
 	})
-	mux.HandleFunc("/v1/coupons/pyb149-200-off", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{"id": "pyb149-200-off"})
+	mux.HandleFunc("/v1/coupons/", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"id": strings.TrimPrefix(r.URL.Path, "/v1/coupons/")})
 	})
 	mux.HandleFunc("/v1/promotion_codes", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"id": "promo_1", "code": "PYB149", "active": true}}, "has_more": false})
+		code := r.URL.Query().Get("code")
+		json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"id": "promo_" + code, "code": code, "active": true}}, "has_more": false})
 	})
 	mux.HandleFunc("/v1/checkout/sessions", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

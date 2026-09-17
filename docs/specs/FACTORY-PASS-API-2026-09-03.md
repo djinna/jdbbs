@@ -72,16 +72,17 @@ live pass**; else admin. Non-admin: `project_id` is mandatory.
 — `requireAuth(project)` + live pass; else admin. Unmetered.
 
 `POST /api/books/{id}/convert` — body `{"format": "epub" | "pdf" | "both"}`
-(default `both`). `requireAuth(project)` + live pass. **Since 2026-09-17
-(C22): EPUB builds are free and unlimited** — `format=epub` never checks or
-debits credits, and a failure is reported on the book without a refund; the
-newest 10 EPUB outputs per book are kept. `pdf` and `both` are *print
-builds*: `credits_remaining > 0` (else `402 {"error":"no builds remaining",
-"credits_remaining":0}`); one in-flight build per project (`409`, any
-format). Debit ledger `-1 build` before starting; `failConversion` writes
-`+1 build_failed_refund`. Admin header:
-gating skipped **but ledger still debited/refunded if a pass exists** (so
-workshop-instructor-run builds count and the dogfood data is real).
+(default `both`; the factory page always sends `both`). `requireAuth(project)`
++ live pass. **Every format is one build** and costs one credit — a build is
+a build (C22 as first shipped made `epub` free and unlimited; reverted the
+same day on team feedback: $549 pass, three builds of both formats). Gate:
+`credits_remaining > 0` (else `402 {"error":"no builds remaining",
+"credits_remaining":0}`); one in-flight build per project (`409`). Debit
+ledger `-1 build` before starting; `failConversion` writes `+1
+build_failed_refund` for any format. The newest 10 EPUB outputs per book are
+kept (`PruneBookOutputs`). Admin header: gating skipped **but ledger still
+debited/refunded if a pass exists** (so workshop-instructor-run builds count
+and the dogfood data is real).
 
 `GET /api/books/{id}/download/{format}`, `/outputs`, `/outputs/{oid}/download`
 — unchanged (already project-auth).

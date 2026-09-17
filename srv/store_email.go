@@ -65,7 +65,7 @@ func (s *Server) sendAddonEmail(pass dbgen.Pass, order dbgen.StoreOrder, title, 
 		var t strings.Builder
 		fmt.Fprintf(&t, "Hi %s,\n\n", firstName(pass.CustomerName))
 		fmt.Fprintf(&t, "Thanks — %s has been added to your Factory Pass for %s.\n\n", bought, title)
-		fmt.Fprintf(&t, "Print builds left: %d\n", credits)
+		fmt.Fprintf(&t, "Builds left: %d\n", credits)
 		fmt.Fprintf(&t, "Pass live until:   %s\n", expires)
 		fmt.Fprintf(&t, "Paid:              %s\n", fmtUSD(order.AmountTotal))
 		fmt.Fprintf(&t, "Your factory:      %s\n\n", portalURL)
@@ -76,7 +76,7 @@ func (s *Server) sendAddonEmail(pass dbgen.Pass, order dbgen.StoreOrder, title, 
 		h.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(pass.CustomerName)))))
 		h.WriteString(emailP(fmt.Sprintf("Thanks &mdash; <b>%s</b> has been added to your Factory Pass for <b>%s</b>.", html.EscapeString(bought), html.EscapeString(title))))
 		h.WriteString(emailKV([][2]string{
-			{"Print builds left", fmt.Sprint(credits)},
+			{"Builds left", fmt.Sprint(credits)},
 			{"Pass live until", expires},
 			{"Paid", fmtUSD(order.AmountTotal)},
 		}))

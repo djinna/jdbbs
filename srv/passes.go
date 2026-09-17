@@ -1143,7 +1143,7 @@ func passIncluded(p dbgen.Pass) passIncludedSummary {
 		inc.Months = passStorageMonths
 	}
 	if p.BuildsExtra > 0 {
-		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d print builds", p.BuildsExtra))
+		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d builds", p.BuildsExtra))
 	}
 	if extra := inc.Months - passStorageMonths; extra > 0 {
 		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d months storage", extra))
@@ -1162,7 +1162,7 @@ func passFulfillmentText(res fulfillPassResult) string {
 	fmt.Fprintf(&b, "Password:       %s\n\n", res.Password)
 	inc := passIncluded(res.Pass)
 	fmt.Fprintf(&b, "What's included\n")
-	fmt.Fprintf(&b, "  - %d print PDF builds, plus unlimited EPUB builds\n", inc.Builds)
+	fmt.Fprintf(&b, "  - %d builds: each one makes the EPUB and the print PDF together\n", inc.Builds)
 	fmt.Fprintf(&b, "  - Unlimited preflights: the report tells you what to fix\n")
 	fmt.Fprintf(&b, "  - Your project stays live and rebuildable until %s (%d months)\n", expires, inc.Months)
 	for _, a := range inc.AddOns {
@@ -1199,7 +1199,7 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	}))
 	inc := passIncluded(res.Pass)
 	included := []string{
-		fmt.Sprintf("%d print PDF builds, plus unlimited EPUB builds", inc.Builds),
+		fmt.Sprintf("%d builds &mdash; each one makes the EPUB and the print PDF together", inc.Builds),
 		"Unlimited preflights &mdash; the report tells you what to fix",
 		fmt.Sprintf("Your project stays live and rebuildable until <b>%s</b> (%d months)", html.EscapeString(expires), inc.Months),
 	}
@@ -1358,7 +1358,10 @@ func buildDeliveredText(pass dbgen.Pass, book dbgen.Book, format, pdfURL, epubUR
 		fmt.Fprintf(&t, "EPUB:             %s\n", epubURL)
 	}
 	fmt.Fprintf(&t, "Preflight report: %s\n\n", reportURL)
-	fmt.Fprintf(&t, "Print builds remaining: %d of %d. EPUB builds are unlimited.\n\n", credits, total)
+	if format == "both" {
+		fmt.Fprintf(&t, "Read the EPUB first: it's the quickest way to see how the machine\nunderstood your file. Then check the print PDF.\n\n")
+	}
+	fmt.Fprintf(&t, "Builds remaining: %d of %d.\n\n", credits, total)
 	fmt.Fprintf(&t, "Sign in to your factory with the client password from your welcome email.\n\n")
 	fmt.Fprintf(&t, "The deliverable is a correctly typeset %s of the manuscript as it\n", buildDeliveredWhat(format))
 	fmt.Fprintf(&t, "conforms to your transmittal. Preflight tells you what doesn't conform.\n\n")
@@ -1380,7 +1383,10 @@ func buildDeliveredHTML(pass dbgen.Pass, book dbgen.Book, format, pdfURL, epubUR
 	}
 	links = append(links, emailLink(reportURL, "Preflight report"))
 	hb.WriteString(emailList(links, false))
-	hb.WriteString(emailP(fmt.Sprintf("<b>Print builds remaining: %d of %d.</b> EPUB builds are unlimited.", credits, total)))
+	if format == "both" {
+		hb.WriteString(emailP("Read the EPUB first: it&rsquo;s the quickest way to see how the machine understood your file. Then check the print PDF."))
+	}
+	hb.WriteString(emailP(fmt.Sprintf("<b>Builds remaining: %d of %d.</b>", credits, total)))
 	hb.WriteString(emailSmall("Sign in to your factory with the client password from your welcome email."))
 	hb.WriteString(emailSmall(fmt.Sprintf("The deliverable is a correctly typeset %s of the manuscript as it conforms to your transmittal. Preflight tells you what doesn&rsquo;t conform.", buildDeliveredWhat(format))))
 	hb.WriteString(emailSignoff())

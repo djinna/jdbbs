@@ -17,8 +17,8 @@ package srv
 //   - PRODCAL_STORE=on enables all of it. Off (default): routes 404, no
 //     poller, no catalog calls — so the freeze build is inert.
 //
-// Discounts are Stripe promotion codes entered on the Checkout page. The
-// first, PYB149, is $200 off the pass only (never the add-ons).
+// Discounts are Stripe promotion codes entered on the Checkout page, all
+// restricted to the pass product (never the add-ons); see storePromos.
 
 import (
 	"context"
@@ -49,17 +49,41 @@ type storeItem struct {
 }
 
 var storeCatalog = []storeItem{
-	{LookupKey: "factory-pass", Name: "Factory Pass", Description: "One manuscript through the jdbb studio book factory: transmittal, generated Word template, unlimited preflight, unlimited EPUB builds, three print PDF builds, six months of storage.", Amount: 34900},
-	{LookupKey: "builds-3", Name: "+3 print builds", Description: "Three more print PDF builds on the same pass. EPUB builds are always unlimited.", Amount: 4900, Builds: 3},
+	{LookupKey: "factory-pass", Name: "Factory Pass", Description: "One manuscript through the jdbb studio book factory: transmittal, generated Word template, unlimited preflight, three builds (each makes the EPUB and the print PDF), six months of storage.", Amount: 54900},
+	{LookupKey: "builds-3", Name: "+3 builds", Description: "Three more builds on the same pass, EPUB and print PDF each time.", Amount: 9900, Builds: 3},
 	{LookupKey: "storage-6mo", Name: "+6 months storage", Description: "Keeps the project rebuildable and downloadable for six more months.", Amount: 2900, Months: 6},
 }
 
-const (
-	storePassKey     = "factory-pass"
-	storePromoCode   = "PYB149"
-	storePromoOff    = 20000 // cents
-	storePromoCoupon = "pyb149-200-off"
-)
+const storePassKey = "factory-pass"
+
+// hkt is the deadline zone for workshop promos: the room spans the US and
+// Asia, and "end of day in Hong Kong" is the latest reading anyone can give
+// "end of day Tuesday" — nobody is cheated.
+var hkt = time.FixedZone("HKT", 8*60*60)
+
+// storePromo is one promotion code. Exactly one of AmountOff / PercentOff is
+// set. Stripe already limits a promotion code to one redemption per
+// customer; MaxRedemptions caps it across everyone.
+type storePromo struct {
+	Code           string
+	CouponID       string // fixed Stripe coupon id (idempotency key)
+	Name           string
+	AmountOff      int64 // cents
+	PercentOff     float64
+	Expires        time.Time
+	MaxRedemptions int64
+}
+
+// storePromos are the live codes. The first is the in-the-room offer for the
+// Sep 21/22 workshop: the pass for $49, gone at end of day Tuesday. The
+// second is the follow-on: half off for the first three to use it, through
+// the end of the year.
+var storePromos = []storePromo{
+	{Code: "WORKSHOP49", CouponID: "workshop49-500-off", Name: "Workshop: Factory Pass for $49", AmountOff: 50000,
+		Expires: time.Date(2026, 9, 22, 23, 59, 59, 0, hkt)},
+	{Code: "PROTOCOL50", CouponID: "protocol50-half-off", Name: "Workshop alumni: half off (first 3)", PercentOff: 50,
+		Expires: time.Date(2026, 12, 31, 23, 59, 59, 0, hkt), MaxRedemptions: 3},
+}
 
 func storeItemByKey(key string) *storeItem {
 	for i := range storeCatalog {
@@ -163,20 +187,35 @@ func (st *store) ensureCatalog(ctx context.Context) error {
 	return st.ensurePromo(ctx)
 }
 
-// ensurePromo: a $200-off coupon restricted to the pass product, exposed as
-// promotion code PYB149 (one use per customer). Idempotent by fixed ids.
+// ensurePromo makes sure every storePromos entry exists in Stripe: the
+// coupon (restricted to the pass product) by fixed id, then the promotion
+// code by code. Idempotent; expired codes are left alone.
 func (st *store) ensurePromo(ctx context.Context) error {
+	for _, p := range storePromos {
+		if err := st.ensureOnePromo(ctx, p); err != nil {
+			return fmt.Errorf("%s: %w", p.Code, err)
+		}
+	}
+	return nil
+}
+
+func (st *store) ensureOnePromo(ctx context.Context, p storePromo) error {
 	var c stripeCoupon
-	err := st.stripe.do(ctx, http.MethodGet, "/v1/coupons/"+storePromoCoupon, nil, &c)
+	err := st.stripe.do(ctx, http.MethodGet, "/v1/coupons/"+p.CouponID, nil, &c)
 	if isStripeNotFound(err) {
-		err = st.stripe.do(ctx, http.MethodPost, "/v1/coupons", stripeForm{
-			"id":                      storePromoCoupon,
-			"name":                    "Workshop alumni: $200 off a Factory Pass",
-			"amount_off":              strconv.FormatInt(storePromoOff, 10),
-			"currency":                "usd",
+		form := stripeForm{
+			"id":                      p.CouponID,
+			"name":                    p.Name,
 			"duration":                "once",
 			"applies_to[products][0]": st.product,
-		}, &c)
+		}
+		if p.PercentOff > 0 {
+			form["percent_off"] = strconv.FormatFloat(p.PercentOff, 'f', -1, 64)
+		} else {
+			form["amount_off"] = strconv.FormatInt(p.AmountOff, 10)
+			form["currency"] = "usd"
+		}
+		err = st.stripe.do(ctx, http.MethodPost, "/v1/coupons", form, &c)
 		if err == nil {
 			slog.Info("store: created coupon", "id", c.ID)
 		}
@@ -185,24 +224,30 @@ func (st *store) ensurePromo(ctx context.Context) error {
 		return fmt.Errorf("coupon: %w", err)
 	}
 	var codes stripeList[stripePromotionCode]
-	if err := st.stripe.do(ctx, http.MethodGet, "/v1/promotion_codes", stripeForm{"code": storePromoCode, "limit": "1"}, &codes); err != nil {
+	if err := st.stripe.do(ctx, http.MethodGet, "/v1/promotion_codes", stripeForm{"code": p.Code, "limit": "1"}, &codes); err != nil {
 		return fmt.Errorf("list promo codes: %w", err)
 	}
 	if len(codes.Data) > 0 {
 		return nil
 	}
-	expires := time.Date(2026, 10, 31, 23, 59, 59, 0, time.UTC).Unix()
+	form := stripeForm{
+		"coupon":     p.CouponID,
+		"code":       p.Code,
+		"expires_at": strconv.FormatInt(p.Expires.Unix(), 10),
+	}
+	if p.AmountOff > 0 {
+		// Only redeemable when the pass is in the cart, not add-ons alone.
+		form["restrictions[minimum_amount]"] = strconv.FormatInt(p.AmountOff+100, 10)
+		form["restrictions[minimum_amount_currency]"] = "usd"
+	}
+	if p.MaxRedemptions > 0 {
+		form["max_redemptions"] = strconv.FormatInt(p.MaxRedemptions, 10)
+	}
 	var pc stripePromotionCode
-	if err := st.stripe.do(ctx, http.MethodPost, "/v1/promotion_codes", stripeForm{
-		"coupon":                                storePromoCoupon,
-		"code":                                  storePromoCode,
-		"expires_at":                            strconv.FormatInt(expires, 10),
-		"restrictions[minimum_amount]":          strconv.FormatInt(storePromoOff+100, 10),
-		"restrictions[minimum_amount_currency]": "usd",
-	}, &pc); err != nil {
+	if err := st.stripe.do(ctx, http.MethodPost, "/v1/promotion_codes", form, &pc); err != nil {
 		return fmt.Errorf("create promo code: %w", err)
 	}
-	slog.Info("store: created promotion code", "code", pc.Code)
+	slog.Info("store: created promotion code", "code", pc.Code, "expires", p.Expires.UTC().Format(time.RFC3339))
 	return nil
 }
 
