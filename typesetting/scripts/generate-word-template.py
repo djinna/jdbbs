@@ -58,12 +58,184 @@ def _weight_to_bold(weight) -> bool | None:
         return None
 
 
+# Stand-in fonts. Clients don't have the book's typefaces installed (and
+# Plantin / Proxima are licensed, so we never embed them). Word silently
+# substitutes Calibri for an unknown face, which looks nothing like the book.
+# Instead we name a face everyone has and say so in the Template Guide.
+STANDIN_FONTS = {
+    "body":    "Georgia",
+    "heading": "Arial",
+    "code":    "Courier New",
+}
+
+# The styles a manuscript should use. Everything else python-docx's default
+# template ships (Body Text 2, List Continue 3, Macro Text…) gets hidden from
+# the Styles pane. Order here is the order in Word's "Recommended" view.
+FACTORY_STYLES = [
+    "Normal", "First Paragraph", "Heading 1", "Heading 2", "Heading 3",
+    "Block Quote", "Epigraph", "Verse", "Code Block", "Section Break",
+    "Copyright",
+]
+
+
 def _ensure_font_exists(run_font, font_name: str):
-    """Set the font name on a run's font object (western + eastAsia)."""
+    """Set the font name on a run's font object (all four slots), and drop
+    any theme-font attributes — Word prefers w:asciiTheme over w:ascii, which
+    is how headings kept coming out in Calibri Light."""
     run_font.name = font_name
-    # Also set the eastAsia font so Word doesn't substitute
-    r = run_font.element
-    r.set(qn("w:eastAsia"), font_name)
+    # Font.element is the owning w:style / w:r, not its rPr.
+    rpr = run_font.element.find(qn("w:rPr"))
+    rfonts = rpr.find(qn("w:rFonts")) if rpr is not None else None
+    if rfonts is not None:
+        for attr in ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme"):
+            rfonts.attrib.pop(qn(f"w:{attr}"), None)
+        for attr in ("ascii", "hAnsi", "eastAsia", "cs"):
+            rfonts.set(qn(f"w:{attr}"), font_name)
+
+
+def _set_black(style):
+    """Force a style's text to plain black (python-docx's default theme paints
+    headings blue via w:themeColor)."""
+    rpr = style.element.get_or_add_rPr()
+    color = rpr.find(qn("w:color"))
+    if color is None:
+        color = rpr.makeelement(qn("w:color"), {})
+        rpr.append(color)
+    for attr in ("themeColor", "themeShade", "themeTint"):
+        color.attrib.pop(qn(f"w:{attr}"), None)
+    color.set(qn("w:val"), "000000")
+
+
+def _parse_length_in(value, default_in: float) -> float:
+    """'0.75in' / '18mm' / '54pt' / bare number (inches) → inches."""
+    if value is None:
+        return default_in
+    if isinstance(value, (int, float)):
+        return float(value)
+    v = str(value).strip().lower()
+    try:
+        if v.endswith("in"):
+            return float(v[:-2])
+        if v.endswith("mm"):
+            return float(v[:-2]) / 25.4
+        if v.endswith("cm"):
+            return float(v[:-2]) / 2.54
+        if v.endswith("pt"):
+            return float(v[:-2]) / 72
+        return float(v)
+    except ValueError:
+        return default_in
+
+
+# CT_Settings child order (ECMA-376 17.15.1.78), as far as we need it. Word
+# rejects settings.xml with children out of sequence, so insert by schema.
+_SETTINGS_ORDER = [
+    "writeProtection", "view", "zoom", "removePersonalInformation",
+    "removeDateAndTime", "doNotDisplayPageBoundaries", "displayBackgroundShape",
+    "printPostScriptOverText", "printFractionalCharacterWidth", "printFormsData",
+    "embedTrueTypeFonts", "embedSystemFonts", "saveSubsetFonts", "saveFormsData",
+    "mirrorMargins", "alignBordersAndEdges", "bordersDoNotSurroundHeader",
+    "bordersDoNotSurroundFooter", "gutterAtTop", "hideSpellingErrors",
+    "hideGrammaticalErrors", "activeWritingStyle", "proofState", "formsDesign",
+    "attachedTemplate", "linkStyles", "stylePaneFormatFilter",
+    "stylePaneSortMethod", "documentType", "mailMerge", "revisionView",
+    "trackRevisions", "doNotTrackMoves", "doNotTrackFormatting",
+    "documentProtection", "autoFormatOverride", "styleLockTheme",
+    "styleLockQFSet", "defaultTabStop",
+]
+
+
+def _insert_setting(settings, el):
+    """Insert *el* into w:settings at its schema position."""
+    local = el.tag.split("}")[1]
+    idx = _SETTINGS_ORDER.index(local)
+    later = {qn(f"w:{n}") for n in _SETTINGS_ORDER[idx + 1:]}
+    for i, child in enumerate(list(settings)):
+        if child.tag in later:
+            settings.insert(i, el)
+            return
+    # Everything present precedes us in the schema, or is beyond our table
+    # (defaultTabStop is always there in python-docx's default, so we rarely
+    # get here).
+    settings.append(el)
+
+
+def _set_page_to_trim(doc, page: dict):
+    """Section page size = trim, margins = the book's, mirrored for facing
+    pages, so line length and page depth in Word feel like the book."""
+    from docx.shared import Inches
+    w = _parse_length_in(page.get("width_in"), 5.5)
+    h = _parse_length_in(page.get("height_in"), 8.5)
+    sec = doc.sections[0]
+    sec.page_width = Inches(w)
+    sec.page_height = Inches(h)
+    sec.top_margin = Inches(_parse_length_in(page.get("margin_top"), 0.75))
+    sec.bottom_margin = Inches(_parse_length_in(page.get("margin_bottom"), 0.75))
+    # With mirrorMargins on, Word reads left as inside and right as outside.
+    sec.left_margin = Inches(_parse_length_in(page.get("margin_inside"), 0.7))
+    sec.right_margin = Inches(_parse_length_in(page.get("margin_outside"), 0.6))
+    settings = doc.settings.element
+    if settings.find(qn("w:mirrorMargins")) is None:
+        _insert_setting(settings, settings.makeelement(qn("w:mirrorMargins"), {}))
+
+
+def _tidy_styles_pane(doc, visible: list[str]):
+    """Show only the factory styles in Word's Styles pane.
+
+    Every style not in *visible* is marked semiHidden + unhideWhenUsed and
+    loses qFormat; ours get qFormat + a uiPriority in list order. Latent
+    styles (built-ins Word knows about but the file doesn't define) default
+    to hidden and the per-style exceptions are dropped. Finally the pane
+    filter is set to "Recommended", which is exactly the qFormat set.
+    """
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    order = {name: i for i, name in enumerate(visible)}
+    for style in doc.styles:
+        el = style.element
+        for tag in ("w:semiHidden", "w:unhideWhenUsed", "w:qFormat", "w:uiPriority"):
+            for old in el.findall(qn(tag)):
+                el.remove(old)
+        # These children belong right after name/aliases/basedOn/next/link.
+        anchor = 0
+        for i, child in enumerate(list(el)):
+            if child.tag in (qn("w:name"), qn("w:aliases"), qn("w:basedOn"),
+                             qn("w:next"), qn("w:link"), qn("w:autoRedefine"),
+                             qn("w:hidden")):
+                anchor = i + 1
+        new = []
+        if style.name in order:
+            new.append(el.makeelement(qn("w:uiPriority"), {qn("w:val"): str(order[style.name] + 1)}))
+            new.append(el.makeelement(qn("w:qFormat"), {}))
+        else:
+            new.append(el.makeelement(qn("w:uiPriority"), {qn("w:val"): "99"}))
+            new.append(el.makeelement(qn("w:semiHidden"), {}))
+            new.append(el.makeelement(qn("w:unhideWhenUsed"), {}))
+        for j, n in enumerate(new):
+            el.insert(anchor + j, n)
+
+    latent = doc.styles.element.find(qn("w:latentStyles"))
+    if latent is not None:
+        for ex in list(latent):
+            latent.remove(ex)
+        latent.set(qn("w:defSemiHidden"), "1")
+        latent.set(qn("w:defUnhideWhenUsed"), "1")
+        latent.set(qn("w:defQFormat"), "0")
+        latent.set(qn("w:defUIPriority"), "99")
+
+    settings = doc.settings.element
+    for old in settings.findall(qn("w:stylePaneFormatFilter")):
+        settings.remove(old)
+    flt = settings.makeelement(qn("w:stylePaneFormatFilter"), {
+        qn("w:val"): "2801",  # visibleStyles + clearFormatting + top3HeadingStyles… → "Recommended"
+        qn("w:allStyles"): "0", qn("w:customStyles"): "0", qn("w:latentStyles"): "0",
+        qn("w:stylesInUse"): "0", qn("w:headingStyles"): "0", qn("w:numberingStyles"): "0",
+        qn("w:tableStyles"): "0", qn("w:directFormattingOnRuns"): "0",
+        qn("w:directFormattingOnParagraphs"): "0", qn("w:directFormattingOnNumbering"): "0",
+        qn("w:directFormattingOnTables"): "0", qn("w:clearFormatting"): "1",
+        qn("w:top3HeadingStyles"): "0", qn("w:visibleStyles"): "1",
+        qn("w:alternateStyleNames"): "0",
+    })
+    _insert_setting(settings, flt)
 
 
 def _set_paragraph_style_font(style, font_name: str, size_pt: float,
@@ -118,9 +290,14 @@ def build_template(spec: dict) -> Document:
     customs = spec.get("custom_styles") or []
 
     # Derived values
-    body_font    = typo.get("body_font", "Libertinus Serif")
-    heading_font = typo.get("heading_font", "Source Sans 3")
-    code_font    = typo.get("code_font", "JetBrains Mono")
+    # The book's real typefaces (named in the guide) vs the stand-ins the
+    # template actually uses (see STANDIN_FONTS).
+    book_body_font    = typo.get("body_font", "Libertinus Serif")
+    book_heading_font = typo.get("heading_font", "Source Sans 3")
+    book_code_font    = typo.get("code_font", "JetBrains Mono")
+    body_font    = STANDIN_FONTS["body"]
+    heading_font = STANDIN_FONTS["heading"]
+    code_font    = STANDIN_FONTS["code"]
     base_size    = float(typo.get("base_size_pt", 10))
     leading      = float(typo.get("leading_pt", 2))
     line_sp      = base_size + leading
@@ -131,8 +308,11 @@ def build_template(spec: dict) -> Document:
     # ------------------------------------------------------------------
     # 1. Normal (base body text) style
     # ------------------------------------------------------------------
+    _set_page_to_trim(doc, spec.get("page") or {})
+
     normal = doc.styles["Normal"]
     _set_paragraph_style_font(normal, body_font, base_size)
+    _set_black(normal)
     _set_line_spacing_pt(normal, line_sp)
     _set_first_line_indent(normal, indent_pt)
     _set_alignment(normal, justify)
@@ -159,6 +339,7 @@ def build_template(spec: dict) -> Document:
         size_pt = float(size_em) * base_size
         bold = _weight_to_bold(weight)
         _set_paragraph_style_font(style, heading_font, size_pt, bold=bold)
+        _set_black(style)
         style.paragraph_format.space_before = Pt(base_size * 1.5)
         style.paragraph_format.space_after = Pt(base_size * 0.5)
         style.paragraph_format.first_line_indent = Pt(0)
@@ -265,6 +446,11 @@ def build_template(spec: dict) -> Document:
         # python-docx doesn't expose style description directly, but we note
         # it in the sample content below.
 
+    visible_styles = FACTORY_STYLES + [
+        (cs.get("word_style") or cs.get("name", "Custom")) for cs in customs
+    ]
+    _tidy_styles_pane(doc, visible_styles)
+
     # ------------------------------------------------------------------
     # Sample content demonstrating each style
     # ------------------------------------------------------------------
@@ -287,6 +473,18 @@ def build_template(spec: dict) -> Document:
         "in final production. Use these styles consistently so the manuscript "
         "converts cleanly.",
         style="First Paragraph"
+    )
+    doc.add_paragraph(
+        f"About the fonts: this template is set in {body_font}, {heading_font} and "
+        f"{code_font} because every computer has them. They are stand-ins. "
+        f"The book itself will be set in {book_body_font} (text), "
+        f"{book_heading_font} (headings) and {book_code_font} (code) when it is built."
+    )
+    doc.add_paragraph(
+        "The page is the book's trim size with the book's margins, so the line "
+        "length you see is close to what the printed page will carry. "
+        "The Styles pane (Home \u2192 Styles) lists only the styles below; if you "
+        "see more, open its Options and choose \u201cRecommended\u201d."
     )
 
     # --- Normal / Body Text ---
