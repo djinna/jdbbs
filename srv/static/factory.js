@@ -943,7 +943,7 @@ async function doInspect() {
 
 // ─── build ─────────────────────────────────────────────────────────────────
 function buildingText() {
-  return 'Building your EPUB and print PDF\u2026 this usually takes a minute or two. You can leave this page open.';
+  return 'Building your EPUB and print PDF\u2026 usually a minute or two, longer if other books are building at the same time. You can leave this page open.';
 }
 
 // One build = the EPUB and the print PDF together, one credit.

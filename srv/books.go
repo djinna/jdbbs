@@ -336,8 +336,25 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 // pruned so repeated builds don't fill the outputs table.
 const epubOutputsKept = 10
 
+// maxConcurrentBuilds is the global build cap; see Server.buildSem.
+const maxConcurrentBuilds = 2
+
+// acquireBuildSlot blocks until one of the maxConcurrentBuilds slots is free
+// and returns the release func. Queue time is logged so a workshop-day
+// backlog shows up in the journal.
+func (s *Server) acquireBuildSlot(bid int64) func() {
+	s.buildSemOnce.Do(func() { s.buildSem = make(chan struct{}, maxConcurrentBuilds) })
+	start := time.Now()
+	s.buildSem <- struct{}{}
+	if waited := time.Since(start); waited > time.Second {
+		slog.Info("build queued", "id", bid, "waited", waited.Round(time.Millisecond))
+	}
+	return func() { <-s.buildSem }
+}
+
 // runConversion is the build. format is "pdf", "epub" or "both".
 func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
+	defer s.acquireBuildSlot(bid)()
 	if format == "epub" {
 		s.runEPUBBuild(bid, book)
 		return

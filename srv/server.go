@@ -48,6 +48,14 @@ type Server struct {
 	regLimiter     *regRateLimiter
 	regLimiterOnce sync.Once
 
+	// buildSem caps concurrent builds across all projects. Load test
+	// 2026-09-17 (docs/reviews/LOADTEST-2026-09-17.md): one build is ~9 s and
+	// ~360 MiB peak on this 2-vCPU VM, and CPU is the bottleneck — N=8 in
+	// parallel took 50 s each. Two at a time keeps the web tier responsive;
+	// the rest wait in this queue with status "converting".
+	buildSem     chan struct{}
+	buildSemOnce sync.Once
+
 	aliasMu sync.RWMutex
 	aliases map[slugAlias]slugAlias // old /{client}/{project} → current
 }
