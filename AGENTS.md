@@ -39,6 +39,31 @@ Commit locally → push to GitHub (`origin`) → on the VM `git pull --ff-only o
 - `cmd/prodcal-app` (`//go:build darwin`) — a native WebKit window over the same launcher core (`internal/localrun`); the personal macOS desktop-app prototype (Word → EPUB/print-PDF, same UI as the web app).
 - These are Mac-only conveniences. The deploy build (`make build` → `./cmd/srv`) is unaffected, and the darwin-tagged desktop app never compiles on the Linux VM.
 
+## Two sides, one app — keep them convergent
+
+ProdCal has an **admin side** (`/admin/…`, Jenna) and a **customer side**
+(`/{client}/`, `/{client}/{project}/`, `…/factory/`, `…/transmittal/`). They
+are used by different people but must feel like one product and stay in step.
+Reviewing one page at a time misses exactly this — the customer pages shipped
+with an empty top nav for weeks while the admin pages each grew their own.
+
+- **Shared chrome is defined once.** Top navs come from `ADMIN_NAV` /
+  `clientNav()` in `srv/static/theme.js` via `<nav data-admin-nav>` /
+  `<nav data-client-nav>`; pages never hand-write their own link lists.
+  `srv/nav_convergence_test.go` fails if a page opts out or a new `/admin/`
+  route is missing from the list.
+- **Every feature has two ends.** When adding or changing something (a pass,
+  an email, a status, a build), ask: what does the admin see, and what does
+  the customer see? Both, or a stated reason for one-sided. If the admin can
+  reach a page, check the customer has a route to *their* equivalent
+  (portal card → factory, factory → transmittal, etc.).
+- **Review across pages, not per page.** Before closing a UI block, walk the
+  customer path (portal → calendar → transmittal → factory) and the admin path
+  (Admin → Cohorts → Store → Floor → Docs → Emails → Review → Pages) end to
+  end in the browser, and look for the same thing named two ways.
+- **Registry.** `/admin/#pages` (`site_pages`) lists every route; a new route
+  gets a migration row and, if admin-tier, an `ADMIN_NAV` entry.
+
 ## Reviews
 
 - **`docs/reviews/LAUNCH-TRIAGE.md`** — pre-launch code + UX review; blockers fixed, HIGH tier tracked.
