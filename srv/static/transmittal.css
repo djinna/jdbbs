@@ -329,6 +329,13 @@ html.dark .tx-field select:focus {
   line-height: 1.35;
 }
 
+.tx-illus-guide { margin: 0 0 8px; font-size: 12px; }
+.tx-illus-rules {
+  margin: 0 0 12px; padding-left: 18px;
+  font-size: 12px; line-height: 1.45; color: var(--text-secondary);
+}
+.tx-illus-rules li { margin: 2px 0; }
+
 /* Priority fields: 2px accent left rule, no fill */
 .tx-field-important {
   padding: 2px 0 2px 10px;

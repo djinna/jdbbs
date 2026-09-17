@@ -780,33 +780,26 @@ function renderChecklistSection() {
 }
 
 // ─── Section: Illustrations ───
+// The factory takes images from the manuscript itself; there is no separate
+// art upload. The old figures/tables/photos count table is gone — Inspect
+// counts inline images at upload and the report lists each one's printed
+// size. Old transmittals that saved illustrations.*_no keys still load (the
+// keys are simply not shown).
 function renderIllustrationsSection() {
-  const types = [
-    ['Figures', 'figures'], ['Tables', 'tables'], ['Photos', 'photos'], ['Other', 'other']
-  ];
-  return h('div', { className: 'tx-section tx-section-important' },
+  const rule = (text) => h('li', null, text);
+  return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Illustrations'),
-    h('table', { className: 'tx-illus-table' },
-      h('thead', null, h('tr', null,
-        h('th', null, 'Type'), h('th', null, 'No.'), h('th', { style: 'text-align:center' }, 'Here'), h('th', null, 'To Come'),
-      )),
-      h('tbody', null, ...types.map(([label, key]) =>
-        h('tr', null,
-          h('td', null, label),
-          h('td', null, h('input', { type: 'number', value: getField('illustrations.' + key + '_no') || '',
-            onInput: (e) => setField('illustrations.' + key + '_no', parseInt(e.target.value) || 0) })),
-          h('td', { style: 'text-align:center' },
-            h('input', { type: 'checkbox', checked: getField('illustrations.' + key + '_here') ? 'checked' : undefined,
-              onChange: (e) => setField('illustrations.' + key + '_here', e.target.checked) })),
-          h('td', null, h('input', { type: 'text', value: getField('illustrations.' + key + '_to_come') || '',
-            onInput: (e) => setField('illustrations.' + key + '_to_come', e.target.value) })),
-        )
-      )),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'Put every figure or photo in the Word file itself, where it belongs. The factory carries it into the print PDF and the EPUB; Inspect will tell you how many it found and how big each will print.'),
+    h('ul', { className: 'tx-illus-rules' },
+      rule('One image per paragraph, inline \u2014 not floating or text-wrapped.'),
+      rule('Caption in the paragraph right after the image.'),
+      rule('At least 1100 px wide for a full-width figure (about 300 dpi at this trim). Smaller images print smaller, not blurrier.'),
+      rule('PNG for line art and screenshots, JPEG for photos. Colour is fine; the print PDF is RGB and the printer converts.'),
     ),
-    textareaField('Art & Production Plan / Budget', 'illustrations.art_plan', {
-      rows: 4,
-      className: 'tx-field-important',
-      helpText: 'Interior art: what is expected, budget notes, and constraints.',
+    textareaField('Art notes', 'illustrations.art_plan', {
+      rows: 3,
+      helpText: 'Anything the factory should know about the images: placement wishes, cropping, an image still to come.',
     }),
   );
 }
