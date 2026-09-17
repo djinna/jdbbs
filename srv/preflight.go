@@ -371,6 +371,20 @@ func (s *Server) handleGetManuscriptPreflightReport(w http.ResponseWriter, r *ht
 		jsonErr(w, "bad id", 400)
 		return
 	}
+	q := dbgen.New(s.DB)
+	// The report opens in its own tab. A fresh browser profile (or an expired
+	// cookie) used to get a bare JSON 401 here; render a page that says
+	// where to sign in instead. The factory page holds the password gate.
+	factoryURL := "/"
+	if pr, perr := q.GetProject(r.Context(), pid); perr == nil {
+		factoryURL = "/" + pr.ClientSlug + "/" + pr.ProjectSlug + "/factory/"
+	}
+	if r.Header.Get("X-ExeDev-UserID") == "" && !s.checkAuth(r, pid) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = fmt.Fprintf(w, preflightSignInHTML, factoryURL)
+		return
+	}
 	if _, _, ok := s.requirePassAccess(w, r, pid); !ok {
 		return
 	}
@@ -380,7 +394,6 @@ func (s *Server) handleGetManuscriptPreflightReport(w http.ResponseWriter, r *ht
 		return
 	}
 	preflightIDStr := strings.TrimSpace(r.URL.Query().Get("preflight_id"))
-	q := dbgen.New(s.DB)
 	var row dbgen.ManuscriptPreflight
 	if preflightIDStr == "" {
 		row, err = q.GetLatestManuscriptPreflight(r.Context(), dbgen.GetLatestManuscriptPreflightParams{ProjectID: pid, BookID: bookID})
@@ -417,8 +430,21 @@ func (s *Server) handleGetManuscriptPreflightReport(w http.ResponseWriter, r *ht
 		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(row.ReportHtml))
+	// The stored report carries a placeholder for the crumb back to the
+	// factory page; reports generated before it existed just have no crumb.
+	_, _ = w.Write([]byte(strings.ReplaceAll(row.ReportHtml, "{{FACTORY_URL}}", factoryURL)))
 }
+
+// preflightSignInHTML is the 401 page for the report. %s = factory URL.
+const preflightSignInHTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign in first — jdbb studio</title>
+<link rel="stylesheet" href="/static/theme.css"></head>
+<body><main style="max-width:var(--shell-max);margin:0 auto;padding:64px var(--shell-gutter);font-family:var(--body);color:var(--text)">
+<p style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">// Inspect</p>
+<h1 style="font-size:24px;margin:8px 0 12px">Sign in to your factory first</h1>
+<p style="max-width:var(--prose-measure);color:var(--text-secondary);line-height:1.5">This report belongs to a book on a factory pass. Open the factory page, enter the password, then come back to this tab and reload.</p>
+<p style="margin-top:20px"><a href="%s" style="color:var(--accent)">Open the factory page &rarr;</a></p>
+</main></body></html>`
 
 // handleRunManuscriptPreflight runs (or re-runs) preflight for a project's
 // manuscript. Unmetered: preflight is the negotiation step, so a customer with
