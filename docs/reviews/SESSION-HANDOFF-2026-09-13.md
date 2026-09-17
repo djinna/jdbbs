@@ -413,6 +413,9 @@ for C1–C27 and P1–P4 in full. Last commit at writing: `9eabd7d`.
 | C19, C20 | Inspect summary: `preserved` bucket (auto-decisions, "carried through automatically") excluded from high/med/low; summary recomputed from stored findings at read time; near-black greys (< 90/255, spread < 24) are low, not high. Project 22: 61 → 27 high | `81eebd3` `ae893ba` |
 | C25 | **Pricing**: $549 pass; every build = EPUB + PDF and costs one credit; 3 builds/pass; +3 builds $99; promos `WORKSHOP49` / `PROTOCOL50` (`storePromos`, `srv/store.go`; deadlines HKT); `~/jdbbs-public/factory.html` updated | `7371bcb` |
 | C26 | **Load test** `docs/reviews/LOADTEST-2026-09-17.md`: 139k-word build ≈ 9 s / 360 MiB; 8 at once = 50 s each, 2.9 GiB, no OOM, CPU-bound. Added global build semaphore **2** (`Server.buildSem`, `acquireBuildSlot` in `srv/books.go`); requests still return "converting" at once. VM is fine; 4 vCPU is the only worthwhile bump | `a7a0c45` |
+| C21 | PDF title/author from the transmittal spec (`specTitleAuthor` in `srv/books.go`), same as the EPUB | `61819ee` |
+| C1, C1b, C1c | client slug from the author field when given, else cardholder; org names get whole-name slug + full-name greeting (`looksLikeOrg`, `srv/slugs.go`) | `88f4032` |
+| C15 | pass holders see **"Email me a copy"** (pass email first, studio opt-in); Mark Final no longer opens the studio modal. Same commit fixes a **latent server-wide DB deadlock**: `hasAnyProjectAuthForClient` queried inside an open rows loop on the MaxOpenConns(1) pool — any project-token cookie without a client cookie froze every DB call. Rule: never run a query while another `rows` is open | `9cb5376` |
 | C27 | 20 MB EPUB was *not* a regression: one ASCII-art tweet with fullwidth/ㅅ/づ chars trips the CJK-embed rule legitimately. Month one: require ≥ 20 ideographs and/or `pyftsubset` | `7229389` |
 
 **Tooling added.** LibreOffice (`libreoffice-writer-nogui` 24.2) + MS core fonts
@@ -420,11 +423,9 @@ on the VM; `scripts/docx-preview.sh file.docx [dpi]` renders a .docx to PDF +
 PNGs for eyeballing templates (`42779f1`). Pipeline can be replicated by hand —
 see the run doc's "Critical context" for the pandoc/typst incantation.
 
-**Still open before Sep 21** (small): C1/C1b/C1c client slug from cardholder
-name (org buyers get an odd URL + "Hi Protocol,"); C3 add-ons not mentioned on
-the sales page; C4 email footer string (Jenna, 1 min in `/admin/docs/`); C21
-PDF `Author` metadata should come from the transmittal like the EPUB's; C15
-transmittal "Email" goes to the studio only. **Jenna to re-download the Word
+**Still open before Sep 21** (small): C4 email footer string (Jenna, 1 min in
+`/admin/docs/`). C1, C3 (covered by the C25 sales-page update), C15 and C21
+closed later the same day — see table. **Jenna to re-download the Word
 template and confirm in Word** (Styles pane, fonts, page size) — her screenshot
 was the pre-fix file.
 
