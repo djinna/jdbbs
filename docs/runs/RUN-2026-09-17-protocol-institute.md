@@ -54,7 +54,9 @@ Ticked = done. This page refreshes itself every 20 s.
 
 - [x] 6.1 Fix small catches inline; park big ones
 - [x] 6.2 Handoff addendum; commit, push (`docs/reviews/SESSION-HANDOFF-2026-09-13.md`)
-- [ ] 6.3 BOTH — freeze / hotfix policy for Sep 19–23
+- [x] 6.3 BOTH — freeze / hotfix policy for Sep 19–23 (confirmed Thu 17: Fri–Sat fix/test/clean; Sun–Tue hotfix-only)
+- [x] 6.4 Store decision: **attendees free through Tue HKT via hand-granted passes** (New pass form on `/admin/store/`); sandbox Stripe stays on; `prodcal-store-live.timer` flips to live Wed 23 Sep 00:00 HKT
+- [x] 6.5 Thu-night block landed: shared admin + client nav (`08cf455` `828fc59`), convergence rule + test (`1cc7aaf`), store go-live timer (`3d1bac6`), mail on Resend from `studio@mail.jdbb.studio` (`fc169dd` `faa2c53`)
 
 ## Test 1 — aborted (artefacts kept)
 

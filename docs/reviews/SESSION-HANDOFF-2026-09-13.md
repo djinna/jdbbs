@@ -417,6 +417,11 @@ for C1–C27 and P1–P4 in full. Last commit at writing: `9eabd7d`.
 | C1, C1b, C1c | client slug from the author field when given, else cardholder; org names get whole-name slug + full-name greeting (`looksLikeOrg`, `srv/slugs.go`) | `88f4032` |
 | C15 | pass holders see **"Email me a copy"** (pass email first, studio opt-in); Mark Final no longer opens the studio modal. Same commit fixes a **latent server-wide DB deadlock**: `hasAnyProjectAuthForClient` queried inside an open rows loop on the MaxOpenConns(1) pool — any project-token cookie without a client cookie froze every DB call. Rule: never run a query while another `rows` is open | `9cb5376` |
 | C27 | 20 MB EPUB was *not* a regression: one ASCII-art tweet with fullwidth/ㅅ/づ chars trips the CJK-embed rule legitimately. Month one: require ≥ 20 ideographs and/or `pyftsubset` | `7229389` |
+| Thu night | **Shared admin nav**: `ADMIN_NAV` + `adminNav()` in `srv/static/theme.js`; pages opt in with `<nav data-admin-nav>` (Admin · Cohorts · Store · Floor · Docs · Emails · Review · Pages · Roster · Map). **New pass form** on `/admin/store/` → `POST /api/admin/passes` (name, email, title, author, note, send_email, project_id); shows portal URL, factory URL and the one-time password. This is the "attendee shows up → free 3-build pass" path for the workshop | `08cf455` |
+| Thu night | **Shared client nav** `clientNav()` + `<nav data-client-nav>` on client / index / factory / transmittal (Your books · Transmittal · Factory · Calendar, derived from the URL). Portal cards link Transmittal · Factory → · Calendar and show `[FACTORY PASS]`; `/api/clients/{c}/projects` returns `has_pass` (active, unexpired) | `828fc59` |
+| Thu night | AGENTS.md **"Two sides, one app — keep them convergent"** + `srv/nav_convergence_test.go` (`TestNavConvergence`: every listed page carries masthead + nav attr + theme.js; every `GET /admin/` route in `server.go` must be in `ADMIN_NAV`) | `1cc7aaf` |
+| Thu night | **Store go-live timer**: `scripts/store-go-live.sh` (idempotent, `--dry-run` edits a copy in `scratch/`; removes `PRODCAL_STRIPE_URL` from `.env`, backs up `.env.pre-live.*`, restarts, checks `/api/public/store/config`, emails Jenna) + `deploy/prodcal-store-live.{service,timer}` **installed and armed — fires Tue 22 Sep 16:00 UTC = Wed 23 Sep 00:00 HKT**. Live `rk_live_` key confirmed via `https://stripe.int.exe.xyz` for prices / coupons / promotion codes / checkout sessions / events. Dry-run passed from inside a systemd unit. Documented in DEPLOY.md "Store: sandbox → live Stripe". Ops: `systemctl list-timers prodcal-store-live.timer`; fire now `sudo systemctl start prodcal-store-live.service`; cancel `sudo systemctl disable --now prodcal-store-live.timer`; rollback = restore `PRODCAL_STRIPE_URL=https://stripe-test.int.exe.xyz` + restart | `3d1bac6` |
+| Thu night | **Outbound mail on Resend.** `srv/email.go`: `EmailConfig.Provider`; `PRODCAL_MAIL_FROM=studio@mail.jdbb.studio` in `.env` turns it on; `sendResend()` posts to `https://resend.int.exe.xyz/emails` (exe.dev `resend` integration, sending-only key injected at the edge, never on the VM; `RESEND_API_KEY` / `PRODCAL_RESEND_URL` for direct). AgentMail = fallback sender + archive inbox (`jdbb@agentmail.to` CC rows unchanged). Domain `mail.jdbb.studio` verified at Resend: CNAMEs `send.mail` / `rsend.mail` → `*.forge.rmta.net`, DKIM TXT `resend._domainkey.mail`, `_dmarc` `p=none; rua=j@djinna.com`. Jenna bought `jdbb.studio` at Porkbun (3 yr). Test snapshot landed in Gmail **Inbox**, SPF / DKIM / DMARC all pass, From `jdbb studio <studio@mail.jdbb.studio>`. Tracking + TLS left at defaults (off / opportunistic). `TestSendResendShape`; `srv/EMAIL_SYSTEM.md`, DEPLOY.md "Mail: Resend from mail.jdbb.studio" (rollback: delete the `PRODCAL_MAIL_FROM` line, restart) | `fc169dd` `faa2c53` `68ddb9b` |
 
 **Tooling added.** LibreOffice (`libreoffice-writer-nogui` 24.2) + MS core fonts
 on the VM; `scripts/docx-preview.sh file.docx [dpi]` renders a .docx to PDF +
@@ -463,15 +468,18 @@ transmittal opt-in that shifts chapters to H2, arabic 1 on a recto.
   bursts (password confusion), and the build semaphore queueing (> 2 at once
   shows as "queued" in the log).
 
-**Freeze / hotfix policy Sep 19–23 (proposed — Jenna to confirm, item 6.3).**
+**Freeze / hotfix policy Sep 19–23 (confirmed by Jenna 2026-09-17, item 6.3).**
 - Fri 19 – Sat 20: tweak / fix / clean / test allowed; each change = build,
   `go test ./srv/`, restart, one factory-page smoke as `pinstitute`.
 - Sun 21 – Tue 23 (sessions + talk): **no deploys** except a hotfix for a
   blocker (can't sign in, can't upload, build fails for everyone, store broken).
   Hotfix = smallest diff, test on project 22 first, restart between sessions
   never during one, commit tagged `hotfix-YYYY-MM-DD`.
-- Store stays `PRODCAL_STORE=on` against the **sandbox** through the workshop
-  (decision 2026-09-16); go-live checklist is in the 2026-09-16 addendum.
+- Store stays `PRODCAL_STORE=on` against the **sandbox** through the workshop;
+  **attendees are free through Tue HKT via hand-granted passes** (New pass form
+  on `/admin/store/`), no coupons or $0 checkouts. Billing flips by the
+  `prodcal-store-live.timer` at Wed 23 Sep 00:00 HKT (see the Thu-night row);
+  the 2026-09-16 go-live checklist is superseded by `scripts/store-go-live.sh`.
 - Rollback: `CHECKPOINTS.md` workflow; last known-good tag before freeze to be
   cut Sat evening.
 
