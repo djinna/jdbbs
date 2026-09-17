@@ -1124,24 +1124,56 @@ func (s *Server) sendPassFulfillmentEmail(res fulfillPassResult, by string) {
 	}()
 }
 
+// passIncludedSummary is what a pass actually contains, add-ons folded in,
+// so the fulfilment email never quotes the base pass when the customer
+// bought more (caught 2026-09-17: "3 builds … (6 months)" on a 6-build,
+// 12-month pass).
+type passIncludedSummary struct {
+	Builds int64
+	Months int
+	AddOns []string
+}
+
+func passIncluded(p dbgen.Pass) passIncludedSummary {
+	inc := passIncludedSummary{Builds: p.BuildsIncluded + p.BuildsExtra}
+	// Whole months between fulfilment and expiry, rounded to the nearest.
+	days := p.ExpiresAt.Sub(p.FulfilledAt).Hours() / 24
+	inc.Months = int(days/30.44 + 0.5)
+	if inc.Months < 1 {
+		inc.Months = passStorageMonths
+	}
+	if p.BuildsExtra > 0 {
+		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d builds", p.BuildsExtra))
+	}
+	if extra := inc.Months - passStorageMonths; extra > 0 {
+		inc.AddOns = append(inc.AddOns, fmt.Sprintf("+%d months storage", extra))
+	}
+	return inc
+}
+
 func passFulfillmentText(res fulfillPassResult) string {
 	expires := res.Pass.ExpiresAt.UTC().Format("2 January 2006")
 	var b strings.Builder
 	fmt.Fprintf(&b, "Hi %s,\n\n", firstName(res.Pass.CustomerName))
-	fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you'll use in the sessions; the Discord and calendar invites arrive separately.\n\n")
+	fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you'll use in the sessions; Discord and calendar invites arrive separately.\n\n")
 	fmt.Fprintf(&b, "Manuscript:     %s\n", res.Title)
 	fmt.Fprintf(&b, "Your factory:   %s\n", res.PortalURL)
 	fmt.Fprintf(&b, "Sign-in name:   %s\n", res.ClientSlug)
 	fmt.Fprintf(&b, "Password:       %s\n\n", res.Password)
+	inc := passIncluded(res.Pass)
 	fmt.Fprintf(&b, "What's included\n")
-	fmt.Fprintf(&b, "  - %d builds (each one a print PDF + EPUB)\n", res.Pass.BuildsIncluded)
+	fmt.Fprintf(&b, "  - %d builds (each one a print PDF + EPUB)\n", inc.Builds)
 	fmt.Fprintf(&b, "  - Unlimited preflights: the report tells you what to fix\n")
-	fmt.Fprintf(&b, "  - Your project stays live and rebuildable until %s (%d months)\n\n", expires, passStorageMonths)
+	fmt.Fprintf(&b, "  - Your project stays live and rebuildable until %s (%d months)\n", expires, inc.Months)
+	for _, a := range inc.AddOns {
+		fmt.Fprintf(&b, "  - Add-on: %s\n", a)
+	}
+	b.WriteString("\n")
 	fmt.Fprintf(&b, "First steps\n")
 	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  2. Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  3. Run a preflight (free, as often as you like) and fix what it flags.\n")
-	fmt.Fprintf(&b, "  4. Build. Failed builds don't count against your %d.\n\n", res.Pass.BuildsIncluded)
+	fmt.Fprintf(&b, "  4. Build. Failed builds don't count against your %d.\n\n", inc.Builds)
 	fmt.Fprintf(&b, "Support\n")
 	for _, edge := range passSupportEdges {
 		fmt.Fprintf(&b, "  - %s\n", edge)
@@ -1158,25 +1190,30 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	}
 	var b strings.Builder
 	b.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(res.Pass.CustomerName)))))
-	b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you&rsquo;ll use in the sessions; the Discord and calendar invites arrive separately."))
+	b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you&rsquo;ll use in the sessions; Discord and calendar invites arrive separately."))
 	b.WriteString(emailKV([][2]string{
 		{"Manuscript", "<b>" + html.EscapeString(res.Title) + "</b>"},
 		{"Your factory", fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:none">%s</a>`, html.EscapeString(res.PortalURL), emailAccent, emailCode(res.PortalURL))},
 		{"Sign-in name", emailCode(res.ClientSlug)},
 		{"Password", emailCode(res.Password)},
 	}))
-	b.WriteString(emailH2("What's included"))
-	b.WriteString(emailList([]string{
-		fmt.Sprintf("%d builds (each one a print PDF + EPUB)", res.Pass.BuildsIncluded),
+	inc := passIncluded(res.Pass)
+	included := []string{
+		fmt.Sprintf("%d builds (each one a print PDF + EPUB)", inc.Builds),
 		"Unlimited preflights &mdash; the report tells you what to fix",
-		fmt.Sprintf("Your project stays live and rebuildable until <b>%s</b> (%d months)", html.EscapeString(expires), passStorageMonths),
-	}, false))
+		fmt.Sprintf("Your project stays live and rebuildable until <b>%s</b> (%d months)", html.EscapeString(expires), inc.Months),
+	}
+	for _, a := range inc.AddOns {
+		included = append(included, "Add-on: "+html.EscapeString(a))
+	}
+	b.WriteString(emailH2("What's included"))
+	b.WriteString(emailList(included, false))
 	b.WriteString(emailH2("First steps"))
 	b.WriteString(emailList([]string{
 		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
 		"Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).",
 		"Run a <b>preflight</b> (free, as often as you like) and fix what it flags.",
-		fmt.Sprintf("<b>Build.</b> Failed builds don&rsquo;t count against your %d.", res.Pass.BuildsIncluded),
+		fmt.Sprintf("<b>Build.</b> Failed builds don&rsquo;t count against your %d.", inc.Builds),
 	}, true))
 	// Support edges: same sentences as the page and the text part, in small type.
 	b.WriteString(emailH2("Support"))
