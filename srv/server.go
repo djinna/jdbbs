@@ -83,7 +83,7 @@ func New(dbPath, hostname string) (*Server, error) {
 	srv.Email = LoadEmailConfig()
 	srv.initStore()
 	if srv.Email != nil {
-		slog.Info("email configured", "inbox_id", srv.Email.InboxID)
+		slog.Info("email configured", "provider", srv.Email.Provider, "from", srv.Email.From())
 	} else {
 		slog.Warn("email not configured (set AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID)")
 	}

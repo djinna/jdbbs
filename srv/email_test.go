@@ -2,6 +2,8 @@ package srv
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -330,5 +332,47 @@ func TestSnapshotFormatDateFallback(t *testing.T) {
 		if strings.ContainsAny(got, "<>") {
 			t.Errorf("snapshotFormatDate(%q) = %q contains raw angle brackets", tt.in, got)
 		}
+	}
+}
+
+// TestSendResendShape: the Resend transport posts to /emails with an explicit
+// From (display name + our domain), list-valued reply_to, audit BCC, and the
+// extra headers map — and sends no bearer when going through the proxy.
+func TestSendResendShape(t *testing.T) {
+	var got map[string]any
+	var auth, path string
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path = r.URL.Path
+		auth = r.Header.Get("Authorization")
+		json.NewDecoder(r.Body).Decode(&got)
+		w.WriteHeader(200)
+		w.Write([]byte(`{"id":"em_1"}`))
+	}))
+	defer api.Close()
+	cfg := &EmailConfig{Provider: "resend", InboxID: "studio@mail.example.com", FromName: "jdbb studio", ReplyTo: "j@example.com", BCC: "audit@example.com", APIBase: api.URL}
+	status, err := cfg.send([]string{"ada@example.com"}, nil, "Hi", "text", "<p>html</p>", map[string]string{"List-Unsubscribe": "<mailto:x@example.com>"})
+	if err != nil || status != 200 {
+		t.Fatalf("send: %v status %d", err, status)
+	}
+	if path != "/emails" {
+		t.Errorf("path = %q", path)
+	}
+	if auth != "" {
+		t.Errorf("expected no Authorization header via proxy, got %q", auth)
+	}
+	if got["from"] != `"jdbb studio" <studio@mail.example.com>` {
+		t.Errorf("from = %v", got["from"])
+	}
+	if rt, _ := got["reply_to"].([]any); len(rt) != 1 || rt[0] != "j@example.com" {
+		t.Errorf("reply_to = %v", got["reply_to"])
+	}
+	if bcc, _ := got["bcc"].([]any); len(bcc) != 1 || bcc[0] != "audit@example.com" {
+		t.Errorf("bcc = %v", got["bcc"])
+	}
+	if h, _ := got["headers"].(map[string]any); h["List-Unsubscribe"] == nil {
+		t.Errorf("headers = %v", got["headers"])
+	}
+	if got["text"] != "text" || got["html"] != "<p>html</p>" {
+		t.Errorf("bodies = %v / %v", got["text"], got["html"])
 	}
 }

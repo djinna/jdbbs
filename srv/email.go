@@ -16,29 +16,49 @@ import (
 	"time"
 )
 
-// AgentMail config — set via environment variables:
+// Outbound mail config — set via environment variables. Two transports:
+//
+// Resend (preferred; From is our own domain, so SPF/DKIM/DMARC are ours):
+//
+//	PRODCAL_MAIL_FROM       — sending address, e.g. studio@mail.jdbb.studio (turns Resend on)
+//	PRODCAL_RESEND_URL      — API base (default https://resend.int.exe.xyz, the exe.dev
+//	                          proxy that injects the key; https://api.resend.com locally)
+//	RESEND_API_KEY          — bearer, only needed when not going through the proxy
+//
+// AgentMail (fallback when PRODCAL_MAIL_FROM is unset; also the archive inbox):
 //
 //	AGENTMAIL_API_KEY       — Bearer token
 //	AGENTMAIL_INBOX_ID      — inbox ID for jdbb@agentmail.to (also the sending address)
+//
+// Common:
+//
 //	PRODCAL_MAIL_FROM_NAME  — sender display name (default "jdbb studio"; set empty to disable)
 //	PRODCAL_MAIL_REPLY_TO   — Reply-To address (default "j@djinna.com"; set empty to disable)
 //	PRODCAL_MAIL_BCC        — audit copy BCC'd on every send, batch or single
 //	                          (default "j@djinna.com"; set empty to disable).
 //	                          Skipped when that address is already in To/Cc.
 type EmailConfig struct {
+	Provider string // "resend" | "agentmail" (empty = agentmail, for old tests)
 	APIKey   string
-	InboxID  string
+	InboxID  string // AgentMail inbox; for Resend, the From address
 	FromName string
 	ReplyTo  string
 	BCC      string
-	APIBase  string // tests may override; empty uses AgentMail production API
+	APIBase  string // tests may override; empty uses the provider's default
 }
 
+// From is the sending address as it appears to recipients.
+func (cfg *EmailConfig) From() string { return cfg.InboxID }
+
 func LoadEmailConfig() *EmailConfig {
-	key := os.Getenv("AGENTMAIL_API_KEY")
-	inbox := os.Getenv("AGENTMAIL_INBOX_ID")
-	if key == "" || inbox == "" {
-		return nil
+	var provider, key, inbox string
+	if from := strings.TrimSpace(os.Getenv("PRODCAL_MAIL_FROM")); from != "" {
+		provider, key, inbox = "resend", os.Getenv("RESEND_API_KEY"), from
+	} else {
+		provider, key, inbox = "agentmail", os.Getenv("AGENTMAIL_API_KEY"), os.Getenv("AGENTMAIL_INBOX_ID")
+		if key == "" || inbox == "" {
+			return nil
+		}
 	}
 	fromName := "jdbb studio"
 	if v, ok := os.LookupEnv("PRODCAL_MAIL_FROM_NAME"); ok {
@@ -52,7 +72,7 @@ func LoadEmailConfig() *EmailConfig {
 	if v, ok := os.LookupEnv("PRODCAL_MAIL_BCC"); ok {
 		bcc = v
 	}
-	return &EmailConfig{APIKey: key, InboxID: inbox, FromName: fromName, ReplyTo: replyTo, BCC: bcc}
+	return &EmailConfig{Provider: provider, APIKey: key, InboxID: inbox, FromName: fromName, ReplyTo: replyTo, BCC: bcc, APIBase: os.Getenv("PRODCAL_RESEND_URL")}
 }
 
 // bccFor returns the audit BCC list for a send: the configured address unless
@@ -84,10 +104,13 @@ func (cfg *EmailConfig) sendEmailWithHeaders(to []string, cc []string, subject, 
 	return err
 }
 
-// send is the raw AgentMail transport. It returns the HTTP status code (0 on
+// send is the raw transport. It returns the HTTP status code (0 on
 // transport failure) so the outbound_email log can record it. Server.mail is
 // the logging wrapper every handler should call.
 func (cfg *EmailConfig) send(to []string, cc []string, subject, textBody, htmlBody string, extraHeaders map[string]string) (int, error) {
+	if cfg.Provider == "resend" {
+		return cfg.sendResend(to, cc, subject, textBody, htmlBody, extraHeaders)
+	}
 	base := strings.TrimRight(cfg.APIBase, "/")
 	if base == "" {
 		base = "https://api.agentmail.to"
@@ -127,6 +150,48 @@ func (cfg *EmailConfig) send(to []string, cc []string, subject, textBody, htmlBo
 		body["headers"] = headers
 	}
 
+	return cfg.post(url, body, to, cc, subject)
+}
+
+// sendResend is the Resend transport: POST {base}/emails. Same shape as
+// AgentMail's except From is explicit (our domain) and Reply-To is a list.
+// Through the exe.dev proxy no bearer is needed; APIKey covers direct use.
+func (cfg *EmailConfig) sendResend(to []string, cc []string, subject, textBody, htmlBody string, extraHeaders map[string]string) (int, error) {
+	base := strings.TrimRight(cfg.APIBase, "/")
+	if base == "" {
+		base = "https://resend.int.exe.xyz"
+	}
+	from := cfg.InboxID
+	if cfg.FromName != "" {
+		from = fmt.Sprintf("%q <%s>", cfg.FromName, cfg.InboxID)
+	}
+	body := map[string]any{
+		"from":    from,
+		"to":      to,
+		"subject": subject,
+	}
+	if len(cc) > 0 {
+		body["cc"] = cc
+	}
+	if bcc := cfg.bccFor(to, cc); len(bcc) > 0 {
+		body["bcc"] = bcc
+	}
+	if textBody != "" {
+		body["text"] = textBody
+	}
+	if htmlBody != "" {
+		body["html"] = htmlBody
+	}
+	if cfg.ReplyTo != "" {
+		body["reply_to"] = []string{cfg.ReplyTo}
+	}
+	if len(extraHeaders) > 0 {
+		body["headers"] = extraHeaders
+	}
+	return cfg.post(base+"/emails", body, to, cc, subject)
+}
+
+func (cfg *EmailConfig) post(url string, body map[string]any, to, cc []string, subject string) (int, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return 0, fmt.Errorf("marshal email body: %w", err)
@@ -137,7 +202,9 @@ func (cfg *EmailConfig) send(to []string, cc []string, subject, textBody, htmlBo
 		return 0, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
+	if cfg.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
+	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
@@ -150,8 +217,8 @@ func (cfg *EmailConfig) send(to []string, cc []string, subject, textBody, htmlBo
 	if resp.StatusCode >= 300 {
 		// Log the full response body server-side only. Handlers surface this
 		// error's message to end users, so keep the body out of it.
-		slog.Error("agentmail API error", "status", resp.StatusCode, "body", string(respBody), "to", to, "subject", subject)
-		return resp.StatusCode, fmt.Errorf("agentmail API error: status %d", resp.StatusCode)
+		slog.Error("mail API error", "provider", cfg.Provider, "status", resp.StatusCode, "body", string(respBody), "to", to, "subject", subject)
+		return resp.StatusCode, fmt.Errorf("mail API error: status %d", resp.StatusCode)
 	}
 
 	slog.Info("email sent", "to", to, "cc", cc, "subject", subject, "status", resp.StatusCode)

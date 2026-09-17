@@ -1,8 +1,18 @@
 # Email System — Architecture & Reference
 
-All email is sent via [AgentMail](https://agentmail.to) API.
+All email goes out through one transport function (`EmailConfig.send`, `srv/email.go`),
+which speaks to one of two providers:
+
+- **Resend** (since 2026-09-18, preferred) — turned on by `PRODCAL_MAIL_FROM`
+  (e.g. `studio@mail.jdbb.studio`); calls go through the exe.dev proxy
+  `https://resend.int.exe.xyz` (key injected at the edge) or, with
+  `RESEND_API_KEY` + `PRODCAL_RESEND_URL=https://api.resend.com`, direct.
+  The sending domain `mail.jdbb.studio` carries our own SPF/DKIM/DMARC
+  (records at Porkbun).
+- **AgentMail** (fallback when `PRODCAL_MAIL_FROM` is unset) — the original
+  transport; `jdbb@agentmail.to` stays as the archive inbox / CC option.
 Configured via environment variables `AGENTMAIL_API_KEY` and `AGENTMAIL_INBOX_ID`.
-Sender address: `jdbb@agentmail.to`.
+Sender address: `PRODCAL_MAIL_FROM` on Resend, else `jdbb@agentmail.to`. Reply-To is `j@djinna.com` either way.
 
 ## Infrastructure
 
@@ -131,7 +141,8 @@ build run by the admin still mails the customer who owns the pass.
 ## Environment Variables
 
 ```
-AGENTMAIL_API_KEY=am_...      # AgentMail Bearer token
+PRODCAL_MAIL_FROM=studio@mail.jdbb.studio  # Resend on; unset → AgentMail
+AGENTMAIL_API_KEY=am_...      # AgentMail Bearer token (fallback transport + archive inbox)
 AGENTMAIL_INBOX_ID=jdbb@agentmail.to  # Inbox ID for sending
 PRODCAL_BASE_URL=https://jdbbs.exe.xyz  # Used for links in emails (auto-derived if unset)
 ```
