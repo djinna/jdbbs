@@ -156,8 +156,39 @@
     var el = document.getElementById('theme-bar');
     if (el && !el.classList.contains('theme-bar')) mount(el);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoMount);
-  else autoMount();
+  // Admin nav: one list, every admin page. A page opts in with
+  // <nav data-admin-nav> inside .jdbb-masthead; any <a> children it ships as a
+  // no-JS fallback are replaced, other children (alerts, theme bar) are kept.
+  // Add a page here and it appears everywhere at once.
+  var ADMIN_NAV = [
+    ['/admin/', 'Admin', 'Projects, typesetting, files, archived, pages, mail'],
+    ['/admin/registrations', 'Cohorts', 'Workshop registrations and list email'],
+    ['/admin/store/', 'Store', 'Factory Pass: new pass, sales, grant, revoke'],
+    ['/admin/factory/', 'Floor', 'Live activity: who is uploading, inspecting, building right now'],
+    ['/admin/docs/', 'Docs', 'Edit the public pages and email sign-off'],
+    ['/admin/email-preview/', 'Emails', 'Every outbound email template with fixture data'],
+    ['/admin/content-review/', 'Review', 'Content review'],
+    ['/admin/#pages', 'Pages', 'Every route we have spun up, and what we mean to do with it'],
+    ['/2026-pi-symposium', 'Roster', 'Cohort roster (what attendees see)'],
+    ['/2026-pi-symposium/map', 'Map', 'Factory map: who acts at each stage, and where']
+  ];
+  function adminNav() {
+    var nav = document.querySelector('.jdbb-masthead nav[data-admin-nav]');
+    if (!nav || nav.getAttribute('data-admin-nav') === 'done') return;
+    Array.prototype.slice.call(nav.querySelectorAll(':scope > a')).forEach(function (a) { nav.removeChild(a); });
+    var here = location.pathname.replace(/\/+$/, '') || '/';
+    var first = nav.firstChild;
+    ADMIN_NAV.forEach(function (item) {
+      var a = document.createElement('a');
+      a.href = item[0]; a.textContent = item[1]; a.title = item[2];
+      var path = item[0].split('#')[0].replace(/\/+$/, '') || '/';
+      if (path === here && item[0].indexOf('#') < 0) a.setAttribute('aria-current', 'page');
+      nav.insertBefore(a, first);
+    });
+    nav.setAttribute('data-admin-nav', 'done');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', adminNav);
+  else adminNav();
 
-  window.JdbbTheme = { mount: mount, bind: bind, state: state, apply: apply, save: save };
+  window.JdbbTheme = { mount: mount, bind: bind, state: state, apply: apply, save: save, adminNav: adminNav };
 })();

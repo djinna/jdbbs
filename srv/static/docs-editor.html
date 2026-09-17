@@ -26,7 +26,7 @@ textarea{width:100%;min-height:60vh;padding:12px 14px;border:1px solid var(--bor
 </head>
 <body>
 <div class="wrap">
-<header class="jdbb-masthead"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a><nav><a href="/admin/">Admin</a><a href="/admin/registrations">Cohorts</a><a href="/admin/email-preview/">Emails</a><div id="theme-bar"></div></nav></header>
+<header class="jdbb-masthead"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a><nav data-admin-nav><a href="/admin/">Admin</a><a href="/admin/registrations">Cohorts</a><a href="/admin/email-preview/">Emails</a><div id="theme-bar"></div></nav></header>
 <section class="hero"><div class="kicker">Admin · doc editor</div><h1>Pages and email strings</h1><div class="sub">Two kinds of page, both live on the next request after a save. <b>Public documents</b> are files in <code id="dir">…</code>. <b>Studio pages</b> — the portal, factory, transmittal, admin screens — are the <code>srv/static/*.html</code> in <code id="repo-dir">…</code>; the running server reads them from disk ahead of its built-in copy, so an edit takes effect without a rebuild (the next <code>make build</code> bakes it in). Each commits to its own repo; pushing stays a shell step.</div></section>
 
 <h2>Pages</h2>
