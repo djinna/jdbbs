@@ -992,6 +992,7 @@ func (s *Server) handleClientWordTemplate(w http.ResponseWriter, r *http.Request
 	}
 	project, _ := q.GetProject(r.Context(), pid)
 	serveWordTemplate(w, project.Name, docx)
+	s.factoryEventR(r, pid, "template.downloaded", formatBytesIEC(int64(len(docx))))
 }
 
 // helpers
@@ -1123,6 +1124,7 @@ func (s *Server) handleUploadCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.factoryEventR(r, pid, "cover.uploaded", fmt.Sprintf("%s, %s", ct, formatBytesIEC(int64(len(data)))))
 	jsonOK(w, map[string]any{"ok": true, "size": len(data), "type": ct})
 }
 
@@ -1146,6 +1148,7 @@ func (s *Server) handleDeleteCover(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err.Error(), 500)
 		return
 	}
+	s.factoryEventR(r, pid, "cover.removed", "")
 	jsonOK(w, map[string]any{"ok": true})
 }
 

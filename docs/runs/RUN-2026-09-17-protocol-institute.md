@@ -10,6 +10,7 @@ Ticked = done. This page refreshes itself every 20 s.
 - [x] 0.2 `scripts/factory-tail.sh`; running in tmux `factory-tail`
 - [x] 0.3 Build, tests green, restart, commit, push
 - [x] 0.4 This page live
+- [x] 0.5 **L2 done** — `factory_events` (migration 040) + `/admin/factory/` "Floor": board per pass + live feed, 10 s poll. Workshop watch: keep it open on a second screen.
 
 ## 1 · Signup from the sales page — YOU
 

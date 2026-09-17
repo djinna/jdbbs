@@ -447,11 +447,18 @@ transmittal opt-in that shifts chapters to H2, arabic 1 on a recto.
 - L1 (done, `0.1–0.2`): request log for every non-GET and every 4xx/5xx with
   who; slog lines for login / upload / Inspect / transmittal / store; tail with
   `scripts/factory-tail.sh` (tmux `factory-tail`) or `journalctl -u prodcal -f`.
-- L2 (proposed, not built): a `factory_events` table fed by the same slog
-  points and an `/admin/factory/` feed page — one screen for "who did what in
-  the last hour" during the sessions. Small; do it Thu/Fri if time, otherwise
-  `factory-tail` in a terminal is the plan.
-- L3 (workshop watch, Sep 21/22): Shelley session open with `factory-tail`,
+- L2 (**done 2026-09-17**): `factory_events` table (migration 040) written
+  best-effort at every pass-holder action — sign-in ok/failed (client and
+  project password), manuscript upload, Inspect, build started/done/failed,
+  PDF/EPUB download, transmittal draft↔final, template download, cover
+  add/remove, pass fulfilled. `/admin/factory/` ("Floor" in the admin nav):
+  board of every pass (transmittal, manuscript status, last Inspect counts,
+  builds left, cover, last seen) + feed, polling every 10 s, "hide admin"
+  on by default, pause, kind filter. APIs `GET /api/admin/factory/events`
+  (`after=`, `since=`, `project=`, `limit=`) and `/api/admin/factory/board`.
+  Code `srv/factory_events.go`; page `srv/static/factory-admin.html`.
+- L3 (workshop watch, Sep 21/22): `/admin/factory/` on a second screen;
+  Shelley session open with `factory-tail`,
   `/admin/store/`, `/admin/registrations`; watch for `build failed`, `401`
   bursts (password confusion), and the build semaphore queueing (> 2 at once
   shows as "queued" in the log).

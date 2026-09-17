@@ -154,11 +154,13 @@ func (s *Server) handleClientVerify(w http.ResponseWriter, r *http.Request) {
 
 	if !checkPassword(body.Password, passwordHash) {
 		slog.Warn("client login failed", "client", clientSlug)
+		s.factoryEvent(0, clientSlug, "login.failed", "anon", "wrong password for /"+clientSlug+"/")
 		jsonErr(w, "invalid password", http.StatusUnauthorized)
 		return
 	}
 
 	slog.Info("client login", "client", clientSlug)
+	s.factoryEvent(0, clientSlug, "login", "client:"+clientSlug, "signed in to /"+clientSlug+"/")
 	// Set client cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "prodcal_client_" + clientSlug,

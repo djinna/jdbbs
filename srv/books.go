@@ -167,6 +167,10 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Info("manuscript uploaded", "book_id", book.ID, "project_id", projectID.Int64,
 		"title", book.Title, "file", header.Filename, "bytes", len(data), "who", requestActor(r))
+	if projectID.Valid {
+		s.factoryEventR(r, projectID.Int64, "manuscript.uploaded",
+			fmt.Sprintf("%s (%s) → book %d", header.Filename, formatBytesIEC(int64(len(data))), book.ID))
+	}
 
 	w.WriteHeader(201)
 	jsonOK(w, map[string]any{
@@ -325,6 +329,16 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	_ = q.UpdateBookStatus(r.Context(), dbgen.UpdateBookStatusParams{
 		Status: "converting", ID: bid,
 	})
+
+	if book.ProjectID.Valid {
+		left := ""
+		if pass != nil {
+			if p := s.passForProject(r.Context(), book.ProjectID.Int64); p != nil {
+				left = fmt.Sprintf("; %d build(s) left after this", passCreditsRemaining(*p))
+			}
+		}
+		s.factoryEventR(r, book.ProjectID.Int64, "build.started", fmt.Sprintf("book %d, %s%s", bid, format, left))
+	}
 
 	// Run conversion in background
 	go s.runConversion(bid, book, format)
@@ -546,6 +560,10 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 		}
 	}
 
+	if book.ProjectID.Valid {
+		s.factoryEvent(book.ProjectID.Int64, "", "build.done", "factory",
+			fmt.Sprintf("book %d, %s, %s", bid, format, time.Since(start).Round(time.Second)))
+	}
 	slog.Info("book conversion complete", "id", bid, "title", book.Title,
 		"pdf_size", len(pdfData),
 		"elapsed", time.Since(start))
@@ -614,6 +632,7 @@ func (s *Server) runEPUBBuild(bid int64, book dbgen.Book) {
 		return
 	}
 	if book.ProjectID.Valid {
+		s.factoryEvent(book.ProjectID.Int64, "", "build.done", "factory", fmt.Sprintf("book %d, epub only", bid))
 		if pass := s.passForProject(ctx, book.ProjectID.Int64); pass != nil {
 			s.sendBuildDeliveredEmail(*pass, book, "epub")
 		}
@@ -660,6 +679,7 @@ func (s *Server) failConversion(bid int64, msg string) {
 	if err != nil || !ref.ProjectID.Valid {
 		return
 	}
+	s.factoryEvent(ref.ProjectID.Int64, "", "build.failed", "factory", fmt.Sprintf("book %d: %s", bid, customerMsg))
 	pass := s.passForProject(ctx, ref.ProjectID.Int64)
 	if pass == nil {
 		return
@@ -721,6 +741,9 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.Itoa(len(row.PdfData)))
 		w.Header().Set("Cache-Control", "no-store")
 		w.Write(row.PdfData)
+		if bookRef.ProjectID.Valid {
+			s.factoryEventR(r, bookRef.ProjectID.Int64, "download", fmt.Sprintf("pdf, book %d", bid))
+		}
 
 	case "epub":
 		row, err := q.GetBookEPUB(r.Context(), bid)
@@ -738,6 +761,9 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.Itoa(len(row.EpubData)))
 		w.Header().Set("Cache-Control", "no-store")
 		w.Write(row.EpubData)
+		if bookRef.ProjectID.Valid {
+			s.factoryEventR(r, bookRef.ProjectID.Int64, "download", fmt.Sprintf("epub, book %d", bid))
+		}
 
 	default:
 		jsonErr(w, "format must be pdf or epub", 400)

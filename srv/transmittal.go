@@ -246,6 +246,9 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 	// Draft→final on a Factory Pass project: the customer's Word template now
 	// exists (self-serve GET /api/projects/{id}/word-template). Tell them.
 	slog.Info("transmittal saved", "project_id", pid, "status", body.Status, "was", oldStatus, "who", requestActor(r))
+	if body.Status != oldStatus {
+		s.factoryEventR(r, pid, "transmittal."+body.Status, "was "+oldStatus)
+	}
 	if body.Status == "final" && oldStatus != "final" {
 		if pass := s.passForProject(r.Context(), pid); pass != nil {
 			title := transmittalBookTitle(dataStr)

@@ -189,6 +189,15 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
 	mux.HandleFunc("POST /api/admin/passes/{id}/status", s.handleAdminPassStatus)
 	mux.HandleFunc("GET /api/admin/store/orders", s.handleAdminStoreOrders)
+	// Factory floor: live activity board + feed for workshop sessions (monitoring L2)
+	mux.HandleFunc("GET /api/admin/factory/events", s.handleAdminFactoryEvents)
+	mux.HandleFunc("GET /api/admin/factory/board", s.handleAdminFactoryBoard)
+	mux.HandleFunc("GET /admin/factory/{$}", func(w http.ResponseWriter, r *http.Request) {
+		if !s.requireExeDevAdmin(w, r) {
+			return
+		}
+		s.serveStaticHTML(w, "static/factory-admin.html")
+	})
 	mux.HandleFunc("GET /admin/store/{$}", func(w http.ResponseWriter, r *http.Request) {
 		if !s.requireExeDevAdmin(w, r) {
 			return
@@ -1174,9 +1183,11 @@ func (s *Server) handleVerifyAuth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !valid {
+		s.factoryEvent(pid, "", "login.failed", "anon", "wrong project password")
 		jsonErr(w, "invalid password", 401)
 		return
 	}
+	s.factoryEvent(pid, "", "login", "anon", "signed in with the project password")
 	http.SetCookie(w, &http.Cookie{
 		Name:     fmt.Sprintf("prodcal_auth_%d", pid),
 		Value:    body.Password,

@@ -419,6 +419,8 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 
 	slog.Info("factory pass fulfilled", "source", source, "pass_id", pass.ID,
 		"project", clientSlug+"/"+projectSlug, "email", in.Email)
+	s.factoryEvent(pass.ProjectID, clientSlug, "pass.fulfilled", source,
+		fmt.Sprintf("%s <%s> → /%s/%s/", in.Name, in.Email, clientSlug, projectSlug))
 
 	return &fulfillPassResult{
 		Pass:        pass,
