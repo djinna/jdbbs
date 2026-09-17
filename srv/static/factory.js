@@ -675,7 +675,9 @@ function emphasize() {
     var btn = $(pair[1]);
     if (!btn) return;
     var fill = pair[0] === cur && (pair[0] !== 4 || pair[1] === fillBuild);
-    btn.className = fill ? 'btn-fill' : 'link-action accent';
+    // Build actions stay buttons (outlined) when not filled; the rest fall
+    // back to text links.
+    btn.className = fill ? 'btn-fill' : (pair[0] === 4 ? 'btn-line' : 'link-action accent');
   });
   // Step 5 has no button — its action is a download link — so when that's the
   // current step the PDF link wears the fill instead.

@@ -127,6 +127,20 @@ body { font-family: var(--body); background: var(--bg); }
 .fx-actions button.link-action {
   font-size: 12.5px; letter-spacing: 0.06em;
 }
+/* Outlined button: same metrics as .btn-fill, no fill. The two build
+   actions wear this whenever they aren't the page's one filled button, so
+   they always read as buttons rather than links. */
+.btn-line {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 0; padding: 11px 23px;
+  cursor: pointer; white-space: nowrap;
+}
+.btn-line:hover { background: var(--badge-dim-bg); }
+.fx-actions .btn-line[disabled] {
+  color: var(--text-muted); border-color: var(--border); background: transparent; cursor: not-allowed;
+}
 
 .fx-status {
   margin-top: 12px; min-height: 1em;
