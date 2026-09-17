@@ -181,6 +181,7 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 	if dataStr == "" || dataStr == "null" {
 		dataStr = defaultTransmittalData()
 	}
+	dataStr = trimTransmittalIdentity(dataStr)
 	if body.Status == "" {
 		body.Status = "draft"
 	}
@@ -565,4 +566,36 @@ func transmittalBookTitle(data string) string {
 		return ""
 	}
 	return strings.TrimSpace(d.Book.Title)
+}
+
+// trimTransmittalIdentity strips leading/trailing whitespace from the book's
+// identity fields (title, subtitle, author) so a stray space typed into the
+// form doesn't reach email subjects, file names, and the title page. Any
+// other shape of data is returned untouched.
+func trimTransmittalIdentity(raw string) string {
+	var d map[string]any
+	if err := json.Unmarshal([]byte(raw), &d); err != nil {
+		return raw
+	}
+	book, ok := d["book"].(map[string]any)
+	if !ok {
+		return raw
+	}
+	changed := false
+	for _, k := range []string{"title", "subtitle", "author", "publisher", "editor", "series"} {
+		if v, ok := book[k].(string); ok {
+			if t := strings.TrimSpace(v); t != v {
+				book[k] = t
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return raw
+	}
+	out, err := json.Marshal(d)
+	if err != nil {
+		return raw
+	}
+	return string(out)
 }
