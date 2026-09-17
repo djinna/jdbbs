@@ -253,14 +253,16 @@ State at handoff: prodcal `fe28e81`, jdbbs-public `70b78a2`, both pushed, both c
 
 **Then: Mike Check Book 2 smoke — the messy path** (Book 1 was the happy path). Mike Check is a test persona (project 17, `/mcheck/`), not a person. Fresh session; the run is output-heavy.
 
-- [ ] Book 1 state: transmittal `final`, spec pulled, 2 credits left. Leave as is; Book 2 is a **new book** on the same project (check `/mcheck/` shows both).
-- [ ] Transmittal: different trim (**6×9**), different formats mix, no or different custom styles (e.g. one paragraph "Epigraph", no character style). Mark Final → confirm template_ready email fires again.
-- [ ] Manuscript written **outside** the template: Google-Docs-style export — `scratch/make-ms-messy.py` (python-docx): manual bold/italic for headings, blank-line faked scene breaks, a pasted colored run, mixed straight/curly quotes, a "Normal (Web)"-style stray style, a hand-numbered list, a "14 Sept — …" dateline (Book 1 false-positive check).
-- [ ] Inspect → expect high findings; record counts. Keep/Strip/Convert.
-- [ ] Import template styles into the messy doc (Word Organizer path the prep email promises) — simulate via python-docx or apply template as base; re-Inspect → should drop.
-- [ ] Build 1 (dirty) → does it fail or produce ugly output? Build 2 (clean) → **second build on same book**: credit decrement to 1, artifacts superseded, build-ready email again.
-- [ ] Book 1 soft findings: chapter-opener page break (`scratch/mcheck-build.pdf` p.3–4) — check in Book 2 PDF too; dateline false "manual list item".
-- [ ] Log every catch; fix small ones inline, park big ones here.
+- [x] Book 1 state: transmittal `final`, spec pulled, 2 credits left. Leave as is; Book 2 is a **new book** on the same project (check `/mcheck/` shows both).
+- [x] Transmittal: different trim (**6×9**), different formats mix, no or different custom styles (e.g. one paragraph "Epigraph", no character style). Mark Final → confirm template_ready email fires again.
+- [x] Manuscript written **outside** the template: Google-Docs-style export — `scratch/make-ms-messy.py` (python-docx): manual bold/italic for headings, blank-line faked scene breaks, a pasted colored run, mixed straight/curly quotes, a "Normal (Web)"-style stray style, a hand-numbered list, a "14 Sept — …" dateline (Book 1 false-positive check).
+- [x] Inspect → expect high findings; record counts. Keep/Strip/Convert.
+- [x] Import template styles into the messy doc (Word Organizer path the prep email promises) — simulate via python-docx or apply template as base; re-Inspect → should drop.
+- [x] Build 1 (dirty) → does it fail or produce ugly output? Build 2 (clean) → **second build on same book**: credit decrement to 1, artifacts superseded, build-ready email again.
+- [x] Book 1 soft findings: chapter-opener page break (`scratch/mcheck-build.pdf` p.3–4) — check in Book 2 PDF too; dateline false "manual list item".
+- [x] Log every catch; fix small ones inline, park big ones here.
+
+*(All eight ticked 2026-09-16 — the run happened in Addendum 5 below; the boxes were never updated, which sent one later session back here by mistake. Results + parked items live in Addendum 5.)*
 
 **After smoke 2:** admin doc editor (`docs/IDEAS.md` 2026-09-14) → talk deck `/2026-pi-symposium/talk` → content-review round 2 (~Sep 17–18, `/admin/content-review/`, 19/19 decided in round 1) → freeze Sep 19.
 
