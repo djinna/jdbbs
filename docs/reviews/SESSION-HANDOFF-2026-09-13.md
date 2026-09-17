@@ -311,7 +311,7 @@ Run by subagent `book2-smoke`. Test persona Mike Check, client `/mcheck/`. Book 
 - Chapter openers start on the next page, not the next *recto* (p4 is a verso) — same as Book 1's soft finding; a spec/Typst option.
 - Word `Title`/`Subtitle` paragraphs vanish from the print PDF (p1 shows only "Mike Check"); the half-title presumably comes from the spec. Decide: map Title/Subtitle → title page, or have Inspect say they're ignored.
 - Dirty build "succeeds": should Build warn/confirm when Inspect found `heading_lookalike` high findings (no chapters will be found)? UI copy today: "you can build anyway".
-- `***` → `˘ ˘ ˘`: the section-break glyph substitution applies per `*`; should collapse a manual `***` line to one Section Break.
+- ~~`***` → `˘ ˘ ˘`: the section-break glyph substitution applies per `*`~~ **Not a bug** (checked 2026-09-16): `˘ ˘ ˘` *is* the `breve` ornament (`series-template.typ:235`); the clean build renders identically. Pandoc reads a lone `***` as a horizontal rule → `#horizontalrule` → `section-break`, so a hand-typed `***` already collapses to one Section Break.
 - Transmittal data-model drift: default JSON has `files.archives`, the form writes `files.deliverables`; nothing server-side reads either.
 - Admin UI for "attach pass to existing project" (API exists now).
 
