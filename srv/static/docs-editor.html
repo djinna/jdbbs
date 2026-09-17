@@ -57,7 +57,8 @@ const fmtTime=s=>s?s.slice(0,16).replace('T',' ')+' UTC':'—';
 async function api(url,opts){const r=await fetch(url,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
 
 async function load(){
-  try{const j=await api('/api/admin/docs');files=j.files;settings=j.settings;$('dir').textContent=j.dir;renderFiles();renderSettings()}
+  try{const j=await api('/api/admin/docs');files=j.files;settings=j.settings;$('dir').textContent=j.dir;renderFiles();renderSettings();
+    const want=new URLSearchParams(location.search).get('file');if(want&&files.some(f=>f.source===want))openFile(want)}
   catch(e){$('files').innerHTML='<div class="error">Could not load: '+esc(e.message)+'</div>'}
 }
 function gitTag(f){
@@ -90,11 +91,12 @@ async function openFile(source){
     $('ed-msg').value='';
     $('ed-state').textContent=j.git_status?'uncommitted changes on disk':'matches last commit';
     $('editor').classList.add('open');renderFiles();
+    const u=new URL(location);u.searchParams.set('file',source);history.replaceState(null,'',u);
     $('editor').scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){toast('Open failed: '+e.message)}
 }
 function dirty(){return cur&&$('ed-text').value!==cur.loaded}
-function closeEditor(){if(dirty()&&!confirm('Discard unsaved changes?'))return;cur=null;$('editor').classList.remove('open');renderFiles()}
+function closeEditor(){if(dirty()&&!confirm('Discard unsaved changes?'))return;cur=null;$('editor').classList.remove('open');renderFiles();const u=new URL(location);u.searchParams.delete('file');history.replaceState(null,'',u)}
 async function reloadFile(){if(cur)openFile(cur.source)}
 async function saveFile(){
   if(!cur)return;const btn=$('ed-save');btn.disabled=true;
