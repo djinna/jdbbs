@@ -275,6 +275,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/generate-config", s.handleGenerateConfig)
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/cover", s.handleUploadCover)
 	mux.HandleFunc("GET /api/projects/{id}/book-spec/cover", s.handleGetCover)
+	mux.HandleFunc("DELETE /api/projects/{id}/book-spec/cover", s.handleDeleteCover)
 	mux.HandleFunc("GET /api/fonts", s.handleListFonts)
 	mux.HandleFunc("POST /api/projects/{id}/book-spec/word-template", s.handleGenerateWordTemplate)
 	mux.HandleFunc("GET /api/projects/{id}/word-template", s.handleClientWordTemplate) // client self-serve, needs final transmittal

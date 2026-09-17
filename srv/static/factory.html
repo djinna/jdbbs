@@ -147,6 +147,24 @@
       <p class="fx-status" id="fx-upload-status"></p>
 
       <div class="fx-list" id="fx-books"></div>
+
+      <!-- Cover: optional, EPUB only. One image, replaced by re-uploading. -->
+      <div class="fx-cover" id="fx-cover">
+        <div class="fx-list-head">Cover <span class="fx-list-note">optional &middot; EPUB only</span></div>
+        <div class="fx-cover-body">
+          <div class="fx-cover-thumb" id="fx-cover-thumb" hidden><img id="fx-cover-img" alt="Your cover"></div>
+          <div class="fx-cover-text">
+            <p class="fx-body" id="fx-cover-copy">The EPUB carries your front cover, so it shows in readers&rsquo; libraries. The print PDF is the interior only &mdash; your printer takes the cover as a separate file, so nothing to add here for print.</p>
+            <p class="fx-actions">
+              <button class="link-action" id="fx-cover-btn">Add a cover image</button>
+              <button class="link-action" id="fx-cover-remove" hidden>Remove</button>
+              <input type="file" id="fx-cover-file" accept="image/jpeg,image/png" hidden>
+            </p>
+            <p class="fx-fine">JPEG or PNG, portrait, at least 1600 &times; 2400 px, up to 10 MB. Takes effect on your next build.</p>
+            <p class="fx-status" id="fx-cover-status"></p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <hr class="rule">

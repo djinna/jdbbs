@@ -1063,13 +1063,15 @@ func parseTrim(trim string, page map[string]any) {
 }
 
 // handleUploadCover accepts a cover image file upload and stores it in book_specs.
+// Pass holders upload their own cover from the factory page, so this is
+// gated like the manuscript upload: admin or a live pass on the project.
 func (s *Server) handleUploadCover(w http.ResponseWriter, r *http.Request) {
-	if !s.requireExeDevAdminAPI(w, r) {
-		return
-	}
 	pid, err := s.projectIDFromPath(r)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
+		return
+	}
+	if _, _, ok := s.requirePassAccess(w, r, pid); !ok {
 		return
 	}
 
@@ -1078,22 +1080,22 @@ func (s *Server) handleUploadCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("cover")
+	file, _, err := r.FormFile("cover")
 	if err != nil {
 		jsonErr(w, "cover file required", 400)
 		return
 	}
 	defer file.Close()
 
-	ct := header.Header.Get("Content-Type")
-	if ct != "image/jpeg" && ct != "image/png" {
-		jsonErr(w, "cover must be JPEG or PNG", 400)
-		return
-	}
-
 	data, err := io.ReadAll(file)
 	if err != nil {
 		jsonErr(w, "read error", 500)
+		return
+	}
+	// Trust the bytes, not the declared type: a browser labels by extension.
+	ct := http.DetectContentType(data)
+	if ct != "image/jpeg" && ct != "image/png" {
+		jsonErr(w, "cover must be a JPEG or PNG image", 400)
 		return
 	}
 
@@ -1122,6 +1124,29 @@ func (s *Server) handleUploadCover(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonOK(w, map[string]any{"ok": true, "size": len(data), "type": ct})
+}
+
+// handleDeleteCover clears a project's cover so the next EPUB builds without one.
+func (s *Server) handleDeleteCover(w http.ResponseWriter, r *http.Request) {
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	if _, _, ok := s.requirePassAccess(w, r, pid); !ok {
+		return
+	}
+	q := dbgen.New(s.DB)
+	err = q.UpdateBookSpecCover(r.Context(), dbgen.UpdateBookSpecCoverParams{
+		CoverData: nil,
+		CoverType: "",
+		ProjectID: pid,
+	})
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	jsonOK(w, map[string]any{"ok": true})
 }
 
 // handleGetCover serves the cover image for a project's book spec.

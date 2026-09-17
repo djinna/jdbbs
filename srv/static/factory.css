@@ -190,6 +190,22 @@ body { font-family: var(--body); background: var(--bg); }
   text-transform: uppercase; color: var(--text-muted);
   border-bottom: 1px solid var(--border);
 }
+.fx-list-note { text-transform: none; letter-spacing: 0.04em; margin-left: 8px; }
+
+/* ── Cover: thumbnail beside the copy; hairline frame, no fill. ── */
+.fx-cover { margin-top: 26px; }
+.fx-cover-body { display: flex; gap: 20px; align-items: flex-start; margin-top: 12px; }
+.fx-cover-thumb { flex: 0 0 auto; }
+.fx-cover-thumb img {
+  display: block; width: 96px; height: auto; max-height: 150px; object-fit: contain;
+  border: 1px solid var(--border); background: var(--surface, transparent);
+}
+.fx-cover-text { min-width: 0; flex: 1 1 auto; }
+.fx-cover-text .fx-body { margin-top: 0; }
+.fx-cover-text .fx-actions { margin-top: 10px; }
+.fx-cover-text .fx-fine { margin-top: 6px; }
+@media (max-width: 520px) { .fx-cover-body { flex-direction: column; } }
+
 .fx-row {
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px 14px; align-items: baseline;

@@ -669,10 +669,79 @@ function emphasize() {
   if (pdf) pdf.className = cur === 5 ? 'btn-fill' : '';
 }
 
+function renderCover() {
+  var wrap = $('fx-cover');
+  if (!wrap) return;
+  var st = passState();
+  var thumb = $('fx-cover-thumb');
+  var img = $('fx-cover-img');
+  var btn = $('fx-cover-btn');
+  var rm = $('fx-cover-remove');
+  show(thumb, !!S.hasCover);
+  if (S.hasCover && img && S.coverURL && img.getAttribute('src') !== S.coverURL) img.setAttribute('src', S.coverURL);
+  if (btn) {
+    btn.disabled = !st.ok || S.coverBusy;
+    btn.textContent = S.coverBusy ? 'Uploading…' : (S.hasCover ? 'Replace cover image' : 'Add a cover image');
+  }
+  if (rm) { show(rm, !!S.hasCover); rm.disabled = !st.ok || S.coverBusy; }
+}
+
+async function doCoverUpload(file) {
+  if (!file || S.coverBusy || !passState().ok) return;
+  var status = $('fx-cover-status');
+  if (!/^image\/(jpeg|png)$/.test(file.type)) {
+    status.className = 'fx-status err';
+    status.textContent = 'That isn\u2019t a JPEG or PNG. Export the cover as one of those and try again.';
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    status.className = 'fx-status err';
+    status.textContent = 'That file is over 10 MB. A JPEG at 1600 \u00d7 2400 is usually well under 2 MB.';
+    return;
+  }
+  S.coverBusy = true;
+  renderCover();
+  status.className = 'fx-status busy';
+  status.textContent = 'Uploading ' + file.name + '\u2026';
+  var fd = new FormData();
+  fd.append('cover', file);
+  try {
+    await api('/api/projects/' + S.projectId + '/book-spec/cover', { method: 'POST', body: fd, raw: true });
+    await loadCover();
+    status.className = 'fx-status ok';
+    status.textContent = 'Cover saved. It goes into the EPUB on your next build.';
+  } catch (e) {
+    status.className = 'fx-status err';
+    status.textContent = 'Couldn\u2019t save the cover: ' + (e.message || 'unknown error');
+  }
+  S.coverBusy = false;
+  renderCover();
+}
+
+async function doCoverRemove() {
+  if (S.coverBusy || !passState().ok) return;
+  var status = $('fx-cover-status');
+  S.coverBusy = true;
+  renderCover();
+  try {
+    await api('/api/projects/' + S.projectId + '/book-spec/cover', { method: 'DELETE' });
+    S.hasCover = false;
+    if (S.coverURL) { URL.revokeObjectURL(S.coverURL); S.coverURL = null; }
+    status.className = 'fx-status ok';
+    status.textContent = 'Cover removed. The next EPUB builds without one.';
+  } catch (e) {
+    status.className = 'fx-status err';
+    status.textContent = 'Couldn\u2019t remove the cover: ' + (e.message || 'unknown error');
+  }
+  S.coverBusy = false;
+  renderCover();
+}
+
 function renderAll() {
   renderHeader();
   renderSteps();
   renderUpload();
+  renderCover();
   renderInspect();
   renderBuild();
   renderDownload();
@@ -733,6 +802,20 @@ async function loadOutputs() {
   }
 }
 
+// The spec JSON is admin-only, so the cover route itself is the "is there
+// one?" probe. GET rather than HEAD (proxies in the path don't all forward
+// HEAD), and the bytes become the thumbnail so it downloads once.
+async function loadCover() {
+  try {
+    var r = await fetch('/api/projects/' + S.projectId + '/book-spec/cover', { cache: 'no-store', credentials: 'same-origin' });
+    if (!r.ok) { S.hasCover = false; S.coverURL = null; return; }
+    var blob = await r.blob();
+    if (S.coverURL) URL.revokeObjectURL(S.coverURL);
+    S.coverURL = URL.createObjectURL(blob);
+    S.hasCover = true;
+  } catch (e) { S.hasCover = false; S.coverURL = null; }
+}
+
 async function loadTransmittal() {
   try {
     var tx = await api('/api/projects/' + S.projectId + '/transmittal');
@@ -743,7 +826,7 @@ async function loadTransmittal() {
 async function refresh() {
   await loadPass();
   await loadBooks();
-  await Promise.all([loadPreflight(), loadOutputs()]);
+  await Promise.all([loadPreflight(), loadOutputs(), loadCover()]);
   renderAll();
   if (isBuilding(S.current)) startPolling();
 }
@@ -1112,6 +1195,18 @@ function wire() {
   if (up) up.addEventListener('click', doUpload);
   var cancel = $('fx-upload-cancel');
   if (cancel) cancel.addEventListener('click', function (e) { e.preventDefault(); resetUpload(); });
+
+  var coverBtn = $('fx-cover-btn');
+  var coverFile = $('fx-cover-file');
+  if (coverBtn && coverFile) {
+    coverBtn.addEventListener('click', function (e) { e.preventDefault(); if (passState().ok) coverFile.click(); });
+    coverFile.addEventListener('change', function () {
+      if (coverFile.files.length) doCoverUpload(coverFile.files[0]);
+      coverFile.value = '';
+    });
+  }
+  var coverRm = $('fx-cover-remove');
+  if (coverRm) coverRm.addEventListener('click', function (e) { e.preventDefault(); doCoverRemove(); });
 
   var ins = $('fx-inspect-btn');
   if (ins) ins.addEventListener('click', doInspect);

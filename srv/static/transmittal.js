@@ -1011,34 +1011,26 @@ function renderDesignSection() {
 }
 
 // ─── Section: Cover ───
+// Press-era fields (paper, colours, who does front/spine/back) came out with
+// the factory: the pass makes an interior, not a jacket. What's left is the
+// split of responsibilities and the two things the interior does need.
 function renderCoverSection() {
+  const rule = (text) => h('li', null, text);
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Cover'),
-    h('div', { className: 'tx-row' },
-      selectField('Paper', 'cover.paper', [['','— Select —'],['paper','Paper'],['cloth','Cloth']]),
-      textField('Colors', 'cover.colors', { placeholder: 'e.g. 4C' }),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'The factory builds the inside of the book. The cover is yours to design or commission \u2014 here is how the two meet.'),
+    h('ul', { className: 'tx-illus-rules' },
+      rule('What you get: an EPUB with your front cover embedded, so the book shows its face in readers\u2019 libraries; and a print-ready interior PDF at your trim size, with the page count your cover designer needs for the spine.'),
+      rule('What you bring: one front-cover image (JPEG or PNG, portrait, at least 1600 \u00d7 2400 px), uploaded on the factory page under step 2. Replace it any time; the next build picks it up.'),
+      rule('For print, your cover is a separate file that goes straight to the printer \u2014 they publish a template once they know your trim, page count and paper. Nothing to upload here for that.'),
     ),
-    h('div', { className: 'tx-field' },
-      h('label', null, 'JDBB'),
-      h('div', { className: 'tx-check-group tx-cover-options' },
-        checkField('FRONT', 'cover.jdbb_front'),
-        checkField('SPINE', 'cover.jdbb_spine'),
-        checkField('BACK', 'cover.jdbb_back'),
-      ),
-    ),
-    h('div', { className: 'tx-field' },
-      h('label', null, 'Publisher'),
-      h('div', { className: 'tx-check-group tx-cover-options' },
-        checkField('FRONT', 'cover.pub_front'),
-        checkField('SPINE', 'cover.pub_spine'),
-        checkField('BACK', 'cover.pub_back'),
-      ),
-    ),
-    textField('Cover Credit', 'cover.credit'),
-    textareaField('Production Plan / Budget', 'cover.production_plan_budget', {
-      rows: 3,
-      className: 'tx-field-important',
-      helpText: 'Cover and print-timing plan, with budget context.',
+    textField('Cover credit', 'cover.credit', {
+      helpText: 'Designer or artist to name on the copyright page, e.g. \u201cCover design by \u2026\u201d. Leave blank for none.',
+    }),
+    textareaField('Cover notes', 'cover.production_plan_budget', {
+      rows: 2,
+      helpText: 'Anything about the cover the factory should know \u2014 a designer still working, an image to come.',
     }),
   );
 }
