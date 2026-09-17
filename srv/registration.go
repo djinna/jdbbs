@@ -339,6 +339,10 @@ func firstName(full string) string {
 	if full == "" {
 		return "there"
 	}
+	// "Hi Protocol," is wrong; an organisation is greeted by its whole name.
+	if looksLikeOrg(full) {
+		return full
+	}
 	if i := strings.IndexByte(full, ' '); i > 0 {
 		return full[:i]
 	}

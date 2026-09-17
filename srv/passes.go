@@ -308,8 +308,14 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 		couponID = sql.NullInt64{Int64: coupon.ID, Valid: true}
 	}
 
-	// 2) Client: slug from the customer's name, unique-ified, random password.
-	clientSlug, err := uniqueClientSlug(ctx, tx, in.Name)
+	// 2) Client: slug from the author's name when the buyer gave one (the
+	// portal is the author's address, not the payer's — C1), else the
+	// customer's; unique-ified, random password.
+	slugName := strings.TrimSpace(in.Author)
+	if slugName == "" {
+		slugName = in.Name
+	}
+	clientSlug, err := uniqueClientSlug(ctx, tx, slugName)
 	if err != nil {
 		return nil, err
 	}

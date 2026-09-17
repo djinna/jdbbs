@@ -35,16 +35,52 @@ func foldASCII(s string) string {
 	return b.String()
 }
 
+// orgWords are the tells that a customer name is a press, institute or
+// company rather than a person. Matched on whole words, case-insensitive.
+var orgWords = map[string]bool{
+	"institute": true, "press": true, "books": true, "publishing": true, "publishers": true,
+	"publications": true, "studio": true, "studios": true, "lab": true, "labs": true,
+	"foundation": true, "university": true, "college": true, "school": true, "library": true,
+	"company": true, "co": true, "co.": true, "inc": true, "inc.": true, "llc": true, "ltd": true,
+	"ltd.": true, "gmbh": true, "group": true, "collective": true, "society": true,
+	"association": true, "review": true, "magazine": true, "journal": true, "editions": true,
+	"house": true, "media": true, "network": true, "project": true, "trust": true, "fund": true,
+}
+
+// looksLikeOrg reports whether a customer name reads as an organisation
+// ("Protocol Institute", "Stripe Press") rather than a person. Used to pick
+// a whole-name slug and a whole-name greeting; wrong guesses are harmless
+// (an odd slug, "Hi Stripe Press,").
+func looksLikeOrg(name string) bool {
+	for _, w := range strings.Fields(strings.ToLower(name)) {
+		if orgWords[w] {
+			return true
+		}
+	}
+	return false
+}
+
 // deriveClientSlug turns a person's name into the studio's login-style slug:
 // first initial of the first word plus the whole last word ("Mike Casey" →
 // "mcasey", "Jean-Luc Picard" → "jpicard"). A single word is used as-is;
-// an empty name yields "author".
+// an empty name yields "author". An organisation name is joined whole
+// ("Protocol Institute" → "protocolinstitute") — "pinstitute" reads like a
+// person who isn't there.
 func deriveClientSlug(name string) string {
 	words := strings.Fields(foldASCII(name))
 	if len(words) == 0 {
 		return "author"
 	}
 	clean := func(w string) string { return strings.ReplaceAll(normalizeProjectSlug(w), "-", "") }
+	if looksLikeOrg(name) {
+		var b strings.Builder
+		for _, w := range words {
+			b.WriteString(clean(w))
+		}
+		if out := truncateSlug(b.String()); out != "" {
+			return out
+		}
+	}
 	last := clean(words[len(words)-1])
 	if len(words) == 1 {
 		if last == "" {

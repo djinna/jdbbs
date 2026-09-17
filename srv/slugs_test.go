@@ -30,7 +30,9 @@ func TestDeriveClientSlug(t *testing.T) {
 		"Cher":                 "cher",
 		"":                     "author",
 		"Venkatesh Rao":        "vrao",
-		"Protocol Institute":   "pinstitute",
+		"Protocol Institute":   "protocolinstitute",
+		"Stripe Press":         "stripepress",
+		"Summer of Protocols":  "sprotocols",
 	}
 	for in, want := range cases {
 		if got := deriveClientSlug(in); got != want {
@@ -159,5 +161,22 @@ func TestRenameClientAndProjectKeepsOldURLs(t *testing.T) {
 	}
 	if !strings.Contains(out["error"].(string), "exists") {
 		t.Fatalf("error = %v", out["error"])
+	}
+}
+
+func TestLooksLikeOrgAndGreeting(t *testing.T) {
+	for name, org := range map[string]bool{
+		"Protocol Institute": true, "Stripe Press": true, "Acme Publishing LLC": true,
+		"Venkatesh Rao": false, "Mike Casey": false, "Cher": false, "": false,
+	} {
+		if got := looksLikeOrg(name); got != org {
+			t.Errorf("looksLikeOrg(%q) = %v, want %v", name, got, org)
+		}
+	}
+	if got := firstName("Protocol Institute"); got != "Protocol Institute" {
+		t.Errorf("firstName(org) = %q", got)
+	}
+	if got := firstName("Venkatesh Rao"); got != "Venkatesh" {
+		t.Errorf("firstName(person) = %q", got)
 	}
 }
