@@ -1193,7 +1193,7 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you&rsquo;ll use in the sessions; Discord and calendar invites arrive separately."))
 	b.WriteString(emailKV([][2]string{
 		{"Manuscript", "<b>" + html.EscapeString(res.Title) + "</b>"},
-		{"Your factory", fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:none">%s</a>`, html.EscapeString(res.PortalURL), emailAccent, emailCode(res.PortalURL))},
+		{"Your factory", fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:underline">%s</a>`, html.EscapeString(res.PortalURL), emailAccent, emailCode(res.PortalURL))},
 		{"Sign-in name", emailCode(res.ClientSlug)},
 		{"Password", emailCode(res.Password)},
 	}))
