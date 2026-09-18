@@ -153,11 +153,24 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 		os.WriteFile(cssPath, []byte(css), 0644)
 	}
 
+	// Book map (P4): same front/body/back reading as the print build. The
+	// EPUB filter drops the byline / typed copyright / typed Contents, gives
+	// dedication and epigraph their own sections, and tags every section
+	// with an epub:type so readers get landmarks and a bodymatter start.
+	specMap := s.specMapForBook(book)
+	var bookMap *BookMap
+	if bm, err := bookMapFromDOCX(docxPath, specMap, spec.Title, spec.Author); err != nil {
+		slog.Warn("epub book map failed; building without front-matter structure", "book_id", bid, "err", err)
+	} else {
+		bookMap = bm
+	}
+
 	// Build pandoc command
 	epubPath := filepath.Join(tmpDir, "output.epub")
 	args := []string{
 		"--from=docx+styles",
 		"--to=epub3+smart",
+		"--lua-filter=" + epubFilterPath(),
 		fmt.Sprintf("--metadata=title:%s", spec.Title),
 		fmt.Sprintf("--metadata=author:%s", spec.Author),
 		fmt.Sprintf("--metadata=lang:%s", spec.Language),
@@ -166,6 +179,9 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 		"-o", epubPath,
 	}
 
+	if metaFile, ok := s.writePandocMetadata(book, tmpDir, bookMap, true); ok {
+		args = append(args, "--metadata-file="+metaFile)
+	}
 	if spec.CoverImage != "" {
 		args = append(args, "--epub-cover-image="+spec.CoverImage)
 	}
@@ -744,6 +760,13 @@ func (s *epubSpec) buildCSS() string {
 	// reflowable EPUB readers handle justification poorly without good
 	// hyphenation. Override to left-aligned.
 	parts = append(parts, "body, p { text-align: left; }")
+
+	// P4 front matter: dedication / epigraph sections carry a hidden heading
+	// (it exists for the nav and epub:type only) and sit centred, down the page.
+	parts = append(parts, "h1.fm-piece-head { display: none; }")
+	parts = append(parts, ".fm-piece { margin-top: 30%; text-align: center; }")
+	parts = append(parts, ".fm-piece p { text-align: center; }")
+	parts = append(parts, ".fm-epigraph { font-style: italic; }")
 
 	if s.BodyFontSize != "" && s.BodyFontSize != "inherit" {
 		parts = append(parts, fmt.Sprintf("body { font-size: %s; }", s.BodyFontSize))

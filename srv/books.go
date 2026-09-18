@@ -67,6 +67,9 @@ func typesettingRoot() string {
 func typstFilterPath() string {
 	return filepath.Join(typesettingRoot(), "filters", "docx-to-typst-enhanced.lua")
 }
+func epubFilterPath() string {
+	return filepath.Join(typesettingRoot(), "filters", "docx-to-epub.lua")
+}
 func seriesTemplatePath() string {
 	return filepath.Join(typesettingRoot(), "templates", "series-template.typ")
 }

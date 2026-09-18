@@ -203,3 +203,69 @@ func TestFrontMatterTypstCompiles(t *testing.T) {
 		t.Errorf("page 6 should be blank, got %q", txt)
 	}
 }
+
+// TestEPUBFilterAppliesBookMap runs the EPUB lua filter over a synthetic DOCX
+// and checks sections, epub:types, drops, and epubcheck cleanliness.
+func TestEPUBFilterAppliesBookMap(t *testing.T) {
+	if _, err := exec.LookPath("pandoc"); err != nil {
+		t.Skip("pandoc not installed")
+	}
+	docx := writeBookMapDOCX(t, []tp{
+		{style: "Title", text: "My Book"},
+		{text: "by Jane Author"},
+		{text: "For my mother."},
+		{text: "“Quote.” — Someone", brBef: true},
+		{style: "Heading1", text: "Contents"}, {text: "[tk]"},
+		{style: "Heading1", text: "Foreword"}, {text: "fw"},
+		{style: "Heading1", text: "Chapter 1"}, {text: "body"},
+		{style: "Heading1", text: "Notes"}, {text: "n"},
+	})
+	m, err := bookMapFromDOCX(docx, nil, "My Book", "Jane Author")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	meta, _ := json.Marshal(map[string]any{"book_map": map[string]any{"toc": true, "sections": m.Sections, "untitled_front": m.UntitledFront}})
+	metaPath := filepath.Join(dir, "meta.json")
+	if err := os.WriteFile(metaPath, meta, 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Native pandoc output first: one section per H1, in order.
+	native := filepath.Join(dir, "book.native")
+	cmd := exec.Command("pandoc", "--from=docx+styles", docx, "--lua-filter="+epubFilterPath(),
+		"-t", "native", "--metadata-file="+metaPath, "-o", native)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("pandoc: %v\n%s", err, b)
+	}
+	nb, _ := os.ReadFile(native)
+	ns := regexp.MustCompile(`\s+`).ReplaceAllString(string(nb), " ")
+	var types []string
+	for _, mm := range regexp.MustCompile(`\( "epub:type" , "([^"]*)" \)`).FindAllStringSubmatch(ns, -1) {
+		types = append(types, mm[1])
+	}
+	want := []string{"dedication", "epigraph", "foreword", "chapter", "endnotes"}
+	if strings.Join(types, ",") != strings.Join(want, ",") {
+		t.Errorf("epub:types = %v, want %v\n%s", types, want, ns)
+	}
+	if !strings.Contains(ns, `[ Str "For" , Space , Str "my" , Space , Str "mother." ]`) || !strings.Contains(ns, `Str "\8220Quote.\8221"`) {
+		t.Errorf("dedication/epigraph text missing:\n%s", ns)
+	}
+	for _, bad := range []string{`Str "[tk]"`, `Str "by" , Space , Str "Jane"`} {
+		if strings.Contains(ns, bad) {
+			t.Errorf("%q should have been dropped:\n%s", bad, ns)
+		}
+	}
+	if _, err := exec.LookPath("epubcheck"); err != nil {
+		return
+	}
+	epub := filepath.Join(dir, "book.epub")
+	cmd = exec.Command("pandoc", "--from=docx+styles", docx, "--lua-filter="+epubFilterPath(),
+		"-t", "epub3", "--toc", "--metadata=title:My Book", "--metadata=author:Jane Author",
+		"--metadata-file="+metaPath, "-o", epub)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("pandoc epub: %v\n%s", err, b)
+	}
+	if b, err := exec.Command("epubcheck", epub).CombinedOutput(); err != nil {
+		t.Errorf("epubcheck: %v\n%s", err, b)
+	}
+}

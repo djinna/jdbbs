@@ -53,6 +53,13 @@ Touches the factory path (1, 3, 4). Freeze: Fri/Sat OK to land with tests + smok
   Contents comes after dedication/epigraph (Chicago order). Blank versos are detected after the fact
   (`break-to-recto`) so they carry nothing. `epigraph()` no longer page-breaks (chapter epigraphs).
   Smoked on Twitter Years (628 pp) and Ghosts (anthology, per-story running heads intact).
-- **Not yet**: step 4 (EPUB: drop title/byline/Contents section, landmarks), step 5 (Word template +
+- **Step 4 done** EPUB. New `typesetting/filters/docx-to-epub.lua` reads the same `book_map` metadata:
+  drops the byline / typed copyright / typed Contents / repeated-title section; dedication and epigraph
+  become their own sections (hidden `h1.fm-piece-head` for the nav entry + `epub:type`, centred block);
+  every H1 gets an `epub:type` from its text (foreword, preface, chapter, appendix, endnotes, …), so
+  pandoc writes `<body epub:type="frontmatter|bodymatter">` per file. Pandoc only infers backmatter for
+  appendix/colophon/bibliography/index — endnotes/glossary/afterword bodies stay `bodymatter` (section
+  types are right; no override exists). epubcheck clean on Ghosts, Twitter Years and the fixture.
+- **Not yet**: step 5 (Word template +
   guide text), step 6 (Parts opt-in `spec.parts` → `--top-level-division=part`; not started), logo on the
   title page (`logo: none` always), `cover.credit` is placed on p. iv only if filled in.
