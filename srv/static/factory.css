@@ -78,6 +78,7 @@ body { font-family: var(--body); background: var(--bg); }
   padding-bottom: 3px; border-bottom: 2px solid transparent;
 }
 .fx-step:hover { color: var(--text); }
+.fx-step-how { margin-left: auto; color: var(--accent); }
 .fx-step .fx-step-n { font-weight: 600; }
 .fx-step.done { color: var(--green); }
 .fx-step.done .fx-step-n::after { content: " \2713"; }
