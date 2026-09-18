@@ -1220,7 +1220,7 @@ function renderEmailModal() {
         state.emailConfigured === false
           ? h('div', { className: 'email-warning' },
               'Email is not configured on the server. ',
-              'Set AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID environment variables.'
+              'Set PRODCAL_MAIL_FROM (Resend) or AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID on the server.'
             )
           : null,
 

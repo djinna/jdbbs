@@ -30,7 +30,7 @@ type clientDigestParams struct {
 
 func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) {
 	if s.Email == nil {
-		jsonErr(w, "email not configured (set AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID)", 503)
+		jsonErr(w, "email not configured (set PRODCAL_MAIL_FROM for Resend, or AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID)", 503)
 		return
 	}
 
@@ -176,7 +176,7 @@ func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// The digest is the recurring pathway: advertise an unsubscribe route
-	// (RFC 2369) via AgentMail's generic headers map.
+	// (RFC 2369) via the provider's generic headers map (Resend and AgentMail both take one).
 	unsubAddr := s.Email.ReplyTo
 	if unsubAddr == "" {
 		unsubAddr = s.Email.InboxID

@@ -34,7 +34,7 @@ Smoke: upload a small .docx from admin and confirm status reaches `ready`.
 
 ## Mail: Resend from mail.jdbb.studio (since 2026-09-18)
 
-`.env` has `PRODCAL_MAIL_FROM=studio@mail.jdbb.studio`; the app posts to the
+`.env` has `PRODCAL_MAIL_FROM=factory@mail.jdbb.studio`; the app posts to the
 exe.dev Resend proxy (`https://resend.int.exe.xyz`, sending-only key injected
 at the edge — nothing on the VM). DNS for `mail.jdbb.studio` lives at
 Porkbun: CNAMEs `send.mail` + `rsend.mail` → `*.forge.rmta.net`, TXT

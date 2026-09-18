@@ -13,7 +13,7 @@ import (
 
 func (s *Server) handleSendProjectSnapshot(w http.ResponseWriter, r *http.Request) {
 	if s.Email == nil {
-		jsonErr(w, "email not configured (set AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID)", 503)
+		jsonErr(w, "email not configured (set PRODCAL_MAIL_FROM for Resend, or AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID)", 503)
 		return
 	}
 

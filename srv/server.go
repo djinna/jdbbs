@@ -85,7 +85,7 @@ func New(dbPath, hostname string) (*Server, error) {
 	if srv.Email != nil {
 		slog.Info("email configured", "provider", srv.Email.Provider, "from", srv.Email.From())
 	} else {
-		slog.Warn("email not configured (set AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID)")
+		slog.Warn("email not configured (set PRODCAL_MAIL_FROM for Resend, or AGENTMAIL_API_KEY + AGENTMAIL_INBOX_ID)")
 	}
 	return srv, nil
 }

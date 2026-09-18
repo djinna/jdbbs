@@ -20,7 +20,7 @@ import (
 //
 // Resend (preferred; From is our own domain, so SPF/DKIM/DMARC are ours):
 //
-//	PRODCAL_MAIL_FROM       — sending address, e.g. studio@mail.jdbb.studio (turns Resend on)
+//	PRODCAL_MAIL_FROM       — sending address, e.g. factory@mail.jdbb.studio (turns Resend on)
 //	PRODCAL_RESEND_URL      — API base (default https://resend.int.exe.xyz, the exe.dev
 //	                          proxy that injects the key; https://api.resend.com locally)
 //	RESEND_API_KEY          — bearer, only needed when not going through the proxy

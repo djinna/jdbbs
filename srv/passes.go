@@ -930,7 +930,7 @@ func (s *Server) attachPassToProject(w http.ResponseWriter, r *http.Request, pro
 // handleAdminResetClientPassword rotates a Factory Pass client's password and
 // re-sends the fulfillment-style email. The plaintext password is returned
 // once to the authenticated admin so a customer can still be recovered when
-// mail is unconfigured or AgentMail rejects the send.
+// mail is unconfigured or the provider rejects the send.
 func (s *Server) handleAdminResetClientPassword(w http.ResponseWriter, r *http.Request) {
 	if !s.requireExeDevAdminAPI(w, r) {
 		return
@@ -1095,7 +1095,7 @@ var passSupportEdges = []string{
 	"Live help is available at USD 100/hr, booked in advance, one-hour minimum.",
 }
 
-// deliverPassFulfillmentEmail performs the actual AgentMail send. Redemption
+// deliverPassFulfillmentEmail performs the actual send (Resend, or AgentMail fallback). Redemption
 // calls it in a goroutine; the admin password-reset path calls it synchronously
 // so the tracker can report whether the replacement password was really sent.
 func (s *Server) deliverPassFulfillmentEmail(res fulfillPassResult, meta mailMeta) error {
