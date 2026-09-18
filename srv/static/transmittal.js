@@ -423,8 +423,6 @@ function calcCompletion() {
   for (const k of ['trim','complexity']) {
     total++; if (d.design && d.design[k]) filled++;
   }
-  // Editing
-  total++; if (d.editing && d.editing.copyediting_level) filled++;
   return total > 0 ? Math.round((filled / total) * 100) : 0;
 }
 
@@ -969,31 +967,23 @@ function renderEditingSection() {
     updateCustomStyles(next);
   }
 
+  // C10: Developmental Edit and Level of Copyediting (with their instruction
+  // boxes) are gone — the factory does not sell editing. What is left is
+  // what drives the template and the typography. Old editing.* keys
+  // (developmental_edit, developmental_instructions, copyediting_level,
+  // instructions) stay in the JSON, just not shown.
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Editing'),
-    selectField('Developmental Edit Needed', 'editing.developmental_edit', [
-      ['','— Select —'],
-      ['none','No'],
-      ['light','Light pass'],
-      ['standard','Standard developmental edit'],
-      ['heavy','Heavy / substantive'],
-    ]),
-    textareaField('Instructions for Developmental Editor', 'editing.developmental_instructions', {
-      rows: 3,
-      className: 'tx-field-important',
-      placeholder: 'Any guidance for developmental edit focus, scope, or priorities...',
-      helpText: 'Anything the developmental editor must not miss.',
+    h('div', { className: 'tx-section-header' }, 'Typography notes'),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'The factory typesets what you send; it does not edit. Tell it here about anything in the text that needs special handling in type.'),
+    textField('Special Characters', 'editing.special_characters', {
+      placeholder: 'e.g. Greek, IPA, accented names, arrows',
+      helpText: 'Scripts, symbols or diacritics beyond ordinary English, so the right fonts are checked before the build.',
     }),
-    selectField('Level of Copyediting', 'editing.copyediting_level', [
-      ['','— Select —'],['light','Light'],['medium','Medium'],['heavy','Heavy']
-    ]),
-    textareaField('Instructions for Copyeditor', 'editing.instructions', {
-      rows: 4,
-      className: 'tx-field-important',
-      helpText: 'Anything the copyeditor must not miss.',
+    textField('Mathematical Formulas', 'editing.math_formulas', {
+      placeholder: 'none',
+      helpText: 'Inline symbols, or displayed equations? Word\u2019s equation editor, or typed?',
     }),
-    textField('Special Characters', 'editing.special_characters'),
-    textField('Mathematical Formulas', 'editing.math_formulas'),
     h('div', { className: 'tx-section-header', style: 'margin-top:16px' }, 'Custom Styles'),
     h('div', { className: 'tx-help' }, 'Add any project-specific Word styles needed for this manuscript. These will be copied into the book spec and used for Word template generation.'),
     ...styles.map((style, i) =>
