@@ -655,9 +655,7 @@ function renderForm() {
         renderPermissionsSection(),
         renderPageIVSection(),
         renderDesignSection(),
-        renderProofsSection(),
         renderFilesSection(),
-        renderSubrightsSection(),
       ),
     ),
   );
@@ -983,31 +981,8 @@ function renderPageIVSection() {
   );
 }
 
-// ─── Section: Subrights ───
-function renderSubrightsSection() {
-  const items = [
-    ['Copub with', 'copub'], ['Title page', 'title_page'], ['Page iv', 'page_iv'],
-    ['Cover', 'cover'], ['Remove mktg pgs?', 'remove_mktg']
-  ];
-  return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Subrights'),
-    ...items.map(([label, key]) => {
-      const val = getField('subrights.' + key);
-      const isNa = val === 'na';
-      return h('div', { className: 'tx-inline' },
-        h('label', { className: isNa ? 'tx-check na' : '', style: 'min-width:130px;cursor:pointer',
-          onClick: () => { setField('subrights.' + key, isNa ? '' : 'na'); render(); }
-        }, (isNa ? '✕ ' : '') + label),
-        !isNa ? h('input', { type: 'text', value: val || '', placeholder: 'details...',
-          onInput: (e) => setField('subrights.' + key, e.target.value),
-          style: 'flex:1'
-        }) : h('span', { style: 'color:var(--text-secondary);font-size:12px;cursor:pointer',
-          onClick: () => { setField('subrights.' + key, ''); render(); }
-        }, 'n/a — click to enable'),
-      );
-    }),
-  );
-}
+// Subrights (copub / marketing pages) deleted 2026-09-18: press-only.
+// Saved subrights.* values still ride along in the JSON.
 
 // ─── Section: Editing ───
 function renderEditingSection() {
@@ -1172,86 +1147,30 @@ function renderCoverSection() {
   );
 }
 
-// ─── Section: Deliverables ───
+// ─── Section: What you get ───
+// Was Deliverables (checkboxes incl. Typst source, fonts, cover files) plus a
+// Page Proofs reviewer list and a PDF/X printer radio. Decision 2026-09-17
+// (RUN C13): every pass yields the same four things; Typst source stays with
+// the factory (house template + filters, useless without the toolchain);
+// fonts never (licensed); cover files never (theirs); no proof routing —
+// the author downloads the PDF and reads it. Old files.* / proofs.* keys
+// still ride along in the JSON.
 function renderFilesSection() {
-  const d = state.transmittal.data;
-  const deliverables = (d.files && d.files.deliverables) || [];
-  const deliverableOptions = [
-    'Print-ready PDF (interior)',
-    'EPUB file',
-    'Cover files (print + digital)',
-    'Typst source files',
-    'Final manuscript (Word/DOCX)',
-    'Fonts used (if licensable)',
-  ];
+  const rule = (...c) => h('li', null, ...c);
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Deliverables'),
-    h('div', { className: 'tx-field' },
-      h('label', null, 'Client receives at project end'),
-      h('div', { className: 'tx-check-group tx-delivery-archives' },
-        ...deliverableOptions.map(opt => {
-          const has = deliverables.includes(opt);
-          return h('label', { className: 'tx-check' },
-            h('input', { type: 'checkbox', checked: has ? 'checked' : undefined,
-              onChange: (e) => {
-                let newArr = [...deliverables];
-                if (e.target.checked) newArr.push(opt);
-                else newArr = newArr.filter(x => x !== opt);
-                setField('files.deliverables', newArr);
-              }
-            }), opt
-          );
-        }),
-      ),
+    h('div', { className: 'tx-section-header' }, 'What you get'),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'Every pass produces the same four things, on the factory page, every time you build:'),
+    h('ul', { className: 'tx-illus-rules' },
+      rule(h('strong', null, 'Print-interior PDF'), ' at your trim size — an RGB PDF; your printer converts to their colour profile.'),
+      rule(h('strong', null, 'EPUB'), ' with your front cover embedded — the file Kindle, Apple Books and Kobo want.'),
+      rule(h('strong', null, 'Word template'), ' generated from this transmittal, with the factory styles and your copyright page in place.'),
+      rule(h('strong', null, 'Inspect report'), ' — what the factory found in your manuscript and what to fix.'),
     ),
-    h('div', { className: 'tx-field' },
-      h('label', null, 'Printer Delivery'),
-      h('div', { className: 'tx-check-group tx-delivery-options' },
-        ...['PDF/X', 'Other'].map(fmt =>
-          h('label', { className: 'tx-check' },
-            h('input', { type: 'radio', name: 'printer_format', value: fmt,
-              checked: getField('files.printer_format') === fmt ? 'checked' : undefined,
-              onChange: () => { setField('files.printer_format', fmt); render(); }
-            }), fmt
-          )
-        ),
-      ),
-      getField('files.printer_format') === 'Other'
-        ? h('input', { type: 'text', value: getField('files.printer_format_other') || '', placeholder: 'Specify format',
-            className: 'tx-input', style: 'margin-top:6px',
-            onInput: (e) => setField('files.printer_format_other', e.target.value)
-          })
-        : null,
-    ),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'Not included: the Typst source (the house template and filters — they stay with the factory), the fonts (licensed), and cover files (yours). There is no proof-routing step: download the PDF and read it; rebuild as often as you like while your pass is live.'),
   );
 }
-
-// ─── Section: Page Proofs ───
-function renderProofsSection() {
-  const d = state.transmittal.data;
-  const reviewers = (d.proofs && d.proofs.reviewers) || [];
-  return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Page Proofs'),
-    h('div', { style: 'font-size:12px;color:var(--text-secondary);margin-bottom:8px' }, '1st pages to be reviewed by:'),
-    ...reviewers.map((rev, i) =>
-      h('div', { className: 'tx-reviewer' },
-        h('input', { type: 'text', value: rev.name || '', placeholder: 'Name',
-          onInput: (e) => { reviewers[i].name = e.target.value; setField('proofs.reviewers', reviewers); }
-        }),
-        h('input', { type: 'text', value: rev.contact || '', placeholder: 'Email',
-          onInput: (e) => { reviewers[i].contact = e.target.value; setField('proofs.reviewers', reviewers); }
-        }),
-        h('button', { className: 'tx-reviewer-remove', onClick: () => {
-          reviewers.splice(i, 1); setField('proofs.reviewers', reviewers); render();
-        }}, '×'),
-      )
-    ),
-    h('button', { className: 'tx-add-btn', onClick: () => {
-      reviewers.push({ name: '', contact: '' }); setField('proofs.reviewers', reviewers); render();
-    }}, '+ Add Reviewer'),
-  );
-}
-
 
 // ─── Email Modal ───
 

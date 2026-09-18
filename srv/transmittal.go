@@ -43,12 +43,9 @@ func defaultTransmittalData() string {
   "illustrations": {"figures_no":0,"figures_here":false,"figures_to_come":"","tables_no":0,"tables_here":false,"tables_to_come":"","photos_no":0,"photos_here":false,"photos_to_come":"","other_no":0,"other_here":false,"other_to_come":"","art_plan":""},
   "permissions": {"attested":false,"attested_at":""},
   "page_iv": {"copyright_year":"","held_by":"","publisher_city":"","edition_line":"","interior_credit":"","loc_line":"","printed_in":"","additional_notices":""},
-  "subrights": {"copub":"na","title_page":"na","page_iv":"na","cover":"na","remove_mktg":"na"},
   "editing": {"special_characters":"","math_formulas":""},
   "design": {"trim":"","trim_guidance":"","freeform_notes":""},
   "cover": {"paper":"","colors":"","jdbb_front":false,"jdbb_spine":false,"jdbb_back":false,"pub_front":false,"pub_spine":false,"pub_back":false,"credit":""},
-  "files": {"printer_format":"","archives":[]},
-  "proofs": {"reviewers":[]},
   "custom_styles": [],
   "other_instructions": ""
 }`
@@ -541,12 +538,12 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 			}
 		}
 	}
-	// Reset proofs and other
+	// Reset proofs (legacy key) and other
 	if proofs, ok := d["proofs"].(map[string]any); ok {
 		proofs["reviewers"] = []any{}
 	}
 	d["other_instructions"] = ""
-	// Keep: permissions, page_iv, subrights, editing, design, cover, files
+	// Keep: permissions, page_iv, editing, design, cover, files
 
 	newData, _ := json.Marshal(d)
 	_, err = tx.ExecContext(r.Context(),

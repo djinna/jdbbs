@@ -161,3 +161,21 @@ width assumed we know the paper. We don't; the printer does.
   help with the cover. Old keys still load/save; the new-transmittal default
   drops them. Progress bar counts `design.trim` only.
 - Tests: `TestParseTrimFreeForm`, `TestStudioTrimLeavesPageAlone`.
+
+## Addendum 2 — Deliverables → "What you get"; Page Proofs and Subrights deleted
+
+Jenna asked whether we had decided against Typst source as a deliverable. We
+had: `docs/runs/RUN-2026-09-17-protocol-institute.md` C13 ("Typst source stays
+with the factory … fonts never … cover files never … Page Proofs → delete …
+Subrights → delete … printer delivery radio → delete"), and the storefront
+design doc of Sep 3 had it as [DECIDE] not-by-default.
+
+- Deliverables checkboxes (incl. Typst source, fonts, cover files) and the
+  PDF/X radio replaced by a fixed statement, **What you get**: print-interior
+  PDF (RGB; printer converts), EPUB with cover, Word template, Inspect report;
+  then one line on what is not included and why, and that there is no
+  proof-routing step.
+- Page Proofs (reviewer list) and Subrights sections removed from the form and
+  from the new-transmittal default. Saved `files.*`, `proofs.*`, `subrights.*`
+  values still ride along in the JSON.
+- Transmittal now has ten sections; right column ends Format → What you get.
