@@ -55,7 +55,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
     - [ ] 5.4d C11 Permissions → one courtesy line + one attestation checkbox; terms text before Wed go-live if possible
     - [ ] 5.4e C12 Pub Info & © → the **copyright-page builder** (credit fields actually used)
 - [ ] 5.5 P3 **H&J / composition quality** in the print PDF: typst `par(costs:)`, optimized linebreaks, a loose-lines / rivers / runts / widows scorer on the built PDF; compare against an InDesign-set page
-- [ ] 5.6 P1 review docs.typesafe.ai/introduction — anything for the factory? Write a ½-page note, then decide
+- [x] 5.6 P1 review docs.typesafe.ai/introduction — anything for the factory? Write a ½-page note, then decide
 - [ ] 5.7 **Magic-link client login** (email → one-time link → cookie) replacing emailed passwords
 - [ ] 5.8 Machine-callable factory (from P2 beats 8/9): POST transmittal JSON + DOCX, read Inspect JSON, build — the "your factory calls my factory" endpoint. Spec first, ½ page, to Jenna
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
@@ -68,3 +68,8 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 - [ ] 6.4 LibreOffice preview of the uploaded DOCX inside the factory (see the page Inspect saw)
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
 - [ ] 6.6 Strike the done rows (Admin doc editor) and move the kept ones to §5 with a date
+
+## 0 · Inbox — new items, untriaged (Shelley moves them into a section)
+- [x] 0.1 Find where I asked that we look into Jev and how it might help make factory more efficient: https://docs.typesafe.ai/introduction  ·  _added Fri 11:55 UTC_
+- [x] 0.2 Good copy  ·  _added Fri 11:58 UTC_
+- [x] 0.3 Fix: looks like our global theme picker lost the system choice. Now has only light and dark. Let's put the system back. Do this in parallel if you can.  ·  _added Fri 11:59 UTC_
