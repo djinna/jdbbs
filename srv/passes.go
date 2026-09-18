@@ -1166,8 +1166,9 @@ func passFulfillmentText(res fulfillPassResult) string {
 	fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you'll use in the sessions; Discord and calendar invites arrive separately.\n\n")
 	fmt.Fprintf(&b, "Manuscript:     %s\n", res.Title)
 	fmt.Fprintf(&b, "Your factory:   %s\n", res.PortalURL)
-	fmt.Fprintf(&b, "Sign-in name:   %s\n", res.ClientSlug)
-	fmt.Fprintf(&b, "Password:       %s\n\n", res.Password)
+	fmt.Fprintf(&b, "Sign-in name:   %s\n\n", res.ClientSlug)
+	fmt.Fprintf(&b, "Easiest way in: open your portal and enter this email address (%s) — we'll send you a sign-in link. No password needed.\n\n", res.Pass.CustomerEmail)
+	fmt.Fprintf(&b, "Password (if you'd rather): %s\n\n", res.Password)
 	inc := passIncluded(res.Pass)
 	fmt.Fprintf(&b, "What's included\n")
 	fmt.Fprintf(&b, "  - %d builds: each one makes the EPUB and the print PDF together\n", inc.Builds)
@@ -1203,7 +1204,10 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 		{"Manuscript", "<b>" + html.EscapeString(res.Title) + "</b>"},
 		{"Your factory", fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:underline">%s</a>`, html.EscapeString(res.PortalURL), emailAccent, emailCode(res.PortalURL))},
 		{"Sign-in name", emailCode(res.ClientSlug)},
-		{"Password", emailCode(res.Password)},
+	}))
+	b.WriteString(emailP(fmt.Sprintf("<b>Easiest way in:</b> open your portal and enter this email address (%s) &mdash; we&rsquo;ll send you a sign-in link. No password needed.", emailCode(res.Pass.CustomerEmail))))
+	b.WriteString(emailKV([][2]string{
+		{"Password (if you'd rather)", emailCode(res.Password)},
 	}))
 	inc := passIncluded(res.Pass)
 	included := []string{

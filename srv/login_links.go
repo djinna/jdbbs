@@ -300,7 +300,7 @@ func (s *Server) serveLoginLinkExpired(w http.ResponseWriter, slug string, code 
 </head>
 <body>
 <div class="jdbb-shell">
-<header class="jdbb-masthead"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a><nav data-client-nav><div id="theme-bar"></div></nav></header>
+<header class="jdbb-masthead"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a><nav data-public-nav><div id="theme-bar"></div></nav></header>
 <main>
 <div class="auth-box">
   <div class="kicker">Client portal</div>

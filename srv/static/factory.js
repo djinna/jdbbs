@@ -879,24 +879,66 @@ async function refresh() {
   if (isBuilding(S.current)) startPolling();
 }
 
-// ─── password gate ─────────────────────────────────────────────────────────
-// Workshop attendees get a client slug + password from their fulfillment
-// email, so try the client password first and fall back to a project token.
+// ─── sign-in gate ──────────────────────────────────────────────────────────
+// Primary path (5.7): the customer types the email their Factory Pass went
+// to and we mail a one-shot sign-in link (POST /api/public/login-link →
+// GET /auth/link). The password from the fulfilment email still works as a
+// secondary path: try the client password first, fall back to a project token.
+S.authMode = 'email'; // 'email' | 'password' | 'sent'
+
+function setAuthMode(mode) {
+  S.authMode = mode;
+  show($('fx-auth-email'), mode === 'email');
+  show($('fx-auth-sent'), mode === 'sent');
+  show($('fx-auth-password'), mode === 'password');
+  show($('fx-auth-err'), false);
+  var toggle = $('fx-auth-toggle');
+  if (toggle) {
+    toggle.textContent = mode === 'password'
+      ? 'Forgot the password? Get a sign-in link by email instead'
+      : (mode === 'sent' ? 'Try a different address' : 'Have a password? Use it instead');
+  }
+  var focus = mode === 'password' ? $('fx-auth-pw') : $('fx-auth-em');
+  if (focus && mode !== 'sent') focus.focus();
+}
+
 function showAuth(retryFn) {
   S.retry = retryFn || null;
   show($('fx-shell'), false);
   show($('fx-auth'), true);
-  var sub = $('fx-auth-sub');
+  var sub = $('fx-auth-pw-sub');
   if (sub) {
     sub.textContent = 'Enter the password from your Factory Pass email' +
       (S.clientSlug ? ' (account: ' + S.clientSlug + ').' : '.');
   }
   var pw = $('fx-auth-pw');
-  if (pw) { pw.value = ''; pw.focus(); }
+  if (pw) pw.value = '';
+  setAuthMode('email');
 }
 function hideAuth() {
   show($('fx-auth'), false);
   show($('fx-shell'), true);
+}
+
+// doSendLink asks the server to mail a sign-in link. The server always says
+// ok (no account enumeration), so the copy on the "sent" panel is hedged.
+async function doSendLink() {
+  var em = $('fx-auth-em');
+  var err = $('fx-auth-err');
+  var btn = $('fx-auth-link-btn');
+  var email = em ? em.value.trim() : '';
+  if (!email || email.indexOf('@') < 0) { setText(err, 'Type the email address your Factory Pass was sent to.'); show(err, true); return; }
+  if (!S.clientSlug) { setText(err, 'This page has no client account to sign in to; use the password instead.'); show(err, true); return; }
+  show(err, false);
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending\u2026'; }
+  try {
+    await api('/api/public/login-link', { method: 'POST', body: JSON.stringify({ client: S.clientSlug, email: email }) });
+    setAuthMode('sent');
+  } catch (e) {
+    setText(err, 'Could not send just now \u2014 try again in a moment.');
+    show(err, true);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Email me a sign-in link'; }
 }
 
 async function doUnlock() {
@@ -1266,13 +1308,14 @@ function wire() {
   if (authBtn) authBtn.addEventListener('click', doUnlock);
   var authPw = $('fx-auth-pw');
   if (authPw) authPw.addEventListener('keydown', function (e) { if (e.key === 'Enter') doUnlock(); });
-  var forgot = $('fx-auth-forgot');
-  if (forgot) forgot.addEventListener('click', function (e) {
+  var linkBtn = $('fx-auth-link-btn');
+  if (linkBtn) linkBtn.addEventListener('click', doSendLink);
+  var authEm = $('fx-auth-em');
+  if (authEm) authEm.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSendLink(); });
+  var toggle = $('fx-auth-toggle');
+  if (toggle) toggle.addEventListener('click', function (e) {
     e.preventDefault();
-    var subject = encodeURIComponent('Factory Pass access — ' + (S.clientSlug || ''));
-    var body = encodeURIComponent('Hi,\n\nI can\u2019t get into my Factory page and need the password again.\n\n' +
-      'Page: ' + window.location.href + '\n\nThanks.\n');
-    window.location.href = 'mailto:' + S.contactEmail + '?subject=' + subject + '&body=' + body;
+    setAuthMode(S.authMode === 'password' ? 'email' : (S.authMode === 'sent' ? 'email' : 'password'));
   });
 
   // Step links scroll; step 1 is a real link to the transmittal.

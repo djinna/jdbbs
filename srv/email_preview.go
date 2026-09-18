@@ -76,6 +76,7 @@ func emailPreviewFixtures(base string) []emailPreview {
 		{Kind: "registration_confirm", Subject: "We got your Protocolize Your Book registration", Text: applicantAutoReplyText("Mike Casey"), HTML: applicantAutoReplyHTML("Mike Casey")},
 		{Kind: "announcement", Subject: "Protocolize Your Book — redeem your Factory Pass before session 1", Text: announcementText("Mike Casey", announceBody), HTML: announcementHTML("Mike Casey", announceBody)},
 		{Kind: "factory_pass", Subject: "Your Factory Pass: " + res.Title, Text: passFulfillmentText(res), HTML: passFulfillmentHTML(res)},
+		{Kind: mailKindLoginLink, Subject: "Your sign-in link for Mike Casey", Text: loginLinkText("Mike Casey", base+"/auth/link?t=EXAMPLE-TOKEN-not-valid"), HTML: loginLinkHTML("Mike Casey", base+"/auth/link?t=EXAMPLE-TOKEN-not-valid")},
 		{Kind: "template_ready", Subject: "Your Word template is ready: " + book.Title, Text: templateReadyText(pass, book.Title, res.PortalURL, base+"/api/projects/18/word-template"), HTML: templateReadyHTML(pass, book.Title, res.PortalURL, base+"/api/projects/18/word-template")},
 		{Kind: "build_delivered", Subject: "Build ready: " + book.Title, Text: buildDeliveredText(pass, book, "both", pdfURL, epubURL, reportURL, credits, total), HTML: buildDeliveredHTML(pass, book, "both", pdfURL, epubURL, reportURL, credits, total)},
 		{Kind: "transmittal", Subject: "Transmittal [DRAFT]: " + tx.Book.Title, Text: buildTransmittalTextSummary("draft", &tx), HTML: buildTransmittalHTMLSummary("draft", &tx, snap.ProjectURL+"transmittal/")},

@@ -281,42 +281,68 @@ function render() {
     app.innerHTML = '';
     const box = document.createElement('div');
     box.className = 'auth-box';
+    const who = esc(state.client?.name || clientSlug);
+    if (state.linkSent) {
+      // Magic link requested: tell them where to look.
+      box.innerHTML = `
+        <div class="kicker">Client portal</div>
+        <h2>Check your email</h2>
+        <p class="auth-sub">If <b>${esc(state.linkEmail)}</b> is the address on file for <b>${who}</b>, a sign-in link is on its way. The link is good for <b>30 minutes</b> and works once.</p>
+        <p class="auth-sub">Nothing after a few minutes? Check spam, or make sure you used the address your Factory Pass was sent to.</p>
+        <div class="forgot-link"><a href="#" id="againLink" class="link-action">Try a different address</a></div>
+        <div class="back-link"><a href="/" class="link-action">&larr; Back</a></div>
+      `;
+      app.appendChild(box);
+      box.querySelector('#againLink').addEventListener('click', (e) => { e.preventDefault(); state.linkSent = false; state.error = ''; render(); });
+      return;
+    }
+    const usePw = !!state.usePassword;
     box.innerHTML = `
       <div class="kicker">Client portal</div>
-      <h2>Password required</h2>
-      <p class="auth-sub">This is the portal for <b>${esc(state.client?.name || clientSlug)}</b>. Enter the password from your welcome email &mdash; not the client code you typed on the homepage.</p>
-      <input type="password" id="pw" class="input-bare" placeholder="Password" autofocus>
-      <div><button class="btn-fill" id="loginBtn" style="width:100%">Unlock</button></div>
+      <h2>${usePw ? 'Enter your password' : 'Sign in by email'}</h2>
+      ${usePw
+        ? `<p class="auth-sub">This is the portal for <b>${who}</b>. Enter the password from your welcome email &mdash; not the client code you typed on the homepage.</p>
+           <input type="password" id="pw" class="input-bare" placeholder="Password" autocomplete="current-password" autofocus>
+           <div><button class="btn-fill" id="loginBtn" style="width:100%">Unlock</button></div>`
+        : `<p class="auth-sub">This is the portal for <b>${who}</b>. Enter the email address your Factory Pass (or welcome email) was sent to and we&rsquo;ll send you a sign-in link &mdash; no password needed.</p>
+           <input type="email" id="em" class="input-bare" placeholder="you@example.com" autocomplete="email" autofocus>
+           <div><button class="btn-fill" id="linkBtn" style="width:100%">Email me a sign-in link</button></div>`}
       ${state.error ? '<div class="error">' + esc(state.error) + '</div>' : ''}
-      <div class="forgot-link"><a href="#" id="forgotLink" class="link-action">Forgot or need a reset?</a></div>
+      <div class="forgot-link"><a href="#" id="toggleLink" class="link-action">${usePw ? 'Forgot the password? Get a sign-in link by email instead' : 'Have a password? Use it instead'}</a></div>
       <div class="back-link"><a href="/" class="link-action">&larr; Back</a></div>
     `;
     app.appendChild(box);
-    const pw = box.querySelector('#pw');
-    const btn = box.querySelector('#loginBtn');
-    const doLogin = async () => {
-      try {
-        await api('/api/clients/' + clientSlug + '/verify', {
-          method: 'POST', body: JSON.stringify({ password: pw.value })
-        });
-        boot();
-      } catch(e) { state.error = 'Invalid password'; render(); }
-    };
-    btn.addEventListener('click', doLogin);
-    pw.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-    const forgotLink = box.querySelector('#forgotLink');
-    if (forgotLink) {
-      forgotLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        const subject = encodeURIComponent('Portal access — ' + clientSlug);
-        const body = encodeURIComponent(
-          'Hi,\n\nI’d like a password reset (or password) for the JDBB client portal.\n\n' +
-          'Client code: ' + clientSlug + '\n' +
-          'Portal URL: ' + window.location.href + '\n\n' +
-          'Thanks.\n'
-        );
-        window.location.href = 'mailto:' + contactEmail + '?subject=' + subject + '&body=' + body;
-      });
+    box.querySelector('#toggleLink').addEventListener('click', (e) => {
+      e.preventDefault(); state.usePassword = !usePw; state.error = ''; render();
+    });
+    if (usePw) {
+      const pw = box.querySelector('#pw');
+      const btn = box.querySelector('#loginBtn');
+      const doLogin = async () => {
+        try {
+          await api('/api/clients/' + clientSlug + '/verify', {
+            method: 'POST', body: JSON.stringify({ password: pw.value })
+          });
+          boot();
+        } catch(e) { state.error = 'Invalid password'; render(); }
+      };
+      btn.addEventListener('click', doLogin);
+      pw.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    } else {
+      const em = box.querySelector('#em');
+      const btn = box.querySelector('#linkBtn');
+      const doLink = async () => {
+        const email = em.value.trim();
+        if (!email || !email.includes('@')) { state.error = 'Type the email address your pass was sent to.'; render(); return; }
+        btn.disabled = true; btn.textContent = 'Sending\u2026';
+        try {
+          await api('/api/public/login-link', { method: 'POST', body: JSON.stringify({ client: clientSlug, email }) });
+          state.linkSent = true; state.linkEmail = email; state.error = '';
+        } catch(e) { state.error = 'Could not send just now \u2014 try again in a moment.'; }
+        render();
+      };
+      btn.addEventListener('click', doLink);
+      em.addEventListener('keydown', e => { if (e.key === 'Enter') doLink(); });
     }
   } else if (state.view === 'notfound') {
     app.innerHTML = '';

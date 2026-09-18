@@ -38,16 +38,29 @@
        If every API call fails, the reader still sees the steps and the
        footer, plus a visible message in #fx-banner. -->
 
-  <!-- Password gate (shown by factory.js on 401; the shell is hidden while it
-       is up). Same flow as client.html / transmittal.js. -->
+  <!-- Sign-in gate (shown by factory.js on 401; the shell is hidden while it
+       is up). Primary path: emailed sign-in link; password kept as a toggle.
+       Same flow as client.html. -->
   <div class="auth-screen fx-auth" id="fx-auth" hidden>
     <div class="kicker">Factory</div>
-    <h2>Password required</h2>
-    <p class="auth-sub" id="fx-auth-sub">Enter the password from your Factory Pass email.</p>
-    <input type="password" class="input-bare" id="fx-auth-pw" placeholder="Password" autocomplete="current-password">
-    <p class="fx-actions"><button class="btn-fill" id="fx-auth-btn">Unlock</button></p>
+    <div id="fx-auth-email">
+      <h2>Sign in by email</h2>
+      <p class="auth-sub" id="fx-auth-sub">Enter the email address your Factory Pass was sent to and we&rsquo;ll send you a sign-in link &mdash; no password needed.</p>
+      <input type="email" class="input-bare" id="fx-auth-em" placeholder="you@example.com" autocomplete="email">
+      <p class="fx-actions"><button class="btn-fill" id="fx-auth-link-btn">Email me a sign-in link</button></p>
+    </div>
+    <div id="fx-auth-sent" hidden>
+      <h2>Check your email</h2>
+      <p class="auth-sub">If that is the address your Factory Pass was sent to, a sign-in link is on its way. It is good for <b>30 minutes</b> and works once. Nothing after a few minutes? Check spam.</p>
+    </div>
+    <div id="fx-auth-password" hidden>
+      <h2>Enter your password</h2>
+      <p class="auth-sub" id="fx-auth-pw-sub">Enter the password from your Factory Pass email.</p>
+      <input type="password" class="input-bare" id="fx-auth-pw" placeholder="Password" autocomplete="current-password">
+      <p class="fx-actions"><button class="btn-fill" id="fx-auth-btn">Unlock</button></p>
+    </div>
     <div class="error" id="fx-auth-err" hidden></div>
-    <div class="forgot-link"><a href="#" id="fx-auth-forgot">Lost the password?</a></div>
+    <div class="forgot-link"><a href="#" id="fx-auth-toggle">Have a password? Use it instead</a></div>
   </div>
 
   <div class="fx-shell" id="fx-shell">
@@ -265,6 +278,6 @@
   </footer>
 </div>
 <script src="/static/theme.js"></script>
-<script src="factory.js?v=20260913a"></script>
+<script src="factory.js?v=20260918b"></script>
 </body>
 </html>
