@@ -237,9 +237,39 @@
     });
     nav.setAttribute('data-client-nav', 'done');
   }
-  function navs() { adminNav(); clientNav(); }
+  // Public nav: every public-tier page (the docs in jdbbs-public, the cohort
+  // roster, store thanks, house style) shares one strip. Opt in with
+  // <nav data-public-nav>; hand-written <a> children are replaced, the theme
+  // bar is kept. Vocabulary per PAGE-DESIGN-HOSTING-VISIBILITY §4.
+  var PUBLIC_NAV = [
+    ['/workshop', 'Workshop', 'Protocolize Your Book — the workshop'],
+    ['/field-notes', 'Field notes', 'Notes from the studio'],
+    ['/factory', 'Factory', 'Factory Pass: Word manuscript → EPUB + print PDF'],
+    ['/#portal', 'Client portal', 'Sign in to your books']
+  ];
+  function fillNav(nav, items, attr) {
+    Array.prototype.slice.call(nav.querySelectorAll(':scope > a')).forEach(function (a) { nav.removeChild(a); });
+    var here = location.pathname.replace(/\/+$/, '') || '/';
+    var first = nav.firstChild;
+    items.forEach(function (item) {
+      var a = document.createElement('a');
+      a.href = item[0]; a.textContent = item[1]; a.title = item[2];
+      var path = item[0].split('#')[0].replace(/\/+$/, '') || '/';
+      if (path === here && item[0].indexOf('#') < 0) a.setAttribute('aria-current', 'page');
+      nav.insertBefore(a, first);
+    });
+    nav.setAttribute(attr, 'done');
+  }
+  function publicNav() {
+    var nav = document.querySelector('.jdbb-masthead nav[data-public-nav]');
+    if (!nav || nav.getAttribute('data-public-nav') === 'done') return;
+    fillNav(nav, PUBLIC_NAV, 'data-public-nav');
+  }
+  // Theme bar first (it is the last child of every nav; the nav fillers insert
+  // links before it), then the three shared strips.
+  function navs() { autoMount(); adminNav(); clientNav(); publicNav(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', navs);
   else navs();
 
-  window.JdbbTheme = { mount: mount, bind: bind, state: state, isDark: isDark, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav };
+  window.JdbbTheme = { mount: mount, bind: bind, state: state, isDark: isDark, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav, publicNav: publicNav };
 })();

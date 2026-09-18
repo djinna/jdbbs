@@ -16,6 +16,7 @@ import (
 func TestNavConvergence(t *testing.T) {
 	admin := []string{"admin.html", "store-admin.html", "factory-admin.html", "registrations.html", "docs-editor.html", "content-review.html"}
 	client := []string{"client.html", "index.html", "factory.html", "transmittal.html"}
+	public := []string{"housestyle.html", "cohort.html", "store-thanks.html"}
 	check := func(files []string, attr string) {
 		for _, f := range files {
 			b, err := os.ReadFile(filepath.Join("static", f))
@@ -36,6 +37,43 @@ func TestNavConvergence(t *testing.T) {
 	}
 	check(admin, "data-admin-nav")
 	check(client, "data-client-nav")
+	check(public, "data-public-nav")
+
+	// Public documents outside the repo (served from disk by servePublicDoc).
+	// Skipped when the directory is absent (local dev); on the VM every doc
+	// with a masthead must carry the shared public nav. talk.html is the
+	// frozen deck template and exedeck is a deck: both exempt by design.
+	if entries, err := filepath.Glob(filepath.Join(publicDocsDir(), "*.html")); err == nil {
+		more, _ := filepath.Glob(filepath.Join(publicDocsDir(), "2026-pi-symposium", "*.html"))
+		for _, f := range append(entries, more...) {
+			base := filepath.Base(f)
+			if base == "talk.html" || base == "exedeck.html" {
+				continue
+			}
+			b, err := os.ReadFile(f)
+			if err != nil {
+				continue
+			}
+			s := string(b)
+			if !strings.Contains(s, `class="jdbb-masthead`) {
+				continue
+			}
+			if !strings.Contains(s, "<nav data-public-nav") {
+				t.Errorf("%s: public doc masthead missing data-public-nav", f)
+			}
+			if !strings.Contains(s, `id="theme-bar"`) {
+				t.Errorf("%s: public doc masthead missing #theme-bar", f)
+			}
+		}
+	}
+
+	// theme.js must actually mount the theme bar: autoMount was orphaned once
+	// (08cf455) and every auto-mounted page lost its font/dark switcher.
+	if tj, err := os.ReadFile(filepath.Join("static", "theme.js")); err == nil {
+		if !strings.Contains(string(tj), "function navs() { autoMount();") {
+			t.Errorf("theme.js: navs() no longer calls autoMount() — #theme-bar will not render")
+		}
+	}
 
 	// Server-rendered admin pages live in Go source; same contract.
 	b, err := os.ReadFile("email_preview.go")

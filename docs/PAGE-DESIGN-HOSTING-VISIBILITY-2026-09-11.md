@@ -25,8 +25,7 @@ the same skeleton. Only the deck (`/exedeck`) is exempt (§5).
 
   <header class="jdbb-masthead">
     <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
-    <nav>
-      <a href="/workshop">Workshop</a>            <!-- 0–4 links, Sentence case -->
+    <nav data-public-nav>                         <!-- theme.js fills PUBLIC_NAV; never hand-write links -->
       <div id="theme-bar"></div>                  <!-- auto-mounted by theme.js -->
     </nav>
   </header>
@@ -103,7 +102,7 @@ Font selection behaviour (theme.js):
 
 | piece | class | notes |
 |---|---|---|
-| masthead | `.jdbb-masthead` | wordmark left; `<nav>` right with ≤4 links + `#theme-bar` last. Links are **Sentence case**, 11px uppercase mono is applied by CSS — write them as words ("Client portal", not "CLIENT PORTAL"). Wraps under 640px. |
+| masthead | `.jdbb-masthead` | wordmark left; `<nav>` right with the **shared strip for the page's tier** + `#theme-bar` last. Opt in with one attribute — `data-public-nav` (Workshop · Field notes · Factory · Client portal), `data-client-nav` (Your books · Transmittal · Factory · Calendar), `data-admin-nav` (`ADMIN_NAV`) — and `theme.js` fills the links; never hand-write them (2026-09-18: every public doc had its own list and the theme bar had silently stopped mounting). Exceptions: the homepage (section anchors) and deck stages (`talk.html`, `exedeck`). `srv/nav_convergence_test.go` enforces this for `srv/static` and `jdbbs-public`. Wraps under 640px. |
 | statusline | `.jdbb-statusline` | optional. Left: `● context`; right: revision/date/meta. Not on admin tools that already have a hero. |
 | theme bar | `#theme-bar` | present on every standard shell. Print views hide it (`@media print` in theme.css). Never on the deck stage itself (the deck has its own controls). |
 | footer | `.jdbb-footer` | **minimum payload**: wordmark (no "studio"), a `<nav>` of 2–4 context links, `© 2026 Jenna Dixon`. Homepage adds the resources strip above. Admin pages may add `Admin` to the nav; client-facing pages never do. |
