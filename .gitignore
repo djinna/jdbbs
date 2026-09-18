@@ -25,3 +25,4 @@ typesetting/fonts/licensed/*
 !typesetting/fonts/licensed/README.md
 /litmags.html
 .env.pre-*
+__pycache__/

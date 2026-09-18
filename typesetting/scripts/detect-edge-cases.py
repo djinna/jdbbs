@@ -15,6 +15,33 @@ from docx.enum.text import WD_COLOR_INDEX
 from docx.shared import RGBColor
 from datetime import datetime
 import html
+import importlib.util
+import sys
+
+# The [[style]] marker grammar and resolver live in apply-style-markers.py (the
+# build's pre-pass); load them from the sibling file so Inspect and the build
+# can never disagree. If the file is missing, marker detection is skipped.
+def _load_style_markers_module():
+    path = Path(__file__).resolve().parent / 'apply-style-markers.py'
+    if not path.exists():
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location('apply_style_markers', path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f'warning: apply-style-markers.py not loadable ({exc}); skipping marker detection', file=sys.stderr)
+        return None
+
+
+STYLE_MARKERS = _load_style_markers_module()
+
+# Monospace families: the one font change that usually means something (computer text).
+MONOSPACE_FONT_RE = re.compile(
+    r'consolas|courier|menlo|monaco|mono|source code|fira code|lucida console|inconsolata',
+    re.IGNORECASE,
+)
 
 
 class EdgeCaseDetector:
@@ -73,6 +100,7 @@ class EdgeCaseDetector:
     def detect_all(self) -> List[Dict]:
         """Run all detection methods"""
         self.detect_manual_formatting()
+        self.detect_style_markers()
         self.detect_unusual_fonts()
         self.detect_colored_text()
         self.detect_manual_lists()
@@ -119,8 +147,56 @@ class EdgeCaseDetector:
                         'suggestion': 'Manual emphasis detected — preserve it as intentional bold/italic formatting in EPUB and Typst'
                     })
     
+    def detect_style_markers(self):
+        """[[style:name]] markers — the Google-Docs stand-in for custom paragraph
+        styles. Same grammar and resolver as apply-style-markers.py (imported
+        above); one finding per marker occurrence."""
+        if STYLE_MARKERS is None:
+            return
+        resolver = STYLE_MARKERS.StyleResolver(self.declared_styles)
+        found = STYLE_MARKERS.scan_markers(self.doc.paragraphs, resolver)
+        for e in found:
+            start, end = e['start'] + 1, e['end'] + 1
+            para = self.doc.paragraphs[e['start']]
+            text = STYLE_MARKERS.paragraph_runs_text(para)[e['open_len']:]
+            if e['close_index'] == e['start'] and e.get('close_strip'):
+                text = text[:len(text) - e['close_strip']]
+            text = text.strip()[:100]
+            resolved = e['resolved']
+            count = e['paragraphs']
+            location = f'Paragraph {start}' if start == end else f'Paragraphs {start}-{end}'
+            if resolved:
+                closer = resolved.lower()
+                suggestion = (
+                    f"Becomes {resolved} (via {e['via']} \u2018{e['marker']}\u2019), "
+                    f"{count} {'paragraph' if count == 1 else 'paragraphs'}."
+                )
+                if count == 1:
+                    suggestion += f" To cover a run, put [[/{closer}]] at the end of the last paragraph."
+                severity = 'low'
+            else:
+                suggestion = (
+                    "Not a factory style and not declared on the transmittal \u2014 will print as written. "
+                    f"Use one of: {STYLE_MARKERS.SUGGESTED_NAMES}, or declare \u2018{e['marker']}\u2019 "
+                    "as a custom style on the transmittal."
+                )
+                severity = 'medium'
+            self.edge_cases.append({
+                'type': 'style_marker',
+                'location': location,
+                'text': text,
+                'marker': e['marker'],
+                'resolved': resolved,
+                'paragraphs': count,
+                'severity': severity,
+                'suggestion': suggestion,
+            })
+
     def detect_unusual_fonts(self):
-        """Detect non-standard fonts, but aggregate emoji-heavy cases instead of spamming runs."""
+        """One finding per non-standard font: where, how much, and what (if
+        anything) to do about it. The factory sets everything in the book face,
+        so a font change only matters if it carries meaning (computer text).
+        Emoji/symbol fonts are aggregated as before."""
         standard_fonts = {
             'Calibri', 'Times New Roman', 'Arial', 'Libertinus Serif',
             'Source Sans 3', 'JetBrains Mono', 'Cambria', 'Georgia'
@@ -154,15 +230,39 @@ class EdgeCaseDetector:
                     'suggestion': 'Emoji/special font usage detected — absorb as character-style treatment and verify font survival in EPUB and PDF'
                 })
                 continue
-            for location, text in entries:
-                self.edge_cases.append({
-                    'type': 'unusual_font',
-                    'location': f'Paragraph {location}',
-                    'text': text[:100] if text else font_name,
-                    'font': font_name,
-                    'severity': 'high',
-                    'suggestion': f'Non-standard font "{font_name}" - review for conversion'
-                })
+            n_paras = len(locations)
+            n_runs = len(entries)
+            para_range = (f'\u00b6{locations[0]}\u2013{locations[-1]}' if n_paras > 1 else f'\u00b6{locations[0]}')
+            location = f'Paragraphs {locations[0]}-{locations[-1]}' if n_paras > 1 else f'Paragraph {locations[0]}'
+            sample = next((t for t in nonempty_samples if len(t) > 3 and not t.startswith('[[')),
+                          nonempty_samples[0] if nonempty_samples else font_name)
+            if MONOSPACE_FONT_RE.search(font_name):
+                severity = 'medium'
+                suggestion = (
+                    f"Monospace, {n_paras} {'paragraph' if n_paras == 1 else 'paragraphs'} ({para_range}). "
+                    "Computer text? Put [[code block]] at the start of the first paragraph and [[/code block]] "
+                    "at the end of the last, or use the Code Block style in Word. Otherwise ignore: the factory "
+                    "sets everything in the book face."
+                )
+            elif n_runs <= 2:
+                severity = 'low'
+                suggestion = 'Looks like a paste. Harmless: the factory sets everything in the book face.'
+            else:
+                severity = 'low'
+                suggestion = (
+                    'The factory sets everything in the book face; a font change only matters if it means '
+                    'something (computer text, a foreign script). Say so with a [[style]] marker or on the transmittal.'
+                )
+            self.edge_cases.append({
+                'type': 'unusual_font',
+                'location': location,
+                'text': sample[:100],
+                'font': font_name,
+                'paragraphs': n_paras,
+                'runs': n_runs,
+                'severity': severity,
+                'suggestion': suggestion,
+            })
     
     def detect_colored_text(self):
         """Detect colored text (non-black)"""
@@ -772,7 +872,8 @@ class EdgeCaseReviewer:
         'image_inventory': ('Image Inventory', 'Inline images found in the manuscript'),
         'colored_text': ('Colored Text', 'Non-black text color detected'),
         'highlighted_text': ('Highlighted Text', 'Highlighted text detected'),
-        'unusual_font': ('Unusual Fonts', 'Non-standard fonts detected'),
+        'unusual_font': ('Unusual Fonts', 'Fonts are ignored by the factory — everything is set in the book face. One entry per font: worth a look only if the change means something (computer text, a foreign script)'),
+        'style_marker': ('Marked styles', '[[style:name]] markers at the start of a paragraph — the Google-Docs way to ask for a factory style (code block, block quote, verse…). Resolved markers are applied and removed by the build; unresolved ones print as written'),
         'manual_break': ('Manual Breaks', 'Manual section break characters detected'),
         'stray_quote_marker': ('Stray Quote Markers', '">" characters inside running text (quoted-email or Markdown residue)'),
         'mixed_formatting': ('Mixed Formatting', 'Multiple fonts or sizes within a single paragraph'),
@@ -780,7 +881,7 @@ class EdgeCaseReviewer:
 
     # Preferred display order (high-severity / small-count first)
     SECTION_ORDER_PRIORITY = [
-        'undeclared_custom_style', 'heading_lookalike', 'language_script', 'special_typography',
+        'undeclared_custom_style', 'style_marker', 'heading_lookalike', 'language_script', 'special_typography',
         'colored_text', 'highlighted_text', 'unusual_font',
         'observed_style', 'declared_custom_style_used', 'font_treatment',
         'manual_formatting', 'manual_list', 'direct_spacing',

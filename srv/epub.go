@@ -107,6 +107,10 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 		}
 	}
 
+	// [[style]] markers → paragraph styles, same pre-pass as the print build so
+	// the EPUB matches the PDF. Non-fatal; see stylemarkers.go.
+	s.applyStyleMarkersForBuild("epub", bid, book, tmpDir, docxPath)
+
 	// Load spec if project is linked
 	var spec epubSpec
 	spec.Title = book.Title
@@ -772,6 +776,11 @@ func (s *epubSpec) buildCSS() string {
 	parts = append(parts, ".fm-piece { margin-top: 30%; text-align: center; }")
 	parts = append(parts, ".fm-piece p { text-align: center; }")
 	parts = append(parts, ".fm-epigraph { font-style: italic; }")
+
+	// Code Block (Word style or a [[code block]] marker) arrives from pandoc as
+	// <div data-custom-style="Code Block">; set it in monospace like the print
+	// build's #code-block, keeping the author's spacing.
+	parts = append(parts, `div[data-custom-style="Code Block"] p { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 0.9em; white-space: pre-wrap; text-indent: 0; }`)
 
 	if s.BodyFontSize != "" && s.BodyFontSize != "inherit" {
 		parts = append(parts, fmt.Sprintf("body { font-size: %s; }", s.BodyFontSize))

@@ -627,6 +627,10 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 		}
 	}
 
+	// Step 0b: [[style]] markers (Google-Docs authors' stand-in for custom
+	// styles) → real paragraph styles, in place. Non-fatal; see stylemarkers.go.
+	s.applyStyleMarkersForBuild("pdf", bid, book, tmpDir, docxPath)
+
 	// Book map (P4): front / body / back from heading text + position, plus
 	// the untitled pieces before the first heading. The lua filter turns it
 	// into template calls; the spec decides which generated pages i–iv exist.
