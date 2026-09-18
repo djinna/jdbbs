@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 17:14 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 17:28 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -38,7 +38,15 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 - [x] 2.4 Cal.com timezone — America/New_York confirmed correct. (Note to self: Jenna is **not** in HKT; HKT was chosen only for the store changeover / promo deadlines because of Asia participants.)
 - [ ] 2.5 Try the **New pass form** on `/admin/store/` with a throwaway address (this is the attendee-shows-up path Mon/Tue)
 - [ ] 2.6 Unlock the `pinstitute` portal and eyeball the new cards (Transmittal · Factory → · Calendar, `[FACTORY PASS]`)
+
+  > **shelley** · 2026-09-18 17:24 UTC  
+  > Pre-checked as pinstitute just now (signed in with a real one-time link, minus the email): portal shows both projects with the Transmittal · Factory → · Calendar cards and [FACTORY PASS] on Obliquities; perception/transmittal loads with the new Format + What-you-get sections; book-001/factory shows 2 of 3 builds left, and Inspect ran free in 1.5 s (1156 findings on the test rollup, book map printed, no build spent). Nothing broke. Your turn is only the eyeball.
+
 - [ ] 2.7 After 1.1: re-download the Word template, confirm in Word — Styles pane shows the 11 factory styles, fonts Georgia/Arial/Courier New, page = trim
+
+  > **shelley** · 2026-09-18 17:24 UTC  
+  > Pre-checked the file itself: the template downloaded from book-001/factory has 13 qFormat styles (Normal, Heading 1–3, First Paragraph, Block Quote, Code Block, Section Break, Verse, Copyright, Epigraph, Signature, Glossary Entry), fonts Georgia / Arial / Courier New, page = the protocolized trim (4.91 × 7.59 in). Item text says 11 — read it as 13. What only Word can confirm is the Styles pane.
+
 
 ## 3 · P2 — talk deck from Venkat's "Have your factory call my factory" — BOTH
 
@@ -229,6 +237,11 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 - [x] 5.11 Swim-lane "How it runs" (Author · Studio · Machine · Out × 5 stages) on the public `/factory#how-it-runs`; linked from the client factory step strip and the admin Floor hero (from 0.4)
 - [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag, per `docs/reviews/TYPESAFE-REVIEW-2026-09-18.md` (agreed 2026-09-18; post-workshop)
 - [ ] 5.13 Index as a factory add-on (LLM-drafted conceptual index, Typst-resolved locators) — per `docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md`; ~5 days; post-workshop
+- [x] 5.14 Transmittal checklist trap (found in the §2 pre-check, fixed 7371666): a blank or “Coming later” row for Half title / Title pg / Copyright pg / Contents switched those generated pages **off** in the build. Now default on; own group “made by the factory”, Included / Leave out only; CIP row hidden (it is the LoC/CIP line on the copyright-page builder)
+
+  > **shelley** · 2026-09-18 17:28 UTC  
+  > Found while pre-checking your path, fixed and live (7371666). The Manuscript Checklist offered “In ms now / Coming later / Not included” for the half-title, title page, copyright page and Contents — the four pages the factory generates and tells you not to type. Leaving one at “— Select —” (or “Coming later”) quietly switched that page off in the build: a Monday attendee who did the honest thing would have got a book with no title page. Now those four sit in their own group at the top, “Made by the factory from this transmittal — do not type these”, with just Included — generated / Leave out, defaulting to included; the typed sections (Dedication … Text) keep the three-way choice. CIP row hidden — it’s the Library of Congress / CIP line on the copyright-page builder. Your existing Obliquities transmittal already had them all “In ms now”, so nothing changes there. Reload perception/transmittal to see it.
+
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 
 ## 6 · Ideas log (`docs/IDEAS.md`) — BOTH decide, then queue or kill
@@ -410,9 +423,17 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > Guess we might as well fix it wherever it's referenced. Twelve now 👍
 
 - [ ] 0.8 new: let's draft a short paragraph that we can offer to the books that run through the factory. It could be either on the copyright page in small type or as an item element of back matter that would be called "About the Book Factory." Pop this to the top of your list now if you can. Maybe 500 words.  ·  _added Fri 17:04 UTC_
+
+  > **shelley** · 2026-09-18 17:19 UTC  
+  > Drafts are ready for your read (not ticking until you have): docs/brand/ABOUT-THE-BOOK-FACTORY-2026-09-18.md — also in the repo on GitHub. Three lengths: A colophon for the copyright page (78 w), A′ one line after the typesetting credit (26 w), B a back-matter page headed “About the Book Factory” (~490 w). Voice: plain third person, says what happened to the book, no adjectives; the URL is the only sell. Once you pick and mark up the wording I wire it as a transmittal checkbox (off by default): copyright-page colophon, or back-matter page, or both. The one-liner, so you can judge the voice here: “Set from the author's Word file by the jdbb studio book factory, print and EPUB from one source, no hand-composed pages. jdbbs.exe.xyz/factory”
+
 - [x] 0.9 New: I'm considering that we could add index as an add-on in the factory, and maybe that is a good use of Jev. The main problem is that a word list is not actual indexing. An indexer does a lot of thinking about what to include, but maybe this is the time, and an LLM can actually produce a pretty good index that is meaningful, not just a sorted word list.  We do a first pass on whether it looks feasible or not today. Add that to your list, and then let's hold on. If it's at all complicated, let's hold on to that for after the workshop. Also, maybe that tool we looked at earlier today, Jev, could be ideal for and we can do it now.  ·  _added Fri 17:07 UTC_
 
   > **shelley** · 2026-09-18 17:09 UTC  
   > First pass done: docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md. Verdict: feasible and worth doing, but ~5 days, so holding it — now 5.13, post-workshop. Three things worth knowing now. (1) Yes, an LLM can write a real conceptual index (topics, merged synonyms, subentries, see/see-also, skipping passing mentions) — indexers’ own societies have been testing this since 2024 and call it a strong first draft for a human to edit, which is exactly the tier we’d sell. (2) Jev is the wrong tool: it classifies (pick one / score / yes-no), it doesn’t generate; indexing is generation. Jev could at most be a cheap yes/no gate on candidate terms. Jev stays on 5.12. (3) The hard part isn’t the entries, it’s the page numbers: they only exist after Typst sets the book, and any correction reflows them. The right design is the LaTeX one — the model proposes terms and the sentences that mention them, we plant #index[] markers in the Typst, Typst resolves the locators at compile time, so every rebuild keeps the index true. That’s the new Typst subsystem that makes it a five-day job. Cost per book is well under a dollar; a human indexer is $3–5 a page, so the add-on prices itself.
 
 - [x] 0.10 new: I don't think we have yet created a default style for glossary entries. Let's check.  ·  _added Fri 17:10 UTC_
+
+  > **shelley** · 2026-09-18 17:14 UTC  
+  > Checked: there was none — the book map knew a “Glossary” heading was back matter, but entries were plain body paragraphs. Added Glossary Entry: one paragraph per term, term in bold at the start, definition follows; hanging indent so wrapped lines tuck under the definition, ragged right, a little air between entries, in PDF and EPUB; Inspect knows it; in the template from the next download. Template is now thirteen styles — deck and About-the-Factory text updated everywhere “eleven” appeared. One catch this turned up: Plantin MT Pro Bold is not on the VM (only Regular + Italic), so bold in body text silently sets as regular in every Plantin print build. If you own the Bold, it needs dropping into typesetting/fonts/licensed/plantin-mt-pro/ — logged in IDEAS.
+
