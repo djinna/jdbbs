@@ -491,6 +491,14 @@ html.dark .tx-checklist td { border-bottom-color: var(--border); }
   outline: none;
   border-bottom-color: var(--accent);
 }
+/* Stats row (Parts / Chapters / Words / MS pp / Est. pp) holds ordinary
+   labelled fields, not inline row fields: keep the standard underline. */
+.tx-checklist .stats-row .tx-field input[type="text"] {
+  padding: 5px 2px;
+  font-size: 13px;
+  border-bottom-color: var(--border-strong);
+}
+.tx-checklist .stats-row .tx-field input[type="text"]:focus { border-bottom-color: var(--accent); }
 .tx-checklist input[type="date"]:disabled {
   background: none;
   color: var(--text-muted);
