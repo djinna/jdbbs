@@ -63,3 +63,45 @@ Never `cat` >350-line files; explicit `git add -- paths`; `make build` before
 licensed-font embedding; no GitHub PAT; Typst 0.13 deferred to Sep 24+.
 
 Metrics: ~45 % context at handoff; files read in full (guard bypasses): 0.
+
+---
+
+## Addendum — Fri 18 Sep, block 2 (after compaction)
+
+Landed, all deployed and pushed (`checkpoint-2026-09-18-pre-workshop-v2` at
+`9ac2027`, then `d7a1d76`):
+
+- **5.15 images** (`41351b2`): `srv/images.go` — after pandoc extracts
+  media, every colour raster (share of clearly-coloured pixels ≥ 0.5 %; a
+  mean-saturation test missed a white chart with two thin coloured lines) is
+  rewritten in place: luminance grey, `-auto-level`, `-sigmoidal-contrast
+  3,50%`. Already-grey untouched; EPUB reads the .docx so keeps colour. Spec
+  `images.print_colour` ← transmittal `illustrations.print_colour` checkbox
+  (Illustrations section, `tx-attest` box, off by default). Inspect
+  `image_inventory` findings carry `colour: true/false` (same recipe in
+  `detect-edge-cases.py _image_is_colour`); factory page counts them.
+  Verified with a 3-image test book through the real pipeline (book 18 on
+  project 14, deleted).
+- **5.16** `@`-in-link fix; **5.14** front matter default on; compscore fix
+  (see block 1 above).
+- **5.18** (`passes.go` 4b): pass fulfilment seeds the transmittal draft with
+  title/author — `seededTransmittalData` in `transmittal.go`.
+- **2.5** verified server-side: admin New pass → password → client verify
+  200 / wrong 401 / no cookie 401. Throwaways: pass 9 + project 26
+  (`tattendee`), pass 10 + project 27 (`sauthor`) — revoked + archived
+  (project DELETE is disabled by design).
+- **Punch list rolled over**: list 1 archived `docs/runs/PUNCHLIST-2026-09-18.md`
+  (35/55); list 2 is `scratch/run/CHECKLIST.md`, exported as
+  `docs/runs/PUNCHLIST-2026-09-18-list2.md` (export arg `2026-09-18-list2`).
+  Item numbers kept so notes stay attached; 0.8 → 5.17 (notes migrated).
+  Inbox §0 now at the **top**; `server.py /add` inserts at end of §0 section.
+  Archive copies of the raw files in `scratch/run/archive/` (gitignored).
+- **0.8 drafts** (About the Book Factory A/A′/B) were only in
+  `docs/brand/ABOUT-THE-BOOK-FACTORY-2026-09-18.md`; Jenna couldn't see them
+  → posted in full as a note on 5.17. Rule: anything Jenna must read goes on
+  the item, never as a repo path.
+
+Open on list 2 (all waiting on Jenna or post-workshop): 2.6–2.8, 3.2/3.4/3.5,
+4.x (workshop days), 5.17 pick → wire, 5.5 InDesign compare, 5.12/5.13/5.19/
+5.20/5.21, 6.1–6.6. Nothing for the agent to start unprompted except 3.5 after
+3.4 and 6.6 after 6.x decisions.
