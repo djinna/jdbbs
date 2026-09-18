@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 18:23 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 18:47 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -19,6 +19,26 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
 
   > **shelley** · 2026-09-18 18:23 UTC  
   > Trivial — in fact zero. Inspect does not call a language model at all. It is a Python script (typesetting/scripts/detect-edge-cases.py, python-docx + ImageMagick) that reads the .docx and pattern-matches: styles used vs the template, images and their print sizes, chapter starts, special characters, odd formatting. Ghosts (24,000 words, 159 findings) takes 3.3 s and about 36 MB of RAM on the VM; the cost is a few CPU-seconds. Same for the build itself: pandoc → Typst, no model in the loop. The only things in the factory that touch a model are the ones I run by hand in a session (a review, the Obliquities read-through) and the two parked ideas that would add one — the Jev heading-classification pilot (5.12) and the LLM-drafted index (5.13). If either of those ships, a per-manuscript token cost appears for the first time; for a 24k-word book that would be roughly 35k input tokens per pass, i.e. cents, not dollars. Worth stating on the factory page, so I’ll add a line to Inspect’s blurb: “Inspect is a rules-based read of your file; no AI reads your manuscript.”
+
+- [x] 0.3 Google Docs authors have no custom paragraph styles — adopt `[[style name]]` … `[[/style name]]` markers (Jenna trialled `[[style:computer text]]` in the Obliquities rollup); Inspect: “Marked styles” section + one row per unusual font with meaning (Cardo paste flag was noise, not an error)  ·  _from chat Fri 18:40 UTC_
+
+  > **shelley** · 2026-09-18 18:30 UTC  
+  > Looked at the file. Google Docs gives you no paragraph styles beyond Normal/Heading/Title, so every one of your 681 paragraphs arrives as “normal” and the intent lives only in direct formatting (Consolas for the TCP dialogue) and your markers. Your instinct is right and I want to make it the official convention rather than a workaround:
+  >
+  > MARKERS. A paragraph that begins with [[name]] takes the factory style of that name — [[code block]], [[block quote]], [[epigraph]], [[verse]], [[first paragraph]], [[section break]], or any custom style you declared on the transmittal. On its own it applies to that paragraph only; to cover a run, put [[/name]] (or [[end]]) at the end of the last paragraph — so your TCP joke is [[code block]] on the first line and [[/code block]] on the last. I’ll also accept your [[style:name]] spelling, and a few natural aliases (computer text / terminal / code → Code Block; quote / extract → Block Quote). Case and spaces don’t matter. The factory strips the markers on the way in and sets the real style before pandoc sees the file, so the Word template path and the Google Docs path produce the same book. Nobody has to hunt for anything in Word afterwards.
+  >
+  > INSPECT gets two changes. (1) A new “Marked styles” section: every marker found, how many paragraphs it covers, and whether the name resolved — [[computer text]] → Code Block (alias), [[caption]] → unknown, with the hint to declare it or pick a factory style. (2) “Unusual fonts” stops being 11 red items. One row per font, with the paragraph range and a meaning: “Consolas, 9 paragraphs (¶118–126), monospace — computer text? mark it [[code block]] … [[/code block]]”, and “Cardo, one run in ¶71 — looks like a paste; harmless, the factory sets everything in the book face.” Low severity unless it looks like meaning.
+  >
+  > Building it now — pre-pass script + Inspect changes, then a test on this file (free slot). About an hour. I’ll say when it’s live so your afternoon run can use [[code block]] … [[/code block]] on the TCP joke. Until then [[style:computer text]] will be printed literally, so hold the build.
+
+  > **shelley** · 2026-09-18 18:47 UTC  
+  > Live (216dfeb). Rules as built:
+  > • Start a paragraph with [[code block]] — or [[style:code block]], case/spaces don’t matter. That paragraph takes the style.
+  > • To cover a run, end the LAST paragraph with [[/code block]] (or [[end]]). So for the TCP joke: keep your [[style:computer text]] on the first line and add [[/computer text]] at the end of “…Hello, would you like to hear a TCP joke?”. Without the closer only the first line is code — Inspect will tell you exactly that.
+  > • Names: the 13 factory styles, your transmittal custom styles, and aliases — computer text / code / terminal → Code Block; quote / extract → Block Quote; poem → Verse.
+  > • Recognised markers are stripped and the real style applied before pandoc, for print and EPUB alike. Unrecognised ones ([[caption]]) stay in the text so you see them in the proof, and Inspect flags them in a new “Marked styles” section. Caption isn’t a factory style — pandoc already treats the paragraph after an image as its caption, so you can just drop that marker.
+  > • Unusual fonts: now one row per font with a meaning. On your file: “Consolas, 9 paragraphs ¶118–126, monospace — computer text? mark it…” (medium) and “Cardo, one run ¶71 — looks like a paste, harmless” (low). Fonts are ignored by the factory either way; that Cardo phrase in ¶71 really is Cardo in the file, so the old report wasn’t wrong, just unhelpful.
+  > Ran your rollup through a free slot: no “[[style” left in the PDF, TCP line set in the mono face, EPUB matches. The rule is also on the factory page under Upload (“Drafting in Google Docs?”). Go ahead with the build.
 
 
 ## 2 · Your side — YOU
