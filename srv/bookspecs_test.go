@@ -258,3 +258,62 @@ func TestStudioTrimLeavesPageAlone(t *testing.T) {
 		}
 	}
 }
+
+// Generated pages (half-title, title page, copyright page, Contents) are made
+// by the factory, so a blank or "Coming later" checklist row must leave them
+// on; only an explicit "Not included" switches one off. Typed sections
+// (Foreword) still follow here_now.
+func TestPullTransmittalGeneratedPagesDefaultOn(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name":         "Generated Pages",
+		"start_date":   "2026-09-18",
+		"client_slug":  "vgr",
+		"project_slug": "generated-pages",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: expected 201, got %d", resp.StatusCode)
+	}
+	var project map[string]any
+	decodeJSON(t, resp, &project)
+	pid := itoa(int64(project["ID"].(float64)))
+
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+pid+"/transmittal", nil)
+	var tx map[string]any
+	decodeJSON(t, resp, &tx)
+	data := tx["data"].(map[string]any)
+	for _, it := range data["checklist"].([]any) {
+		m := it.(map[string]any)
+		switch m["component"] {
+		case "Half title pg":
+			m["status"], m["here_now"] = "not_in_book", false
+		case "Title pg":
+			m["status"], m["here_now"] = "later", false
+		case "Copyright pg", "Contents":
+			// left blank: "— Select —"
+		case "Foreword":
+			m["status"], m["here_now"] = "", false
+		}
+	}
+	resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/transmittal", map[string]any{"status": "draft", "data": data})
+	if resp.StatusCode != 200 {
+		t.Fatalf("update transmittal: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/book-spec/pull-transmittal", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("pull: expected 200, got %d", resp.StatusCode)
+	}
+	var result map[string]any
+	decodeJSON(t, resp, &result)
+	fm := result["data"].(map[string]any)["front_matter"].(map[string]any)
+	want := map[string]bool{"half_title": false, "title_page": true, "copyright_page": true, "toc": true, "foreword": false}
+	for k, v := range want {
+		if fm[k] != v {
+			t.Errorf("front_matter.%s = %v, want %v", k, fm[k], v)
+		}
+	}
+}

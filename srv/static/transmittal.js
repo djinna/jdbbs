@@ -413,8 +413,11 @@ function calcCompletion() {
   total++; if (d.production && d.production.target_date) filled++;
   // Checklist — count items with explicit status, while preserving older saved data
   if (d.checklist) {
-    total += d.checklist.length;
-    filled += d.checklist.filter(c => !!getChecklistItemStatus(c)).length;
+    // Generated pages and the hidden CIP row are complete as they stand.
+    const auto = ['Half title pg', 'Title pg', 'Copyright pg', 'Contents', 'CIP'];
+    const typed = d.checklist.filter(c => !auto.includes(c.component));
+    total += typed.length;
+    filled += typed.filter(c => !!getChecklistItemStatus(c)).length;
   }
   if (d.backmatter) {
     total += d.backmatter.length;
@@ -724,6 +727,30 @@ function renderChecklistSection() {
 
   function checklistRow(item, i, collectionName, collection, options = {}) {
     const status = getChecklistItemStatus(item);
+    // Generated pages: the factory makes them from this transmittal, so the
+    // only question is include or leave out. Blank (and a stale "Coming
+    // later") count as included — bookspecs.go reads them the same way.
+    if (options.generated) {
+      const val = status === 'not_in_book' ? 'not_in_book' : 'included';
+      return h('tr', { className: 'generated-row' },
+        h('td', { className: 'component-name' }, options.label || item.component),
+        h('td', { style: 'width:190px' },
+          h('select', {
+            onChange: (e) => updateChecklistRow(collectionName, collection, i, e.target.value)
+          },
+            ...[
+              ['included', 'Included \u2014 generated'],
+              ['not_in_book', 'Leave out'],
+            ].map(([value, label]) => {
+              const opt = h('option', { value }, label);
+              if (val === value) opt.selected = true;
+              return opt;
+            })
+          )
+        ),
+        h('td', { style: 'width:140px', className: 'tx-muted' }, '\u2014'),
+      );
+    }
     const disabled = status !== 'later';
     return h('tr', null,
       h('td', { className: options.indent ? 'component-indent' : 'component-name' },
@@ -763,9 +790,30 @@ function renderChecklistSection() {
     );
   }
 
-  const checklistRows = checklist.map((item, i) =>
-    checklistRow(item, i, 'checklist', checklist, { indent: item.indent })
-  );
+  // Rows the factory generates (P4 decisions 2026-09-17: title + © pages,
+  // half-title and Contents come from the transmittal, never typed). CIP is
+  // the LoC/CIP line on the copyright-page builder now; its row stays in the
+  // JSON for old transmittals but is not shown.
+  const GENERATED = ['Half title pg', 'Title pg', 'Copyright pg', 'Contents'];
+  const HIDDEN = ['CIP'];
+  const groupRow = (label) => h('tr', { className: 'group-row' },
+    h('td', { colspan: '3', className: 'tx-group-label' }, label));
+  const generatedRows = [];
+  const typedRows = [];
+  checklist.forEach((item, i) => {
+    if (HIDDEN.includes(item.component)) return;
+    if (GENERATED.includes(item.component)) {
+      generatedRows.push(checklistRow(item, i, 'checklist', checklist, { generated: true }));
+    } else {
+      typedRows.push(checklistRow(item, i, 'checklist', checklist, { indent: item.indent }));
+    }
+  });
+  const checklistRows = [
+    groupRow('Made by the factory from this transmittal \u2014 do not type these'),
+    ...generatedRows,
+    groupRow('In your Word file'),
+    ...typedRows,
+  ];
 
   const bmRows = backmatter.map((item, i) =>
     checklistRow(item, i, 'backmatter', backmatter, {
@@ -776,7 +824,7 @@ function renderChecklistSection() {
 
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Manuscript Checklist'),
-    h('div', { className: 'tx-help' }, 'For each component, choose whether it is in the manuscript now, coming later, or not included in this book.'),
+    h('div', { className: 'tx-help' }, 'The first group is generated \u2014 half-title, title page, copyright page and Contents are built from this form, so leave them included unless your book should not have one. For everything else, say whether it is in the manuscript now, coming later, or not in this book.'),
     h('table', { className: 'tx-checklist' },
       h('thead', null, h('tr', null,
         h('th', null, 'Component'),

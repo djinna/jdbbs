@@ -294,21 +294,27 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 			if m, ok := item.(map[string]any); ok {
 				comp, _ := m["component"].(string)
 				here, _ := m["here_now"].(bool)
+				status, _ := m["status"].(string)
+				// Generated pages (half-title, title page, copyright page,
+				// Contents) are made by the factory, not typed, so they are
+				// on unless the author explicitly leaves one out. A blank
+				// row or a stale "Coming later" must not switch them off.
+				gen := status != "not_in_book"
 				switch comp {
 				case "Half title pg":
-					fm["half_title"] = here
+					fm["half_title"] = gen
 				case "Series title/Frontis.":
 					fm["series_title"] = here
 				case "Title pg":
-					fm["title_page"] = here
+					fm["title_page"] = gen
 				case "Copyright pg":
-					fm["copyright_page"] = here
+					fm["copyright_page"] = gen
 				case "Dedication":
 					fm["dedication"] = here
 				case "Epigraph":
 					fm["epigraph"] = here
 				case "Contents":
-					fm["toc"] = here
+					fm["toc"] = gen
 				case "Foreword":
 					fm["foreword"] = here
 				case "Preface":
