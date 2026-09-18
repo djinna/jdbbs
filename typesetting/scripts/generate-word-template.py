@@ -487,6 +487,46 @@ def build_template(spec: dict) -> Document:
         "see more, open its Options and choose \u201cRecommended\u201d."
     )
 
+    # --- Front matter / back matter (P4 book map) ---
+    p = doc.add_heading("How the book is assembled", level=2)
+    doc.add_paragraph(
+        "The factory reads your file in three zones. Everything before the first "
+        "Heading 1 is front matter you typed yourself; each Heading 1 is a section; "
+        "sections named like back matter at the end of the file are back matter. "
+        "Page numbers, running heads and the Contents come from that reading.",
+        style="First Paragraph"
+    )
+    doc.add_paragraph(
+        "Do not type these — they are generated from your transmittal: the half-title, "
+        "the title page, the copyright page and the table of contents. If you type "
+        "a title, a \u201cby\u201d line, a Copyright-styled block or a Contents heading, "
+        "the factory drops it and tells you so in Inspect. (The title and byline at the "
+        "top of this template are dropped the same way.)"
+    )
+    doc.add_paragraph(
+        "Do type these before your first Heading 1, each on its own page (Insert \u2192 "
+        "Page Break): a dedication, then an epigraph if you have one. Use the "
+        "\u2018Epigraph\u2019 style for the epigraph; the dedication is plain Normal text. "
+        "They are set centred on their own pages, after the copyright page and before "
+        "the Contents."
+    )
+    doc.add_paragraph(
+        "Front matter with a heading uses Heading 1 like any chapter and is recognised "
+        "by its name: Foreword, Preface, Prologue, Acknowledgments, Author\u2019s Note, "
+        "Note on the Text, List of Illustrations, Chronology, Cast of Characters. "
+        "These get roman page numbers. An Introduction is treated as body (page 1)."
+    )
+    doc.add_paragraph(
+        "Back matter is recognised by name at the end of the file: Afterword, Appendix, "
+        "Notes, Bibliography, Further Reading, Glossary, Index, About the Author, "
+        "Acknowledgments, Credits, Colophon. An Epilogue is body. Anything else with a "
+        "Heading 1 is a chapter."
+    )
+    doc.add_paragraph(
+        "Every chapter starts with a Heading 1 \u2014 that is what makes a new page and a "
+        "Contents entry. Heading 2 and Heading 3 divide a chapter; they never start a page."
+    )
+
     # --- Normal / Body Text ---
     p = doc.add_heading("Body Text (Normal)", level=3)
     doc.add_paragraph(
@@ -576,7 +616,10 @@ def build_template(spec: dict) -> Document:
     # --- Copyright ---
     p = doc.add_heading("Copyright", level=3)
     doc.add_paragraph(
-        "Use 'Copyright' for the copyright page:",
+        "The copyright page is generated from your transmittal, so you do not need to "
+        "type one. If you do, put it in 'Copyright' style: the factory recognises it "
+        "and drops it rather than printing two. The style exists so a typed page still "
+        "looks right in Word:",
         style="First Paragraph"
     )
     publisher = meta.get("publisher") or "Publisher"
@@ -632,8 +675,8 @@ def build_template(spec: dict) -> Document:
         ("Code Block",      f"{code_font}, {code_size:.1f}pt",    "Code / terminal output"),
         ("Section Break",   f"Centered, '{sb_char_key}'",         "Scene / section divider"),
         ("Verse",           f"{body_font}, {poem_size:.1f}pt italic", "Poetry / lyrics"),
-        ("Epigraph",        f"{body_font}, {base_size}pt italic", "Chapter-opening quotation"),
-        ("Copyright",       f"{body_font}, {cr_size:.1f}pt",      "Copyright page text"),
+        ("Epigraph",        f"{body_font}, {base_size}pt italic", "Book or chapter epigraph"),
+        ("Copyright",       f"{body_font}, {cr_size:.1f}pt",      "Typed copyright page (dropped; generated from transmittal)"),
     ]
     for cs in customs:
         cs_name = cs.get("word_style") or cs.get("name", "Custom")
