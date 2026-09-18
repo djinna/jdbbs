@@ -413,6 +413,27 @@ Within chapters, scenes or sections divide with:
 - Create rivers or bad spacing to fix orphans
 - Adjust leading to fix breaks (destroys vertical rhythm)
 
+### Breaks belong to what follows, not to what precedes
+
+A piece never pads its own end. The last element of a foreword, a chapter, a
+part page or a dedication does not add space "because a page break usually
+follows"; the thing that follows declares where it starts. In the house
+template that means the *next* heading or piece carries the break —
+`pagebreak(weak: true, to: "odd")` on the chapter opener, `to: "odd"` on
+front-matter pieces — and closing elements (signature block, last paragraph,
+epigraph attribution) end flush with their content.
+
+Two reasons. Trailing space is invisible when a page break follows (so it does
+nothing) and wrong when one does not (so it is a bug waiting for the one time
+body text follows). And the decision "new page / new recto / run on" is a
+property of the piece that starts, not the piece that ends: an afterword
+starts recto whether it follows a signature, a chapter or an appendix.
+
+Word-side the same rule holds: never end a section with empty paragraphs to
+push the next one over; the next heading's style has "page break before"
+(the template's Heading 1 does). Inspect flags runs of empty paragraphs for
+exactly this reason.
+
 ### Keep Together
 
 Certain elements should never separate:

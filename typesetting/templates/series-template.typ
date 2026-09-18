@@ -760,12 +760,13 @@
 // set tight and flush left with a line of air above (Chicago 1.40 puts the
 // signature after the text, flush left or right; we take left to sit with
 // the body). Lines that are separate Word paragraphs arrive merged by the
-// filter, so the space above lands once.
+// filter, so the space above lands once. Nothing after: what follows a
+// signature is the next piece, and the break belongs to its heading
+// (pagebreak to odd in chapter-opener), never to trailing space here.
 #let signature(content) = {
   v(1em)
   set par(first-line-indent: 0em, spacing: 0.35em, justify: false)
   block(breakable: false, content)
-  v(0.5em)
 }
 
 // =============================================================================

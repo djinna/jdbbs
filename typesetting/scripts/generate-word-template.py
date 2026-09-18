@@ -396,6 +396,11 @@ def build_template(spec: dict) -> Document:
         style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
         # Keep with next
         style.paragraph_format.keep_with_next = True
+        # The break belongs to what follows: a chapter starts on a new page
+        # because its heading says so, never because the previous piece
+        # padded its end with empty paragraphs (Inspect flags those).
+        if style_name == "Heading 1":
+            style.paragraph_format.page_break_before = True
 
     # ------------------------------------------------------------------
     # 4. Block Quote
