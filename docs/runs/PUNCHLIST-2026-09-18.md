@@ -28,7 +28,7 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 
 Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-factory · template only from `/2026-pi-symposium/talk` (never edit that file). Talk: Wed 23 Sep 17:30 UTC, SIGP4B.
 
-- [ ] 3.1 ME — read the post; draft **≤ 10 beats** (one line each) → paste here for you
+- [x] 3.1 ME — read the post; draft **≤ 10 beats** (one line each) → paste here for you
 - [ ] 3.2 YOU — cut / reorder / add beats
 - [ ] 3.3 ME — build the deck as a new page in `~/jdbbs-public` on the talk template
 - [ ] 3.4 BOTH — run-through in the browser; timing
@@ -47,7 +47,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
 - [x] 5.1 **Deploy-safe first (can land Fri/Sat):** C24 — one line on `/factory` that Kindle takes EPUB (no `.mobi`)
 - [x] 5.2 C27 CJK embed rule: fire only at ≥ 20 ideographs, and/or subset with `pyftsubset` (the 20 MB EPUB from one ASCII-art tweet)
-- [ ] 5.3 P4 **front matter ingestion** — decisions already taken 2026-09-17 (every section head = Heading 1; classify by heading text against a closed vocabulary + position; untitled pre-H1 blocks = dedication/epigraph in transmittal order; title + © pages generated from the transmittal; Parts opt-in shifts chapters to H2; arabic 1 on a recto). Inspect prints the resulting book map
+- [~] 5.3 P4 **front matter ingestion** — decisions already taken 2026-09-17 (every section head = Heading 1; classify by heading text against a closed vocabulary + position; untitled pre-H1 blocks = dedication/epigraph in transmittal order; title + © pages generated from the transmittal; Parts opt-in shifts chapters to H2; arabic 1 on a recto). Inspect prints the resulting book map
 - [ ] 5.4 **C13 transmittal rewrite for the factory** (post-workshop, the big one):
     - [ ] 5.4a C6 drop press-era Production section (Mechs Delivery, Weeks in Prod., Bound Book Date, dup Transmittal Date); Print Run → Book; one optional "Target date"; keep old JSON keys readable
     - [ ] 5.4b C7 stop asking chapters / words / MS pp / est. book pp — Inspect counts them; fix missing input underline meanwhile
