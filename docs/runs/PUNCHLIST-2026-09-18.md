@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 17:28 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 17:42 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -152,6 +152,9 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   >
   > The lever that actually fixes runts (Typst’s `costs`) needs Typst 0.13; we run 0.12. I tried 0.13 in scratch: runts 42 → 29 (−31%), and the template compiles after a one-line fix (landed, no output change on 0.12). But 0.13 also changes spacing around lists and on the Contents page, which shifts lines on ~30 pages of Ghosts — a page-by-page check on two books before it can go live. Recommendation: do the upgrade Wed 24 or after, not before attendees build. Full note: docs/reviews/P3-COMPOSITION-2026-09-18.md. Still want one InDesign-set page from you to run the same scorer on. Side-find: Ghosts ch.1 has 26 stray `>` from a quoted email in the .docx — Inspect should flag that (small, will add).
 
+  > **shelley** · 2026-09-18 17:37 UTC  
+  > Checked what else 0.12 can do, so 5.5 is not just waiting on the upgrade. Answer: nothing worth touching before Monday. Ghosts’ 27 “loose” lines are all 0.50–0.58 em — a hair over the yardstick, 1.1 per 100 lines, no hyphen stacks, no widows/orphans. That is clean composition; a compositor would leave it. Obliquities (same scorer, your existing PDF, no build spent) is looser: 3.5 per 100 lines, median 0.53 em, max 0.79, because the protocolized trim gives a ~3.4 in measure at the same 10 pt. The honest fix there is design — 9.5 pt or a hair less margin — a choice for the series spec, not a factory default to flip two days out. The 6 “orphans” it reports are numbered-list first lines (scorer sees the hanging number as a new column) — false positives, I’ll tighten the scorer. Runts remain the only real defect and that is the 0.13 `costs` lever, Wed 24+. Leaving 5.5 in progress for the InDesign page whenever you have one; otherwise it is done for the workshop.
+
 - [x] 5.6 P1 review docs.typesafe.ai/introduction — anything for the factory? Write a ½-page note, then decide
 
   > **shelley** · 2026-09-18 12:02 UTC  
@@ -241,6 +244,12 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **shelley** · 2026-09-18 17:28 UTC  
   > Found while pre-checking your path, fixed and live (7371666). The Manuscript Checklist offered “In ms now / Coming later / Not included” for the half-title, title page, copyright page and Contents — the four pages the factory generates and tells you not to type. Leaving one at “— Select —” (or “Coming later”) quietly switched that page off in the build: a Monday attendee who did the honest thing would have got a book with no title page. Now those four sit in their own group at the top, “Made by the factory from this transmittal — do not type these”, with just Included — generated / Leave out, defaulting to included; the typed sections (Dedication … Text) keep the three-way choice. CIP row hidden — it’s the Library of Congress / CIP line on the copyright-page builder. Your existing Obliquities transmittal already had them all “In ms now”, so nothing changes there. Reload perception/transmittal to see it.
+
+- [ ] 5.15 Images (from 0.11): print build converts images to grey with tonal auto-level; EPUB keeps colour; spec switch for colour interiors; Inspect reports “N colour images converted for print”. Add-on later: tuned per-image grey conversion + proof sheet, ~$100. **Awaiting go from Jenna**
+- [x] 5.16 Print PDF printed a literal `#sym.at` wherever an `@` appeared in text or a URL (Obliquities: copyright-page email, two footnote URLs, one bullet). Found by the 5.5 scorer pass; fixed + test (2081387)
+
+  > **shelley** · 2026-09-18 17:41 UTC  
+  > Your current Obliquities PDF (17 Sep build) has a real defect I only saw while running the scorer on it: every @ prints as the literal text “#sym.at” — “production#sym.atprotocol-institute.org” on the copyright page, the team@ footnote, the substack.com/@drewaustin footnote, and a bullet. A cleanup step of ours meant for bare @handles was also catching Pandoc’s already-correct escape. Fixed, tested, live. It will be right on your next build — no need to spend one just for this; the Monday build will pick it up. Ghosts has no @ at all so it is unaffected (rebuilt to confirm: identical 61 pp).
 
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 
@@ -436,4 +445,17 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **shelley** · 2026-09-18 17:14 UTC  
   > Checked: there was none — the book map knew a “Glossary” heading was back matter, but entries were plain body paragraphs. Added Glossary Entry: one paragraph per term, term in bold at the start, definition follows; hanging indent so wrapped lines tuck under the definition, ragged right, a little air between entries, in PDF and EPUB; Inspect knows it; in the template from the next download. Template is now thirteen styles — deck and About-the-Factory text updated everywhere “eleven” appeared. One catch this turned up: Plantin MT Pro Bold is not on the VM (only Regular + Italic), so bold in body text silently sets as regular in every Plantin print build. If you own the Bold, it needs dropping into typesetting/fonts/licensed/plantin-mt-pro/ — logged in IDEAS.
+
+- [ ] 0.11 New: in one of the projects we're going to set up today to test the system end-to-end, the images are a mix of black and white and color. In my training, we would insist that people go turn their color images into black and white for the print book, but in this new day and this new model, maybe that's not really needed.  For example, is it fine to include color images in EPUBs, even if most displays will be black and white, like an actual Kindle Paperwhite? Also, when converting color to black and white, usually you want to take care to get the tonal range tuned nicely. Is that something we want to consider doing on the fly? Are there good tools for that that you can grab and use, and do we either just do it or turn it into an add-on? In other words, encourage them to do it themselves, but if they don't want to, we add it as an add-on for $100 or something like that. What do you think?  ·  _added Fri 17:39 UTC_
+
+  > **shelley** · 2026-09-18 17:39 UTC  
+  > My take, in three parts.
+  >
+  > EPUB: keep colour. That is the standard. A Paperwhite renders it in 16 greys on the fly, and the same file is in colour on phones, tablets, the Kindle app and Colorsoft. Nobody supplies a grey EPUB any more. The only care is a colour-coded chart (red line vs green line), which has to be readable in grey anyway because of e-ink — that is a caption/labeling problem, not a conversion one.
+  >
+  > Print: your training still holds, for one reason — if a colour image reaches KDP or Ingram in a black-and-white interior, *their* RIP does the conversion, flat and unlooked-at. Insisting on B&W was really insisting on controlling that step. So the factory should own it: convert every image to grey for the print PDF, and leave the EPUB alone. One Word file, two right outputs — exactly the pitch.
+  >
+  > How good can on-the-fly be? Today the pipeline does nothing to images — they pass straight through. ImageMagick is on the VM. A plain grey conversion is flat; a grey conversion with an auto-level and a gentle S-curve is what a careful operator would do first on most photos, and it is fine for 80 % of images. What it cannot do is the judgement call — mixing the red channel up to lift a face out of foliage, or noticing that a chart’s two lines became the same grey. That is the $100.
+  >
+  > So: (1) factory default, print build converts to grey with tonal auto-level, EPUB keeps colour, and a spec switch “colour interior — keep colour in print” for the rare colour book; (2) Inspect reports “N colour images — converted to grey for print; supply your own B&W versions to override” so DIY stays the encouraged path; (3) add-on, post-workshop: tuned per-image conversion with a proof sheet, $100 flat or per-image over ten. Part (1)+(2) is about two hours and I can land it today with Ghosts as the test — say go. Parked as 5.15 meanwhile.
 
