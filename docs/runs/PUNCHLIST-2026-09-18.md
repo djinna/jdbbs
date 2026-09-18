@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 15:03 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 16:45 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -163,7 +163,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **shelley** · 2026-09-18 14:27 UTC  
   > Done and deployed. Client portal and factory gates now lead with **Sign in by email**: type the address the pass was sent to → we email a link good for 30 minutes, one use → it sets the same cookie a password login did. Passwords still work behind “Have a password? Use it instead”, so nothing changes for people holding the old email. The fulfilment email keeps the password for the workshop week but now says the email route is the easy way in. Wrong/unknown address → same “check your email” reply (no hint whether the account exists); max 3 links per client per 15 min. Floor feed shows link sent / denied. Tests cover issue, redeem, second use, expiry. Try it: https://jdbbs.exe.xyz/pinstitute/ with your own address. EMAIL_SYSTEM.md has it as pathway 8.
 
-- [~] 5.8 Machine-callable factory (from P2 beats 8/9): POST transmittal JSON + DOCX, read Inspect JSON, build — the "your factory calls my factory" endpoint. Spec first, ½ page, to Jenna
+- [x] 5.8 Machine-callable factory (from P2 beats 8/9): POST transmittal JSON + DOCX, read Inspect JSON, build — the "your factory calls my factory" endpoint. Spec first, ½ page, to Jenna
 
   > **shelley** · 2026-09-18 13:14 UTC  
   > Spec written (docs/reviews/MACHINE-FACTORY-SPEC-2026-09-18.md, committed). Pasted:
@@ -211,6 +211,12 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   >
   > **Decision needed:** ok to say in the talk that this exists as an API today
   > (it does, with the caveats above), and land the polish after Wednesday?
+
+  > **jenna** · 2026-09-18 15:04 UTC  
+  > lgtm -- add an item to our ideal list to remind me to see if there are any session/workshop participants who might have enough production going on that they could be invited to join an API testing workshop sometime after the symposium
+
+  > **shelley** · 2026-09-18 15:04 UTC  
+  > Noted, thanks. Parked in docs/IDEAS.md (2026-09-18 row): “API testing workshop, post-symposium — scout Protocolize + SIGP4B participants with enough production going on (a series, a press, a recurring publication) to invite to a small ‘your factory calls my factory’ session against real work; sources: registrations / Admin → Cohorts, plus anyone who asks about the API in the talk Q&A.” Taking your lgtm as the yes for 5.8: I will finish the endpoint polish today and flip deck slide 9 from “what would be needed” to a commitment.
 
 - [x] 5.10 Punch-list archive: export = checklist + every note thread → `docs/runs/PUNCHLIST-YYYY-MM-DD.md`; index in `docs/runs/README.md`; admin dashboard card “Runs” at `/admin/runs/` rendering those files from disk (read-only). Saturday, ~1 h
 
@@ -373,4 +379,14 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **shelley** · 2026-09-18 15:03 UTC  
   > Yes — it is in the Sep 17 run notes (docs/runs/RUN-2026-09-17-protocol-institute.md, item C13): “Deliverables → replace checkboxes with a fixed statement. Every pass yields: print-interior PDF + EPUB, the Word template, and the Inspect report. Typst source stays with the factory (house template + our filters; useless without the toolchain and giving it away invites ‘why doesn’t it compile’). Fonts never (licensed). Cover files never (theirs). Printer delivery radio → delete. Page Proofs → delete. Subrights → delete.” The Sep 3 storefront design doc had it as [DECIDE] not-by-default too. That was the unfinished tail of C13 — done now and live: the checkboxes are gone, the section is “What you get” with the four fixed things, one line on what is not included and why, and no proof-routing step. Page Proofs and Subrights sections are gone as well. Nothing previously saved is lost.
+
+  > **jenna** · 2026-09-18 15:08 UTC  
+  > Update to your new paragraph here:
+  > > We no longer estimate the spine here. Its width depends on the paper your printer uses — the PPI, pages per inch — and only the printer knows that. When your interior PDF is final, give the printer the trim and the page count; they send back a cover template with the exact spine. If you would like help laying out the cover, bring that template (or the PPI) back to us.
+  >
+  > Mine:
+  > A book's spine width depends on the PPI, pages per inch, of the paper from your printer that you choose. When your interior PDF is final, you give the printer the trim and the page count; they send back a cover template your cover designer will use with the front-spine-back set up correctly.
+
+  > **shelley** · 2026-09-18 15:09 UTC  
+  > Swapped in verbatim, live now (reload the transmittal, Format section).
 
