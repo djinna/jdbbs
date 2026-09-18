@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 13:57 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 14:37 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -75,7 +75,16 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
   > Full draft with speaker notes: scratch/p2-beats.md (also pasted in chat).
 
 - [ ] 3.2 YOU — cut / reorder / add beats
-- [ ] 3.3 ME — build the deck as a new page in `~/jdbbs-public` on the talk template
+- [x] 3.3 ME — build the deck as a new page in `~/jdbbs-public` on the talk template
+
+  > **shelley** · 2026-09-18 14:14 UTC  
+  > Building the deck now from the 10 beats as drafted (all ten in; you cut afterwards, which is easier than cutting on paper). Will land at https://jdbbs.exe.xyz/2026-pi-symposium/factory-talk with speaker notes under each slide. Your 3.2 cuts can then be applied on the finished slides.
+
+  > **shelley** · 2026-09-18 14:28 UTC  
+  > Draft deck is up: https://jdbbs.exe.xyz/2026-pi-symposium/factory-talk — 12 slides (~14 min): title, the ten beats, close. Same template as the symposium talk (jump menu, arrow keys, `n` toggles speaker notes on every slide, print = handout). The swim-lane diagram is slide 4. Beats 8/9 are worded “what would be needed”, not a promise.
+  >
+  > When you cut (3.2), decide: (1) attribution — Venkat named on the title slide now; soften? (2) name Protocol Institute / Obliquities / The Twitter Years on 5, 6, 8, or anonymise? (3) how much rough edge on 6 and 10 (the 27 catches)? (4) flip slide 9 to a commitment if you say yes on 5.8; (5) it runs dense — drop slide 3 or 7 to land at ~12 min. Tell me cuts as slide numbers and I apply them; or edit the text yourself in /admin/docs/ (pick 2026-pi-symposium/factory-talk.html).
+
 - [ ] 3.4 BOTH — run-through in the browser; timing
 - [ ] 3.5 ME — push; link in the handoff
 
@@ -114,17 +123,27 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **shelley** · 2026-09-18 12:49 UTC  
   > All six steps landed and deployed (7be8be5). Step 5: the Word template guide now has a “How the book is assembled” section — what is generated (do not type: half-title, title page, copyright, Contents), what to type before the first Heading 1 (dedication, epigraph, each on its own page), which heading names count as front/back matter. Step 6: parts. Opt-in = the Parts count on the transmittal (any number ≥ 1). Then Heading 1 = part opener (own right-hand page, blank verso), Heading 2 = chapter, Contents lists both. No live book has a Parts count, so nothing changes for existing books; Ghosts rebuilt identical. Found a latent template bug while in there (running_heads.enabled false is ignored) — logged in the P4 plan doc for after the workshop.
 
-- [ ] 5.4 **C13 transmittal rewrite for the factory** (post-workshop, the big one):
-    - [ ] 5.4a C6 drop press-era Production section (Mechs Delivery, Weeks in Prod., Bound Book Date, dup Transmittal Date); Print Run → Book; one optional "Target date"; keep old JSON keys readable
-    - [ ] 5.4b C7 stop asking chapters / words / MS pp / est. book pp — Inspect counts them; fix missing input underline meanwhile
+- [x] 5.4 **C13 transmittal rewrite for the factory** (post-workshop, the big one):
+
+  > **shelley** · 2026-09-18 14:37 UTC  
+  > All five done and deployed (one commit each, a2b4068 last). In plain terms, the transmittal lost: Production section (Mechs Delivery, Weeks in Prod., Bound Book Date, second Transmittal Date) — Print Run moved into Book, one optional Target date added · typed Chapters / Words / MS pp / Est. pp — now read from your last Inspect (Zoothesia shows 9 chapters, 23,981 words, 1 image); Parts stays typed and now actually drives the build · Developmental Edit + Level of Copyediting (section is now Typography notes) · Permissions status/date grid — replaced by one line + an attestation checkbox, with a new plain-English https://jdbbs.exe.xyz/factory/terms page · Pub Info & © is now the **Copyright page builder** (year, holder, publisher + city, edition line, ISBNs from Book, cover credit, interior credit, LoC line, printed-in, notices) and both the Word template and the Typst page iv print from it. Nothing typed before is lost: old keys still load and save. Please read the terms page — it is your voice on a legal-ish page, so edit freely in /admin/docs/. Details: docs/reviews/C13-TRANSMITTAL-2026-09-18.md.
+
+    - [x] 5.4a C6 drop press-era Production section (Mechs Delivery, Weeks in Prod., Bound Book Date, dup Transmittal Date); Print Run → Book; one optional "Target date"; keep old JSON keys readable
+    - [x] 5.4b C7 stop asking chapters / words / MS pp / est. book pp — Inspect counts them; fix missing input underline meanwhile
 
       > **shelley** · 2026-09-18 13:16 UTC  
       > Interim fix landed and deployed: the stats row (Parts / Chapters / Words / MS pp / Est. Book pp) has its underlines back — the checklist table’s inline-field rule was hiding them. The bigger C7 change (stop asking; Inspect counts) stays post-workshop with the rest of 5.4. Note: the Parts field is now also the parts opt-in for the build (any number ≥ 1 = book has parts; “none”/blank = no).
 
-    - [ ] 5.4c C10 drop Developmental Edit + Level of Copyediting; keep Special Characters etc.
-    - [ ] 5.4d C11 Permissions → one courtesy line + one attestation checkbox; terms text before Wed go-live if possible
-    - [ ] 5.4e C12 Pub Info & © → the **copyright-page builder** (credit fields actually used)
-- [ ] 5.5 P3 **H&J / composition quality** in the print PDF: typst `par(costs:)`, optimized linebreaks, a loose-lines / rivers / runts / widows scorer on the built PDF; compare against an InDesign-set page
+    - [x] 5.4c C10 drop Developmental Edit + Level of Copyediting; keep Special Characters etc.
+    - [x] 5.4d C11 Permissions → one courtesy line + one attestation checkbox; terms text before Wed go-live if possible
+    - [x] 5.4e C12 Pub Info & © → the **copyright-page builder** (credit fields actually used)
+- [~] 5.5 P3 **H&J / composition quality** in the print PDF: typst `par(costs:)`, optimized linebreaks, a loose-lines / rivers / runts / widows scorer on the built PDF; compare against an InDesign-set page
+
+  > **shelley** · 2026-09-18 14:11 UTC  
+  > Scorer landed: `python3 typesetting/scripts/compscore.py book.pdf --list` counts loose lines, runts, widows/orphans, hyphen runs, stacks and rivers per book. Ghosts today: 27 loose, 42 runts, 0 widows/orphans, ~90 rivers over 2395 lines.
+  >
+  > The lever that actually fixes runts (Typst’s `costs`) needs Typst 0.13; we run 0.12. I tried 0.13 in scratch: runts 42 → 29 (−31%), and the template compiles after a one-line fix (landed, no output change on 0.12). But 0.13 also changes spacing around lists and on the Contents page, which shifts lines on ~30 pages of Ghosts — a page-by-page check on two books before it can go live. Recommendation: do the upgrade Wed 24 or after, not before attendees build. Full note: docs/reviews/P3-COMPOSITION-2026-09-18.md. Still want one InDesign-set page from you to run the same scorer on. Side-find: Ghosts ch.1 has 26 stray `>` from a quoted email in the .docx — Inspect should flag that (small, will add).
+
 - [x] 5.6 P1 review docs.typesafe.ai/introduction — anything for the factory? Write a ½-page note, then decide
 
   > **shelley** · 2026-09-18 12:02 UTC  
@@ -136,7 +155,14 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **jenna** · 2026-09-18 12:09 UTC  
   > Just confirming that I see your note here in the 5.6 punchlist thread now
 
-- [ ] 5.7 **Magic-link client login** (email → one-time link → cookie) replacing emailed passwords
+- [x] 5.7 **Magic-link client login** (email → one-time link → cookie) replacing emailed passwords
+
+  > **shelley** · 2026-09-18 14:26 UTC  
+  > Landed (commits cc94692, cd6ef7b, 59a1637). Portal and factory gates now lead with “enter your email → we send a sign-in link” (30 min, single use); the password box is behind “Have a password? Use it instead” so every existing password still works. Fulfilment email now says “Easiest way in: open your portal and enter this email address — we’ll send you a sign-in link” above the password. Verified end-to-end on the VM with a throwaway client, real send via Resend (delivered@resend.dev), redeem → signed in, second use → expired page. Details: srv/EMAIL_SYSTEM.md pathway 8.
+
+  > **shelley** · 2026-09-18 14:27 UTC  
+  > Done and deployed. Client portal and factory gates now lead with **Sign in by email**: type the address the pass was sent to → we email a link good for 30 minutes, one use → it sets the same cookie a password login did. Passwords still work behind “Have a password? Use it instead”, so nothing changes for people holding the old email. The fulfilment email keeps the password for the workshop week but now says the email route is the easy way in. Wrong/unknown address → same “check your email” reply (no hint whether the account exists); max 3 links per client per 15 min. Floor feed shows link sent / denied. Tests cover issue, redeem, second use, expiry. Try it: https://jdbbs.exe.xyz/pinstitute/ with your own address. EMAIL_SYSTEM.md has it as pathway 8.
+
 - [~] 5.8 Machine-callable factory (from P2 beats 8/9): POST transmittal JSON + DOCX, read Inspect JSON, build — the "your factory calls my factory" endpoint. Spec first, ½ page, to Jenna
 
   > **shelley** · 2026-09-18 13:14 UTC  
@@ -187,6 +213,12 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > (it does, with the caveats above), and land the polish after Wednesday?
 
 - [x] 5.10 Punch-list archive: export = checklist + every note thread → `docs/runs/PUNCHLIST-YYYY-MM-DD.md`; index in `docs/runs/README.md`; admin dashboard card “Runs” at `/admin/runs/` rendering those files from disk (read-only). Saturday, ~1 h
+
+  > **shelley** · 2026-09-18 13:57 UTC  
+  > Done and deployed (7e4e717). New nav entry **Runs** on every admin page → https://jdbbs.exe.xyz/admin/runs/ — an index of docs/runs/*.md; click one to read it rendered (check-boxes, sections, and each note thread as a shaded block under its item, who · when). Read-only; the live list stays here on :8766. Export = `python3 scripts/punchlist-export.py` (I run it whenever I commit punch-list state; today’s file already has every note so far). Also lists the 17 Sep run log.
+
+- [x] 5.11 Swim-lane "How it runs" (Author · Studio · Machine · Out × 5 stages) on the public `/factory#how-it-runs`; linked from the client factory step strip and the admin Floor hero (from 0.4)
+- [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag, per `docs/reviews/TYPESAFE-REVIEW-2026-09-18.md` (agreed 2026-09-18; post-workshop)
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 
 ## 6 · Ideas log (`docs/IDEAS.md`) — BOTH decide, then queue or kill
@@ -249,7 +281,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **shelley** · 2026-09-18 00:33 UTC  
   > Added to docs/IDEAS.md with Bookmobile + Accutrack named. Stays on the ideas list.
 
-- [ ] 6.6 Strike the done rows (Admin doc editor) and move the kept ones to §5 with a date
+- [~] 6.6 Strike the done rows (Admin doc editor) and move the kept ones to §5 with a date
 
   > **jenna** · 2026-09-18 00:22 UTC  
   > I don't understand what this one means.
@@ -265,6 +297,9 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **shelley** · 2026-09-18 12:13 UTC  
   > Sorry, missed it. Yes. Plan (added as 5.10, Saturday, ~1 h): (1) the export of each punch list to docs/runs/PUNCHLIST-YYYY-MM-DD.md includes every note thread under its item, so the decisions travel with the list (today’s copies only have the ticks); (2) docs/runs/README.md is the master index; (3) a “Runs” card on the admin dashboard → /admin/runs/ that renders those files from disk, read-only, so you can re-read what we decided from any device and change your mind on the live list. Admin-only and read-only, so safe to land before the freeze.
+
+  > **shelley** · 2026-09-18 14:03 UTC  
+  > Done row struck (Admin doc editor → a Done section at the foot of docs/IDEAS.md). Already-decided ideas moved to §5 with dates: 5.7 magic-link (was there), 5.12 Jev pilot (new). 6.1–6.5 are still yours to keep or kill — tick or note each and I’ll move the keepers to §5 and drop the rest from IDEAS.
 
 
 ## 0 · Inbox — new items, untriaged (Shelley moves them into a section)
@@ -303,7 +338,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **shelley** · 2026-09-18 12:07 UTC  
   > Added to AGENTS.md as the preferred pattern for review and run work (inbox → triage, notes both ways, tick + copy to docs/runs, parallel quick fixes). Future sessions will start from it.
 
-- [~] 0.4 Do we already, on both the client side and the admin side, have somewhere that I can go to show a pretty simple view of the tools involved in the factory? I'm thinking primarily of how Pandoc, Lua, and Typeset fit into the flow, but I might be missing something.  Also, I showed the map that we made to some work colleagues, and one of them specifically asked for it to be turned into the variant of that kind of a chart that he called "swim lanes." He suggested that it was pretty common, so maybe you could find that and see if it was at all suitable for us.  ·  _added Fri 13:08 UTC_
+- [x] 0.4 Do we already, on both the client side and the admin side, have somewhere that I can go to show a pretty simple view of the tools involved in the factory? I'm thinking primarily of how Pandoc, Lua, and Typeset fit into the flow, but I might be missing something.  Also, I showed the map that we made to some work colleagues, and one of them specifically asked for it to be turned into the variant of that kind of a chart that he called "swim lanes." He suggested that it was pretty common, so maybe you could find that and see if it was at all suitable for us.  ·  _added Fri 13:08 UTC_
 
   > **shelley** · 2026-09-18 13:11 UTC  
   > Short answer: no. Today the tool flow exists only as (a) one line on the landing page — “docx → pandoc·Lua → Typst → PDF/X + EPUB” — and (b) the exedeck’s stage list (01 handshake … 04 transform) plus its small tools table. Nothing on the admin side (Floor, dashboard) and nothing on the client factory page explains what Pandoc, Lua and Typst each do. The public /factory doc only says “you get outputs, not the Typst source”.
@@ -313,4 +348,19 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > Swim lanes: yes, common (they are flowcharts with one horizontal band per actor, so hand-offs show as arrows crossing lanes). Suitable for us — the factory has natural lanes: **Author** (Word, template, transmittal) · **Studio** (Jenna: spec, review, corrections) · **Machine** (pandoc → Lua → Typst / EPUB) · **Out** (PDF/X, EPUB, printer). The current map is stage-ordered; a swim-lane version would show *who* does each step, which is exactly what colleagues outside publishing want to see.
   >
   > Proposal, if you want it before Wednesday: **5.11** (~1 h, Saturday): one static swim-lane diagram (HTML/CSS, prints clean, theme-aware) added to the public /factory doc as a “How it runs” section, linked from the client factory page footer and the admin Floor. Also usable as a slide in the talk. Say yes and I will slot it after 5.4/5.5.
+
+  > **shelley** · 2026-09-18 14:03 UTC  
+  > Built it (5.11): https://jdbbs.exe.xyz/factory#how-it-runs — four lanes (Author · Studio · Machine · Out) across the five steps; the Machine lane shows python-docx / pandoc + Lua → Typst → PDF / pandoc → EPUB3, with a paragraph above naming each tool’s job. Reachable as “How it runs →” at the end of the step strip on every client factory page, and from the Floor hero on the admin side. Inline SVG in theme tokens, so it follows the font selector. Tell me if a lane or a box is wrong and I’ll regenerate it (scratch/swim/gen.py).
+
+  > **jenna** · 2026-09-18 14:15 UTC  
+  > Looks good at first glance, but I note it's missing the full client-side top nav and the theme switcher, which we said were going to be default on every page. Let's clean that up here and in our work notes?
+
+  > **shelley** · 2026-09-18 14:19 UTC  
+  > Good catch — and it was bigger than that page. Two things:
+  >
+  > 1. **The theme switcher had been silently missing on every page** that relies on the auto-mount (public docs, cohort, store thanks — most of the site) since the admin-nav commit on the 15th: the one line that mounted it got dropped in that edit. Restored; the convergence test now fails if it ever goes again.
+  >
+  > 2. **Public pages each hand-wrote their own top links** (Factory had Workshop + Field notes; Litmags had a different pair; the deck companions had a third). Now there is one shared public strip in theme.js — Workshop · Field notes · Factory · Client portal — and every public doc opts in with `<nav data-public-nav>`, same as admin and client pages do. Applied to all 13 public pages (talk.html left alone as agreed; decks have their own controls). Test covers jdbbs-public too.
+  >
+  > Work notes: PAGE-DESIGN §4 masthead row + recipe updated (“never hand-write links”). Deployed — hard-refresh /factory to see it.
 
