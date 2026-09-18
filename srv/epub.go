@@ -183,10 +183,19 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 	// Latin-only books should stay tiny; CJK and Thai text still carry fonts
 	// for readers that do not have suitable system fallbacks. The selector
 	// reads text nodes from the corrected DOCX, not just the original upload.
-	fontPaths, ferr := epubFontPathsForDOCX(docxPath, fontsDirPath())
+	scan, ferr := epubScanDOCXText(docxPath)
 	if ferr != nil {
 		return fmt.Errorf("inspect docx scripts: %w", ferr)
 	}
+	fontPaths := scan.fontPaths(fontsDirPath())
+	// Licensed-font guard runs on the ORIGINAL paths (before subsetting
+	// could launder a /licensed/ path into tmpDir).
+	if _, ferr := epubEmbedFontArgs(fontPaths); ferr != nil {
+		return fmt.Errorf("licensed-font guard tripped, aborting generation: %w", ferr)
+	}
+	// Subset the fallback fonts to the glyphs the book uses: a CJK novel
+	// carries ~1 MB instead of 16 MB.
+	fontPaths = epubSubsetFonts(fontPaths, scan.text(), filepath.Join(tmpDir, "fonts"))
 	fontArgs, ferr := epubEmbedFontArgs(fontPaths)
 	if ferr != nil {
 		return fmt.Errorf("licensed-font guard tripped, aborting generation: %w", ferr)
@@ -533,23 +542,68 @@ func escapeXMLText(s string) string {
 	return s
 }
 
-type epubScriptNeeds struct {
-	CJK  bool
-	Thai bool
+// epubCJKMinRunes is the number of CJK runes a manuscript must contain before
+// the EPUB carries the Noto Serif TC fallback. A stray ideograph or two (an
+// ASCII-art tweet, a single Japanese word) is left to the reader's own fonts;
+// a real run of CJK text gets the face. 16 MB of font for one joke was the
+// motivating case (C27).
+const epubCJKMinRunes = 20
+
+// epubScriptScan is what the DOCX text nodes told us about scripts and glyphs.
+type epubScriptScan struct {
+	CJKRunes  int
+	ThaiRunes int
+	// Chars is every distinct rune seen in text nodes, used to subset the
+	// embedded fallback fonts to the glyphs the book actually uses.
+	Chars map[rune]struct{}
 }
 
-// epubFontPathsForDOCX scans XML text nodes in a DOCX and selects only the OFL
-// fallback font families required by the manuscript. It intentionally ignores
-// XML attributes, so a default Word theme naming East Asian fonts does not make
-// an otherwise Latin-only book carry 16 MB of CJK font files.
-func epubFontPathsForDOCX(docxPath, fontsRoot string) ([]string, error) {
+func (s *epubScriptScan) needsCJK() bool  { return s.CJKRunes >= epubCJKMinRunes }
+func (s *epubScriptScan) needsThai() bool { return s.ThaiRunes > 0 }
+
+// fontPaths selects only the OFL fallback font families the manuscript needs.
+func (s *epubScriptScan) fontPaths(fontsRoot string) []string {
+	var rel []string
+	if s.needsCJK() {
+		rel = append(rel,
+			"noto/CJK-TC/NotoSerifTC-Regular.otf",
+			"noto/CJK-TC/NotoSerifTC-Bold.otf",
+		)
+	}
+	if s.needsThai() {
+		rel = append(rel,
+			"noto/Thai/NotoSerifThai-Regular.ttf",
+			"noto/Thai/NotoSerifThai-Bold.ttf",
+		)
+	}
+	paths := make([]string, 0, len(rel))
+	for _, name := range rel {
+		paths = append(paths, filepath.Join(fontsRoot, name))
+	}
+	return paths
+}
+
+// text returns the distinct runes as a string, for a subsetter's --text-file.
+func (s *epubScriptScan) text() string {
+	var b strings.Builder
+	for r := range s.Chars {
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// epubScanDOCXText reads XML text nodes in a DOCX and counts CJK and Thai
+// runes. It intentionally ignores XML attributes, so a default Word theme
+// naming East Asian fonts does not make an otherwise Latin-only book carry
+// 16 MB of CJK font files.
+func epubScanDOCXText(docxPath string) (*epubScriptScan, error) {
 	zr, err := zip.OpenReader(docxPath)
 	if err != nil {
 		return nil, err
 	}
 	defer zr.Close()
 
-	var needs epubScriptNeeds
+	scan := &epubScriptScan{Chars: map[rune]struct{}{}}
 	for _, f := range zr.File {
 		name := filepath.ToSlash(f.Name)
 		if !strings.HasPrefix(name, "word/") || !strings.HasSuffix(name, ".xml") {
@@ -574,11 +628,12 @@ func epubFontPathsForDOCX(docxPath, fontsRoot string) ([]string, error) {
 				continue
 			}
 			for _, r := range string(chars) {
+				scan.Chars[r] = struct{}{}
 				if isCJKRune(r) {
-					needs.CJK = true
+					scan.CJKRunes++
 				}
 				if r >= 0x0E00 && r <= 0x0E7F {
-					needs.Thai = true
+					scan.ThaiRunes++
 				}
 			}
 		}
@@ -586,25 +641,60 @@ func epubFontPathsForDOCX(docxPath, fontsRoot string) ([]string, error) {
 			return nil, fmt.Errorf("close %s: %w", name, err)
 		}
 	}
+	return scan, nil
+}
 
-	var rel []string
-	if needs.CJK {
-		rel = append(rel,
-			"noto/CJK-TC/NotoSerifTC-Regular.otf",
-			"noto/CJK-TC/NotoSerifTC-Bold.otf",
+// epubFontPathsForDOCX is scan + select in one call (full, unsubsetted fonts).
+func epubFontPathsForDOCX(docxPath, fontsRoot string) ([]string, error) {
+	scan, err := epubScanDOCXText(docxPath)
+	if err != nil {
+		return nil, err
+	}
+	return scan.fontPaths(fontsRoot), nil
+}
+
+// epubSubsetFonts writes glyph-subsetted copies of the given fonts into
+// outDir, keeping each file's basename so the @font-face src in
+// epub-styles.css still matches. It uses fontTools (`python3 -m
+// fontTools.subset`), which is OFL-clean for Noto (no Reserved Font Names).
+// Any font that cannot be subsetted is passed through unchanged, so the
+// worst case is the old full-font behaviour, never a missing face.
+func epubSubsetFonts(paths []string, text, outDir string) []string {
+	if len(paths) == 0 {
+		return paths
+	}
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		return paths
+	}
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return paths
+	}
+	textFile := filepath.Join(outDir, "glyphs.txt")
+	if err := os.WriteFile(textFile, []byte(text), 0o644); err != nil {
+		return paths
+	}
+	out := make([]string, 0, len(paths))
+	for _, p := range paths {
+		if _, err := os.Stat(p); err != nil {
+			out = append(out, p)
+			continue
+		}
+		dst := filepath.Join(outDir, filepath.Base(p))
+		cmd := exec.Command(python, "-m", "fontTools.subset", p,
+			"--text-file="+textFile,
+			"--output-file="+dst,
+			"--layout-features=*",
+			"--no-hinting",
 		)
+		if res, err := cmd.CombinedOutput(); err != nil {
+			slog.Warn("epub: font subset failed, embedding full font", "font", filepath.Base(p), "err", err, "output", string(res))
+			out = append(out, p)
+			continue
+		}
+		out = append(out, dst)
 	}
-	if needs.Thai {
-		rel = append(rel,
-			"noto/Thai/NotoSerifThai-Regular.ttf",
-			"noto/Thai/NotoSerifThai-Bold.ttf",
-		)
-	}
-	paths := make([]string, 0, len(rel))
-	for _, name := range rel {
-		paths = append(paths, filepath.Join(fontsRoot, name))
-	}
-	return paths, nil
+	return out
 }
 
 func isCJKRune(r rune) bool {

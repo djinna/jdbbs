@@ -123,7 +123,7 @@ that macOS Homebrew Python is "externally managed" (PEP 668), so a bare
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install python-docx
+pip install python-docx fonttools
 # typst + pandoc if you also build books locally:
 brew install typst pandoc
 ```

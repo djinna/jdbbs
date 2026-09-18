@@ -27,6 +27,7 @@ The build pipeline shells out to tools that are **not** managed by `make build`:
 | pandoc | **≥ 3.2** (`-t typst+smart` needs the smart extension for the typst writer; 3.1.3 from Ubuntu apt fails with `exit 23`) | GitHub .deb: `curl -sLO https://github.com/jgm/pandoc/releases/download/3.11/pandoc-3.11-1-amd64.deb && sudo dpkg -i pandoc-3.11-1-amd64.deb` | `pandoc --version` |
 | typst | 0.12.x | `/usr/local/bin/typst` | `typst --version` |
 | python3 + python-docx | any recent | apt / pip | `python3 -c 'import docx'` |
+| fonttools (python) | optional, ≥ 4.x | pip (`pip install fonttools`) | `python3 -c 'import fontTools'` — subsets the Noto CJK/Thai fallback fonts in EPUBs (~1 MB instead of 16 MB); without it the full fonts are embedded |
 
 No service restart is needed after upgrading these — they are exec'd per build.
 Smoke: upload a small .docx from admin and confirm status reaches `ready`.

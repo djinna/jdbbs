@@ -46,10 +46,15 @@ func buildFontTestEPUB(t *testing.T, text string) ([]string, int64) {
 		t.Skip("pandoc not installed")
 	}
 	docxPath := writeFontTestDOCX(t, text)
-	fontPaths, err := epubFontPathsForDOCX(docxPath, fontsDirPath())
+	scan, err := epubScanDOCXText(docxPath)
 	if err != nil {
-		t.Fatalf("select epub fonts: %v", err)
+		t.Fatalf("scan epub fonts: %v", err)
 	}
+	fontPaths := scan.fontPaths(fontsDirPath())
+	if _, err := epubEmbedFontArgs(fontPaths); err != nil {
+		t.Fatalf("licensed guard: %v", err)
+	}
+	fontPaths = epubSubsetFonts(fontPaths, scan.text(), filepath.Join(t.TempDir(), "fonts"))
 	fontArgs, err := epubEmbedFontArgs(fontPaths)
 	if err != nil {
 		t.Fatalf("build font args: %v", err)
@@ -92,13 +97,31 @@ func TestConditionalEPUBFontEmbedding(t *testing.T) {
 			t.Errorf("Latin EPUB size = %d bytes; want under 500 KB", size)
 		}
 	})
+	// C27: one ASCII-art tweet with a few fullwidth/kana glyphs must not pull
+	// in 16 MB of Noto Serif TC. Below epubCJKMinRunes the reader's own
+	// fonts handle the stray glyphs.
+	t.Run("stray CJK below threshold", func(t *testing.T) {
+		embedded, size := buildFontTestEPUB(t, "(\\＿/)\n( ㅅ ) bunny says づ hello")
+		if len(embedded) != 0 {
+			t.Fatalf("stray-CJK EPUB embedded fonts: %v; want none", embedded)
+		}
+		if size >= 500*1024 {
+			t.Errorf("stray-CJK EPUB size = %d bytes; want under 500 KB", size)
+		}
+	})
 	t.Run("CJK", func(t *testing.T) {
-		embedded, _ := buildFontTestEPUB(t, "第一章：工廠裡的一本書。")
+		// 24 ideographs: over the threshold.
+		embedded, size := buildFontTestEPUB(t, "第一章：工廠裡的一本書。作者在書桌前寫下第一個字，然後是第二個。")
 		joined := strings.Join(embedded, " ")
 		for _, want := range []string{"NotoSerifTC-Regular.otf", "NotoSerifTC-Bold.otf"} {
 			if !strings.Contains(joined, want) {
 				t.Errorf("CJK EPUB embedded fonts = %v; missing %s", embedded, want)
 			}
+		}
+		// Subsetted to the used glyphs the whole EPUB is tens of KB; the
+		// full faces would be ~16 MB. Only assert when fontTools is present.
+		if exec.Command("python3", "-c", "import fontTools").Run() == nil && size >= 1024*1024 {
+			t.Errorf("CJK EPUB size = %d bytes; want under 1 MB with subsetted fonts", size)
 		}
 	})
 }
