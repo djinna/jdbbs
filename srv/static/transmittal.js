@@ -806,7 +806,8 @@ function renderChecklistSection() {
     if (GENERATED.includes(item.component)) {
       generatedRows.push(checklistRow(item, i, 'checklist', checklist, { generated: true }));
     } else {
-      typedRows.push(checklistRow(item, i, 'checklist', checklist, { indent: item.indent }));
+      // Front-matter rows are all flush left (Jenna, 2026-09-18); the stored `indent` flag is ignored.
+      typedRows.push(checklistRow(item, i, 'checklist', checklist, { indent: false }));
     }
   });
   const checklistRows = [
