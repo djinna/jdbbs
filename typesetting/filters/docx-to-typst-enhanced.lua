@@ -496,8 +496,188 @@ local function load_declared_styles(meta)
   end
 end
 
+-- P4 front matter (docs/reviews/P4-FRONT-MATTER-PLAN-2026-09-18.md). The Go
+-- pipeline computes the book map (srv/bookmap.go) and passes it as metadata:
+--   book_map = { toc = bool,
+--                sections = { {title=, kind=front|body|back|title|toc}, ... },  -- every H1 in order
+--                untitled_front = { {name=, paras=, drop=}, ... } }             -- blocks before the first H1
+-- We turn it into template calls: #front-piece(...)[...] around the untitled
+-- pieces, #contents-page(), #front-section() / #start-body() / #start-back()
+-- before the right H1s, and drop title/toc sections outright.
+local book_map = nil
+
+local function meta_bool(v)
+  if v == nil then return nil end
+  if type(v) == "boolean" then return v end
+  local s = pandoc.utils.stringify(v)
+  return s == "true"
+end
+
+local function load_book_map(meta)
+  if not meta.book_map then return end
+  local bm = { sections = {}, untitled = {}, toc = false }
+  local t = meta_bool(meta.book_map.toc)
+  bm.toc = t == true
+  if meta.book_map.sections then
+    for _, sec in ipairs(meta.book_map.sections) do
+      table.insert(bm.sections, {
+        title = sec.title and pandoc.utils.stringify(sec.title) or "",
+        kind = sec.kind and pandoc.utils.stringify(sec.kind) or "body",
+      })
+    end
+  end
+  if meta.book_map.untitled_front then
+    for _, u in ipairs(meta.book_map.untitled_front) do
+      table.insert(bm.untitled, {
+        name = u.name and pandoc.utils.stringify(u.name) or "dedication",
+        paras = tonumber(u.paras and pandoc.utils.stringify(u.paras) or "1") or 1,
+        drop = meta_bool(u.drop) == true,
+      })
+    end
+  end
+  book_map = bm
+end
+
+-- How many manuscript paragraphs a block stands for (lists collapse several
+-- w:p into one block; RawBlocks are our own wrappers and count for nothing).
+local function block_para_count(b)
+  if b.t == "RawBlock" then return 0 end
+  if b.t == "BulletList" or b.t == "OrderedList" then
+    return math.max(1, #b.content)
+  end
+  return 1
+end
+
+-- Our Div/Para handlers wrap styled paragraphs as RawBlock("#func[") … RawBlock("]").
+-- A piece boundary must never fall inside such a wrapper.
+local function raw_depth_delta(b)
+  if b.t ~= "RawBlock" then return 0 end
+  local t = b.text
+  if t:match("^%s*#[%w%-]+%[%s*$") then return 1 end
+  if t:match("^%s*%]%s*$") then return -1 end
+  return 0
+end
+
+-- Consume blocks[i..] for one piece of `paras` paragraphs; returns the next
+-- index. `take` receives each consumed block (nil to drop).
+local function consume_piece(blocks, i, pre_end, paras, last_piece, take)
+  local remaining, depth = paras, 0
+  while i <= pre_end and (remaining > 0 or depth > 0 or last_piece) do
+    local b = blocks[i]
+    depth = depth + raw_depth_delta(b)
+    remaining = remaining - block_para_count(b)
+    if take then take(b) end
+    i = i + 1
+  end
+  return i
+end
+
+local function raw(s) return pandoc.RawBlock("typst", s) end
+
+-- Restructure doc.blocks per the book map. Returns the new block list.
+local function apply_book_map(blocks)
+  if not book_map then return blocks end
+  local out = {}
+  local first_h1 = nil
+  for i, b in ipairs(blocks) do
+    if b.t == "Header" and b.level == 1 then first_h1 = i; break end
+  end
+  if not first_h1 then
+    -- No section headings at all: the whole file is body text.
+    table.insert(out, raw('#start-body()'))
+    for _, b in ipairs(blocks) do table.insert(out, b) end
+    return out
+  end
+  local pre_end = first_h1 - 1
+
+  -- Untitled front matter: group the leading blocks into the map's pieces.
+  -- Only real paragraphs count; our own RawBlocks (e.g. #set-story-info
+  -- injected before the first H1) are passed through untouched.
+  local pre_paras = 0
+  for k = 1, pre_end do pre_paras = pre_paras + block_para_count(blocks[k]) end
+  local i = 1
+  local pending = {} -- RawBlocks held back to stay glued to the next heading
+  if pre_paras == 0 then
+    while i <= pre_end do table.insert(pending, blocks[i]); i = i + 1 end
+  elseif pre_end >= 1 then
+    if #book_map.untitled == 0 then
+      -- Nothing declared: keep the blocks as one untitled piece.
+      table.insert(out, raw('#front-piece(kind: "untitled")['))
+      while i <= pre_end do table.insert(out, blocks[i]); i = i + 1 end
+      table.insert(out, raw(']'))
+    else
+      for pi, piece in ipairs(book_map.untitled) do
+        if i > pre_end then break end
+        local last_piece = (pi == #book_map.untitled)
+        if piece.drop then
+          -- Byline / typed copyright: generated from the transmittal instead.
+          i = consume_piece(blocks, i, pre_end, piece.paras, false, nil)
+        else
+          table.insert(out, raw(string.format('#front-piece(kind: "%s")[', typst_escape(piece.name))))
+          i = consume_piece(blocks, i, pre_end, piece.paras, last_piece, function(b) table.insert(out, b) end)
+          table.insert(out, raw(']'))
+        end
+      end
+    end
+  end
+
+  -- Contents page after the untitled pieces, before the first kept heading.
+  local toc_pending = book_map.toc
+
+  -- H1 sections. RawBlocks directly before a heading (e.g. #set-story-info
+  -- from the anthology pass) are held back so our hooks land before them and
+  -- they stay glued to their heading.
+  local h1_index = 0
+  local dropping = false
+  local body_started, back_started = false, false
+  local function flush_pending()
+    for _, r in ipairs(pending) do table.insert(out, r) end
+    pending = {}
+  end
+  while i <= #blocks do
+    local b = blocks[i]
+    if b.t == "Header" and b.level == 1 then
+      h1_index = h1_index + 1
+      local sec = book_map.sections[h1_index]
+      local kind = sec and sec.kind or "body"
+      dropping = (kind == "title" or kind == "toc")
+      if dropping then
+        pending = {}
+      else
+        if toc_pending then
+          table.insert(out, raw('#contents-page()'))
+          toc_pending = false
+        end
+        if kind == "front" then
+          table.insert(out, raw('#front-section()'))
+        elseif kind == "back" then
+          if not body_started then table.insert(out, raw('#start-body()')); body_started = true end
+          if not back_started then table.insert(out, raw('#start-back()')); back_started = true end
+        else
+          if not body_started then table.insert(out, raw('#start-body()')); body_started = true end
+        end
+        flush_pending()
+        table.insert(out, b)
+      end
+    elseif not dropping then
+      if b.t == "RawBlock" then
+        table.insert(pending, b)
+      else
+        flush_pending()
+        table.insert(out, b)
+      end
+    end
+    i = i + 1
+  end
+  flush_pending()
+  if toc_pending then table.insert(out, raw('#contents-page()')) end
+  if not body_started then table.insert(out, raw('#start-body()')) end
+  return out
+end
+
 function Meta(meta)
   load_declared_styles(meta)
+  load_book_map(meta)
   local map_count = load_edge_decisions_map(meta)
   if map_count > 0 then
     edge_decisions_loaded = true
@@ -599,6 +779,7 @@ end
 -- Add template import at document start
 function Pandoc(doc)
   doc.blocks = normalize_converted_list_blocks(doc.blocks)
+  doc.blocks = apply_book_map(doc.blocks)
 
   local header = pandoc.RawBlock('typst', [[
 #import "/templates/series-template.typ": *

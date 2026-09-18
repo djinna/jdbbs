@@ -109,6 +109,10 @@ func bookMapHTML(m *BookMap) string {
 		b.WriteString(`<tr><td>` + e(t) + `</td><td>Title / Subtitle style</td><td>dropped — title page is generated</td></tr>`)
 	}
 	for _, u := range m.UntitledFront {
+		if u.Drop {
+			b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td>%s</td><td>dropped — generated from the transmittal</td></tr>`, e(u.Preview), e(plural(u.Paras, "paragraph"))))
+			continue
+		}
 		b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td>%s (untitled, %s)</td><td>roman</td></tr>`,
 			e(u.Preview), e(titleCase(u.Name)), e(plural(u.Paras, "paragraph"))))
 	}

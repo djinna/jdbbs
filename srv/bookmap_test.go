@@ -148,6 +148,7 @@ func TestBuildBookMap(t *testing.T) {
 		paras    []docxPara
 		names    []string // declared untitled pieces; nil = undeclared
 		title    string   // book title from the transmittal
+		author   string
 		front    []string
 		body     []string
 		back     []string
@@ -246,6 +247,36 @@ func TestBuildBookMap(t *testing.T) {
 			summary:  "Front matter: Preface · Body starts at “1. Singles” (1 section) · Back matter: none",
 		},
 		{
+			name: "old template: title, subtitle, byline, Copyright style, Epigraph style, no page breaks",
+			paras: []docxPara{
+				p("title", "Messy Draft"), p("subtitle", "A Field Guide"),
+				p("firstparagraph", "Mike Check"),
+				p("copyright", "Copyright © 2026 Mike Check."),
+				p("epigraph", "“Format nothing.” — an editor"),
+				p("heading1", "Chapter 1"), p("normal", "x"),
+			},
+			title:    "Messy Draft",
+			author:   "Mike Check",
+			front:    []string{},
+			body:     []string{"Chapter 1"},
+			back:     []string{},
+			untitled: []string{"epigraph"},
+			warnHas:  []string{"Byline “Mike Check” dropped", "Copyright-styled 1 paragraph dropped"},
+			summary:  "Front matter: Epigraph · Body starts at “Chapter 1” (1 section) · Back matter: none",
+		},
+		{
+			name: "dedication then Epigraph style without page break splits on style",
+			paras: []docxPara{
+				p("normal", "For M."), p("epigraph", "“Quote.”"),
+				p("heading1", "Chapter 1"), p("normal", "x"),
+			},
+			names:    []string{"dedication", "epigraph"},
+			front:    []string{},
+			body:     []string{"Chapter 1"},
+			back:     []string{},
+			untitled: []string{"dedication", "epigraph"},
+		},
+		{
 			name:     "no headings at all",
 			paras:    []docxPara{p("normal", "just prose"), p("normal", "more")},
 			front:    []string{},
@@ -267,7 +298,7 @@ func TestBuildBookMap(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			m := buildBookMap(tc.paras, tc.names, tc.title)
+			m := buildBookMap(tc.paras, tc.names, tc.title, tc.author)
 			if got := m.Front(); !reflect.DeepEqual(got, tc.front) {
 				t.Errorf("front = %v, want %v", got, tc.front)
 			}
@@ -278,7 +309,7 @@ func TestBuildBookMap(t *testing.T) {
 				t.Errorf("back = %v, want %v", got, tc.back)
 			}
 			un := []string{}
-			for _, u := range m.UntitledFront {
+			for _, u := range m.keptUntitled() {
 				un = append(un, u.Name)
 			}
 			if !reflect.DeepEqual(un, tc.untitled) {
@@ -309,7 +340,7 @@ func TestBookMapCrossCheckSpec(t *testing.T) {
 		"front_matter": map[string]any{"dedication": true, "epigraph": false, "foreword": true, "preface": false},
 		"back_matter":  map[string]any{"bibliography": true, "index": false, "notes": true},
 	}
-	m, err := bookMapFromDOCX(path, spec, "")
+	m, err := bookMapFromDOCX(path, spec, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

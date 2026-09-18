@@ -427,6 +427,25 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 		}
 	}
 
+	// Book map (P4): front / body / back from heading text + position, plus
+	// the untitled pieces before the first heading. The lua filter turns it
+	// into template calls; the spec decides which generated pages i–iv exist.
+	specMap := s.specMapForBook(book)
+	specTitle, specAuthor := s.specTitleAuthor(book)
+	if specTitle == "" {
+		specTitle = book.Title
+	}
+	if specAuthor == "" {
+		specAuthor = book.Author
+	}
+	bookMap, bmErr := bookMapFromDOCX(docxPath, specMap, specTitle, specAuthor)
+	if bmErr != nil {
+		slog.Warn("book map failed; building without front-matter structure", "book_id", bid, "err", bmErr)
+		bookMap = nil
+	} else {
+		slog.Info("book map", "book_id", bid, "map", bookMap.Summary())
+	}
+
 	// Step 1: direct pandoc docx -> typst using the bundled lua filter.
 	typPath := filepath.Join(tmpDir, "book.typ")
 	pandocArgs := []string{
@@ -440,7 +459,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 
 	// Spec-derived metadata for the Lua filter (anthology chapters, declared
 	// custom styles) via --metadata-file. Books with neither flow through unchanged.
-	if metaFile, ok := s.writePandocMetadata(book, tmpDir); ok {
+	if metaFile, ok := s.writePandocMetadata(book, tmpDir, bookMap, specFrontMatterTOC(specMap)); ok {
 		pandocArgs = append(pandocArgs, "--metadata-file="+metaFile)
 	}
 
@@ -476,6 +495,9 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 	)
 	if strings.TrimSpace(book.Series) != "" {
 		headerReplacement += fmt.Sprintf("  subtitle: \"%s\",\n", escapeTypstString(book.Series))
+	}
+	if bookMap != nil {
+		headerReplacement += "  front-matter: " + frontMatterTypst(specMap, book) + ",\n"
 	}
 	headerReplacement += `)
 
@@ -1035,18 +1057,28 @@ func clampTypstInlineImages(s string) string {
 //
 // Returns ("", false) if there is no spec or nothing to pass — the caller then
 // runs pandoc without the flag.
-func (s *Server) writePandocMetadata(book dbgen.Book, tmpDir string) (string, bool) {
-	if !book.ProjectID.Valid {
-		return "", false
-	}
-	q := dbgen.New(s.DB)
-	spec, err := q.GetBookSpec(context.Background(), book.ProjectID.Int64)
-	if err != nil {
-		return "", false
-	}
+func (s *Server) writePandocMetadata(book dbgen.Book, tmpDir string, bookMap *BookMap, toc bool) (string, bool) {
 	payload := map[string]any{}
+	if bookMap != nil {
+		payload["book_map"] = map[string]any{
+			"toc":            toc,
+			"sections":       bookMap.Sections,
+			"untitled_front": bookMap.UntitledFront,
+		}
+	}
 
-	parsed := parseEPUBSpec(spec.Data, book)
+	specData := ""
+	if book.ProjectID.Valid {
+		q := dbgen.New(s.DB)
+		if spec, err := q.GetBookSpec(context.Background(), book.ProjectID.Int64); err == nil {
+			specData = spec.Data
+		}
+	}
+	if specData == "" {
+		return writePandocMetadataFile(book, tmpDir, payload)
+	}
+
+	parsed := parseEPUBSpec(specData, book)
 	if len(parsed.Chapters) > 0 {
 		type metaChapter struct {
 			Title  string `json:"title"`
@@ -1060,11 +1092,14 @@ func (s *Server) writePandocMetadata(book dbgen.Book, tmpDir string) (string, bo
 		payload["chapters"] = chs
 	}
 
-	styles := declaredStylesForPandoc(spec.Data)
+	styles := declaredStylesForPandoc(specData)
 	if len(styles) > 0 {
 		payload["custom_styles"] = styles
 	}
+	return writePandocMetadataFile(book, tmpDir, payload)
+}
 
+func writePandocMetadataFile(book dbgen.Book, tmpDir string, payload map[string]any) (string, bool) {
 	if len(payload) == 0 {
 		return "", false
 	}
@@ -1074,13 +1109,82 @@ func (s *Server) writePandocMetadata(book dbgen.Book, tmpDir string) (string, bo
 	}
 	path := filepath.Join(tmpDir, "pandoc-meta.json")
 	if err := os.WriteFile(path, data, 0644); err != nil {
-		slog.Warn("pandoc metadata: write failed; custom styles and chapters will not reach the filter",
+		slog.Warn("pandoc metadata: write failed; book map, custom styles and chapters will not reach the filter",
 			"book_id", book.ID, "err", err)
 		return "", false
 	}
+	styles, _ := payload["custom_styles"].([]pandocStyle)
 	slog.Info("pandoc metadata written for Lua filter",
-		"book_id", book.ID, "has_chapters", payload["chapters"] != nil, "custom_styles", len(styles))
+		"book_id", book.ID, "has_chapters", payload["chapters"] != nil, "has_book_map", payload["book_map"] != nil,
+		"custom_styles", len(styles))
 	return path, true
+}
+
+// specMapForBook returns the linked project's spec as a map, or nil.
+func (s *Server) specMapForBook(book dbgen.Book) map[string]any {
+	if !book.ProjectID.Valid {
+		return nil
+	}
+	q := dbgen.New(s.DB)
+	spec, err := q.GetBookSpec(context.Background(), book.ProjectID.Int64)
+	if err != nil {
+		return nil
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(spec.Data), &data); err != nil {
+		return nil
+	}
+	return data
+}
+
+// specFrontMatterTOC: does the build generate a contents page? Default yes.
+func specFrontMatterTOC(spec map[string]any) bool {
+	fm, _ := spec["front_matter"].(map[string]any)
+	if v, ok := fm["toc"].(bool); ok {
+		return v
+	}
+	return true
+}
+
+// frontMatterTypst builds the `front-matter:` dict for series-template.typ's
+// book(): which generated pages exist (spec.front_matter, default on) and the
+// text they carry (spec.metadata, spec.cover). Never the manuscript's own
+// title page — that is dropped by the book map.
+func frontMatterTypst(spec map[string]any, book dbgen.Book) string {
+	fm, _ := spec["front_matter"].(map[string]any)
+	meta, _ := spec["metadata"].(map[string]any)
+	cover, _ := spec["cover"].(map[string]any)
+	on := func(k string) bool {
+		if v, ok := fm[k].(bool); ok {
+			return v
+		}
+		return true
+	}
+	str := func(m map[string]any, k string) string {
+		v, _ := m[k].(string)
+		return strings.TrimSpace(v)
+	}
+	q := func(v string) string {
+		if v == "" {
+			return "none"
+		}
+		return `"` + escapeTypstString(v) + `"`
+	}
+	fields := []string{
+		fmt.Sprintf("half-title: %t", on("half_title")),
+		fmt.Sprintf("title-page: %t", on("title_page")),
+		fmt.Sprintf("copyright-page: %t", on("copyright_page")),
+		"subtitle: " + q(str(meta, "subtitle")),
+		"publisher: " + q(str(meta, "publisher")),
+		"isbn-paper: " + q(str(meta, "isbn_paper")),
+		"isbn-epub: " + q(str(meta, "isbn_epub")),
+		"copyright-year: " + q(str(meta, "copyright_year")),
+		"copyright-holder: " + q(str(meta, "copyright_holder")),
+		"credit-lines: " + q(str(meta, "credit_lines")),
+		"cover-credit: " + q(str(cover, "credit")),
+		"logo: none",
+	}
+	return "(" + strings.Join(fields, ", ") + ")"
 }
 
 // pandocStyle is one declared custom style as the Lua filter wants it.

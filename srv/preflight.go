@@ -560,11 +560,14 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 	if runErr == nil {
 		var specMap map[string]any
 		_ = json.Unmarshal([]byte(specData), &specMap)
-		title, _ := s.specTitleAuthor(book)
+		title, author := s.specTitleAuthor(book)
 		if title == "" {
 			title = book.Title
 		}
-		if bm, mErr := bookMapFromDOCX(tmpPath, specMap, title); mErr != nil {
+		if author == "" {
+			author = book.Author
+		}
+		if bm, mErr := bookMapFromDOCX(tmpPath, specMap, title, author); mErr != nil {
 			slog.Warn("book map failed", "book_id", book.ID, "err", mErr)
 		} else {
 			if jsonBytes, err = appendBookMapFindings(jsonBytes, bm); err != nil {

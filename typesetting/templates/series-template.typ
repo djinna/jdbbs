@@ -134,6 +134,55 @@
 // no footer).
 #let drop-folio-pages = state("drop-folio-pages", ())
 
+// Front matter / folio machinery (P4, docs/reviews/P4-FRONT-MATTER-PLAN-2026-09-18.md).
+// Physical page numbers are the key everywhere; the displayed folio is the page
+// counter (reset to 1 at body start) rendered in folio-style.
+#let blank-pages = state("blank-pages", ())          // pages that must stay empty (no folio, no head)
+#let generated-end-page = state("generated-end-page", 0) // last generated page (i–iv); folios start after it
+#let body-start-page = state("body-start-page", none) // physical page where arabic 1 lands
+#let break-from = state("break-from", 0)
+
+#let mark-page(st) = context {
+  let p = here().page()
+  st.update(s => if p in s { s } else { s + (p,) })
+}
+
+// Page break to a recto, recording any verso left blank on the way so the
+// header/footer leave it empty. Robust to being a no-op (already on an empty
+// recto): the blank range is computed after the break, not guessed before.
+#let break-to-recto() = {
+  context { break-from.update(here().page()) }
+  pagebreak(weak: true, to: "odd")
+  context {
+    let from = break-from.get()
+    let to = here().page()
+    if to - from >= 2 {
+      blank-pages.update(s => s + range(from + 1, to))
+    }
+  }
+}
+
+// An intentionally blank page (p. ii when there is no frontispiece).
+#let blank-page() = {
+  pagebreak(weak: true)
+  mark-page(blank-pages)
+  v(0pt)  // makes the page count as non-empty so the strong break below is honoured
+  pagebreak()
+}
+
+// Folio rendering: roman before body-start-page, arabic from it.
+#let folio-text(physical, n) = {
+  let bs = body-start-page.final()
+  if bs == none or physical < bs { numbering("i", n) } else { numbering("1", n) }
+}
+#let page-carries-folio(p) = {
+  p > generated-end-page.final() and p not in blank-pages.final()
+}
+#let page-in-front-matter(p) = {
+  let bs = body-start-page.final()
+  bs == none or p < bs
+}
+
 // Call this at start of each chapter to set header info
 #let set-story-info(title: none, author: none) = {
   current-story-title.update(title)
@@ -158,14 +207,18 @@
   
   // Check if this page should have header suppressed
   if current-page in suppress-list { return }
+  // Blank pages and front matter carry no running head (front matter gets a
+  // centred folio from the footer instead).
+  if current-page in blank-pages.final() { return }
+  if page-in-front-matter(current-page) { return }
   
   let title = current-story-title.get()
   let author = current-story-author.get()
   
-  // No header if no story info set (front matter)
+  // No header if no story info set
   if title == none { return }
   
-  let page-num = counter(page).get().first()
+  let page-num = folio-text(current-page, counter(page).get().first())
   // Side is driven by PHYSICAL page parity (recto/verso), NOT folio parity. Our folio
   // (reset to 1 at body start) can differ in parity from the physical page, so keying
   // off the folio flips every running head onto the wrong side. The DISPLAYED number
@@ -195,11 +248,14 @@
 #let drop-folio-footer() = context {
   if not config.running-heads-enabled { return }
   let current-page = here().page()
-  if current-page not in drop-folio-pages.final() { return }
+  if not page-carries-folio(current-page) { return }
+  // Front matter: every page carries a centred roman folio. Body: only the
+  // pages marked as drop-folio (chapter openers).
+  if not page-in-front-matter(current-page) and current-page not in drop-folio-pages.final() { return }
   // Page number: 9pt Semibold, same as the running-head folio.
   set text(font: config.heading-font, size: config.running-heads-folio-size,
            weight: config.running-heads-weight)
-  align(center)[#counter(page).get().first()]
+  align(center)[#folio-text(current-page, counter(page).get().first())]
 }
 
 // =============================================================================
@@ -480,12 +536,170 @@
   content
 }
 
+// -----------------------------------------------------------------------------
+// GENERATED FRONT MATTER (P4) — pages i–iv come from the transmittal, not the
+// manuscript. `fm` is a dict built by the Go pipeline (srv/books.go):
+//   half-title, title-page, copyright-page: bool  (toc is emitted by the
+//   pipeline via contents-page() after the untitled pieces)
+//   subtitle, publisher, isbn-paper, isbn-epub, copyright-year,
+//   copyright-holder, credit-lines, cover-credit: str or none
+//   logo: project-root-relative image path or none
+// -----------------------------------------------------------------------------
+
+#let fm-get(fm, k, default: none) = {
+  let v = fm.at(k, default: default)
+  if v == "" { default } else { v }
+}
+
+// Title page: title, subtitle, author, publisher (+ logo) — p. iii.
+#let title-page-full(title, subtitle: none, author: none, publisher: none, logo: none) = {
+  pagebreak(weak: true)
+  set par(first-line-indent: 0em, justify: false)
+  v(1fr)
+  align(center)[
+    #set text(font: config.heading-font, size: 1.917em, weight: "bold")
+    #title
+    #if subtitle != none {
+      v(0.6em)
+      set text(size: 1em, weight: "medium")
+      subtitle
+    }
+    #if author != none {
+      v(2.5em)
+      set text(size: 1.1em, weight: "medium")
+      author
+    }
+  ]
+  v(2fr)
+  align(center)[
+    #if logo != none { image(logo, height: 2.4em); v(0.5em) }
+    #if publisher != none {
+      set text(font: config.heading-font, size: 0.9em, weight: "medium")
+      upper(publisher)
+    }
+  ]
+  v(0.1fr)
+}
+
+// Copyright page — p. iv, set small at the foot of the page.
+#let copyright-page-generated(fm, title, author) = {
+  pagebreak(weak: true)
+  set text(size: 0.75em)
+  set par(leading: 0.55em, first-line-indent: 0em, justify: false, spacing: 0.9em)
+  v(1fr)
+  let holder = fm-get(fm, "copyright-holder", default: author)
+  let year = fm-get(fm, "copyright-year")
+  let cline = if year != none and holder != none [Copyright © #year #holder. All rights reserved.]
+    else if holder != none [Copyright © #holder. All rights reserved.]
+    else [All rights reserved.]
+  [#strong(title)]
+  parbreak()
+  cline
+  let publisher = fm-get(fm, "publisher")
+  if publisher != none { parbreak(); [Published by #publisher.] }
+  let credits = fm-get(fm, "credit-lines")
+  if credits != none { parbreak(); credits }
+  let cover = fm-get(fm, "cover-credit")
+  if cover != none { parbreak(); cover }
+  let isbn-p = fm-get(fm, "isbn-paper")
+  let isbn-e = fm-get(fm, "isbn-epub")
+  if isbn-p != none or isbn-e != none {
+    parbreak()
+    if isbn-p != none [ISBN #isbn-p (paperback)]
+    if isbn-p != none and isbn-e != none { linebreak() }
+    if isbn-e != none [ISBN #isbn-e (ebook)]
+  }
+}
+
+// Contents — recto, after any dedication / epigraph (Chicago order). Emitted
+// by the pipeline (lua filter) so it lands after the untitled pieces. Entry
+// folios are rendered roman/arabic by position, like the pages themselves.
+#let contents-page() = {
+  break-to-recto()
+  show outline.entry: it => {
+    set text(font: config.heading-font, size: 0.9em)
+    set par(first-line-indent: 0em, justify: false)
+    let loc = it.element.location()
+    block(above: 0.9em, below: 0em, context {
+      let folio = folio-text(loc.page(), counter(page).at(loc).first())
+      link(loc, it.body + h(1fr) + folio)
+    })
+  }
+  outline(title: [Contents], depth: 1, indent: 0em)
+}
+
+// Untitled front-matter piece (dedication, epigraph) — each on a fresh recto.
+#let front-piece(kind: "dedication", body) = {
+  break-to-recto()
+  set par(first-line-indent: 0em, justify: false)
+  if kind == "dedication" {
+    v(1fr)
+    align(center, body)
+    v(2fr)
+  } else if kind == "epigraph" {
+    v(0.3fr)
+    pad(left: 12%, right: 4%, { set text(style: "italic"); body })
+    v(1fr)
+  } else {
+    v(1fr)
+    body
+    v(2fr)
+  }
+}
+
+// Titled front-matter section (Foreword, Preface, …): starts recto. The H1
+// that follows keeps the ordinary heading style; folios stay roman.
+#let front-section() = break-to-recto()
+
+// Book info for the default running heads.
+#let book-info = state("book-info", (title: none, author: none))
+
+// Body start: recto, folio 1, arabic from here, running heads on.
+#let start-body() = {
+  break-to-recto()
+  context { body-start-page.update(here().page()) }
+  counter(page).update(1)
+  // Default running heads = book title / author, unless an anthology has
+  // already named the first story.
+  context {
+    if current-story-title.get() == none {
+      let bi = book-info.get()
+      set-story-info(title: bi.title, author: bi.author)
+    }
+  }
+}
+
+// Back matter start: hook for later (different running heads, etc.).
+#let start-back() = break-to-recto()
+
+// Everything before the manuscript body: generated pages, then the point from
+// which folios are carried. Called by book() when front-matter is a dict.
+#let generated-front-matter(fm, title, subtitle, author) = {
+  let on(k) = fm.at(k, default: false) == true
+  if on("half-title") {
+    half-title(title)
+    blank-page()
+  }
+  if on("title-page") {
+    title-page-full(title, subtitle: subtitle, author: author,
+      publisher: fm-get(fm, "publisher"), logo: fm-get(fm, "logo"))
+  }
+  if on("copyright-page") {
+    copyright-page-generated(fm, title, author)
+  }
+  // Folios begin on the first page after the generated ones. No page break
+  // here: the first piece of content (contents page, dedication, section,
+  // body) brings its own break-to-recto.
+  context { generated-end-page.update(here().page()) }
+}
+
 // =============================================================================
 // EPIGRAPH
 // =============================================================================
 
+// No page break of its own: a chapter-opening epigraph sits under the heading,
+// and a book epigraph is placed on its page by front-piece (P4).
 #let epigraph(quote, attribution: none) = {
-  pagebreak(weak: true)
   set par(first-line-indent: 0em)
   set text(style: "italic")
   quote
@@ -550,10 +764,13 @@
   author: none,
   font-path: none,
   config: config,  // accepts caller's merged config, defaults to module-level config
+  front-matter: none,  // dict (see generated-front-matter) → P4 front matter + folios;
+                       // none → legacy: body starts on page 1, arabic throughout
   body,
 ) = {
   // Document metadata
   set document(title: title, author: if author != none { (author,) } else { () })
+  book-info.update((title: title, author: author))
   
   // Page setup with running headers (no footer)
   set page(
@@ -597,6 +814,9 @@
   // Heading styles
   show heading.where(level: 1): it => {
     pagebreak(weak: true)
+    // Opener page: no running head, centred drop folio.
+    mark-page(suppress-header-pages)
+    mark-page(drop-folio-pages)
     set text(font: config.heading-font, size: config.h1-size, weight: config.h1-weight)
     set par(leading: 0.4em, first-line-indent: 0em, justify: false)
     if config.heading-align == "center" {
@@ -678,5 +898,11 @@
     pad(left: 0.75em, it)
   }
   
+  if front-matter == none {
+    // Legacy: no generated pages; folios from page 1, arabic.
+    context { body-start-page.update(here().page()) }
+  } else {
+    generated-front-matter(front-matter, title, subtitle, author)
+  }
   body
 }

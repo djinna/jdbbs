@@ -439,7 +439,7 @@ function renderBookMap(bm) {
   var rows = [];
   if (bm.title) rows.push(['Title style: ' + bm.title + (bm.subtitle ? ' \u2014 ' + bm.subtitle : ''), kinds.title]);
   (bm.untitled_front || []).forEach(function (u) {
-    rows.push(['\u201c' + u.preview + '\u201d', u.name + ' (untitled front matter)']);
+    rows.push(['\u201c' + u.preview + '\u201d', u.drop ? 'dropped (generated from the transmittal)' : u.name + ' (untitled front matter)']);
   });
   var body = bm.sections.filter(function (sec) { return sec.kind === 'body'; });
   var bodyDone = false;

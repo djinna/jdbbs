@@ -52,9 +52,21 @@ type BookMapSection struct {
 
 // BookMapUntitled is one untitled front-matter block (before the first H1).
 type BookMapUntitled struct {
-	Name    string `json:"name"`    // "dedication", "epigraph", or "untitled front-matter page N"
-	Paras   int    `json:"paras"`   // paragraph count (non-empty, as pandoc will see them)
-	Preview string `json:"preview"` // first ~60 chars
+	Name    string `json:"name"`           // "dedication", "epigraph", "copyright", or "untitled front-matter page N"
+	Paras   int    `json:"paras"`          // paragraph count (non-empty, as pandoc will see them)
+	Preview string `json:"preview"`        // first ~60 chars
+	Drop    bool   `json:"drop,omitempty"` // dropped by the build (byline, typed copyright)
+}
+
+// keptUntitled returns the untitled pieces that make it into the book.
+func (m *BookMap) keptUntitled() []BookMapUntitled {
+	out := []BookMapUntitled{}
+	for _, u := range m.UntitledFront {
+		if !u.Drop {
+			out = append(out, u)
+		}
+	}
+	return out
 }
 
 // BookMap is the classification of a manuscript into front / body / back.
@@ -88,7 +100,7 @@ func (m *BookMap) titles(kind string) []string {
 func (m *BookMap) Summary() string {
 	var parts []string
 	front := []string{}
-	for _, u := range m.UntitledFront {
+	for _, u := range m.keptUntitled() {
 		front = append(front, titleCase(u.Name))
 	}
 	front = append(front, m.Front()...)
@@ -209,15 +221,16 @@ var untitledFrontNames = []string{"dedication", "epigraph"}
 // buildBookMap classifies paragraphs. untitledNames is the transmittal's list
 // of untitled front-matter pieces in order (subset of untitledFrontNames);
 // nil means "not declared", in which case blocks are named positionally.
-// bookTitle (from the transmittal / book record) lets a first H1 that repeats
-// the title be recognised and dropped (the pre-P4 template model).
-func buildBookMap(paras []docxPara, untitledNames []string, bookTitle string) *BookMap {
-	m := buildBookMapInner(paras, untitledNames, bookTitle)
+// bookTitle / bookAuthor (from the transmittal / book record) let a first H1
+// that repeats the title, and a byline, be recognised and dropped (the pre-P4
+// template model).
+func buildBookMap(paras []docxPara, untitledNames []string, bookTitle, bookAuthor string) *BookMap {
+	m := buildBookMapInner(paras, untitledNames, bookTitle, bookAuthor)
 	m.SummaryLine = m.Summary()
 	return m
 }
 
-func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle string) *BookMap {
+func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle, bookAuthor string) *BookMap {
 	m := &BookMap{UntitledFront: []BookMapUntitled{}, Sections: []BookMapSection{}, Warnings: []string{}, Notes: []string{}}
 
 	// Title / Subtitle: dropped, reported.
@@ -261,51 +274,109 @@ func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle strin
 		return m
 	}
 
-	// Untitled front matter: blocks before the first H1, split on page breaks.
-	var blocks [][]docxPara
-	for _, p := range body[:firstH1] {
-		if p.PageBreakBefore || len(blocks) == 0 {
-			blocks = append(blocks, nil)
-		}
-		blocks[len(blocks)-1] = append(blocks[len(blocks)-1], p)
+	// Untitled front matter: the blocks before the first H1. A block is a run
+	// of paragraphs split on hard page breaks, and also on the template's
+	// dedicated styles (Epigraph, Dedication, Copyright) so a style change
+	// starts a new piece even without a page break.
+	type preBlock struct {
+		paras []docxPara
+		style string // "epigraph" | "dedication" | "copyright" | "" (plain)
+		drop  bool
+		note  string
 	}
-	// Names: the transmittal's declared pieces first, then the canonical order
-	// for anything it didn't declare (a dedication is still a dedication when
-	// the box wasn't ticked).
-	names := append([]string{}, untitledNames...)
-	for _, n := range untitledFrontNames {
-		if len(names) >= len(blocks) {
-			break
+	pieceStyle := func(p docxPara) string {
+		switch p.Style {
+		case "epigraph", "dedication", "copyright":
+			return p.Style
 		}
-		known := false
-		for _, have := range names {
-			known = known || have == n
+		return ""
+	}
+	var blocks []preBlock
+	for _, p := range body[:firstH1] {
+		st := pieceStyle(p)
+		// A byline for the author ("by Jane Author" / "Jane Author") is part
+		// of the generated title page; drop it.
+		if st == "" && bookAuthor != "" {
+			n := normalizeHeading(p.Text)
+			if n == normalizeHeading(bookAuthor) || n == "by "+normalizeHeading(bookAuthor) {
+				blocks = append(blocks, preBlock{paras: []docxPara{p}, drop: true,
+					note: fmt.Sprintf("Byline “%s” dropped: the author goes on the generated title page.", preview(p.Text))})
+				continue
+			}
 		}
-		if !known {
+		last := len(blocks) - 1
+		if last < 0 || p.PageBreakBefore || blocks[last].drop || st != blocks[last].style {
+			blocks = append(blocks, preBlock{style: st})
+			last++
+		}
+		blocks[last].paras = append(blocks[last].paras, p)
+	}
+	for i := range blocks {
+		if blocks[i].style == "copyright" {
+			blocks[i].drop = true
+			blocks[i].note = fmt.Sprintf("Copyright-styled %s dropped: the copyright page is generated from the transmittal.", plural(len(blocks[i].paras), "paragraph"))
+		}
+	}
+	// Names for the plain blocks: the transmittal's declared pieces first,
+	// then the canonical order for anything it didn't declare (a dedication
+	// is still a dedication when the box wasn't ticked). Style-named blocks
+	// take their style's name and use up that name.
+	used := map[string]bool{}
+	for _, b := range blocks {
+		if !b.drop && b.style != "" {
+			used[b.style] = true
+		}
+	}
+	var names []string
+	for _, n := range append(append([]string{}, untitledNames...), untitledFrontNames...) {
+		if !used[n] {
+			used[n] = true
 			names = append(names, n)
 		}
 	}
-	for i, b := range blocks {
-		name := fmt.Sprintf("untitled front-matter page %d", i+1)
-		if i < len(names) {
-			name = names[i]
+	plainCount, nextName := 0, 0
+	for _, b := range blocks {
+		if b.drop {
+			m.Notes = append(m.Notes, b.note)
+			m.UntitledFront = append(m.UntitledFront, BookMapUntitled{Name: "dropped", Paras: len(b.paras), Preview: preview(b.paras[0].Text), Drop: true})
+			continue
 		}
-		m.UntitledFront = append(m.UntitledFront, BookMapUntitled{Name: name, Paras: len(b), Preview: preview(b[0].Text)})
+		name := b.style
+		if name == "" {
+			plainCount++
+			name = fmt.Sprintf("untitled front-matter page %d", plainCount)
+			if nextName < len(names) {
+				name = names[nextName]
+				nextName++
+			}
+		}
+		m.UntitledFront = append(m.UntitledFront, BookMapUntitled{Name: name, Paras: len(b.paras), Preview: preview(b.paras[0].Text)})
 	}
-	if untitledNames != nil && len(blocks) > len(untitledNames) {
+	kept := m.keptUntitled()
+	if untitledNames != nil && len(kept) > len(untitledNames) {
 		listed := "none"
 		if len(untitledNames) > 0 {
 			listed = strings.Join(untitledNames, ", ")
 		}
-		m.Notes = append(m.Notes, fmt.Sprintf("%s before the first heading; the transmittal lists %s. All are kept, in order, as %s.", plural(len(blocks), "untitled page"), listed, strings.Join(names, ", ")))
+		var keptNames []string
+		for _, u := range kept {
+			keptNames = append(keptNames, u.Name)
+		}
+		m.Notes = append(m.Notes, fmt.Sprintf("%s before the first heading; the transmittal lists %s. All are kept, in order, as %s.", plural(len(kept), "untitled page"), listed, strings.Join(keptNames, ", ")))
 	}
-	// A single block of several paragraphs where two pieces were declared is
-	// the usual mistake (no page break between dedication and epigraph).
-	if len(blocks) == 1 && len(blocks[0]) > 1 && len(names) > 1 {
-		m.Warnings = append(m.Warnings, fmt.Sprintf("One untitled block of %d paragraphs before the first heading, taken as %s. Put a page break between separate front-matter pieces.", len(blocks[0]), names[0]))
+	// A single plain block of several paragraphs where two pieces were
+	// declared is the usual mistake (no page break between dedication and epigraph).
+	if len(kept) == 1 && kept[0].Paras > 1 && len(untitledNames) > 1 {
+		m.Warnings = append(m.Warnings, fmt.Sprintf("One untitled block of %d paragraphs before the first heading, taken as %s. Put a page break between separate front-matter pieces.", kept[0].Paras, kept[0].Name))
 	}
-	for i := len(blocks); i < len(untitledNames); i++ {
-		m.Warnings = append(m.Warnings, fmt.Sprintf("Transmittal lists %s but no untitled page was found before the first heading.", titleCase(untitledNames[i])))
+	for _, want := range untitledNames {
+		found := false
+		for _, u := range kept {
+			found = found || u.Name == want
+		}
+		if !found {
+			m.Warnings = append(m.Warnings, fmt.Sprintf("Transmittal lists %s but no untitled page was found before the first heading.", titleCase(want)))
+		}
 	}
 
 	// H1 sections: heading + the paragraphs up to the next H1.
@@ -494,7 +565,7 @@ func (m *BookMap) crossCheckSpec(spec map[string]any) {
 }
 
 // bookMapFromDOCX reads the DOCX and builds the map; spec may be nil.
-func bookMapFromDOCX(docxPath string, spec map[string]any, bookTitle string) (*BookMap, error) {
+func bookMapFromDOCX(docxPath string, spec map[string]any, bookTitle, bookAuthor string) (*BookMap, error) {
 	paras, err := readDOCXParagraphs(docxPath)
 	if err != nil {
 		return nil, err
@@ -503,7 +574,7 @@ func bookMapFromDOCX(docxPath string, spec map[string]any, bookTitle string) (*B
 	if spec != nil {
 		names = untitledNamesFromSpec(spec)
 	}
-	m := buildBookMap(paras, names, bookTitle)
+	m := buildBookMap(paras, names, bookTitle, bookAuthor)
 	if spec != nil {
 		m.crossCheckSpec(spec)
 	}
