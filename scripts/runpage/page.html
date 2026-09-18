@@ -1,0 +1,60 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Punch list</title>
+<style>
+body{max-width:46rem;margin:2rem auto;padding:0 1rem 6rem;font:16px/1.5 system-ui;background:#111;color:#ddd}
+a{color:#8ab4f8} strong{color:#fff} code{background:#222;color:#e8e8e8;padding:0 .25em}
+h2{margin-top:2rem;border-top:1px solid #333;padding-top:1rem}
+li{margin:.35rem 0;list-style:none;position:relative} ul{padding-left:1.2rem}
+.box{cursor:pointer;user-select:none;font-size:1.1em} .st-x{color:#5c5} .st-\~{color:#fa5}
+.id{color:#aaa;font-weight:600}
+.nbtn{margin-left:.5rem;font-size:.75em;color:#8ab4f8;cursor:pointer;background:none;border:1px solid #345;padding:0 .4em;border-radius:3px}
+.nbtn.has{border-color:#fa5;color:#fa5}
+.notes{margin:.3rem 0 .5rem 1.6rem;font-size:.9em}
+.note{border-left:3px solid #fa5;padding:.1rem .6rem;margin:.25rem 0;white-space:pre-wrap}
+.note.shelley{border-color:#5c5}
+.note .m{color:#888;font-size:.8em;display:block}
+.reply{display:flex;gap:.4rem;margin:.3rem 0 .6rem 1.6rem}
+textarea{flex:1;min-height:2.4em;background:#1a1a1a;color:#ddd;border:1px solid #444;font:14px/1.4 system-ui;padding:.4em .6em;resize:vertical}
+button.save{background:#8ab4f8;color:#111;border:0;font-weight:600;padding:0 .9em;cursor:pointer}
+.bar{position:fixed;bottom:0;left:0;right:0;background:#181818;border-top:1px solid #333;padding:.6rem 1rem;display:flex;gap:.5rem;align-items:center;font-size:.9em}
+.bar input{flex:1;background:#1a1a1a;color:#ddd;border:1px solid #444;padding:.4em .6em;font:14px system-ui}
+.bar .hint{color:#888}
+</style></head><body>
+<div id="body">{{BODY}}</div>
+<div class="bar"><span class="hint">New item →</span><input id="add" placeholder="type a to-do, Enter to add to Inbox (Shelley triages)"><span class="hint" id="status"></span></div>
+<script>
+const NEXT={o:'x',x:'~','~':'o'}, ST={o:' ',x:'x','~':'~'};
+let notes={};
+function busy(){return [...document.querySelectorAll('textarea')].some(t=>t.value.trim()||document.activeElement===t)||document.activeElement===document.getElementById('add');}
+function decorate(){
+  document.querySelectorAll('#body li').forEach(li=>{
+    const id=li.querySelector(':scope > .id'); if(!id||li.dataset.done)return; li.dataset.done=1;
+    const iid=id.textContent.trim();
+    const box=li.querySelector(':scope > .box');
+    box.onclick=async()=>{const cur=[...box.classList].find(c=>c.startsWith('st-')).slice(3);
+      await fetch('/tick',{method:'POST',body:JSON.stringify({id:iid,state:ST[NEXT[cur]]})}); refresh(true);};
+    const b=document.createElement('button'); b.className='nbtn'; b.textContent='note'; id.after(b);
+    const n=(notes[iid]||[]); if(n.length){b.textContent=`notes ${n.length}`; b.classList.add('has');}
+    const wrap=document.createElement('div'); wrap.className='notes'; wrap.style.display=n.length?'block':'none';
+    n.forEach(x=>{const d=document.createElement('div'); d.className='note '+x.who; d.innerHTML=`<span class="m">${x.who} · ${x.ts}</span>`; d.append(x.text); wrap.append(d);});
+    const rp=document.createElement('div'); rp.className='reply'; rp.style.display='none';
+    const ta=document.createElement('textarea'); ta.placeholder='explanation / question for Shelley…';
+    const sv=document.createElement('button'); sv.className='save'; sv.textContent='Save';
+    sv.onclick=async()=>{if(!ta.value.trim())return; await fetch('/note',{method:'POST',body:JSON.stringify({id:iid,text:ta.value,who:'jenna'})}); ta.value=''; rp.style.display='none'; refresh(true);};
+    ta.onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))sv.onclick();};
+    rp.append(ta,sv);
+    b.onclick=()=>{wrap.style.display='block'; rp.style.display=rp.style.display==='none'?'flex':'none'; if(rp.style.display==='flex')ta.focus();};
+    // insert after the li's own inline content but before nested ul
+    const sub=li.querySelector(':scope > ul'); if(sub){li.insertBefore(wrap,sub); li.insertBefore(rp,sub);} else li.append(wrap,rp);
+  });
+}
+async function refresh(force){
+  if(!force&&busy())return;
+  const [h,n]=await Promise.all([fetch('/fragment').then(r=>r.text()),fetch('/notes').then(r=>r.json())]);
+  notes=n; document.getElementById('body').innerHTML=h; decorate();
+}
+document.getElementById('add').onkeydown=async e=>{if(e.key!=='Enter')return; const v=e.target.value.trim(); if(!v)return;
+  await fetch('/add',{method:'POST',body:JSON.stringify({text:v})}); e.target.value=''; document.getElementById('status').textContent='added'; setTimeout(()=>document.getElementById('status').textContent='',1500); refresh(true);};
+fetch('/notes').then(r=>r.json()).then(n=>{notes=n;decorate();});
+setInterval(()=>refresh(false),15000);
+</script></body></html>
