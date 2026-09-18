@@ -69,6 +69,29 @@ with an empty top nav for weeks while the admin pages each grew their own.
 - **`docs/reviews/LAUNCH-TRIAGE.md`** — pre-launch code + UX review; blockers fixed, HIGH tier tracked.
 - **`docs/reviews/DESKTOP-APP-FEASIBILITY.md`** — macOS app plan + prototype notes.
 
+## Punch list — the preferred pattern for review / run work
+
+For app-review sessions, launch runs, and multi-day fix blocks, work from the
+**shared punch list** rather than from chat alone (Jenna: "I'm liking it a lot",
+2026-09-18). It is a live page she can read on any device, with per-item notes
+that flow both ways.
+
+- Source: `scratch/run/CHECKLIST.md` (sections, `- [ ] N.N …` rows; `[~]` = in
+  progress, `[x]` = done). Notes: `scratch/run/notes.json`. Server:
+  `scripts/runpage/server.py`, started by `scripts/run-page.sh` in tmux
+  `runpage` on port 8766 → https://jdbbs.exe.xyz:8766/.
+- **Section 0 is the inbox.** Jenna adds items from the page; the agent triages
+  them into a section (or answers and ticks them in place if quick).
+- Her notes arrive in the agent's chat automatically (`push_to_chat`, env
+  `RUNPAGE_CHAT_CONV=<conversation id>`; restart the tmux session with the new
+  id when a fresh conversation starts). The agent answers on the item, not just
+  in chat: `POST localhost:8766/note {"id","text","who":"shelley"}`.
+- Tick via `sed -i 's/- \[ \] 5.N /- [x] 5.N /' scratch/run/CHECKLIST.md`.
+  When committing punch-list state, copy the checklist to
+  `docs/runs/PUNCHLIST-YYYY-MM-DD.md` (the scratch dir is gitignored).
+- Small independent items ("do this in parallel") go to a subagent or a quick
+  fix alongside the main block; report back on the item when landed.
+
 ## Worknotes
 
 - Permanent session handoffs/worknotes live in `docs/reviews/SESSION-HANDOFF-YYYY-MM-DD.md`. When the user asks to write permanent worknotes, commit and push that note to GitHub, then fast-forward the VM so the note is available from local, GitHub, and `/home/exedev/prodcal`.
