@@ -629,7 +629,7 @@
     let loc = it.element.location()
     block(above: 0.9em, below: 0em, context {
       let folio = folio-text(loc.page(), counter(page).at(loc).first())
-      link(loc, it.body + h(1fr) + folio)
+      link(loc, it.element.body + h(1fr) + folio)
     })
   }
   // Own title rather than outline's: the built-in title is a level-1 heading
