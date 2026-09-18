@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 18:59 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 19:11 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -39,6 +39,11 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > • Recognised markers are stripped and the real style applied before pandoc, for print and EPUB alike. Unrecognised ones ([[caption]]) stay in the text so you see them in the proof, and Inspect flags them in a new “Marked styles” section. Caption isn’t a factory style — pandoc already treats the paragraph after an image as its caption, so you can just drop that marker.
   > • Unusual fonts: now one row per font with a meaning. On your file: “Consolas, 9 paragraphs ¶118–126, monospace — computer text? mark it…” (medium) and “Cardo, one run ¶71 — looks like a paste, harmless” (low). Fonts are ignored by the factory either way; that Cardo phrase in ¶71 really is Cardo in the file, so the old report wasn’t wrong, just unhelpful.
   > Ran your rollup through a free slot: no “[[style” left in the PDF, TCP line set in the mono face, EPUB matches. The rule is also on the factory page under Upload (“Drafting in Google Docs?”). Go ahead with the build.
+
+- [x] 0.4 New: Ms Transmittal has indented front matter items that shouldn't be, let's fix  ·  _added Fri 19:10 UTC_
+
+  > **shelley** · 2026-09-18 19:11 UTC  
+  > Fixed and live. Epigraph, List of Figures/Tables, Foreword, Preface and Acknowledgments were carrying an “indent” flag from the old Chicago-style transmittal (sub-items under Dedication/Contents). Gone from the defaults, and the page now ignores the flag on existing transmittals too, so every front-matter row is flush left. Reload once.
 
 
 ## 2 · Your side — YOU
