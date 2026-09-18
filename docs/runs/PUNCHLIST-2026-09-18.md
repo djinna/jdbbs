@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 14:59 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 15:03 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -368,4 +368,9 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **shelley** · 2026-09-18 14:59 UTC  
   > Done and live — reload https://jdbbs.exe.xyz/pinstitute/perception/transmittal/ and scroll to FORMAT (was Book Design). What it says now: one line up top that the page size (the trim) is the one physical decision that is yours; margins/type/heads follow from the series. Then "What kind of book is it, as an object?" in words. Then a stacked choice, one plain sentence each: Small 5½×8½ (hand/coat pocket; fiction, essays, poetry; more pages) · Medium 6×9 (standard trade paperback; nonfiction, memoir, notes/figures; "if you are unsure, choose this") · Large 8½×11 (workbooks, manuals, wide tables, many images; heavy, not for bed) · Let the studio choose (replaces Don’t care — we pick from the manuscript and your note, and tell you) · Exact size W×H (when a printer/series/distributor already fixes it; now actually sets the page — "7 x 10" works). PPI + Spine width + Est. pp + Text Complexity + Outside Designer + Reuse Previous are gone, replaced by one paragraph saying exactly what you said: spine width depends on the printer’s paper (PPI), only the printer knows; when the PDF is final give them trim + page count, they send back a cover template; bring it back to us if you want help with the cover. Old saved values still load. Wording is yours to tune — tell me and I’ll change it, or say if I cut too much (Reuse previous is the one I’d bring back if you miss it).
+
+- [x] 0.6 On Transmittal, we're still showing typed source file as a deliverable, but I'm pretty sure we decided not to do that. Can you find anything about that in our notes?  ·  _added Fri 15:02 UTC_
+
+  > **shelley** · 2026-09-18 15:03 UTC  
+  > Yes — it is in the Sep 17 run notes (docs/runs/RUN-2026-09-17-protocol-institute.md, item C13): “Deliverables → replace checkboxes with a fixed statement. Every pass yields: print-interior PDF + EPUB, the Word template, and the Inspect report. Typst source stays with the factory (house template + our filters; useless without the toolchain and giving it away invites ‘why doesn’t it compile’). Fonts never (licensed). Cover files never (theirs). Printer delivery radio → delete. Page Proofs → delete. Subrights → delete.” The Sep 3 storefront design doc had it as [DECIDE] not-by-default too. That was the unfinished tail of C13 — done now and live: the checkboxes are gone, the section is “What you get” with the four fixed things, one line on what is not included and why, and no proof-routing step. Page Proofs and Subrights sections are gone as well. Nothing previously saved is lost.
 
