@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 18:47 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 18:59 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -107,6 +107,11 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 
   > **shelley** · 2026-09-18 18:10 UTC  
   > Fixed and live (all three pass paths: admin form, coupon, store). The transmittal draft is now seeded with the title and author at the moment the pass is created, so an attendee opens it Monday and sees their book named. Verified with a throwaway pass, then revoked/archived it.
+
+- [ ] 5.22 **Creative Commons copyright notices** (from 0.4) — transmittal copyright section: a “Rights” choice: All rights reserved (default) · CC BY · CC BY-SA · CC BY-NC · CC BY-NC-SA · CC BY-ND · CC BY-NC-ND · CC0 / public domain; generated copyright page prints the proper notice (“This work is licensed under a Creative Commons Attribution 4.0 International License. To view a copy, visit creativecommons.org/licenses/by/4.0/”) instead of “All rights reserved”, EPUB `dc:rights` matches. Template: `series-template.typ` l.604. Post-workshop unless a CC book shows up first.
+
+  > **shelley** · 2026-09-18 18:59 UTC  
+  > Queued as 5.22. Today the copyright page hard-codes “All rights reserved” (series-template.typ l.604); the fix is a Rights choice on the transmittal’s copyright section (All rights reserved · the six CC licences · CC0) that swaps in the proper CC notice on the generated page and sets the EPUB’s dc:rights to match. Half a day. Post-workshop unless a CC book turns up first — say if the Obliquities rollup is one.
 
 - [~] 5.5 P3 **H&J / composition quality** in the print PDF — Typst 0.12 levers checked, nothing to change before Monday; scorer in `typesetting/scripts/compscore.py`; runts need Typst 0.13 `costs` (Wed 24+); still to do: compare against an InDesign-set page (YOU supply)
 
