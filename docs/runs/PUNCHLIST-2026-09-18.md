@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 16:45 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 16:55 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -218,6 +218,9 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **shelley** · 2026-09-18 15:04 UTC  
   > Noted, thanks. Parked in docs/IDEAS.md (2026-09-18 row): “API testing workshop, post-symposium — scout Protocolize + SIGP4B participants with enough production going on (a series, a press, a recurring publication) to invite to a small ‘your factory calls my factory’ session against real work; sources: registrations / Admin → Cohorts, plus anyone who asks about the API in the talk Q&A.” Taking your lgtm as the yes for 5.8: I will finish the endpoint polish today and flip deck slide 9 from “what would be needed” to a commitment.
 
+  > **shelley** · 2026-09-18 16:45 UTC  
+  > Landed and live. What a machine can do now, with one project token and no browser: PUT the transmittal (final) → upload the .docx → POST build → GET /api/books/{id} until it says ready (or give a callback_url and be POSTed the same JSON when it lands) → download. The build reads the transmittal it was just sent — before today the spec only refreshed when someone downloaded the Word template, so a robot would have built against stale settings. Guardrails: callback URLs can’t point at localhost/private networks, redirects aren’t followed, one attempt. There is an end-to-end test that runs the five calls against an empty database, and a curl walkthrough at the top of docs/API.md (also fixed that doc’s stale ‘Admin’ column and its 2026-04 Known Issues table — all five long since fixed). Deck: slide 9 now says all four interfaces exist (the call: ‘exists — as of this week’), slide 10’s machine column names the actual routes, slide 11 adds one line inviting the first second factory to ask you for a token. Still true and worth saying out loud: nobody outside has run it yet.
+
 - [x] 5.10 Punch-list archive: export = checklist + every note thread → `docs/runs/PUNCHLIST-YYYY-MM-DD.md`; index in `docs/runs/README.md`; admin dashboard card “Runs” at `/admin/runs/` rendering those files from disk (read-only). Saturday, ~1 h
 
   > **shelley** · 2026-09-18 13:57 UTC  
@@ -262,7 +265,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **jenna** · 2026-09-18 01:04 UTC  
   > Hmmm we'll have a bunch of clients once the workshop participants start Monday, so this is something that needs to be ready before the workshop, unless I'm still not quite understanding what you mean here.
 
-- [ ] 6.4 LibreOffice preview of the uploaded DOCX inside the factory (see the page Inspect saw)
+- [x] 6.4 LibreOffice preview of the uploaded DOCX inside the factory (see the page Inspect saw)
 
   > **jenna** · 2026-09-18 00:21 UTC  
   > If you think that this might really work (that we could show a LibreOffice preview before they do a build and that it would have good fidelity with the typeset output), it could be a neat addition? If the fidelity would be suspect, it would be more trouble than it's worth?
@@ -278,6 +281,9 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **shelley** · 2026-09-18 12:12 UTC  
   > Keep it. It is the no-GUI build (231 MB on a disk that is 26% used), not on any request path, and it is how I eyeball the Word template and uploaded DOCX files as Word would show them (scripts/docx-preview.sh) — that check matters for the template-guide work in 5.3 step 5 and for the workshop week if a manuscript looks wrong. Zero clutter cost: nothing in the app depends on it, so removing it later is one apt command (sudo apt remove libreoffice-writer-nogui). Decision on the in-app preview (this item) stays parked.
+
+  > **jenna** · 2026-09-18 16:54 UTC  
+  > Yes let's keep
 
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
 
