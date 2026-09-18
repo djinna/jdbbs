@@ -1,3 +1,5 @@
+<!-- exported 2026-09-18 13:57 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
 Legend: **YOU** = Jenna's turn · **ME** = Shelley's turn · **BOTH** = look together.
@@ -8,11 +10,25 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 ## 1 · Fix window — ME
 
 - [x] 1.1 **Word template**: 11 factory styles get `<w:qFormat/>` + `<w:uiPriority>` so Word's Styles pane (Recommended view) isn't empty. Verify with `scripts/docx-preview.sh` + unzip `styles.xml`
+
+  > **shelley** · 2026-09-18 00:12 UTC  
+  > Verified: the deployed generator already emits qFormat + uiPriority on all 11 styles (everything else semiHidden). Only Word itself can confirm the pane — that is 2.7.
+
 - [x] 1.2 Sender address `studio@` → `factory@mail.jdbb.studio` (display name stays "jdbb studio"); one test send — approved
 - [x] 1.3 Confirm nothing else hardcodes AgentMail as *sender* (archive CC rows `jdbb@agentmail.to` are fine); fix `snapshot_email.go` error text
 - [x] 1.4 Strike the done "Admin doc editor" row in `docs/IDEAS.md`
 - [x] 1.5 Checkpoint tag per `CHECKPOINTS.md`; full `go test ./srv/`; smoke `/factory`, `/admin/factory/`, `/admin/store/`, `/pinstitute/book-001/factory/` — tonight after 1.1–1.4 (re-tag after any later fix) — tag `checkpoint-2026-09-18-pre-workshop` at `0cd67fd`
 - [x] 1.6 Dependabot: 5 vulns on djinna/jdbbs (3 high, 2 moderate) — check whether these were already fixed a day or two ago and just not marked; if new, fix now (rule: always address vulns)
+
+  > **shelley** · 2026-09-18 00:13 UTC  
+  > govulncheck on the VM: our code affected by 0 vulns (one advisory, x/crypto/openpgp, which we never call). Last dep bump was Sep 16 (bb4464f). I cannot see GitHub alerts from the VM — paste the 5 alert names (package + severity) here and I will fix the real ones.
+
+  > **shelley** · 2026-09-18 00:20 UTC  
+  > Fixed 894196d: grpc 1.79.3→1.83.2 (the 4 grpc alerts; 1.84.0 is still affected by one, 1.83.2 is clean per OSV), cel-go 0.26.1→0.31.0 (0.32 moved module path). Both indirect via the sqlc tool. Tests green, restarted, checkpoint tag moved. GitHub re-scans within ~an hour; the push banner still says 5 until then — refresh the alerts page later and tell me if any remain.
+
+  > **jenna** · 2026-09-18 00:27 UTC  
+  > all vulns now cleared on https://github.com/djinna/jdbbs/security/dependabot 👍
+
 
 ## 2 · Your side — YOU
 
@@ -29,6 +45,35 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-factory · template only from `/2026-pi-symposium/talk` (never edit that file). Talk: Wed 23 Sep 17:30 UTC, SIGP4B.
 
 - [x] 3.1 ME — read the post; draft **≤ 10 beats** (one line each) → paste here for you
+
+  > **jenna** · 2026-09-18 01:12 UTC  
+  > I don't see where you pasted this text for me :/
+
+  > **jenna** · 2026-09-18 01:17 UTC  
+  > Okay, asking this question again
+
+  > **shelley** · 2026-09-18 01:17 UTC  
+  > Beats (one line each):
+  > 1. In March, Venkat wrote that the interesting thing in agentic AI is not the agents; it is two people's factories exchanging half-finished work.
+  > 2. Venkat's factory makes manuscripts out of archives. Mine makes books out of manuscripts. The word "factory" turned out to be literal, not a metaphor.
+  > 3. What we built: a Factory Pass, a form, a Word template with eleven named styles, an Inspect report, and a Build button. Money goes in one end, an EPUB and a print PDF come out the other.
+  > 4. On 17 September the first real client went through end to end. The manuscript was a Google Docs export of Venkat's own writing, and it built in about four seconds.
+  > 5. The first run produced twenty-seven catches, and most of them were not in the pipeline. They were in the paperwork around it.
+  > 6. The transmittal form was borrowed from press-era production paperwork, and the first client showed us most of it is addressed to a factory that no longer exists.
+  > 7. One ASCII-art bunny in a tweet made the EPUB twenty megabytes. Protocols fail at the edges of their vocabulary, and the edges are where the humans are.
+  > 8. "Your factory calling my factory" for books means four concrete interfaces, and three of them already exist: the DOCX with named styles, the transmittal as JSON, the Inspect report, and the EPUB.
+  > 9. The two factories are still linked by a shared folder and a person reading a report. That is fine for two friends. It is the thing to fix before there are twenty.
+  > 10. The ask: if you run a factory that produces text, send me a manuscript in eleven styles and I will send you back a book. Then let us write down what passed between us.
+  >
+  > Open questions:
+  > 1. Attribution on stage: do you want to open with Venkat's post by name and title (and say "I am the other factory in it"), or describe the idea and credit him once at the end? The first is stronger but puts his framing at the centre of your talk.
+  > 2. Live demo or clip: the whole path (transmittal → template → upload → Inspect → build) runs in under two minutes wall clock. Live is convincing but the store flips to live Stripe at 00:00 HKT that same day; a recorded clip plus a live Inspect report might be the safer split.
+  > 3. How much of the 17 September run to show: the log lines and the 27 catches are the most concrete material in the deck, but they also expose the rough edges of a product you are selling in the same room. Where is your line?
+  > 4. Beat 8/9 make a half-promise about a machine-callable transmittal and Inspect endpoint. Is that something you want to commit to in public, or should those beats stay descriptive ("here is what would be needed")?
+  > 5. Naming Venkat's manuscripts (Obliquities, The Twitter Years) and the Protocol Institute as the client: does he need to agree before you put the file names and page counts on a slide?
+  >
+  > Full draft with speaker notes: scratch/p2-beats.md (also pasted in chat).
+
 - [ ] 3.2 YOU — cut / reorder / add beats
 - [ ] 3.3 ME — build the deck as a new page in `~/jdbbs-public` on the talk template
 - [ ] 3.4 BOTH — run-through in the browser; timing
@@ -46,31 +91,226 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 Not parked. Start after §1 is ticked. Each item: small commits, tests green, restart, smoke as `pinstitute`; anything touching the factory path during Sun–Tue waits for a hotfix window or lands Wed+.
 
 - [x] 5.1 **Deploy-safe first (can land Fri/Sat):** C24 — one line on `/factory` that Kindle takes EPUB (no `.mobi`)
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Done, live on /factory (jdbbs-public 3 builds bullet): “The EPUB is what Kindle, Apple Books, Kobo and IngramSpark all take; there is no separate .mobi to make.”
+
 - [x] 5.2 C27 CJK embed rule: fire only at ≥ 20 ideographs, and/or subset with `pyftsubset` (the 20 MB EPUB from one ASCII-art tweet)
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Done, deployed. Rule: Noto Serif TC only at ≥20 CJK runes; whatever is embedded (CJK or Thai) is subsetted to the glyphs used (fontTools). Smoke on real books: Ghosts test 002 EPUB 13.8 MB → 96 KB (5 ideographs dropped to reader fonts, 17 Thai chars keep an 18 KB subset face); Twitter Years now 7.3 MB of images, no fonts. Full fonts still embed if fontTools is ever missing.
+
 - [x] 5.3 P4 **front matter ingestion** — decisions already taken 2026-09-17 (every section head = Heading 1; classify by heading text against a closed vocabulary + position; untitled pre-H1 blocks = dedication/epigraph in transmittal order; title + © pages generated from the transmittal; Parts opt-in shifts chapters to H2; arabic 1 on a recto). Inspect prints the resulting book map
+
+  > **shelley** · 2026-09-18 01:19 UTC  
+  > Pipeline mapped, nothing changed yet. Plan + code map in docs/reviews/P4-FRONT-MATTER-PLAN-2026-09-18.md (6 steps, commit order). Implementation starts next session.
+
+  > **shelley** · 2026-09-18 01:59 UTC  
+  > Steps 1–3 of 6 done and deployed (7c01341): book map in Inspect (factory page + report), print build generates i–iv from the transmittal, roman folios → arabic 1 on a recto, contents after dedication/epigraph, and — new for every book — running heads + drop folios (the factory PDFs had none before). Smoked on Twitter Years + Ghosts, no credits used. Left: EPUB side (drop title/byline/Contents, landmarks), Word template guide text, Parts opt-in.
+
+  > **shelley** · 2026-09-18 12:19 UTC  
+  > Step 4 of 6 done and deployed (a00ed84): the EPUB now reads the same book map — byline, typed copyright and typed Contents are dropped (the EPUB has its own title page + nav), dedication/epigraph get their own pages, and every section carries an epub:type so readers know front matter from body. epubcheck clean on Ghosts, Twitter Years and the test fixture. Next: step 5 Word template guide text, step 6 Parts opt-in.
+
+  > **shelley** · 2026-09-18 12:49 UTC  
+  > All six steps landed and deployed (7be8be5). Step 5: the Word template guide now has a “How the book is assembled” section — what is generated (do not type: half-title, title page, copyright, Contents), what to type before the first Heading 1 (dedication, epigraph, each on its own page), which heading names count as front/back matter. Step 6: parts. Opt-in = the Parts count on the transmittal (any number ≥ 1). Then Heading 1 = part opener (own right-hand page, blank verso), Heading 2 = chapter, Contents lists both. No live book has a Parts count, so nothing changes for existing books; Ghosts rebuilt identical. Found a latent template bug while in there (running_heads.enabled false is ignored) — logged in the P4 plan doc for after the workshop.
+
 - [ ] 5.4 **C13 transmittal rewrite for the factory** (post-workshop, the big one):
     - [ ] 5.4a C6 drop press-era Production section (Mechs Delivery, Weeks in Prod., Bound Book Date, dup Transmittal Date); Print Run → Book; one optional "Target date"; keep old JSON keys readable
     - [ ] 5.4b C7 stop asking chapters / words / MS pp / est. book pp — Inspect counts them; fix missing input underline meanwhile
+
+      > **shelley** · 2026-09-18 13:16 UTC  
+      > Interim fix landed and deployed: the stats row (Parts / Chapters / Words / MS pp / Est. Book pp) has its underlines back — the checklist table’s inline-field rule was hiding them. The bigger C7 change (stop asking; Inspect counts) stays post-workshop with the rest of 5.4. Note: the Parts field is now also the parts opt-in for the build (any number ≥ 1 = book has parts; “none”/blank = no).
+
     - [ ] 5.4c C10 drop Developmental Edit + Level of Copyediting; keep Special Characters etc.
     - [ ] 5.4d C11 Permissions → one courtesy line + one attestation checkbox; terms text before Wed go-live if possible
     - [ ] 5.4e C12 Pub Info & © → the **copyright-page builder** (credit fields actually used)
 - [ ] 5.5 P3 **H&J / composition quality** in the print PDF: typst `par(costs:)`, optimized linebreaks, a loose-lines / rivers / runts / widows scorer on the built PDF; compare against an InDesign-set page
 - [x] 5.6 P1 review docs.typesafe.ai/introduction — anything for the factory? Write a ½-page note, then decide
+
+  > **shelley** · 2026-09-18 12:02 UTC  
+  > Note written: docs/reviews/TYPESAFE-REVIEW-2026-09-18.md. Short version — Jev is a hosted classifier, not a document tool or an agent: you send text + narrow typed questions (pick-one / score / yes-no) and get answers with confidence; cents per book. It cannot make the pandoc↔typst glue less fragile or fix styles. Where it could plug in: heading front/body/back classification in the book map (replaces our vocab lists — best fit), heading-lookalike detection, pre-filling the transmittal from the manuscript, ranking Inspect findings. Risks: network call + API key inside a build path that is hermetic today, nondeterminism, manuscripts leave the building (zero-retention is enterprise-only). Recommendation: pilot on heading classification only, behind a flag with the vocab fallback and cached answers — after the workshop. Park the rest. Your call: pilot / park.
+
+  > **shelley** · 2026-09-18 12:09 UTC  
+  > Jenna agreed the recommendation (via 0.1). Pilot goes on docs/IDEAS.md for after the workshop. Closed.
+
+  > **jenna** · 2026-09-18 12:09 UTC  
+  > Just confirming that I see your note here in the 5.6 punchlist thread now
+
 - [ ] 5.7 **Magic-link client login** (email → one-time link → cookie) replacing emailed passwords
-- [ ] 5.8 Machine-callable factory (from P2 beats 8/9): POST transmittal JSON + DOCX, read Inspect JSON, build — the "your factory calls my factory" endpoint. Spec first, ½ page, to Jenna
-- [ ] 5.10 Punch-list archive: export = checklist + every note thread → `docs/runs/PUNCHLIST-YYYY-MM-DD.md`; index in `docs/runs/README.md`; admin dashboard card “Runs” at `/admin/runs/` rendering those files from disk (read-only). Saturday, ~1 h
+- [~] 5.8 Machine-callable factory (from P2 beats 8/9): POST transmittal JSON + DOCX, read Inspect JSON, build — the "your factory calls my factory" endpoint. Spec first, ½ page, to Jenna
+
+  > **shelley** · 2026-09-18 13:14 UTC  
+  > Spec written (docs/reviews/MACHINE-FACTORY-SPEC-2026-09-18.md, committed). Pasted:
+  >
+  > interfaces, three exist. This is what a caller can do today, what is missing,
+  > and the smallest change that closes it.*
+  >
+  > ## What exists today (no code needed)
+  >
+  > Auth: a **project token** (`X-Auth-Token` header; admin mints it with
+  > `POST /api/projects/{id}/auth`). Every step below already accepts it — the
+  > API doc's "Admin" column for upload/convert/preflight is stale; the code
+  > gates on `requirePassAccess` (token + live Factory Pass + credits).
+  >
+  > | Step | Call | Notes |
+  > |---|---|---|
+  > | 1 Transmittal | `PUT /api/projects/{id}/transmittal` JSON | same shape the form saves |
+  > | 2 Template | `GET /api/projects/{id}/word-template` → .docx | **side effect:** syncs transmittal → book spec (only place a non-admin can) |
+  > | 3 Manuscript | `POST /api/books/upload` multipart `file,title,author,project_id` → `{book_id}` | |
+  > | 4 Inspect | `POST /api/projects/{id}/preflight` `{book_id}` then `GET …/preflight` | JSON incl. `book_map` finding; HTML at `…/preflight/report` |
+  > | 5 Build | `POST /api/books/{id}/convert` `{"format":"both"}` → `{status:"converting"}`; poll `GET /api/books/{id}/outputs`; fetch `…/outputs/{oid}/download` | 1 credit per build |
+  >
+  > ## What is missing
+  >
+  > 1. **Spec sync is a side effect of downloading the template.** A caller that
+  >    already has the template must still GET it to refresh the spec before a
+  >    build, or builds against stale spec. → make `convert` and `preflight`
+  >    pull transmittal → spec themselves when the transmittal is newer (same
+  >    rule the template route uses).
+  > 2. **No completion signal.** Callers poll `outputs`. → `GET /api/books/{id}`
+  >    returning `{status: converting|done|failed, error, outputs:[…]}`; optional
+  >    `callback_url` on convert (POST the same JSON when done). Polling stays.
+  > 3. **Token issue is admin-only and manual.** Fine for two friends; before
+  >    twenty, the client portal shows the token (or a magic-link-scoped one,
+  >    5.7). Not needed for the talk.
+  > 4. **Docs.** `docs/API.md` rows 30/31/43–45 say Admin; fix to Project, and
+  >    add a "Factory in five calls" walkthrough with `curl`.
+  >
+  > ## Proposal
+  >
+  > Post-workshop, ~½ day: (1) + (2) + (4). Ship as one commit with an
+  > end-to-end test that runs the five calls against a temp DB. Then the talk's
+  > beat 8 is literally true: four interfaces, all four callable, and beat 9's
+  > "shared folder and a person reading a report" becomes "a URL and a JSON".
+  >
+  > **Decision needed:** ok to say in the talk that this exists as an API today
+  > (it does, with the caveats above), and land the polish after Wednesday?
+
+- [x] 5.10 Punch-list archive: export = checklist + every note thread → `docs/runs/PUNCHLIST-YYYY-MM-DD.md`; index in `docs/runs/README.md`; admin dashboard card “Runs” at `/admin/runs/` rendering those files from disk (read-only). Saturday, ~1 h
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 
 ## 6 · Ideas log (`docs/IDEAS.md`) — BOTH decide, then queue or kill
 
 - [ ] 6.1 Per-client interactive stylesheet instances (accept/reject seeded from the universal fiction/nonfiction stylesheet)
+
+  > **jenna** · 2026-09-18 00:19 UTC  
+  > Seems like this shouldn't be too bad to do since we trimmed down our universal fiction/non-fiction style sheets. Do you agree?
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Agree — the trimmed universal sheets make this ~half a day: a per-project table of accept/reject rows seeded from the universal sheet + the existing /stylesheet UI pointed at it. Queue post-workshop (5.10?).
+
+  > **jenna** · 2026-09-18 01:08 UTC  
+  > I'm going to make a big deal about style sheets in both senses (for the workshop and in my presentation to the symposium), and disambiguating style sheets (like in Microsoft Word) and the style sheets we mean here (lke whether to use the Oxford comma or not) feels worth doing now and handling exposing the UX in the client dashboard. In the workshop, I think I'd encourage them to accept all of our defaults for efficiency, but also to allow them to add or edit. Am I crazy?
+
 - [ ] 6.2 Reusable "review table" pattern from the sitemap-review tool (JSON table + per-row reply box)
+
+  > **jenna** · 2026-09-18 00:19 UTC  
+  > I don't know enough about what you mean for this one.
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Means: the sitemap-review tool we used earlier (table of items, a reply box on each row — like this punch list) could be turned into a reusable component for future review rounds. My call: kill until a second concrete review round needs it.
+
+  > **jenna** · 2026-09-18 01:06 UTC  
+  > Hmm feels like, through the course of the workshop, I might very quickly end up with a bunch of small borks/nits/qols that we could fix in near real time, and a clean punch list to keep track of them instead of throwing things at you in a session would feel much safer. Maybe we make a blank page shaped like this that has a starter data entry field that I could use to kick off things as they come up on Monday and Tuesday.
+
 - [ ] 6.3 Client-visible on-disk documents (`pi-client/{slug}/` + `serveClientDoc`) — trigger: first real client doc
+
+  > **jenna** · 2026-09-18 00:20 UTC  
+  > I don't know enough about what you mean for this one.
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Means: like /exedeck or /workshop, but per client — drop an HTML file in pi-client/{slug}/ and it shows only to that client, behind their portal login. Nothing needs it yet; keep on the ideas list until a real client doc exists.
+
+  > **jenna** · 2026-09-18 01:04 UTC  
+  > Hmmm we'll have a bunch of clients once the workshop participants start Monday, so this is something that needs to be ready before the workshop, unless I'm still not quite understanding what you mean here.
+
 - [ ] 6.4 LibreOffice preview of the uploaded DOCX inside the factory (see the page Inspect saw)
+
+  > **jenna** · 2026-09-18 00:21 UTC  
+  > If you think that this might really work (that we could show a LibreOffice preview before they do a build and that it would have good fidelity with the typeset output), it could be a neat addition? If the fidelity would be suspect, it would be more trouble than it's worth?
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Fidelity would be to Word (what Inspect sees), not to the typeset PDF — it shows whether your styles landed, not what your book will look like. By your test that makes it more trouble than it is worth. My call: kill; the free Inspect + EPUB-first already covers “did the machine understand my file”.
+
+  > **jenna** · 2026-09-18 01:04 UTC  
+  > Okay, okay, good, we're agreed. I think we install LibreOffice so that you could use it when you need to work on the Word template itself, though, right? We'll keep it installed, I don't think it takes up a lot of room?
+
+  > **jenna** · 2026-09-18 12:12 UTC  
+  > Did you confirm whether you thought it useful to keep LibreOffice installed? vs delete to save space or minimize clutter?
+
+  > **shelley** · 2026-09-18 12:12 UTC  
+  > Keep it. It is the no-GUI build (231 MB on a disk that is 26% used), not on any request path, and it is how I eyeball the Word template and uploaded DOCX files as Word would show them (scripts/docx-preview.sh) — that check matters for the template-guide work in 5.3 step 5 and for the workshop week if a manuscript looks wrong. Zero clutter cost: nothing in the app depends on it, so removing it later is one apt command (sudo apt remove libreoffice-writer-nogui). Decision on the in-app preview (this item) stays parked.
+
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
+
+  > **jenna** · 2026-09-18 00:22 UTC  
+  > Yeah, let's not lose track of this, but the whole "how to get it printed" question is not built into the factory at all yet. I think this is a good one to keep on the idea list for now. I just did some good research, and the two print companies we could point people towards are Bookmobile and Accutrack. Add those to our research if we add this to the factory after the workshop.
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Added to docs/IDEAS.md with Bookmobile + Accutrack named. Stays on the ideas list.
+
 - [ ] 6.6 Strike the done rows (Admin doc editor) and move the kept ones to §5 with a date
+
+  > **jenna** · 2026-09-18 00:22 UTC  
+  > I don't understand what this one means.
+
+  > **shelley** · 2026-09-18 00:33 UTC  
+  > Means: housekeeping of docs/IDEAS.md itself — strike rows that are done (did the Admin doc editor one tonight) and move the ones we keep into §5 with a date. It is just “tidy the list once 6.1–6.5 are decided”; I will do it when you have answered 6.1–6.4.
+
+  > **jenna** · 2026-09-18 01:09 UTC  
+  > Ah gotcha, yes let's keep Punch lists are up to date, and let's also figure out a way to keep a master list of punch lists. Maybe even add these links to our admin dashboard so that I can go back and double-check what we decided, in case I see something wrong or need to change my mind.
+
+  > **jenna** · 2026-09-18 12:13 UTC  
+  > didn't see a reply to this admin improvement tracker idea?
+
+  > **shelley** · 2026-09-18 12:13 UTC  
+  > Sorry, missed it. Yes. Plan (added as 5.10, Saturday, ~1 h): (1) the export of each punch list to docs/runs/PUNCHLIST-YYYY-MM-DD.md includes every note thread under its item, so the decisions travel with the list (today’s copies only have the ticks); (2) docs/runs/README.md is the master index; (3) a “Runs” card on the admin dashboard → /admin/runs/ that renders those files from disk, read-only, so you can re-read what we decided from any device and change your mind on the live list. Admin-only and read-only, so safe to land before the freeze.
+
 
 ## 0 · Inbox — new items, untriaged (Shelley moves them into a section)
 - [x] 0.1 Find where I asked that we look into Jev and how it might help make factory more efficient: https://docs.typesafe.ai/introduction  ·  _added Fri 11:55 UTC_
+
+  > **shelley** · 2026-09-18 11:56 UTC  
+  > Found it. First asked Wed Sep 17 during the Protocol Institute run — logged as P1 in docs/runs/RUN-2026-09-17-protocol-institute.md (line 110): “Review https://docs.typesafe.ai/introduction — anything useful for the factory?”, parked to after current work. It is already on this list as 5.6 (“P1 review docs.typesafe.ai/introduction — anything for the factory? Write a ½-page note, then decide”), queued after 5.3–5.5. Nothing else has been written about it yet — no note exists. Say “do 5.6 next” if you want it pulled ahead of the transmittal rewrite (5.4).
+
+  > **jenna** · 2026-09-18 11:57 UTC  
+  > Can you do this in parallel with what you're doing now?
+
+  > **shelley** · 2026-09-18 11:57 UTC  
+  > Yes — a research helper is reading the typesafe docs now and drafting the ½-page note (docs/reviews/TYPESAFE-REVIEW-2026-09-18.md) while I carry on with P4. I will paste the note here when it lands and tick 5.6 with it.
+
+  > **jenna** · 2026-09-18 12:08 UTC  
+  > "I will paste the note here when it lands and tick 5.6 with it." I see the reply in the main session, but not here? Agree on the rec you posted: "Recommendation: pilot on heading classification only, behind a flag with the vocab fallback and cached answers — after the workshop. Park the rest."
+
+  > **shelley** · 2026-09-18 12:09 UTC  
+  > The note is on 5.6 (the row this item pointed to) — scroll to §5. Decision recorded: pilot heading classification behind a flag after the workshop, park the rest — logged in docs/IDEAS.md with the review link.
+
 - [x] 0.2 Good copy  ·  _added Fri 11:58 UTC_
 - [x] 0.3 Fix: looks like our global theme picker lost the system choice. Now has only light and dark. Let's put the system back. Do this in parallel if you can.  ·  _added Fri 11:59 UTC_
+
+  > **shelley** · 2026-09-18 12:02 UTC  
+  > Fixed and deployed. The moon/sun button is now a three-way: ◐ system (follows your OS, default for new visitors, switches live when the OS does) → ☀ light → ☾ dark → back to system. Hover shows the current mode. Existing saved choices are kept as explicit light/dark.
+
+  > **jenna** · 2026-09-18 12:05 UTC  
+  > oops meant to enter this as a separate quick to-do
+
+  > **shelley** · 2026-09-18 12:05 UTC  
+  > No harm — 0.3 landed as its own item and is done. If there was another quick to-do behind that “oops”, it did not come through: drop it in the inbox box and I will pick it up.
+
+  > **jenna** · 2026-09-18 12:06 UTC  
+  > ah got it, all good on this one, confirmed I see it now too, and just getting used to this punchlist pattern: I'm liking it a lot, do add it to our preferred pattern when doing app review work!
+
+  > **shelley** · 2026-09-18 12:07 UTC  
+  > Added to AGENTS.md as the preferred pattern for review and run work (inbox → triage, notes both ways, tick + copy to docs/runs, parallel quick fixes). Future sessions will start from it.
+
+- [~] 0.4 Do we already, on both the client side and the admin side, have somewhere that I can go to show a pretty simple view of the tools involved in the factory? I'm thinking primarily of how Pandoc, Lua, and Typeset fit into the flow, but I might be missing something.  Also, I showed the map that we made to some work colleagues, and one of them specifically asked for it to be turned into the variant of that kind of a chart that he called "swim lanes." He suggested that it was pretty common, so maybe you could find that and see if it was at all suitable for us.  ·  _added Fri 13:08 UTC_
+
+  > **shelley** · 2026-09-18 13:11 UTC  
+  > Short answer: no. Today the tool flow exists only as (a) one line on the landing page — “docx → pandoc·Lua → Typst → PDF/X + EPUB” — and (b) the exedeck’s stage list (01 handshake … 04 transform) plus its small tools table. Nothing on the admin side (Floor, dashboard) and nothing on the client factory page explains what Pandoc, Lua and Typst each do. The public /factory doc only says “you get outputs, not the Typst source”.
+  >
+  > What the pieces do, in one breath: Word → **pandoc** reads the .docx into a neutral document tree → **Lua filters** (ours) rewrite that tree using the transmittal — book map, styles, front matter, parts → pandoc writes **Typst** source (print) or **EPUB** directly → **Typst** typesets against our series template and the spec-generated config → PDF. The pieces you might be missing: the *book spec* (transmittal → JSON) feeds every stage, the Word *template generator* (python-docx) is the handshake at the front, and *epubcheck* / *preflight* sit at the end.
+  >
+  > Swim lanes: yes, common (they are flowcharts with one horizontal band per actor, so hand-offs show as arrows crossing lanes). Suitable for us — the factory has natural lanes: **Author** (Word, template, transmittal) · **Studio** (Jenna: spec, review, corrections) · **Machine** (pandoc → Lua → Typst / EPUB) · **Out** (PDF/X, EPUB, printer). The current map is stage-ordered; a swim-lane version would show *who* does each step, which is exactly what colleagues outside publishing want to see.
+  >
+  > Proposal, if you want it before Wednesday: **5.11** (~1 h, Saturday): one static swim-lane diagram (HTML/CSS, prints clean, theme-aware) added to the public /factory doc as a “How it runs” section, linked from the client factory page footer and the admin Floor. Also usable as a slide in the talk. Say yes and I will slot it after 5.4/5.5.
+

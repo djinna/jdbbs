@@ -192,6 +192,8 @@ func (s *Server) Handler() http.Handler {
 	// Factory floor: live activity board + feed for workshop sessions (monitoring L2)
 	mux.HandleFunc("GET /api/admin/factory/events", s.handleAdminFactoryEvents)
 	mux.HandleFunc("GET /api/admin/factory/board", s.handleAdminFactoryBoard)
+	mux.HandleFunc("GET /admin/runs/{$}", s.handleAdminRunsIndex)
+	mux.HandleFunc("GET /admin/runs/{name}", s.handleAdminRunFile)
 	mux.HandleFunc("GET /admin/factory/{$}", func(w http.ResponseWriter, r *http.Request) {
 		if !s.requireExeDevAdmin(w, r) {
 			return

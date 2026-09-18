@@ -87,8 +87,11 @@ that flow both ways.
   id when a fresh conversation starts). The agent answers on the item, not just
   in chat: `POST localhost:8766/note {"id","text","who":"shelley"}`.
 - Tick via `sed -i 's/- \[ \] 5.N /- [x] 5.N /' scratch/run/CHECKLIST.md`.
-  When committing punch-list state, copy the checklist to
-  `docs/runs/PUNCHLIST-YYYY-MM-DD.md` (the scratch dir is gitignored).
+  When committing punch-list state, run `python3 scripts/punchlist-export.py`
+  — it writes `docs/runs/PUNCHLIST-YYYY-MM-DD.md` (checklist + every note
+  thread nested under its item) and rebuilds `docs/runs/README.md` (the
+  scratch dir is gitignored). Jenna reads the archive at `/admin/runs/`
+  (`srv/runs.go`, renders `docs/runs/*.md` from disk, read-only).
 - Small independent items ("do this in parallel") go to a subagent or a quick
   fix alongside the main block; report back on the item when landed.
 

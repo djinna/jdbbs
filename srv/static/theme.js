@@ -191,6 +191,7 @@
     ['/admin/docs/', 'Docs', 'Edit the public pages and email sign-off'],
     ['/admin/email-preview/', 'Emails', 'Every outbound email template with fixture data'],
     ['/admin/content-review/', 'Review', 'Content review'],
+    ['/admin/runs/', 'Runs', 'Archive of punch lists and run logs, read-only'],
     ['/admin/#pages', 'Pages', 'Every route we have spun up, and what we mean to do with it'],
     ['/2026-pi-symposium', 'Roster', 'Cohort roster (what attendees see)'],
     ['/2026-pi-symposium/map', 'Map', 'Factory map: who acts at each stage, and where']
