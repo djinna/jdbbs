@@ -36,3 +36,23 @@ Touches the factory path (1, 3, 4). Freeze: Fri/Sat OK to land with tests + smok
 
 - Admin builds are free on pass-less projects: **7** (Twitter Years, book 8), **14** (Zoothesia/Ghosts test 002, book 9). `POST localhost:8799/api/books/{8|9}/convert` (print) and `/generate-epub`.
 - Project 22 (Obliquities, pass 7) has 2 credits — do not use.
+
+## Progress (2026-09-18, same day)
+
+- **Step 1 done** `srv/bookmap.go` (+ tests). Extra rules found on real files: first H1 that repeats the book
+  title is dropped with its section (old template model, Twitter Years); a typed "Contents" H1 is dropped;
+  a byline ("by Author" / "Author") before the first H1 is dropped; `Copyright`-styled paragraphs dropped;
+  `Epigraph`/`Dedication`-styled paragraphs start their own piece without needing a page break.
+  Warnings (medium) vs Notes (low) split.
+- **Step 2 done** Inspect: factory panel "How the build reads your file", HTML report section `#book-map`,
+  findings `book_map` (uncounted) / `book_map_warning` / `book_map_note`; transmittal cross-check.
+- **Step 3 done** Print build. Template: `book(front-matter: (...))` generates half-title / blank / title /
+  copyright from the spec; `#front-piece(kind:)`, `#contents-page()`, `#front-section()`, `#start-body()`,
+  `#start-back()` emitted by the lua filter from `book_map` metadata; folios roman → arabic 1 on a recto;
+  **running heads and drop folios now appear on every book** (before P4, non-anthology factory PDFs had none).
+  Contents comes after dedication/epigraph (Chicago order). Blank versos are detected after the fact
+  (`break-to-recto`) so they carry nothing. `epigraph()` no longer page-breaks (chapter epigraphs).
+  Smoked on Twitter Years (628 pp) and Ghosts (anthology, per-story running heads intact).
+- **Not yet**: step 4 (EPUB: drop title/byline/Contents section, landmarks), step 5 (Word template +
+  guide text), step 6 (Parts opt-in `spec.parts` → `--top-level-division=part`; not started), logo on the
+  title page (`logo: none` always), `cover.credit` is placed on p. iv only if filled in.
