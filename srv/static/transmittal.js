@@ -583,8 +583,9 @@ function renderForm() {
             state.showDuplicate = true; render();
           }}, 'Duplicate'),
           h('button', { className: 'btn btn-sm', onClick: () => window.print() }, 'Print'),
-          h('button', { className: 'btn btn-sm', title: clientMode() ? 'Emails you a copy of this transmittal.' : undefined,
-            onClick: () => { state.showEmail = true; render(); }}, clientMode() ? 'Email me a copy' : 'Email'),
+          // Customers get no email button (Jenna, 2026-09-18); the admin keeps 'Email'.
+          clientMode() ? null : h('button', { className: 'btn btn-sm',
+            onClick: () => { state.showEmail = true; render(); }}, 'Email'),
           state.transmittal.status === 'final' && !isPreview
             ? h('a', { className: 'btn btn-sm btn-primary', href: '/api/projects/' + state.projectId + '/word-template', download: '',
                 title: 'Downloads the Word template generated from this transmittal. Write your manuscript in it.' },
