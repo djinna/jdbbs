@@ -81,3 +81,12 @@ git checkout -b recovery/<name> checkpoint-YYYY-MM-DD-<scope>
 - `checkpoint-2026-04-05-transmittal-ui`
   - verified transmittal UI cosmetics in prod
   - includes section header rename/order updates and removal of "Other Instructions"
+
+- `checkpoint-2026-09-18-pre-workshop-v2` (supersedes `checkpoint-2026-09-18-pre-workshop` at `0cd67fd`)
+  - end of the Fri 18 Sep punch-list block, ahead of the 21–22 Sep workshop
+  - generated front-matter pages default on (5.14); `@`-in-link fix (5.16);
+    colour images → tuned grey for print, EPUB keeps colour (5.15);
+    compscore continuation-line fix; punch-list page polling fix
+  - verified: `go test ./srv/` green, free Ghosts build 61 pp, three-image
+    test book through the real pipeline, smoke on /factory, /admin/*,
+    /pinstitute/*/factory + transmittal
