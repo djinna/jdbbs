@@ -146,6 +146,10 @@ func (s *Server) Handler() http.Handler {
 
 	// Factory Pass redemption ("I have a code"); same honeypot + limiter shape.
 	mux.HandleFunc("POST /api/public/redeem", s.handlePublicRedeem)
+
+	// Magic-link client sign-in (srv/login_links.go): request by email, redeem from the mail.
+	mux.HandleFunc("POST /api/public/login-link", s.handlePublicLoginLink)
+	mux.HandleFunc("GET /auth/link", s.handleAuthLink)
 	mux.HandleFunc("GET /workshop", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "workshop.html")
 	})

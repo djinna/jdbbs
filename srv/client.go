@@ -161,7 +161,15 @@ func (s *Server) handleClientVerify(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("client login", "client", clientSlug)
 	s.factoryEvent(0, clientSlug, "login", "client:"+clientSlug, "signed in to /"+clientSlug+"/")
-	// Set client cookie
+	s.setClientAuthCookie(w, clientSlug, passwordHash)
+
+	jsonOK(w, map[string]any{"ok": true})
+}
+
+// setClientAuthCookie issues the client-level session cookie. Shared by the
+// password login (handleClientVerify) and the emailed sign-in link
+// (handleAuthLink) so both paths produce an identical session.
+func (s *Server) setClientAuthCookie(w http.ResponseWriter, clientSlug, passwordHash string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "prodcal_client_" + clientSlug,
 		Value:    s.clientAuthToken(clientSlug, passwordHash),
@@ -171,8 +179,6 @@ func (s *Server) handleClientVerify(w http.ResponseWriter, r *http.Request) {
 		Secure:   strings.HasPrefix(s.BaseURL, "https://"),
 		SameSite: http.SameSiteLaxMode,
 	})
-
-	jsonOK(w, map[string]any{"ok": true})
 }
 
 // handleClientInfo returns client info and auth status.
