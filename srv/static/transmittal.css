@@ -520,6 +520,18 @@ html.dark .tx-checklist td { border-bottom-color: var(--border); }
 .tx-attest span { text-transform: none; letter-spacing: 0; font-size: 13px; line-height: 1.45; }
 .tx-attest-on { border-color: var(--accent); }
 .tx-illus-guide a { color: var(--accent); }
+.tx-cr-preview {
+  margin-top: 4px; padding: 14px 16px;
+  border: 1px solid var(--border); background: var(--surface);
+  font-family: "Libertinus Serif", "Source Serif 4", Georgia, serif; font-size: 13px; line-height: 1.5; color: var(--text);
+}
+.tx-cr-line { margin-top: 6px; }
+.tx-cr-line:first-child { margin-top: 0; }
+.tx-cr-strong { font-weight: 600; }
+.tx-cr-muted { color: var(--text-muted); font-style: italic; }
+.tx-cr-pre { white-space: pre-wrap; }
+.tx-legacy { margin: 8px 0; padding: 8px 10px; border-left: 2px solid var(--border-strong); font-size: 12px; color: var(--text-secondary); }
+.tx-legacy-line { margin-top: 4px; white-space: pre-wrap; }
 .tx-checklist input[type="date"]:disabled {
   background: none;
   color: var(--text-muted);

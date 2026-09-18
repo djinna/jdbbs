@@ -42,7 +42,7 @@ func defaultTransmittalData() string {
   ],
   "illustrations": {"figures_no":0,"figures_here":false,"figures_to_come":"","tables_no":0,"tables_here":false,"tables_to_come":"","photos_no":0,"photos_here":false,"photos_to_come":"","other_no":0,"other_here":false,"other_to_come":"","art_plan":""},
   "permissions": {"attested":false,"attested_at":""},
-  "page_iv": {"copyright_year":"","held_by":"","credit":"","other_credit":"","photo_credit":""},
+  "page_iv": {"copyright_year":"","held_by":"","publisher_city":"","edition_line":"","interior_credit":"","loc_line":"","printed_in":"","additional_notices":""},
   "subrights": {"copub":"na","title_page":"na","page_iv":"na","cover":"na","remove_mktg":"na"},
   "editing": {"special_characters":"","math_formulas":""},
   "design": {"trim":"","est_pages":"","ppi":"","spine_width":"","complexity":"","outside_designer":"","reuse_previous":""},

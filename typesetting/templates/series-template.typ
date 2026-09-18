@@ -549,7 +549,8 @@
 //   half-title, title-page, copyright-page: bool  (toc is emitted by the
 //   pipeline via contents-page() after the untitled pieces)
 //   subtitle, publisher, isbn-paper, isbn-epub, copyright-year,
-//   copyright-holder, credit-lines, cover-credit: str or none
+//   copyright-holder, credit-lines, cover-credit, publisher-city,
+//   edition-line, interior-credit, loc-line, printed-in, notices: str or none
 //   logo: project-root-relative image path or none
 // -----------------------------------------------------------------------------
 
@@ -588,7 +589,11 @@
   v(0.1fr)
 }
 
-// Copyright page — p. iv, set small at the foot of the page.
+// Copyright page — p. iv, set small at the foot of the page. Order follows a
+// conventional trade p. iv (C12 copyright-page builder in the transmittal):
+// title · © line · publisher (+ city) · edition · cover credit · interior
+// credit · legacy credit lines · LoC/CIP · ISBNs · additional notices ·
+// printed in.
 #let copyright-page-generated(fm, title, author) = {
   pagebreak(weak: true)
   set text(size: 0.75em)
@@ -603,11 +608,21 @@
   parbreak()
   cline
   let publisher = fm-get(fm, "publisher")
-  if publisher != none { parbreak(); [Published by #publisher.] }
-  let credits = fm-get(fm, "credit-lines")
-  if credits != none { parbreak(); credits }
+  let city = fm-get(fm, "publisher-city")
+  if publisher != none {
+    parbreak()
+    if city != none [Published by #publisher, #city.] else [Published by #publisher.]
+  }
+  let edition = fm-get(fm, "edition-line")
+  if edition != none { parbreak(); edition }
   let cover = fm-get(fm, "cover-credit")
   if cover != none { parbreak(); cover }
+  let interior = fm-get(fm, "interior-credit")
+  if interior != none { parbreak(); interior }
+  let credits = fm-get(fm, "credit-lines")
+  if credits != none { parbreak(); credits }
+  let loc = fm-get(fm, "loc-line")
+  if loc != none { parbreak(); loc }
   let isbn-p = fm-get(fm, "isbn-paper")
   let isbn-e = fm-get(fm, "isbn-epub")
   if isbn-p != none or isbn-e != none {
@@ -616,6 +631,17 @@
     if isbn-p != none and isbn-e != none { linebreak() }
     if isbn-e != none [ISBN #isbn-e (ebook)]
   }
+  let notices = fm-get(fm, "notices")
+  if notices != none {
+    parbreak()
+    // Typed as free text: keep the author's line breaks.
+    for (i, ln) in notices.split("\n").enumerate() {
+      if i > 0 { linebreak() }
+      ln
+    }
+  }
+  let printed = fm-get(fm, "printed-in")
+  if printed != none { parbreak(); printed }
 }
 
 // Contents — recto, after any dedication / epigraph (Chicago order). Emitted

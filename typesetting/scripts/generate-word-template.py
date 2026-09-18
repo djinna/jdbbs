@@ -238,6 +238,48 @@ def _tidy_styles_pane(doc, visible: list[str]):
     _insert_setting(settings, flt)
 
 
+def copyright_page_text(spec, author, body_font):
+    """The copyright page (p. iv) as the build will set it, one line per
+    element, from the transmittal's copyright-page builder (C12). Mirrors
+    copyright-page-generated in series-template.typ; keep the two in step."""
+    meta = spec.get("metadata", {}) or {}
+    cover = spec.get("cover", {}) or {}
+
+    def g(d, k):
+        return str(d.get(k) or "").strip()
+
+    lines = []
+    title = g(meta, "title")
+    if title:
+        lines.append(title)
+    year = g(meta, "copyright_year") or str(datetime.date.today().year)
+    holder = g(meta, "copyright_holder") or author
+    lines.append(f"Copyright © {year} {holder}. All rights reserved.")
+    publisher = g(meta, "publisher")
+    city = g(meta, "publisher_city")
+    if publisher:
+        lines.append(f"Published by {publisher}, {city}." if city else f"Published by {publisher}.")
+    for key in ("edition_line",):
+        if g(meta, key):
+            lines.append(g(meta, key))
+    if g(cover, "credit"):
+        lines.append(g(cover, "credit"))
+    interior = g(meta, "interior_credit") or "Typeset by jdbb studio in {typeface}"
+    lines.append(interior.replace("{typeface}", body_font or "Libertinus Serif"))
+    for key in ("credit_lines", "loc_line"):
+        if g(meta, key):
+            lines.append(g(meta, key))
+    if g(meta, "isbn_paper"):
+        lines.append(f"ISBN {g(meta, 'isbn_paper')} (paperback)")
+    if g(meta, "isbn_epub"):
+        lines.append(f"ISBN {g(meta, 'isbn_epub')} (ebook)")
+    if g(meta, "additional_notices"):
+        lines.append(g(meta, "additional_notices"))
+    if g(meta, "printed_in"):
+        lines.append(g(meta, "printed_in"))
+    return "\n".join(lines)
+
+
 def _set_paragraph_style_font(style, font_name: str, size_pt: float,
                                 bold: bool | None = None,
                                 italic: bool | None = None):
@@ -622,15 +664,7 @@ def build_template(spec: dict) -> Document:
         "looks right in Word:",
         style="First Paragraph"
     )
-    publisher = meta.get("publisher") or "Publisher"
-    year = str(meta.get("copyright_year") or "").strip() or str(datetime.date.today().year)
-    holder = str(meta.get("copyright_holder") or "").strip() or author
-    doc.add_paragraph(
-        f"Copyright © {year} {holder}. All rights reserved.\n"
-        f"Published by {publisher}.\n"
-        "No part of this book may be reproduced without permission.",
-        style="Copyright"
-    )
+    doc.add_paragraph(copyright_page_text(spec, author, book_body_font), style="Copyright")
 
     # --- Custom Styles ---
     if customs:

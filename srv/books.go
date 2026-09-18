@@ -1035,6 +1035,8 @@ func nullStringFrom(s string) sql.NullString {
 func escapeTypstString(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\n", `\n`) // a literal newline would end the string; \n is a typst escape
 	return s
 }
 
@@ -1207,9 +1209,40 @@ func frontMatterTypst(spec map[string]any, book dbgen.Book) string {
 		"copyright-holder: " + q(str(meta, "copyright_holder")),
 		"credit-lines: " + q(str(meta, "credit_lines")),
 		"cover-credit: " + q(str(cover, "credit")),
+		// C12 copyright-page builder fields.
+		"publisher-city: " + q(str(meta, "publisher_city")),
+		"edition-line: " + q(str(meta, "edition_line")),
+		"interior-credit: " + q(interiorCredit(spec)),
+		"loc-line: " + q(str(meta, "loc_line")),
+		"printed-in: " + q(str(meta, "printed_in")),
+		"notices: " + q(str(meta, "additional_notices")),
 		"logo: none",
 	}
 	return "(" + strings.Join(fields, ", ") + ")"
+}
+
+// interiorCreditDefault is what the copyright page says about the typesetting
+// when the transmittal leaves the line blank. {typeface} is filled from the
+// spec's body font at build time (here and in generate-word-template.py).
+const interiorCreditDefault = "Typeset by jdbb studio in {typeface}"
+
+// interiorCredit returns the resolved interior/typesetting credit line for the
+// copyright page: metadata.interior_credit or the default, with {typeface}
+// replaced by typography.body_font.
+func interiorCredit(spec map[string]any) string {
+	meta, _ := spec["metadata"].(map[string]any)
+	typo, _ := spec["typography"].(map[string]any)
+	line, _ := meta["interior_credit"].(string)
+	line = strings.TrimSpace(line)
+	if line == "" {
+		line = interiorCreditDefault
+	}
+	font, _ := typo["body_font"].(string)
+	font = strings.TrimSpace(font)
+	if font == "" {
+		font = "Libertinus Serif"
+	}
+	return strings.ReplaceAll(line, "{typeface}", font)
 }
 
 // pandocStyle is one declared custom style as the Lua filter wants it.

@@ -243,10 +243,23 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 		mapField(book, "isbn_cloth", meta, "isbn_cloth")
 	}
 	if pageIV, ok := tx["page_iv"].(map[string]any); ok {
+		// C12: the copyright-page builder. Title / publisher / ISBNs come from
+		// tx.book above; these are the page-iv-only lines.
 		meta := ensureMap(specData, "metadata")
 		mapField(pageIV, "copyright_year", meta, "copyright_year")
 		mapField(pageIV, "held_by", meta, "copyright_holder")
-		mapField(pageIV, "credit", meta, "credit_lines")
+		mapField(pageIV, "credit", meta, "credit_lines") // legacy key, still printed if present
+		mapField(pageIV, "publisher_city", meta, "publisher_city")
+		mapField(pageIV, "edition_line", meta, "edition_line")
+		mapField(pageIV, "interior_credit", meta, "interior_credit") // may carry the {typeface} token
+		mapField(pageIV, "loc_line", meta, "loc_line")
+		mapField(pageIV, "printed_in", meta, "printed_in")
+		mapField(pageIV, "additional_notices", meta, "additional_notices")
+	}
+	if cover, ok := tx["cover"].(map[string]any); ok {
+		// cover.credit is read by frontMatterTypst from spec.cover; until C12
+		// it never left the transmittal.
+		mapField(cover, "credit", ensureMap(specData, "cover"), "credit")
 	}
 	if editing, ok := tx["editing"].(map[string]any); ok {
 		typesetting := ensureMap(specData, "typesetting")

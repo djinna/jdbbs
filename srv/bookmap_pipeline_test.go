@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"srv.exe.dev/db/dbgen"
 )
 
 // runBookMapPandoc runs the real lua filter over a synthetic DOCX with the
@@ -140,7 +142,11 @@ func TestFrontMatterTypstCompiles(t *testing.T) {
 	src := `#import "` + seriesTemplatePath() + `": *
 #let config = merge-config((body-font: "Libertinus Serif", heading-font: "Source Sans 3"))
 #show: book.with(config: config, title: "My Book", author: "Jane Author",
-  front-matter: (half-title: true, title-page: true, copyright-page: true, publisher: "Test Press", copyright-year: "2026"))
+  front-matter: (half-title: true, title-page: true, copyright-page: true, publisher: "Test Press", copyright-year: "2026",
+    publisher-city: "Hong Kong", edition-line: "First edition, 2026", cover-credit: "Cover design by A. Designer",
+    interior-credit: "Typeset by jdbb studio in Libertinus Serif", loc-line: "LCCN 2026000000",
+    isbn-paper: "978-0-00-000000-0", notices: "This is a work of fiction.\nAll resemblance is coincidental.",
+    printed-in: "Printed in the United States of America"))
 #front-piece(kind: "dedication")[For M.]
 #contents-page()
 #front-section()
@@ -178,7 +184,10 @@ func TestFrontMatterTypstCompiles(t *testing.T) {
 		{1, []string{"My Book"}, []string{"Jane", "i"}},
 		{2, nil, []string{"My Book", "ii"}},
 		{3, []string{"My Book", "Jane Author", "TEST PRESS"}, nil},
-		{4, []string{"Copyright © 2026 Jane Author", "Published by Test Press"}, nil},
+		{4, []string{"Copyright © 2026 Jane Author", "Published by Test Press, Hong Kong.", "First edition, 2026",
+			"Cover design by A. Designer", "Typeset by jdbb studio in Libertinus Serif", "LCCN 2026000000",
+			"ISBN 978-0-00-000000-0 (paperback)", "This is a work of fiction. All resemblance is coincidental.",
+			"Printed in the United States of America"}, nil},
 		{5, []string{"For M.", "v"}, nil},
 		{6, nil, []string{"vi"}},
 		{7, []string{"Contents", "Foreword", "ix", "Chapter 1", "vii"}, nil},
@@ -363,5 +372,36 @@ func TestPartsBook(t *testing.T) {
 	}
 	if !strings.Contains(pages[0], "Chapter 1") || !strings.Contains(pages[0], "Foreword") {
 		t.Errorf("contents should list Foreword and Chapter 1: %q\n%s", pages[0], all)
+	}
+}
+
+// C12: the copyright-page builder fields reach the typst front-matter dict,
+// the interior credit resolves its {typeface} token from the spec, and a
+// multi-line notice is escaped as a typst string (no raw newline).
+func TestFrontMatterTypstCopyrightBuilder(t *testing.T) {
+	spec := map[string]any{
+		"metadata": map[string]any{
+			"publisher": "Test Press", "publisher_city": "Hong Kong", "edition_line": "First edition",
+			"loc_line": "LCCN 1", "printed_in": "Printed in HK", "additional_notices": "Line one.\nLine two.",
+		},
+		"typography": map[string]any{"body_font": "Source Serif 4"},
+		"cover":      map[string]any{"credit": "Cover by X"},
+	}
+	got := frontMatterTypst(spec, dbgen.Book{})
+	for _, want := range []string{
+		`publisher-city: "Hong Kong"`, `edition-line: "First edition"`, `cover-credit: "Cover by X"`,
+		`interior-credit: "Typeset by jdbb studio in Source Serif 4"`, `loc-line: "LCCN 1"`,
+		`printed-in: "Printed in HK"`, `notices: "Line one.\nLine two."`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("want %s in %s", want, got)
+		}
+	}
+	if strings.Contains(got, "one.\n") {
+		t.Errorf("raw newline leaked into typst string: %q", got)
+	}
+	spec["metadata"].(map[string]any)["interior_credit"] = "Set in {typeface} by hand"
+	if ic := interiorCredit(spec); ic != "Set in Source Serif 4 by hand" {
+		t.Errorf("interiorCredit = %q", ic)
 	}
 }

@@ -201,6 +201,7 @@ function setField(path, value) {
   }
   obj[parts[parts.length - 1]] = value;
   scheduleSave();
+  if (/^(page_iv|book|cover)\./.test(path)) refreshCopyrightPreview();
   // Live-update header title when book title changes
   if (path === 'book.title') {
     const el = document.querySelector('.page-header-title');
@@ -899,17 +900,88 @@ function renderPermissionsSection() {
   );
 }
 
-// ─── Section: Page IV (Copyright) ───
+// ─── Section: Copyright page (C12) ───
+// Pub Info & © is now the copyright-page builder: the fields a good p. iv
+// needs, and nothing else. The build writes this page (Typst) and the Word
+// template shows the same block. Legacy page_iv.credit / other_credit /
+// photo_credit keys stay in the JSON; if they hold text they are shown
+// read-only below so nothing typed is lost.
+const INTERIOR_CREDIT_DEFAULT = 'Typeset by jdbb studio in {typeface}';
+
+function copyrightPageLines() {
+  const g = (p) => String(getField(p) || '').trim();
+  const lines = [];
+  const title = g('book.title');
+  if (title) lines.push({ text: title, strong: true });
+  const year = g('page_iv.copyright_year'), holder = g('page_iv.held_by') || g('book.author');
+  lines.push({ text: 'Copyright \u00a9 ' + [year, holder].filter(Boolean).join(' ') + '. All rights reserved.' });
+  const pub = g('book.publisher'), city = g('page_iv.publisher_city');
+  if (pub) lines.push({ text: 'Published by ' + pub + (city ? ', ' + city : '') + '.' });
+  if (g('page_iv.edition_line')) lines.push({ text: g('page_iv.edition_line') });
+  if (g('cover.credit')) lines.push({ text: g('cover.credit') });
+  lines.push({ text: (g('page_iv.interior_credit') || INTERIOR_CREDIT_DEFAULT).replace('{typeface}', 'the book\u2019s typeface'), muted: !g('page_iv.interior_credit') });
+  if (g('page_iv.credit')) lines.push({ text: g('page_iv.credit') });
+  if (g('page_iv.loc_line')) lines.push({ text: g('page_iv.loc_line') });
+  const isbnP = g('book.isbn_paper'), isbnE = g('book.isbn_epub');
+  if (isbnP) lines.push({ text: 'ISBN ' + isbnP + ' (paperback)' });
+  if (isbnE) lines.push({ text: 'ISBN ' + isbnE + ' (ebook)' });
+  if (g('page_iv.additional_notices')) lines.push({ text: g('page_iv.additional_notices'), pre: true });
+  if (g('page_iv.printed_in')) lines.push({ text: g('page_iv.printed_in') });
+  return lines;
+}
+
+function renderCopyrightPreview() {
+  return h('div', { id: 'tx-cr-preview', className: 'tx-cr-preview' },
+    ...copyrightPageLines().map(l => h('div', {
+      className: 'tx-cr-line' + (l.strong ? ' tx-cr-strong' : '') + (l.muted ? ' tx-cr-muted' : '') + (l.pre ? ' tx-cr-pre' : ''),
+    }, l.text)),
+  );
+}
+
+function refreshCopyrightPreview() {
+  const el = document.getElementById('tx-cr-preview');
+  if (el) el.replaceWith(renderCopyrightPreview());
+}
+
 function renderPageIVSection() {
+  const legacy = [['Credit line', 'page_iv.credit'], ['Other credit', 'page_iv.other_credit'], ['Photo credit', 'page_iv.photo_credit']]
+    .filter(([, k]) => String(getField(k) || '').trim());
+  const fromBook = (label, path) => readonlyStat(label, String(getField(path) || '').trim() || null);
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'PUB INFO & ©'),
+    h('div', { className: 'tx-section-header' }, 'Copyright page'),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'Page iv is generated from these fields \u2014 don\u2019t type one in your manuscript. Title, publisher and ISBNs come from Book Information above.'),
     h('div', { className: 'tx-row' },
-      textField('Copyright Year', 'page_iv.copyright_year'),
-      textField('Held by', 'page_iv.held_by'),
+      textField('Copyright year', 'page_iv.copyright_year', { placeholder: String(new Date().getFullYear()) }),
+      textField('Rights holder', 'page_iv.held_by', { placeholder: getField('book.author') || 'Author name',
+        helpText: 'Who holds the copyright \u2014 usually the author. Blank uses the author\u2019s name.' }),
     ),
-    textField('Credit Line', 'page_iv.credit'),
-    textField('Other Credit', 'page_iv.other_credit'),
-    textField('Photo Credit', 'page_iv.photo_credit'),
+    h('div', { className: 'tx-row' },
+      fromBook('Publisher (from Book)', 'book.publisher'),
+      textField('Publisher city', 'page_iv.publisher_city', { placeholder: 'e.g. Hong Kong' }),
+    ),
+    textField('Edition / printing line', 'page_iv.edition_line', { placeholder: 'e.g. First edition, 2026' }),
+    h('div', { className: 'tx-row' },
+      fromBook('ISBN paper (from Book)', 'book.isbn_paper'),
+      fromBook('ISBN EPUB (from Book)', 'book.isbn_epub'),
+    ),
+    textField('Cover design credit', 'cover.credit', { placeholder: 'e.g. Cover design by \u2026',
+      helpText: 'Designer or artist to name. Leave blank for none.' }),
+    textField('Interior / typesetting credit', 'page_iv.interior_credit', { placeholder: INTERIOR_CREDIT_DEFAULT,
+      helpText: 'Blank prints the default; {typeface} is filled with the book\u2019s body typeface at build.' }),
+    textField('Library of Congress / CIP line', 'page_iv.loc_line', { placeholder: 'optional \u2014 e.g. Library of Congress Control Number: 2026xxxxxx' }),
+    textField('Printed in', 'page_iv.printed_in', { placeholder: 'e.g. Printed in the United States of America' }),
+    textareaField('Additional notices', 'page_iv.additional_notices', { rows: 3,
+      placeholder: 'Permissions acknowledgements, a disclaimer, a Creative Commons licence, a dedication of the type\u2026',
+      helpText: 'Printed as typed, after the ISBNs.' }),
+    legacy.length ? h('div', { className: 'tx-legacy' },
+      h('div', { className: 'tx-help' }, 'From the earlier form (not printed \u2014 move what you still want into Additional notices):'),
+      ...legacy.map(([label, k]) => h('div', { className: 'tx-legacy-line' }, h('b', null, label + ': '), getField(k))),
+    ) : null,
+    h('div', { className: 'tx-field' },
+      h('label', null, 'Preview'),
+      renderCopyrightPreview(),
+    ),
   );
 }
 
@@ -1091,9 +1163,7 @@ function renderCoverSection() {
       rule('What you bring: one front-cover image (JPEG or PNG, portrait, at least 1600 \u00d7 2400 px), uploaded on the factory page under step 2. Replace it any time; the next build picks it up.'),
       rule('For print, your cover is a separate file that goes straight to the printer \u2014 they publish a template once they know your trim, page count and paper. Nothing to upload here for that.'),
     ),
-    textField('Cover credit', 'cover.credit', {
-      helpText: 'Designer or artist to name on the copyright page, e.g. \u201cCover design by \u2026\u201d. Leave blank for none.',
-    }),
+    // Cover credit moved to the Copyright page section (C12); same key.
     textareaField('Cover notes', 'cover.production_plan_budget', {
       rows: 2,
       helpText: 'Anything about the cover the factory should know \u2014 a designer still working, an image to come.',
