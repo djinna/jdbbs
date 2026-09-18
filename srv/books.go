@@ -582,7 +582,23 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 		s.failConversion(bid, "create temp dir: "+err.Error())
 		return
 	}
-	defer os.RemoveAll(tmpDir)
+	// On a typst failure the work dir is kept under $TMPDIR/prodcal-failed/
+	// (latest per book) so the generated book.typ can be compiled by hand.
+	keepDir := false
+	defer func() {
+		if !keepDir {
+			os.RemoveAll(tmpDir)
+			return
+		}
+		dst := filepath.Join(os.TempDir(), "prodcal-failed", fmt.Sprintf("book-%d", bid))
+		os.MkdirAll(filepath.Dir(dst), 0755)
+		os.RemoveAll(dst)
+		if err := os.Rename(tmpDir, dst); err != nil {
+			os.RemoveAll(tmpDir)
+		} else {
+			slog.Info("failed build kept", "book_id", bid, "dir", dst)
+		}
+	}()
 
 	// Write source docx
 	docxPath := filepath.Join(tmpDir, "input.docx")
@@ -754,6 +770,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 	)
 	typstCmd.Dir = tmpDir
 	if out, err := typstCmd.CombinedOutput(); err != nil {
+		keepDir = true
 		s.failConversion(bid, fmt.Sprintf("typst: %s\n%s", err, string(out)))
 		return
 	}

@@ -500,7 +500,11 @@ end
 
 -- Handle block quotes  
 function BlockQuote(el)
-  local content = pandoc.utils.stringify(el.content)
+  -- Render the quote body with pandoc's typst writer (not stringify): keeps
+  -- italics/links and escapes markup characters — an unescaped '@' in an
+  -- email address is otherwise read by typst as a label reference and the
+  -- build fails ("label <…> does not exist").
+  local content = pandoc.write(pandoc.Pandoc(el.content), 'typst')
   return pandoc.RawBlock('typst', '\n#blockquote[\n' .. content .. '\n]\n')
 end
 
@@ -707,9 +711,13 @@ local function apply_book_map(blocks)
         table.insert(out, b)
       end
     elseif not dropping then
-      if b.t == "RawBlock" then
+      if b.t == "RawBlock" and raw_depth_delta(b) >= 0 then
         table.insert(pending, b)
       else
+        -- Ordinary blocks and wrapper closers (the "]" of #signature[ …])
+        -- belong to the preceding content and must land before any hook:
+        -- otherwise #start-body() ends up inside the container and typst
+        -- refuses the page break.
         flush_pending()
         table.insert(out, b)
       end
