@@ -912,7 +912,7 @@ function renderIllustrationsSection() {
     h('div', { className: 'tx-help tx-illus-guide' },
       h('b', null, 'Colour. '),
       'Leave your images in colour. The EPUB keeps them that way \u2014 a Paperwhite renders them in grey on the fly, and the same file is in colour on phones, tablets and the Kindle app. The print PDF is a black-and-white interior, so the factory converts each colour image itself rather than leave it to the printer\u2019s machine, which flattens them. A plain grey conversion is flat; the factory\u2019s is what a careful operator does first on most photographs \u2014 luminance grey, auto-level, a gentle S-curve \u2014 and it is fine for four images in five. What it cannot do is the judgement call: mixing the red channel up to lift a face out of foliage, or noticing that a chart\u2019s two lines became the same grey. If an image matters that much, convert it yourself in Photoshop and place the grey version in the Word file; it arrives already grey and the factory leaves it alone. Images that are already black and white are never touched.'),
-    h('label', { className: 'tx-check' },
+    h('label', { className: 'tx-check tx-attest' },
       h('input', { type: 'checkbox', checked: getField('illustrations.print_colour') ? 'checked' : undefined,
         onChange: (e) => { setField('illustrations.print_colour', e.target.checked); render(); } }),
       h('span', null, 'Colour interior \u2014 keep the colour images in the print PDF too (a colour-printed book; check with your printer, it costs more per copy).'),
