@@ -60,6 +60,20 @@ Touches the factory path (1, 3, 4). Freeze: Fri/Sat OK to land with tests + smok
   pandoc writes `<body epub:type="frontmatter|bodymatter">` per file. Pandoc only infers backmatter for
   appendix/colophon/bibliography/index — endnotes/glossary/afterword bodies stay `bodymatter` (section
   types are right; no override exists). epubcheck clean on Ghosts, Twitter Years and the fixture.
-- **Not yet**: step 5 (Word template +
+- **Step 5 done** Word template guide: new "How the book is assembled" section (three zones; what is
+  generated and must not be typed; dedication/epigraph before the first Heading 1; recognised front
+  and back heading names; Introduction/Epilogue = body). Copyright style text now says it is dropped.
+- **Step 6 done** Parts opt-in. Signal = transmittal "Parts" count ≥ 1 (`checklist_stats.parts`) or
+  `structure.parts: true` (`specHasParts`). Print: `config.parts` → H1 part opener (own recto, title
+  centred, no head/folio, blank verso), H2 chapter opener, H3/H4 take the H2/H3 look; Contents depth 2
+  and its title is our own heading (outline's built-in title is a level-1 heading and became a part
+  opener). Lua demotes front/back H1s to H2 so Foreword/Notes still read as chapters. EPUB:
+  `--epub-chapter-level=2`, body H1 `epub:type="part"`. `TestPartsBook`. Not `--top-level-division`:
+  pandoc's typst writer ignores it.
+- **Found, not fixed**: module-level template helpers (`running-header`, `drop-folio-footer`,
+  `contents-page`) read the *default* `config`, not the merged one passed to `book()`. So spec
+  `running_heads.enabled: false` does not turn running heads off. Same pattern as the parts fix
+  (`parts-state`): move the needed keys into a state set by `book()`. Post-workshop.
+- **Not yet**:  (Word template +
   guide text), step 6 (Parts opt-in `spec.parts` → `--top-level-division=part`; not started), logo on the
   title page (`logo: none` always), `cover.credit` is placed on p. iv only if filled in.

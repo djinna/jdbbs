@@ -163,6 +163,7 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 		slog.Warn("epub book map failed; building without front-matter structure", "book_id", bid, "err", err)
 	} else {
 		bookMap = bm
+		bookMap.Parts = specHasParts(specMap)
 	}
 
 	// Build pandoc command
@@ -181,6 +182,10 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 
 	if metaFile, ok := s.writePandocMetadata(book, tmpDir, bookMap, true); ok {
 		args = append(args, "--metadata-file="+metaFile)
+	}
+	if bookMap != nil && bookMap.Parts {
+		// Parts: one file per chapter (H2), parts get their own short file.
+		args = append(args, "--epub-chapter-level=2")
 	}
 	if spec.CoverImage != "" {
 		args = append(args, "--epub-cover-image="+spec.CoverImage)

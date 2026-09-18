@@ -58,6 +58,12 @@
   h3-size: 1em,
   h3-weight: "medium",
   heading-align: "left",
+  // Parts (P4 step 6): when true, Heading 1 is a part opener (own recto,
+  // blank verso) and Heading 2 is the chapter opener; Heading 3 takes the
+  // H2 look. Front/back-matter H1s are demoted by the pipeline so they still
+  // read as chapters.
+  parts: false,
+  part-size: 2em,
 
   // Spacing before/after headings
   h1-above: 0em,      // H1 gets pagebreak, so above-space is rarely needed
@@ -141,6 +147,7 @@
 #let generated-end-page = state("generated-end-page", 0) // last generated page (i–iv); folios start after it
 #let body-start-page = state("body-start-page", none) // physical page where arabic 1 lands
 #let break-from = state("break-from", 0)
+#let parts-state = state("parts", false)             // book() copies config.parts here for module-level helpers
 
 #let mark-page(st) = context {
   let p = here().page()
@@ -625,7 +632,13 @@
       link(loc, it.body + h(1fr) + folio)
     })
   }
-  outline(title: [Contents], depth: 1, indent: 0em)
+  // Own title rather than outline's: the built-in title is a level-1 heading
+  // and would become a part opener in a parts book. Level 2 there = chapter look.
+  context {
+    let parts = parts-state.get()
+    heading(level: if parts { 2 } else { 1 }, outlined: false, numbering: none)[Contents]
+    outline(title: none, depth: if parts { 2 } else { 1 }, indent: 0em)
+  }
 }
 
 // Untitled front-matter piece (dedication, epigraph) — each on a fresh recto.
@@ -771,6 +784,7 @@
   // Document metadata
   set document(title: title, author: if author != none { (author,) } else { () })
   book-info.update((title: title, author: author))
+  parts-state.update(config.parts)
   
   // Page setup with running headers (no footer)
   set page(
@@ -811,61 +825,75 @@
   // Orphan/widow control
   // Note: Typst handles this automatically, but we set conservative values
   
-  // Heading styles
-  show heading.where(level: 1): it => {
+  // Heading styles. Three looks — chapter opener, sub-head, sub-sub-head —
+  // mapped onto levels 1/2/3, or 2/3/4 when the book has parts (level 1 is
+  // then the part opener).
+  let aligned(body) = {
+    if config.heading-align == "center" {
+      align(center, body)
+    } else if config.heading-align == "right" {
+      align(right, body)
+    } else {
+      align(left, body)
+    }
+  }
+  let chapter-opener(it) = {
     pagebreak(weak: true)
     // Opener page: no running head, centred drop folio.
     mark-page(suppress-header-pages)
     mark-page(drop-folio-pages)
     set text(font: config.heading-font, size: config.h1-size, weight: config.h1-weight)
     set par(leading: 0.4em, first-line-indent: 0em, justify: false)
-    if config.heading-align == "center" {
-      align(center, it.body)
-    } else if config.heading-align == "right" {
-      align(right, it.body)
-    } else {
-      align(left, it.body)
-    }
+    aligned(it.body)
     v(config.h1-below)
     par(first-line-indent: 0em)[]
   }
-  
-  show heading.where(level: 2): it => {
+  let sub-head(it) = {
     v(config.h2-above)
     block(breakable: false, below: 0em)[
       #set text(font: config.heading-font, size: config.h2-size, weight: config.h2-weight)
       #set par(first-line-indent: 0em, justify: false)
-      #if config.heading-align == "center" {
-        align(center, it.body)
-      } else if config.heading-align == "right" {
-        align(right, it.body)
-      } else {
-        align(left, it.body)
-      }
+      #aligned(it.body)
       #v(config.h2-below)
       // Invisible anchor keeps heading with following content
       #box(height: 1em)
     ]
     par(first-line-indent: 0em)[]
   }
-  
-  show heading.where(level: 3): it => {
+  let sub-sub-head(it) = {
     v(config.h3-above)
     block(breakable: false, below: 0em)[
       #set text(font: config.heading-font, size: config.h3-size, weight: config.h3-weight)
       #set par(first-line-indent: 0em, justify: false)
-      #if config.heading-align == "center" {
-        align(center, it.body)
-      } else if config.heading-align == "right" {
-        align(right, it.body)
-      } else {
-        align(left, it.body)
-      }
+      #aligned(it.body)
       #v(config.h3-below)
       #box(height: 1em)
     ]
     par(first-line-indent: 0em)[]
   }
+  // Part opener: own recto, title centred on the page, no head or folio,
+  // verso left blank so the first chapter starts recto.
+  let part-opener(it) = {
+    break-to-recto()
+    mark-page(suppress-header-pages)
+    mark-page(blank-pages)
+    set text(font: config.heading-font, size: config.part-size, weight: config.h1-weight)
+    set par(leading: 0.4em, first-line-indent: 0em, justify: false)
+    v(1fr)
+    align(center, it.body)
+    v(2fr)
+    pagebreak(weak: true, to: "odd")
+    context {
+      // The verso we just skipped stays empty.
+      let p = here().page()
+      blank-pages.update(s => if (p - 1) in s { s } else { s + (p - 1,) })
+    }
+  }
+
+  show heading.where(level: 1): it => if config.parts { part-opener(it) } else { chapter-opener(it) }
+  show heading.where(level: 2): it => if config.parts { chapter-opener(it) } else { sub-head(it) }
+  show heading.where(level: 3): it => if config.parts { sub-head(it) } else { sub-sub-head(it) }
+  show heading.where(level: 4): it => if config.parts { sub-sub-head(it) } else { it }
   
   // Raw/code blocks - "Ok-computer" style
   show raw.where(block: true): it => {

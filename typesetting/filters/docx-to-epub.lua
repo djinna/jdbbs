@@ -23,7 +23,7 @@ end
 
 function Meta(meta)
   if not meta.book_map then return end
-  local bm = { sections = {}, untitled = {} }
+  local bm = { sections = {}, untitled = {}, parts = meta_bool(meta.book_map.parts) == true }
   if meta.book_map.sections then
     for _, sec in ipairs(meta.book_map.sections) do
       table.insert(bm.sections, {
@@ -135,6 +135,7 @@ function Pandoc(doc)
       dropping = (kind == "title" or kind == "toc")
       if not dropping then
         local t = epub_type(pandoc.utils.stringify(b.content), kind)
+        if book_map.parts and kind == "body" then t = "part" end
         b.attr.attributes["epub:type"] = t
         table.insert(out, b)
       end

@@ -662,6 +662,10 @@ func specToTypstConfig(data map[string]any) string {
 		}
 	}
 
+	if specHasParts(data) {
+		lines = append(lines, "  parts: true,")
+	}
+
 	// Elements
 	if elem, ok := data["elements"].(map[string]any); ok {
 		lines = append(lines, "  // Elements")

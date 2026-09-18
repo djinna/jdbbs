@@ -78,6 +78,7 @@ type BookMap struct {
 	Warnings      []string          `json:"warnings"` // things to fix (medium)
 	Notes         []string          `json:"notes"`    // things we did that the author should know (low)
 	SummaryLine   string            `json:"summary"`  // Summary(), stored so JSON consumers get it
+	Parts         bool              `json:"parts"`    // spec opt-in: H1 = part, H2 = chapter
 }
 
 // Front / Body / Back return the H1 titles of each kind, in order.

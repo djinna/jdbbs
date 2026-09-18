@@ -446,6 +446,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 		slog.Warn("book map failed; building without front-matter structure", "book_id", bid, "err", bmErr)
 		bookMap = nil
 	} else {
+		bookMap.Parts = specHasParts(specMap)
 		slog.Info("book map", "book_id", bid, "map", bookMap.Summary())
 	}
 
@@ -1065,6 +1066,7 @@ func (s *Server) writePandocMetadata(book dbgen.Book, tmpDir string, bookMap *Bo
 	if bookMap != nil {
 		payload["book_map"] = map[string]any{
 			"toc":            toc,
+			"parts":          bookMap.Parts,
 			"sections":       bookMap.Sections,
 			"untitled_front": bookMap.UntitledFront,
 		}
@@ -1147,6 +1149,26 @@ func specFrontMatterTOC(spec map[string]any) bool {
 		return v
 	}
 	return true
+}
+
+// specHasParts reports whether the book is divided into parts (Heading 1 =
+// part, Heading 2 = chapter). Opt-in from the transmittal: the "Parts" count
+// in checklist_stats (any number ≥ 1), or an explicit structure.parts flag.
+func specHasParts(spec map[string]any) bool {
+	if st, ok := spec["structure"].(map[string]any); ok {
+		if v, ok := st["parts"].(bool); ok {
+			return v
+		}
+	}
+	cs, _ := spec["checklist_stats"].(map[string]any)
+	switch v := cs["parts"].(type) {
+	case float64:
+		return v >= 1
+	case string:
+		n, err := strconv.Atoi(strings.TrimSpace(v))
+		return err == nil && n >= 1
+	}
+	return false
 }
 
 // frontMatterTypst builds the `front-matter:` dict for series-template.typ's

@@ -18,7 +18,7 @@ func runBookMapPandoc(t *testing.T, docx string, m *BookMap, toc bool, extraMeta
 		t.Skip("pandoc not installed")
 	}
 	dir := t.TempDir()
-	payload := map[string]any{"book_map": map[string]any{"toc": toc, "sections": m.Sections, "untitled_front": m.UntitledFront}}
+	payload := map[string]any{"book_map": map[string]any{"toc": toc, "parts": m.Parts, "sections": m.Sections, "untitled_front": m.UntitledFront}}
 	for k, v := range extraMeta {
 		payload[k] = v
 	}
@@ -267,5 +267,101 @@ func TestEPUBFilterAppliesBookMap(t *testing.T) {
 	}
 	if b, err := exec.Command("epubcheck", epub).CombinedOutput(); err != nil {
 		t.Errorf("epubcheck: %v\n%s", err, b)
+	}
+}
+
+// TestPartsBook: spec opt-in makes H1 a part opener and H2 the chapter; the
+// lua filter demotes front/back H1s so they still read as chapters.
+func TestPartsBook(t *testing.T) {
+	if !specHasParts(map[string]any{"checklist_stats": map[string]any{"parts": "3"}}) ||
+		specHasParts(map[string]any{"checklist_stats": map[string]any{"parts": "0"}}) ||
+		specHasParts(map[string]any{"checklist_stats": map[string]any{"parts": ""}}) ||
+		!specHasParts(map[string]any{"structure": map[string]any{"parts": true}}) {
+		t.Fatal("specHasParts")
+	}
+	docx := writeBookMapDOCX(t, []tp{
+		{style: "Heading1", text: "Foreword"}, {text: "fw"},
+		{style: "Heading1", text: "Part One"},
+		{style: "Heading2", text: "Chapter 1"}, {text: "body one"},
+		{style: "Heading2", text: "Chapter 2"}, {text: "body two"},
+		{style: "Heading1", text: "Notes"}, {text: "n"},
+	})
+	m, err := bookMapFromDOCX(docx, nil, "My Book", "Jane Author")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Parts = true
+	typ := runBookMapPandoc(t, docx, m, true, nil)
+	for _, want := range []string{"== Foreword", "= Part One", "== Chapter 1", "== Notes"} {
+		if !strings.Contains(typ, want) {
+			t.Errorf("want %q in:\n%s", want, typ)
+		}
+	}
+	if _, err := exec.LookPath("typst"); err != nil {
+		t.Skip("typst not installed")
+	}
+	if _, err := exec.LookPath("pdftotext"); err != nil {
+		t.Skip("pdftotext not installed")
+	}
+	dir := t.TempDir()
+	spec := map[string]any{"checklist_stats": map[string]any{"parts": "1"},
+		"typography":   map[string]any{"body_font": "Libertinus Serif", "heading_font": "Source Sans 3"},
+		"front_matter": map[string]any{"half_title": false, "title_page": false, "copyright_page": false}}
+	// Drop pandoc's generated header (import + show) the way runConversion does.
+	body := typ
+	if i := strings.Index(body, "#show: book.with("); i >= 0 {
+		if j := strings.Index(body[i:], "\n)\n"); j >= 0 {
+			body = body[i+j+3:]
+		}
+	}
+	src := `#import "` + seriesTemplatePath() + `": *
+` + specToTypstConfig(spec) + `
+#show: book.with(config: config, title: "My Book", author: "Jane Author", front-matter: (half-title: false, title-page: false, copyright-page: false))
+` + body
+	if !strings.Contains(src, "parts: true") {
+		t.Fatalf("config missing parts: true:\n%s", specToTypstConfig(spec))
+	}
+	typPath := filepath.Join(dir, "t.typ")
+	if err := os.WriteFile(typPath, []byte(src), 0644); err != nil {
+		t.Fatal(err)
+	}
+	pdf := filepath.Join(dir, "t.pdf")
+	if b, err := exec.Command("typst", "compile", "--root", "/", "--font-path", fontsDirPath(), typPath, pdf).CombinedOutput(); err != nil {
+		t.Fatalf("typst: %v\n%s", err, b)
+	}
+	var pages []string
+	for n := 1; n <= 9; n++ {
+		b, err := exec.Command("pdftotext", "-f", itoa(int64(n)), "-l", itoa(int64(n)), "-layout", pdf, "-").Output()
+		if err != nil {
+			break
+		}
+		pages = append(pages, strings.Join(strings.Fields(string(b)), " "))
+	}
+	all := strings.Join(pages, "\n")
+	// Expect: Contents (i), blank, Foreword (iii), blank, Part One (recto = arabic 1, no folio printed), blank verso, Chapter 1 (recto, 3), Chapter 2, Notes.
+	var partPage, ch1Page int
+	for i, p := range pages {
+		if strings.Contains(p, "Part One") && !strings.Contains(p, "Contents") {
+			partPage = i + 1
+		}
+		if strings.Contains(p, "body one") {
+			ch1Page = i + 1
+		}
+	}
+	if partPage == 0 || ch1Page == 0 {
+		t.Fatalf("part/chapter pages not found:\n%s", all)
+	}
+	if partPage%2 != 1 || ch1Page != partPage+2 {
+		t.Errorf("part opener p%d should be recto with a blank verso; chapter 1 p%d", partPage, ch1Page)
+	}
+	if strings.TrimSpace(pages[partPage]) != "" {
+		t.Errorf("verso after part opener should be blank: %q", pages[partPage])
+	}
+	// The part opener is arabic p.1 (no folio printed), its verso p.2, chapter 1 p.3.
+	if !strings.Contains(pages[ch1Page-1], "body one 3") {
+		t.Errorf("chapter 1 should carry folio 3: %q", pages[ch1Page-1])
+	}
+	if !strings.Contains(pages[0], "Chapter 1") || !strings.Contains(pages[0], "Foreword") {
+		t.Errorf("contents should list Foreword and Chapter 1: %q\n%s", pages[0], all)
 	}
 }

@@ -518,6 +518,7 @@ local function load_book_map(meta)
   local bm = { sections = {}, untitled = {}, toc = false }
   local t = meta_bool(meta.book_map.toc)
   bm.toc = t == true
+  bm.parts = meta_bool(meta.book_map.parts) == true
   if meta.book_map.sections then
     for _, sec in ipairs(meta.book_map.sections) do
       table.insert(bm.sections, {
@@ -657,6 +658,9 @@ local function apply_book_map(blocks)
           if not body_started then table.insert(out, raw('#start-body()')); body_started = true end
         end
         flush_pending()
+        -- Parts books: H1 is the part opener, so a front/back section
+        -- (Foreword, Notes) is demoted one level to read as a chapter.
+        if book_map.parts and kind ~= "body" then b.level = 2 end
         table.insert(out, b)
       end
     elseif not dropping then
