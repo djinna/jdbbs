@@ -8,12 +8,24 @@ POST /note       {id, text, who}  -> append a note
 POST /tick       {id, state}  state in " ", "x", "~"  -> edits CHECKLIST.md in place
 POST /add        {text}  -> appends "- [ ] 0.N text" under "## 0 · Inbox" (created if missing)
 Items are lines like "- [ ] 1.2 …" (id = the leading token). Notes are appended, never overwritten;
-Shelley reads notes.json and answers with who=shelley."""
+Shelley reads notes.json and answers with who=shelley. If RUNPAGE_CHAT_CONV is set (a Shelley
+conversation id), Jenna's notes and inbox adds are also pushed into that chat as they arrive."""
 import json, os, re, subprocess, time, http.server, threading
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "scratch", "run"))
 MD = os.path.join(ROOT, "CHECKLIST.md")
 NOTES = os.path.join(ROOT, "notes.json")
+CHAT_CONV = os.environ.get("RUNPAGE_CHAT_CONV", "")  # Shelley conversation to push Jenna's notes into
+
+def push_to_chat(msg):
+    """Pull → push: forward a note into the live Shelley conversation so it is
+    seen when written, not when the list is next opened. Best-effort."""
+    if not CHAT_CONV: return
+    try:
+        subprocess.Popen(["shelley", "client", "chat", "-c", CHAT_CONV, "-p", msg],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except Exception:
+        pass
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCK = threading.Lock()
 ITEM = re.compile(r"^(\s*- \[)([ x~])(\] )(\d+\.\d+[a-z]?)\b", re.M)
@@ -59,6 +71,7 @@ class H(http.server.BaseHTTPRequestHandler):
                 notes = read(NOTES, {})
                 notes.setdefault(iid, []).append({"ts": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "who": body.get("who", "jenna"), "text": text})
                 with open(NOTES, "w") as f: json.dump(notes, f, indent=1, ensure_ascii=False)
+                if body.get("who", "jenna") != "shelley": push_to_chat(f"Punch-list note from Jenna on {iid}: {text}")
                 return self._send(200, {"ok": True})
             if self.path == "/tick":
                 iid, st = body.get("id"), body.get("state", " ")
@@ -71,6 +84,7 @@ class H(http.server.BaseHTTPRequestHandler):
             if self.path == "/add":
                 text = (body.get("text") or "").strip()
                 if not text: return self._send(400, {"error": "text required"})
+                push_to_chat(f"Punch-list inbox item added by Jenna: {text}")
                 md = read(MD, None) or ""
                 if "## 0 · Inbox" not in md:
                     md = md.rstrip("\n") + "\n\n## 0 · Inbox — new items, untriaged (Shelley moves them into a section)\n\n"
