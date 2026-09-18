@@ -125,3 +125,15 @@ Open on list 2 (all waiting on Jenna or post-workshop): 2.6–2.8, 3.2/3.4/3.5,
   Google-Docs export, all-"normal" styles) this afternoon on pinstitute —
   watch `journalctl -u prodcal` for `style markers applied` and
   `images converted to grey`.
+
+## Addendum 3 (evening)
+
+- 0.4 transmittal front-matter indents removed (all rows flush left; renderer ignores stored `indent`).
+- 0.5 "Email me a copy" removed from customer transmittal (admin keeps Email). transmittal.js buster 20260918k.
+- 0.6 **Today's Obliquities build failures were pipeline bugs, fixed (7aae7ee):**
+  - `apply_book_map` held the `]` closer of a `#signature[` wrapper in `pending`, so `#start-body()` landed inside the container → typst "pagebreaks are not allowed inside of containers". Closers now flush before hooks.
+  - `BlockQuote` used `stringify` → unescaped `@` (email) read as label ref; also lost italics. Now `pandoc.write(..., 'typst')`.
+  - Failed typst builds keep their work dir at `$TMPDIR/prodcal-failed/book-N` (log line "failed build kept").
+  - Book 23 (Obliquities rollup templated) rebuilt OK, 77 pp. Failed builds refund credits.
+- 0.6 Word-access resources posted as note (Word for the web / LibreOffice / Docs + `[[style]]` markers / trial). Offered a "No Word? Three ways in" box on factory + workshop pages — awaiting yes.
+- Noticed: chapter-title hyphenation in the PDF ("Intelli-gence Media", "Fac-tory") — headings should have `hyphenate: false`. Not yet fixed.
