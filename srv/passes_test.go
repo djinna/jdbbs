@@ -199,6 +199,14 @@ func TestRedeemCreatesClientProjectAndPass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("project not created: %v", err)
 	}
+	// The transmittal draft is seeded with the title/author the form asked for.
+	var txData string
+	if err := s.DB.QueryRow(`SELECT data FROM transmittals WHERE project_id = ?`, project.ID).Scan(&txData); err != nil {
+		t.Fatalf("transmittal not seeded: %v", err)
+	}
+	if !strings.Contains(txData, `"title":"Notes on the Analytical Engine"`) || !strings.Contains(txData, `"author":"Ada Lovelace"`) {
+		t.Errorf("transmittal seed missing title/author: %s", txData[:200])
+	}
 	if project.Name != "Notes on the Analytical Engine" {
 		t.Errorf("project name = %q, want the manuscript title", project.Name)
 	}

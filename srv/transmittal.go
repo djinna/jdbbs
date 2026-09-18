@@ -10,6 +10,21 @@ import (
 	"strings"
 )
 
+// seededTransmittalData is defaultTransmittalData with book.title / book.author
+// filled in (used when a pass creates the project).
+func seededTransmittalData(title, author string) (string, error) {
+	var d map[string]any
+	if err := json.Unmarshal([]byte(defaultTransmittalData()), &d); err != nil {
+		return "", err
+	}
+	if b, ok := d["book"].(map[string]any); ok {
+		b["title"] = strings.TrimSpace(title)
+		b["author"] = strings.TrimSpace(author)
+	}
+	out, err := json.Marshal(d)
+	return string(out), err
+}
+
 func defaultTransmittalData() string {
 	return `{
   "book": {"author":"","title":"","subtitle":"","title_status":"tentative","series":"","publisher":"","editor":"","transmittal_date":"","isbn_paper":"","isbn_epub":"","isbn_cloth":""},

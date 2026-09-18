@@ -361,6 +361,18 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 	if err != nil {
 		return nil, fmt.Errorf("create pass: %w", err)
 	}
+
+	// 4b) Seed the transmittal draft with what the form already asked for,
+	// so the author does not meet an empty title/author on first open.
+	seed, err := seededTransmittalData(in.Title, in.Author)
+	if err != nil {
+		return nil, fmt.Errorf("seed transmittal: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO transmittals (project_id, status, data) VALUES (?, 'draft', ?)`,
+		project.ID, seed); err != nil {
+		return nil, fmt.Errorf("seed transmittal: %w", err)
+	}
 	if in.StripeSessionID != "" {
 		if err := q.SetPassPurchase(ctx, dbgen.SetPassPurchaseParams{
 			StripeSessionID: in.StripeSessionID, AmountPaid: in.AmountPaid, PromoCode: in.PromoCode, ID: pass.ID,
