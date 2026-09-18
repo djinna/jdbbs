@@ -410,6 +410,7 @@ var TYPE_LABELS = {
   observed_style: 'Styles seen in the file',
   heading_lookalike: 'Headings without a Heading style',
   manual_break: 'Scene breaks done by hand',
+  stray_quote_marker: 'Stray ">" marks from a pasted email',
   manual_formatting: 'Bold/italic applied by hand',
   manual_list: 'Lists typed by hand',
   direct_spacing: 'Spacing/indent/alignment applied by hand',

@@ -76,6 +76,7 @@ class EdgeCaseDetector:
         self.detect_colored_text()
         self.detect_manual_lists()
         self.detect_manual_breaks()
+        self.detect_stray_quote_markers()
         self.detect_blank_line_breaks()
         self.detect_heading_lookalikes()
         self.detect_mixed_styles()
@@ -254,6 +255,29 @@ class EdgeCaseDetector:
                     })
                     break
     
+    def detect_stray_quote_markers(self):
+        """Detect '>' quote markers inside running prose (email / Markdown
+        residue pasted into the manuscript). One finding per paragraph."""
+        import re
+        pat = re.compile(r'(?:^|\s)>\s')
+        for i, para in enumerate(self.doc.paragraphs):
+            if self._should_skip_paragraph(para):
+                continue
+            text = para.text
+            n = len(pat.findall(text))
+            if n == 0 or len(text.strip()) < 20:
+                continue
+            m = pat.search(text)
+            start = max(0, m.start() - 30)
+            self.edge_cases.append({
+                'type': 'stray_quote_marker',
+                'location': f'Paragraph {i+1}',
+                'text': text[start:start + 80].strip(),
+                'severity': 'medium',
+                'count': n,
+                'suggestion': f'{n} stray ">" marker(s) in running text — quoted-email or Markdown residue; delete them'
+            })
+
     def detect_blank_line_breaks(self):
         """Two or more empty paragraphs in a row between text: a scene break
         faked with the Return key. Blank paragraphs vanish in the build (and
@@ -726,6 +750,7 @@ class EdgeCaseReviewer:
         'highlighted_text': ('Highlighted Text', 'Highlighted text detected'),
         'unusual_font': ('Unusual Fonts', 'Non-standard fonts detected'),
         'manual_break': ('Manual Breaks', 'Manual section break characters detected'),
+        'stray_quote_marker': ('Stray Quote Markers', '">" characters inside running text (quoted-email or Markdown residue)'),
         'mixed_formatting': ('Mixed Formatting', 'Multiple fonts or sizes within a single paragraph'),
     }
 
@@ -735,7 +760,7 @@ class EdgeCaseReviewer:
         'colored_text', 'highlighted_text', 'unusual_font',
         'observed_style', 'declared_custom_style_used', 'font_treatment',
         'manual_formatting', 'manual_list', 'direct_spacing',
-        'manual_break', 'mixed_formatting', 'image_inventory',
+        'manual_break', 'stray_quote_marker', 'mixed_formatting', 'image_inventory',
     ]
 
     def __init__(self, edge_cases: List[Dict], doc_path: str):
