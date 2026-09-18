@@ -334,6 +334,14 @@ local para_style_map = {
   ["codeblock"] = "code-block",
   ["copyright"] = "copyright-page",
 
+  -- Signature: the name / title / place block that closes a foreword or
+  -- afterword written by someone other than the author. Consecutive
+  -- Signature paragraphs are merged into one block in Blocks() below so the
+  -- space above lands once, not on every line.
+  ["signature"] = "signature",
+  ["signoff"] = "signature",
+  ["forewordsignature"] = "signature",
+
   -- Project custom paragraph styles
   ["tweetp"] = "tweet-p",
   ["metadatap"] = "metadata-p",
@@ -341,6 +349,35 @@ local para_style_map = {
   -- ASCII-art / preformatted tweet blocks
   ["tweetpascii"] = "tweet-p-ascii",
 }
+
+-- Merge runs of same-style Divs for styles that are one block in the book but
+-- several paragraphs in Word (a signature's name / title / place lines).
+local coalesce_styles = { signature = true }
+
+function Blocks(blocks)
+  local out = pandoc.List()
+  local i = 1
+  while i <= #blocks do
+    local b = blocks[i]
+    local style = b.t == "Div" and b.attributes["custom-style"] or nil
+    local func = style and (para_style_map[normalize_style(style)] or declared_para_styles[normalize_style(style)])
+    if func and coalesce_styles[func] then
+      local merged = pandoc.Div(pandoc.List(), b.attr)
+      while i <= #blocks and blocks[i].t == "Div"
+            and blocks[i].attributes["custom-style"]
+            and (para_style_map[normalize_style(blocks[i].attributes["custom-style"])]
+                 or declared_para_styles[normalize_style(blocks[i].attributes["custom-style"])]) == func do
+        merged.content:extend(blocks[i].content)
+        i = i + 1
+      end
+      out:insert(merged)
+    else
+      out:insert(b)
+      i = i + 1
+    end
+  end
+  return out
+end
 
 function Div(el)
   local style = el.attributes["custom-style"]
@@ -812,6 +849,7 @@ end
 return {
   { Meta = Meta },
   { Span = Span },
+  { Blocks = Blocks },
   { Div = Div },
   { Para = Para },
   { Header = Header },

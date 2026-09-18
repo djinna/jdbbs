@@ -253,6 +253,22 @@ p.Epi-sig {
   font-style: normal;
 }
 
+/* === Signature (closes a foreword / afterword by another hand) === */
+div[custom-style="Signature"],
+.signature {
+  margin-top: 1.2em;
+  page-break-inside: avoid;
+}
+div[custom-style="Signature"] p,
+.signature p {
+  text-indent: 0;
+  margin: 0;
+  text-align: left;
+}
+div[custom-style="Signature"] + div[custom-style="Signature"] {
+  margin-top: 0;
+}
+
 /* === Front Matter === */
 .half-title {
   font-family: "Source Sans 3", sans-serif;

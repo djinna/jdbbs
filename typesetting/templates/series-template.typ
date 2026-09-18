@@ -752,6 +752,23 @@
 }
 
 // =============================================================================
+// SIGNATURE
+// =============================================================================
+
+// The block that closes a foreword or afterword by someone other than the
+// author: name, then title / affiliation / place, one line each, no indent,
+// set tight and flush left with a line of air above (Chicago 1.40 puts the
+// signature after the text, flush left or right; we take left to sit with
+// the body). Lines that are separate Word paragraphs arrive merged by the
+// filter, so the space above lands once.
+#let signature(content) = {
+  v(1em)
+  set par(first-line-indent: 0em, spacing: 0.35em, justify: false)
+  block(breakable: false, content)
+  v(0.5em)
+}
+
+// =============================================================================
 // BLOCK QUOTE
 // =============================================================================
 

@@ -21,6 +21,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, Emu
 from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 
 # ---------------------------------------------------------------------------
@@ -74,7 +75,7 @@ STANDIN_FONTS = {
 FACTORY_STYLES = [
     "Normal", "First Paragraph", "Heading 1", "Heading 2", "Heading 3",
     "Block Quote", "Epigraph", "Verse", "Code Block", "Section Break",
-    "Copyright",
+    "Copyright", "Signature",
 ]
 
 
@@ -310,6 +311,13 @@ def _set_left_indent(style, indent_pt: float):
     style.paragraph_format.left_indent = Pt(indent_pt)
 
 
+def _set_contextual_spacing(style):
+    """Word's 'Don't add space between paragraphs of the same style'."""
+    ppr = style.element.get_or_add_pPr()
+    if ppr.find(qn("w:contextualSpacing")) is None:
+        ppr.append(OxmlElement("w:contextualSpacing"))
+
+
 def _set_alignment(style, justify: bool):
     """Set alignment to JUSTIFY or LEFT."""
     style.paragraph_format.alignment = (
@@ -468,6 +476,21 @@ def build_template(spec: dict) -> Document:
     _set_alignment(ep_style, False)
     ep_style.paragraph_format.space_before = Pt(base_size * 0.5)
     ep_style.paragraph_format.space_after = Pt(base_size * 0.5)
+
+    # ------------------------------------------------------------------
+    # 9b. Signature — closes a foreword / afterword by another hand:
+    #     name, title, place, one line each. No indent, flush left, a line
+    #     of air above the block; contextual spacing keeps the lines tight.
+    # ------------------------------------------------------------------
+    sig_style = doc.styles.add_style("Signature", WD_STYLE_TYPE.PARAGRAPH)
+    sig_style.base_style = normal
+    _set_paragraph_style_font(sig_style, body_font, base_size)
+    _set_first_line_indent(sig_style, 0)
+    _set_alignment(sig_style, False)
+    sig_style.paragraph_format.space_before = Pt(base_size)
+    sig_style.paragraph_format.space_after = Pt(0)
+    sig_style.paragraph_format.keep_together = True
+    _set_contextual_spacing(sig_style)
 
     # ------------------------------------------------------------------
     # 10. Custom styles from spec
@@ -655,6 +678,19 @@ def build_template(spec: dict) -> Document:
         style="Epigraph"
     )
 
+    # --- Signature ---
+    p = doc.add_heading("Signature", level=3)
+    doc.add_paragraph(
+        "A foreword or afterword by someone other than the author ends with a "
+        "signature: their name, then title or affiliation, then place, one line "
+        "each. Put each line in 'Signature' style, straight after the last "
+        "paragraph. The factory sets the block flush left with a line of space "
+        "above it, and keeps it together on one page:",
+        style="First Paragraph"
+    )
+    for line in ("Ada Reader", "Founding Director, The Institute", "Whitehorse, Yukon"):
+        doc.add_paragraph(line, style="Signature")
+
     # --- Copyright ---
     p = doc.add_heading("Copyright", level=3)
     doc.add_paragraph(
@@ -711,6 +747,7 @@ def build_template(spec: dict) -> Document:
         ("Verse",           f"{body_font}, {poem_size:.1f}pt italic", "Poetry / lyrics"),
         ("Epigraph",        f"{body_font}, {base_size}pt italic", "Book or chapter epigraph"),
         ("Copyright",       f"{body_font}, {cr_size:.1f}pt",      "Typed copyright page (dropped; generated from transmittal)"),
+        ("Signature",       f"{body_font}, {base_size}pt",        "Name / title / place closing a foreword or afterword"),
     ]
     for cs in customs:
         cs_name = cs.get("word_style") or cs.get("name", "Custom")
