@@ -105,3 +105,23 @@ Open on list 2 (all waiting on Jenna or post-workshop): 2.6–2.8, 3.2/3.4/3.5,
 4.x (workshop days), 5.17 pick → wire, 5.5 InDesign compare, 5.12/5.13/5.19/
 5.20/5.21, 6.1–6.6. Nothing for the agent to start unprompted except 3.5 after
 3.4 and 6.6 after 6.x decisions.
+
+### Addendum 2 — Fri 18 Sep, late block
+
+- **Calendar hidden from customers** (commented out in `theme.js clientNav`,
+  `client.html` card, `transmittal.js` header). Page still serves. Jenna may
+  also want the "N/N tasks done" line on the card gone — asked, no answer yet.
+- **Inspect costs no tokens** (0.2) — rules-based; line added to the factory
+  page's Inspect blurb.
+- **`[[style]]` markers** (0.3, `216dfeb`, built by subagent `style-markers`):
+  `typesetting/scripts/apply-style-markers.py` pre-pass, hooked via
+  `srv/stylemarkers.go` into `runDirectBuild` and `generateEPUB`; Inspect has
+  `detect_style_markers` ("Marked styles") and `detect_unusual_fonts` is one
+  row per font with meaning. Rules on item 0.3 and on the factory page under
+  Upload. Spec kept at `scratch/SPEC-style-markers.md` (gitignored).
+- **5.22 CC copyright notices** queued (from inbox 0.4): Rights choice on the
+  transmittal → `series-template.typ` l.604 notice + EPUB `dc:rights`.
+- Jenna is running the Obliquities rollup (`scratch/obliq-jrd.docx`,
+  Google-Docs export, all-"normal" styles) this afternoon on pinstitute —
+  watch `journalctl -u prodcal` for `style markers applied` and
+  `images converted to grey`.
