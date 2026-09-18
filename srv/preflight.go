@@ -487,20 +487,12 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 		jsonErr(w, "that book belongs to another project", http.StatusForbidden)
 		return
 	}
-	specData := ""
-	spec, err := q.GetBookSpec(r.Context(), pid)
-	if errors.Is(err, sql.ErrNoRows) {
-		full, uErr := q.UpsertBookSpec(r.Context(), dbgen.UpsertBookSpecParams{ProjectID: pid, Data: defaultSpecData()})
-		if uErr != nil {
-			jsonErr(w, uErr.Error(), 500)
-			return
-		}
-		specData = full.Data
-	} else if err != nil {
+	// A final transmittal saved since the spec was written refreshes the
+	// spec first, so Inspect checks against what the author just sent.
+	specData, err := s.syncSpecFromTransmittal(r.Context(), pid, false)
+	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
-	} else {
-		specData = spec.Data
 	}
 	if book.SourceData == nil || len(book.SourceData) == 0 {
 		jsonErr(w, "no source file", 400)

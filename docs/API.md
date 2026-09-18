@@ -28,9 +28,9 @@ Endpoints with no auth configured on the resource are open-access.
 | 3 | GET | `/api/admin/projects` | Admin | List all projects with stats |
 | 4 | GET | `/api/admin/clients` | Admin | List all clients with stats |
 | 5 | POST | `/api/admin/clients` | Admin | Create a client |
-| 6 | GET | `/api/projects` | ⚠️ None | List all non-archived projects |
+| 6 | GET | `/api/projects` | Admin | List all non-archived projects |
 | 7 | POST | `/api/projects` | Admin | Create a project |
-| 8 | GET | `/api/projects/{id}` | None | Get project (includes auth status) |
+| 8 | GET | `/api/projects/{id}` | None (by design: the SPA gate reads name + auth status) | Get project (includes auth status) |
 | 9 | PUT | `/api/projects/{id}` | Project | Update project metadata |
 | 10 | DELETE | `/api/projects/{id}` | — | Disabled (returns 405) |
 | 11 | POST | `/api/projects/{id}/archive` | Admin | Archive a project |
@@ -52,9 +52,12 @@ Endpoints with no auth configured on the resource are open-access.
 | 27 | POST | `/api/transmittals/{id}/versions/{vid}/restore` | Project | Restore a version |
 | 28 | POST | `/api/transmittals/{id}/duplicate` | Project | Copy transmittal to another project |
 | 29 | GET | `/api/books` | Admin | List all books (no blob data) |
-| 30 | POST | `/api/books/upload` | Admin | Upload a manuscript (multipart) |
-| 31 | POST | `/api/books/{id}/convert` | Admin | Start docx→PDF conversion |
-| 32 | GET | `/api/books/{id}/download/{format}` | ⚠️ None | Download PDF or EPUB |
+| 30 | POST | `/api/books/upload` | Project (live pass) | Upload a manuscript (multipart); admin when no `project_id` |
+| 31 | POST | `/api/books/{id}/convert` | Project (live pass, 1 credit) | Start a build; optional `callback_url` |
+| 31a | GET | `/api/books/{id}` | Project | Build status + outputs (the completion signal) |
+| 31b | GET | `/api/books/{id}/outputs` | Project | Output history (metadata) |
+| 31c | GET | `/api/books/{id}/outputs/{oid}/download` | Project | Download one output |
+| 32 | GET | `/api/books/{id}/download/{format}` | Project | Download newest PDF or EPUB |
 | 33 | PUT | `/api/books/{id}/project` | Admin | Link/unlink book to project |
 | 34 | DELETE | `/api/books/{id}` | Admin | Delete a book |
 | 35 | GET | `/api/projects/{id}/book-spec` | Admin | Get book spec (auto-creates) |
@@ -62,13 +65,13 @@ Endpoints with no auth configured on the resource are open-access.
 | 37 | POST | `/api/projects/{id}/book-spec/pull-transmittal` | Admin | Import transmittal→spec fields |
 | 38 | POST | `/api/projects/{id}/book-spec/generate-config` | Admin | Preview Typst config from spec |
 | 39 | POST | `/api/projects/{id}/book-spec/cover` | Admin | Upload cover image |
-| 40 | GET | `/api/projects/{id}/book-spec/cover` | ⚠️ None | Get cover image |
+| 40 | GET | `/api/projects/{id}/book-spec/cover` | Project | Get cover image |
 | 41 | GET | `/api/fonts` | Admin | List available Typst fonts |
 | 42 | POST | `/api/projects/{id}/book-spec/word-template` | Admin | Generate .docx style template |
 | 42a | GET | `/api/projects/{id}/word-template` | Project | Client self-serve .docx template; needs a final transmittal |
-| 43 | POST | `/api/projects/{id}/preflight` | Admin | Run manuscript preflight check |
-| 44 | GET | `/api/projects/{id}/preflight` | Admin | Get latest preflight result |
-| 45 | GET | `/api/projects/{id}/preflight/report` | Admin | Get preflight HTML report |
+| 43 | POST | `/api/projects/{id}/preflight` | Project (live pass) | Run Inspect on a book |
+| 44 | GET | `/api/projects/{id}/preflight` | Project | Latest Inspect result (JSON) |
+| 45 | GET | `/api/projects/{id}/preflight/report` | Project | Inspect HTML report |
 | 46 | POST | `/api/books/{id}/generate-epub` | Admin | Start EPUB generation |
 | 47 | POST | `/api/projects/{id}/transmittal/email` | Project | Email transmittal summary |
 | 48 | POST | `/api/projects/{id}/snapshot/email` | Project | Email project snapshot |
@@ -98,9 +101,51 @@ Endpoints with no auth configured on the resource are open-access.
 | 72 | GET | `/{client}/{project}/` | None | Production calendar SPA |
 | 73 | GET | `/{client}/{project}/transmittal/` | None | Transmittal form SPA |
 
-**⚠️** = Missing auth (see known issues below)
 
 ---
+
+## The factory in five calls
+
+The whole pass is callable without a browser — this is the "your factory
+calls my factory" path. You need a **project token**: the studio mints one
+(`POST /api/projects/{id}/auth {"password": …}`, once) and you send it as
+`X-Auth-Token` on every call. The project must hold a live Factory Pass.
+
+```sh
+H='X-Auth-Token: <token>'; B=https://jdbbs.exe.xyz; P=<project id>
+
+# 1. Transmittal — read the default shape, fill it, mark it final.
+curl -s -H "$H" $B/api/projects/$P/transmittal > tx.json
+#    …edit tx.json (.data.book.title, .data.design.trim = "6 x 9", …)…
+curl -s -H "$H" -X PUT $B/api/projects/$P/transmittal \
+     -H 'Content-Type: application/json' \
+     -d "$(jq '{status:"final", data:.data}' tx.json)"
+
+# 2. Word template (optional — only if a human still has to style the file).
+curl -s -H "$H" -o template.docx $B/api/projects/$P/word-template
+
+# 3. Manuscript.
+BOOK=$(curl -s -H "$H" -F file=@ms.docx -F title='…' -F author='…' -F project_id=$P \
+       $B/api/books/upload | jq .id)
+
+# 4. Inspect — what the factory found and what to fix (JSON; HTML at …/preflight/report).
+curl -s -H "$H" -X POST $B/api/projects/$P/preflight -H 'Content-Type: application/json' \
+     -d "{\"book_id\":$BOOK}"
+curl -s -H "$H" $B/api/projects/$P/preflight | jq .
+
+# 5. Build, then wait for the completion signal (or give a callback_url and be told).
+curl -s -H "$H" -X POST $B/api/books/$BOOK/convert -H 'Content-Type: application/json' \
+     -d '{"format":"both"}'
+until curl -s -H "$H" $B/api/books/$BOOK | jq -e '.status=="ready" or .status=="error"' >/dev/null; do sleep 5; done
+curl -s -H "$H" $B/api/books/$BOOK | jq -r '.outputs[] | "\(.format) \(.download_url)"'
+curl -s -H "$H" -o book.pdf $B/api/books/$BOOK/download/pdf
+```
+
+The build reads the spec at run time; a final transmittal newer than the spec
+is pulled in when you call `convert` (or `preflight`), so step 2 is not needed
+to make step 1 count. Each `convert` costs one build credit; `402` when the
+pass is spent, `409` while another build on the project is still running.
+Test: `srv/machine_factory_test.go`.
 
 ## 1. Health
 
@@ -126,7 +171,7 @@ Health check — verifies the database is reachable.
 
 List all non-archived projects.
 
-**Auth:** ⚠️ None (should require admin — see known issues)  
+**Auth:** Admin  
 **Response:** `200`
 ```json
 [
@@ -545,7 +590,7 @@ List all books without blob data.
 
 Upload a manuscript file (typically .docx).
 
-**Auth:** Admin  
+**Auth:** Project token (with a live Factory Pass on that project) when `project_id` is given; Admin otherwise  
 **Content-Type:** `multipart/form-data`  
 **Form fields:**
 - `file` (required) — the manuscript file, max 50 MB
@@ -566,17 +611,45 @@ Upload a manuscript file (typically .docx).
 
 ### `POST /api/books/{id}/convert`
 
-Start the docx→Typst→PDF conversion pipeline.
+Start a build.
 
-**Auth:** Admin  
-**Response:** `200` `{"status": "converting"}`  
-**Side effects:** Runs conversion asynchronously. Pipeline: pandoc (docx→typst with custom Lua filter) → typst compile → store PDF. Uses the linked project's book spec for typography settings.
+**Auth:** Project token with a live Factory Pass (one build credit per call; `402` when none left; `409` while another build on the project is running); Admin for unlinked books  
+**Request (optional):**
+```json
+{"format": "both", "callback_url": "https://your.machine/hook"}
+```
+`format` is `both` (default: print PDF + EPUB), `pdf` or `epub`. `callback_url`, if given, receives one `POST` with the same JSON as `GET /api/books/{id}` when the build finishes (success or failure). It must be a public http(s) URL — loopback, private and link-local targets are refused with `400`; redirects are not followed; no retry.  
+**Response:** `200`
+```json
+{"status": "converting", "format": "both", "book_id": 41, "status_url": "/api/books/41"}
+```
+**Side effects:** If the project's transmittal is **final** and was saved after the book spec was last written, the transmittal is pulled into the spec first — so a machine that PUTs a transmittal and POSTs a build gets the spec it just sent, with no template download in between. Then, asynchronously: pandoc (docx→typst with the house Lua filter) → typst compile → store PDF → EPUB. Debits the credit up front; a failed build refunds it.
+
+### `GET /api/books/{id}`
+
+Build status — the completion signal. Poll until `status` is `ready` or `error`.
+
+**Auth:** Project  
+**Response:** `200`
+```json
+{
+  "book_id": 41, "project_id": 18, "title": "…", "author": "…", "source_filename": "ms.docx",
+  "status": "ready",
+  "error": "",
+  "updated_at": "2026-09-18T16:40:02Z",
+  "outputs": [
+    {"id": 90, "format": "pdf",  "size_bytes": 812345, "created_at": "…", "download_url": "/api/books/41/outputs/90/download"},
+    {"id": 91, "format": "epub", "size_bytes": 143210, "created_at": "…", "download_url": "/api/books/41/outputs/91/download"}
+  ]
+}
+```
+`status` is `uploaded` (never built), `converting`, `ready` or `error`. A `ready` build can still carry a non-fatal `error` note (e.g. the PDF built but the EPUB didn't). Outputs are newest first, up to 20.
 
 ### `GET /api/books/{id}/download/{format}`
 
-Download the generated PDF or EPUB.
+Download the newest generated PDF or EPUB.
 
-**Auth:** ⚠️ None (see known issues)  
+**Auth:** Project (admin for unlinked books)  
 **Path params:** `id` — book ID, `format` — `pdf` or `epub`  
 **Response:** Binary file with appropriate Content-Type and Content-Disposition headers.  
 **Errors:** `404` if format not generated yet.
@@ -693,7 +766,7 @@ Upload a cover image.
 
 Serve the cover image.
 
-**Auth:** ⚠️ None (see known issues)  
+**Auth:** Project  
 **Response:** Binary image with Content-Type header. Cached for 1 hour.  
 **Errors:** `404` if no cover uploaded.
 
@@ -738,9 +811,10 @@ Automated analysis of .docx manuscripts for edge cases, style issues, and image 
 
 ### `POST /api/projects/{id}/preflight`
 
-Run a preflight check on a book's source manuscript.
+Run Inspect on a book's source manuscript.
 
-**Auth:** Admin  
+**Auth:** Project token with a live Factory Pass (the book must belong to this project); Admin  
+**Side effect:** same spec refresh rule as `convert` — a final transmittal newer than the spec is pulled in first.  
 **Request:**
 ```json
 {"book_id": 4}
@@ -1263,14 +1337,12 @@ Sub-paths like `/{client}/{project}/style.css` serve static assets.
 
 ## Known Issues
 
-| Issue | Severity | Route | Description |
-|-------|----------|-------|-------------|
-| Missing auth on project list | HIGH | `GET /api/projects` | Returns all projects to unauthenticated requests |
-| Missing auth on book download | HIGH | `GET /api/books/{id}/download/{format}` | Anyone with a book ID can download PDFs/EPUBs |
-| Missing auth on cover image | LOW | `GET /api/projects/{id}/book-spec/cover` | Cover images are publicly accessible |
-| SHA-256 password hashing | HIGH | `checkAuth()`, `handleAdminCreateClient()` | Uses SHA-256 instead of bcrypt |
-| API key in git history | HIGH | `SESSION-SUMMARY.txt` | AgentMail API key committed to repo |
+The five issues listed here on 2026-04-14 (unauthenticated project list, book
+download and cover image; SHA-256 passwords; API key in git history) have all
+been fixed: those routes now require admin or project auth, passwords are
+bcrypt, and the key was rotated. Current review state lives in
+`docs/reviews/LAUNCH-TRIAGE.md`.
 
 ---
 
-*Generated 2026-04-14. 73 routes documented (71 registered + 2 catch-all patterns).*
+*Generated 2026-04-14; auth column and factory routes corrected 2026-09-18 (see `srv/server.go` for the live route list).*

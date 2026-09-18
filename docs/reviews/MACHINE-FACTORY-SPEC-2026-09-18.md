@@ -44,3 +44,30 @@ beat 8 is literally true: four interfaces, all four callable, and beat 9's
 
 **Decision needed:** ok to say in the talk that this exists as an API today
 (it does, with the caveats above), and land the polish after Wednesday?
+
+## Landed (same day, after Jenna's "lgtm")
+
+- **(1) Spec sync** — `syncSpecFromTransmittal` (`srv/bookspecs.go`) is the
+  one rule: a *final* transmittal saved after the spec was written is pulled
+  into the spec; otherwise the stored spec wins. Used by the Word template
+  (as before), and now by `POST …/preflight` and `POST /api/books/{id}/convert`.
+  Drafts never overwrite the studio's spec.
+- **(2) Completion signal** — `GET /api/books/{id}` returns
+  `{book_id, project_id, status, error, updated_at, outputs:[{id, format,
+  size_bytes, created_at, download_url}]}`. `convert` accepts `callback_url`
+  and POSTs the same JSON once when the build finishes; `convert` now returns
+  `status_url`. Callback targets are vetted (http/https, no credentials, no
+  loopback/private/link-local by literal or by DNS, redirects not followed,
+  15 s timeout, no retry); result noted on the Floor as `build.callback`.
+- **(3) Token issue** — still admin-minted, by design for now.
+- **(4) Docs** — `docs/API.md`: auth column corrected (upload/convert/preflight
+  are Project + live pass), new rows 31a–c, `GET /api/books/{id}` documented,
+  "The factory in five calls" curl walkthrough, stale Known Issues table
+  replaced with a pointer to LAUNCH-TRIAGE.
+- **Test** — `srv/machine_factory_test.go`: token → PUT final transmittal →
+  upload → convert with callback → poll GET until ready → download; asserts
+  the spec was refreshed at convert time with no template download, and the
+  callback body matches the GET. Plus `TestCallbackURLRejectsLocalTargets`.
+- **Deck** — slide 9 now "All four exist" (the call: "exists — as of this
+  week"), slide 10's machine column names the live routes, slide 11 invites
+  the first second factory to ask for a token.

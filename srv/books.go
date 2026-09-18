@@ -1,13 +1,17 @@
 package srv
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -265,17 +269,28 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	// and it costs one build credit. "epub" and "pdf" alone are accepted for
 	// the API and cost the same one credit — a build is a build.
 	format := "both"
+	callbackURL := ""
 	if r.Body != nil && r.ContentLength != 0 {
 		var body struct {
-			Format string `json:"format"`
+			Format      string `json:"format"`
+			CallbackURL string `json:"callback_url"`
 		}
-		if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&body); err == nil && body.Format != "" {
-			format = strings.ToLower(strings.TrimSpace(body.Format))
+		if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&body); err == nil {
+			if body.Format != "" {
+				format = strings.ToLower(strings.TrimSpace(body.Format))
+			}
+			callbackURL = strings.TrimSpace(body.CallbackURL)
 		}
 	}
 	if format != "epub" && format != "pdf" && format != "both" {
 		jsonErr(w, "format must be epub, pdf or both", 400)
 		return
+	}
+	if callbackURL != "" {
+		if err := validateCallbackURL(callbackURL, s.allowLocalCallbacks); err != nil {
+			jsonErr(w, "callback_url: "+err.Error(), 400)
+			return
+		}
 	}
 
 	var pass *dbgen.Pass
@@ -317,6 +332,16 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A final transmittal saved since the spec was written refreshes the
+	// spec now, so the build uses what the author (or their machine) sent
+	// without a template download in between.
+	if book.ProjectID.Valid {
+		if _, err := s.syncSpecFromTransmittal(r.Context(), book.ProjectID.Int64, false); err != nil {
+			jsonErr(w, "spec: "+err.Error(), 500)
+			return
+		}
+	}
+
 	// Debit before starting so a crashed or killed build can never hand out a
 	// free one; failConversion refunds. Debited for admins too when a pass
 	// exists (see the contract).
@@ -343,10 +368,182 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		s.factoryEventR(r, book.ProjectID.Int64, "build.started", fmt.Sprintf("book %d, %s%s", bid, format, left))
 	}
 
-	// Run conversion in background
-	go s.runConversion(bid, book, format)
+	// Run conversion in background; tell the caller's machine when it lands.
+	go func() {
+		s.runConversion(bid, book, format)
+		if callbackURL != "" {
+			s.postBuildCallback(callbackURL, bid)
+		}
+	}()
 
-	jsonOK(w, map[string]string{"status": "converting", "format": format})
+	jsonOK(w, map[string]any{
+		"status": "converting", "format": format, "book_id": bid,
+		"status_url": fmt.Sprintf("/api/books/%d", bid),
+	})
+}
+
+// ─── Build status: GET /api/books/{id} and the optional callback ───
+//
+// The machine-callable end of the factory (MACHINE-FACTORY-SPEC §2). One
+// JSON shape answers "is it done, and where are the files": returned by
+// GET /api/books/{id}, and POSTed to callback_url when a build finishes.
+
+type buildStatusOutput struct {
+	ID          int64     `json:"id"`
+	Format      string    `json:"format"`
+	SizeBytes   int64     `json:"size_bytes"`
+	CreatedAt   time.Time `json:"created_at"`
+	DownloadURL string    `json:"download_url"`
+}
+
+type buildStatus struct {
+	BookID    int64               `json:"book_id"`
+	ProjectID *int64              `json:"project_id"`
+	Title     string              `json:"title"`
+	Author    string              `json:"author"`
+	Filename  string              `json:"source_filename"`
+	Status    string              `json:"status"` // uploaded | converting | ready | error
+	Error     string              `json:"error,omitempty"`
+	UpdatedAt time.Time           `json:"updated_at"`
+	Outputs   []buildStatusOutput `json:"outputs"`
+}
+
+func (s *Server) buildStatusFor(ctx context.Context, bid int64) (*buildStatus, error) {
+	q := dbgen.New(s.DB)
+	book, err := q.GetBook(ctx, bid)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListBookOutputs(ctx, dbgen.ListBookOutputsParams{BookID: bid, Limit: 20})
+	if err != nil {
+		return nil, err
+	}
+	st := &buildStatus{
+		BookID: book.ID, Title: book.Title, Author: book.Author, Filename: book.SourceFilename,
+		Status: book.Status, Error: book.ErrorMsg, UpdatedAt: book.UpdatedAt,
+		Outputs: make([]buildStatusOutput, 0, len(rows)),
+	}
+	if book.ProjectID.Valid {
+		pid := book.ProjectID.Int64
+		st.ProjectID = &pid
+	}
+	for _, row := range rows {
+		st.Outputs = append(st.Outputs, buildStatusOutput{
+			ID: row.ID, Format: row.OutputFormat, SizeBytes: row.SizeBytes.Int64, CreatedAt: row.CreatedAt,
+			DownloadURL: fmt.Sprintf("/api/books/%d/outputs/%d/download", bid, row.ID),
+		})
+	}
+	return st, nil
+}
+
+// handleGetBook is the completion signal for a build: poll it after convert
+// until status is "ready" or "error". Same auth as the outputs list.
+func (s *Server) handleGetBook(w http.ResponseWriter, r *http.Request) {
+	bid, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, "bad id", 400)
+		return
+	}
+	if _, ok := s.bookAuth(w, r, bid); !ok {
+		return
+	}
+	st, err := s.buildStatusFor(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, "not found", 404)
+		return
+	}
+	jsonOK(w, st)
+}
+
+// validateCallbackURL keeps callback_url from being used to make the server
+// poke at itself or its neighbours (SSRF): http(s) only, a hostname, and no
+// loopback / private / link-local address — checked on the literal and on
+// what the name resolves to.
+func validateCallbackURL(raw string, allowLocal bool) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return errors.New("must be http or https")
+	}
+	host := u.Hostname()
+	if host == "" {
+		return errors.New("missing host")
+	}
+	if u.User != nil {
+		return errors.New("credentials in the URL are not allowed")
+	}
+	if allowLocal {
+		return nil
+	}
+	if strings.EqualFold(host, "localhost") || strings.HasSuffix(strings.ToLower(host), ".localhost") {
+		return errors.New("localhost is not allowed")
+	}
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return fmt.Errorf("cannot resolve %s", host)
+	}
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() {
+			return fmt.Errorf("%s resolves to a private or local address", host)
+		}
+	}
+	return nil
+}
+
+// postBuildCallback POSTs the build status JSON to the caller's URL once,
+// after the build has finished. Best effort: a failure is logged and noted on
+// the Floor, never retried — the caller can always GET /api/books/{id}.
+func (s *Server) postBuildCallback(callbackURL string, bid int64) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	st, err := s.buildStatusFor(ctx, bid)
+	if err != nil {
+		slog.Error("build callback: status lookup failed", "book_id", bid, "err", err)
+		return
+	}
+	body, _ := json.Marshal(st)
+	req, err := http.NewRequestWithContext(ctx, "POST", callbackURL, bytes.NewReader(body))
+	if err != nil {
+		slog.Error("build callback: bad request", "book_id", bid, "err", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "jdbb-factory/1.0 (+https://jdbbs.exe.xyz/factory)")
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse // no following redirects into places we did not vet
+		},
+	}
+	resp, err := client.Do(req)
+	detail := fmt.Sprintf("book %d → %s", bid, redactURL(callbackURL))
+	if err != nil {
+		slog.Warn("build callback failed", "book_id", bid, "url", redactURL(callbackURL), "err", err)
+		detail += ": " + clip(err.Error(), 200)
+	} else {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+		detail += fmt.Sprintf(": HTTP %d", resp.StatusCode)
+		if resp.StatusCode >= 300 {
+			slog.Warn("build callback rejected", "book_id", bid, "url", redactURL(callbackURL), "status", resp.StatusCode)
+		}
+	}
+	if st.ProjectID != nil {
+		s.factoryEvent(*st.ProjectID, "", "build.callback", "factory", detail)
+	}
+}
+
+// redactURL drops the query string (where tokens tend to live) for logs.
+func redactURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "(unparseable url)"
+	}
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String()
 }
 
 // epubOutputsKept is how many EPUB outputs a book keeps; older ones are

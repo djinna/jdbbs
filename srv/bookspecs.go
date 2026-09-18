@@ -958,6 +958,60 @@ func serveWordTemplate(w http.ResponseWriter, projectName string, docx []byte) {
 	w.Write(docx)
 }
 
+var errTransmittalNotFinal = errors.New("fill in the transmittal and mark it final first")
+
+// syncSpecFromTransmittal is the one rule for "which spec do we build from".
+// If the project's transmittal is final and has been saved since the book
+// spec was last written (or there is no spec yet), the transmittal is pulled
+// into the spec first; otherwise the spec as stored (the studio's later
+// edits) wins. Returns the spec JSON to use.
+//
+// requireFinal: the Word template refuses without a final transmittal
+// (errTransmittalNotFinal). Inspect and build don't — they just build from
+// whatever spec exists, and only a *final* transmittal is allowed to refresh
+// it, so a half-filled draft never overwrites the studio's spec. This is what
+// makes the factory callable end to end without a browser: a machine that
+// PUTs a final transmittal and POSTs a build gets the spec it just sent,
+// with no need to download the template in between (MACHINE-FACTORY-SPEC §1).
+func (s *Server) syncSpecFromTransmittal(ctx context.Context, pid int64, requireFinal bool) (string, error) {
+	var txStatus string
+	var txUpdated time.Time
+	err := s.DB.QueryRowContext(ctx,
+		`SELECT status, updated_at FROM transmittals WHERE project_id = ?`, pid,
+	).Scan(&txStatus, &txUpdated)
+	haveTx := err == nil
+	if err != nil && err != sql.ErrNoRows {
+		return "", err
+	}
+	final := haveTx && txStatus == "final"
+	if requireFinal && !final {
+		return "", errTransmittalNotFinal
+	}
+
+	q := dbgen.New(s.DB)
+	spec, err := q.GetBookSpec(ctx, pid)
+	switch {
+	case err == sql.ErrNoRows:
+		if !final {
+			full, uErr := q.UpsertBookSpec(ctx, dbgen.UpsertBookSpecParams{ProjectID: pid, Data: defaultSpecData()})
+			if uErr != nil {
+				return "", uErr
+			}
+			return full.Data, nil
+		}
+		// no spec yet and a final transmittal: pull below
+	case err != nil:
+		return "", err
+	case !final || spec.UpdatedAt.After(txUpdated): // strictly newer: timestamps are whole seconds, so ties re-pull
+		return spec.Data, nil
+	}
+	newData, err := s.pullTransmittalIntoSpec(ctx, pid)
+	if err != nil {
+		return "", err
+	}
+	return string(newData), nil
+}
+
 // handleClientWordTemplate is the self-serve Word template for the client:
 // once the transmittal is marked final, GET returns the .docx generated from
 // it. If the transmittal has been saved since the spec was last refreshed,
@@ -973,44 +1027,16 @@ func (s *Server) handleClientWordTemplate(w http.ResponseWriter, r *http.Request
 	if !s.requireAuth(w, r, pid) {
 		return
 	}
-	var txStatus string
-	var txUpdated time.Time
-	err = s.DB.QueryRowContext(r.Context(),
-		`SELECT status, updated_at FROM transmittals WHERE project_id = ?`, pid,
-	).Scan(&txStatus, &txUpdated)
-	if err == sql.ErrNoRows {
-		jsonErr(w, "fill in the transmittal and mark it final first", 409)
-		return
-	}
+	specJSON, err := s.syncSpecFromTransmittal(r.Context(), pid, true)
 	if err != nil {
-		jsonErr(w, err.Error(), 500)
-		return
-	}
-	if txStatus != "final" {
-		jsonErr(w, "mark the transmittal final first", 409)
-		return
-	}
-
-	q := dbgen.New(s.DB)
-	spec, err := q.GetBookSpec(r.Context(), pid)
-	specJSON := ""
-	switch {
-	case err == sql.ErrNoRows:
-		// no spec yet: pull below
-	case err != nil:
-		jsonErr(w, err.Error(), 500)
-		return
-	case spec.UpdatedAt.After(txUpdated): // strictly newer: timestamps are whole seconds, so ties re-pull
-		specJSON = spec.Data
-	}
-	if specJSON == "" {
-		newData, err := s.pullTransmittalIntoSpec(r.Context(), pid)
-		if err != nil {
-			jsonErr(w, err.Error(), 500)
-			return
+		status := 500
+		if errors.Is(err, errTransmittalNotFinal) {
+			status = 409
 		}
-		specJSON = string(newData)
+		jsonErr(w, err.Error(), status)
+		return
 	}
+	q := dbgen.New(s.DB)
 
 	docx, err := generateWordTemplate(specJSON)
 	if err != nil {
