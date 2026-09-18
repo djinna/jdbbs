@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 19:14 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 20:13 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -49,6 +49,33 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
 
   > **shelley** · 2026-09-18 19:14 UTC  
   > Gone for customers (History · Duplicate · Print · Word template remain). You still see “Email” on the admin side. Live; reload.
+
+- [~] 0.6 New: in the work session we just had, both of the people I was teaching to use the factory had trouble with Word. Neither of them has a current license, and in one case, we were finally barely able to make the Claude Word work. In the other case, we tried using Pages, but couldn't get it to honor Word's style sheets. I don't know, maybe we could have fought with it some more. That person also tried giving the template and the exported Google Doc in a docx format to Claude to say, "Just do it for me," and that document also failed. We were able to upload it, but it didn't pass the inspection. It could be inspected, but it didn't pass the build, so something inside of it was just still a mess.  See if you can find out some resources I can give our participants in the workshop on Monday for how to use Word better, or how to get access. Surely, this is going to be a real pain point for a lot of people, and we should think about it.  ·  _added Fri 20:06 UTC_
+
+  > **shelley** · 2026-09-18 20:12 UTC  
+  > First, the failed build: I pulled the two files that failed this afternoon (books 22–25 on Obliquities) and the problem was ours, not the documents. Two pipeline bugs, both fixed and live:
+  >
+  > 1. The Foreword ended with a Signature-styled paragraph; the body-start hook got dropped *inside* that block, and Typst refuses a page break inside a container. (Your Obliquities_1_rollup…templated.docx — rebuilt fine just now, 77 pp, credit refunded on the failures so net one build.)
+  > 2. An email address inside a block quote (production@protocol-institute.org) was read by Typst as a label reference. Quotes are now rendered properly — that also fixes italics being lost inside quotes, which was a quiet bug.
+  >
+  > Also: failed builds now keep their working files on the server so I can diagnose in a minute instead of guessing.
+  >
+  > So “Claude, just do it for me” actually produced a usable file. Resources for the Word-access question coming in the next note.
+
+  > **shelley** · 2026-09-18 20:13 UTC  
+  > Resources for Monday — “I don’t have Word.” Four honest routes, best first:
+  >
+  > 1. **Word for the web (free).** office.com → sign in with any free Microsoft account → upload the template .docx to OneDrive and open it. The Home tab’s Styles gallery shows our template styles (I checked: the template flags them as quick styles, which is exactly what Word online lists). Apply styles, download as .docx. Limits: no custom-style *creation*, no macros — neither matters for us. This is the one to put on the slide. Microsoft’s own how-to: support.microsoft.com → “Use styles in Word for the web”.
+  >
+  > 2. **LibreOffice Writer (free, offline, Mac/Windows/Linux).** libreoffice.org. Opens the template with its styles intact; Styles sidebar is F11 (or View → Styles); File → Save As → Word 2007–365 (.docx). Honors Word paragraph styles far better than Pages. Skip Pages for this — it renames styles on export and that’s what bit us today.
+  >
+  > 3. **Google Docs + style markers (free, shipped this afternoon).** Write with Docs’ Heading 1/2/3 as usual, and where a paragraph needs a template style type a marker at its start: [[quote]], [[code]], [[verse]], [[caption]]… ([[/quote]] at the end of a run). File → Download → .docx, upload to the factory; Inspect lists them under “Marked styles” and the build applies them. No Word at all. The one-line explainer is already on the factory page under “Drafting in Google Docs?”.
+  >
+  > 4. **Pay once, briefly.** Microsoft 365 Personal has a one-month free trial (cancel before it bills); Word on iPad is free on screens under 10.1″; anyone with a .edu address usually has Microsoft 365 free through their school. Buying Word outright (Office Home 2024, ~$150) is the no-subscription option.
+  >
+  > And the “Claude, just do it” route: it worked — the file was fine, the build bug was ours (see note above). Worth saying out loud on Monday: “hand the template + your Google Doc export to Claude, ask it to move the text into the template’s styles” is a legitimate path now, with Inspect as the check.
+  >
+  > Suggestion: I can add a short “No Word? Three ways in” box to the factory page and the workshop page with exactly the above — say yes and it’s twenty minutes.
 
 
 ## 2 · Your side — YOU
