@@ -48,6 +48,7 @@ type BookMapSection struct {
 	Title string `json:"title"`
 	Kind  string `json:"kind"`  // "front" | "body" | "back" | "title" (dropped) | "toc" (dropped)
 	Paras int    `json:"paras"` // paragraphs under the heading, before the next H1
+	Words int    `json:"words"` // whitespace-separated words under the heading (C7: shown as "from your manuscript")
 }
 
 // BookMapUntitled is one untitled front-matter block (before the first H1).
@@ -79,6 +80,15 @@ type BookMap struct {
 	Notes         []string          `json:"notes"`    // things we did that the author should know (low)
 	SummaryLine   string            `json:"summary"`  // Summary(), stored so JSON consumers get it
 	Parts         bool              `json:"parts"`    // spec opt-in: H1 = part, H2 = chapter
+	Words         int               `json:"words"`    // words in the whole file after Title/Subtitle are dropped (C7)
+	Images        int               `json:"images"`   // paragraphs carrying an inline image (C7)
+	Counted       bool              `json:"counted"`  // Words/Images were computed (false on reports stored before C7)
+}
+
+// wordCount counts whitespace-separated tokens — the same rough number Word
+// shows in its status bar, good enough for "about how long is this book".
+func wordCount(text string) int {
+	return len(strings.Fields(text))
 }
 
 // Front / Body / Back return the H1 titles of each kind, in order.
@@ -232,7 +242,7 @@ func buildBookMap(paras []docxPara, untitledNames []string, bookTitle, bookAutho
 }
 
 func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle, bookAuthor string) *BookMap {
-	m := &BookMap{UntitledFront: []BookMapUntitled{}, Sections: []BookMapSection{}, Warnings: []string{}, Notes: []string{}}
+	m := &BookMap{UntitledFront: []BookMapUntitled{}, Sections: []BookMapSection{}, Warnings: []string{}, Notes: []string{}, Counted: true}
 
 	// Title / Subtitle: dropped, reported.
 	var body []docxPara
@@ -254,6 +264,10 @@ func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle, book
 			continue
 		}
 		body = append(body, p)
+		m.Words += wordCount(p.Text)
+		if p.HasImage {
+			m.Images++
+		}
 	}
 	if m.Title != "" {
 		m.Notes = append(m.Notes, fmt.Sprintf("Title-styled paragraph “%s” dropped: the title page is generated from the transmittal.", m.Title))
@@ -449,7 +463,11 @@ func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle, book
 		}
 	}
 	for i, sp := range spans {
-		m.Sections = append(m.Sections, BookMapSection{Title: sp.title, Kind: kinds[i], Paras: len(sp.paras)})
+		words := wordCount(sp.title)
+		for _, p := range sp.paras {
+			words += wordCount(p.Text)
+		}
+		m.Sections = append(m.Sections, BookMapSection{Title: sp.title, Kind: kinds[i], Paras: len(sp.paras), Words: words})
 	}
 	return m
 }

@@ -65,6 +65,7 @@ let state = {
   emailSending: false,
   emailResult: null, // {ok, error}
   emailConfigured: null, // null=unknown, true, false
+  manuscript: null, // C7: {hasFile, filename, inspected, chapters, words, images} from the newest upload
 };
 
 // ─── Auto-save with debounce ───
@@ -268,6 +269,41 @@ async function loadTransmittal() {
   const tx = await api('/api/projects/' + state.projectId + '/transmittal');
   state.transmittal = tx;
   state.view = 'form';
+  render();
+  loadManuscriptStats();
+}
+
+// C7: Chapters / Words / Images are no longer typed in — they are read off the
+// newest uploaded manuscript (its Inspect book map). Fails quietly: the row
+// then says "counted at upload".
+async function loadManuscriptStats() {
+  try {
+    const rows = await api('/api/projects/' + state.projectId + '/books');
+    const list = (Array.isArray(rows) ? rows : []).filter(b => b && b.ID);
+    list.sort((a, b) => (new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0)) || (b.ID - a.ID));
+    const cur = list[0];
+    if (!cur) { state.manuscript = { hasFile: false }; render(); return; }
+    const ms = { hasFile: true, filename: cur.SourceFilename || '', bookId: cur.ID };
+    try {
+      const pf = await api('/api/projects/' + state.projectId + '/preflight?book_id=' + cur.ID);
+      const bm = pf && pf.book_map;
+      if (bm && Array.isArray(bm.sections)) {
+        ms.inspected = true;
+        ms.chapters = bm.sections.filter(s => s.kind === 'body').length;
+        // Reports stored before C7 carry no counts (counted=false): say so
+        // rather than showing 0.
+        ms.words = bm.counted ? bm.words : null;
+        ms.images = bm.counted ? bm.images : (Array.isArray(pf.images) ? pf.images.length : null);
+        ms.inspectedAt = pf.updated_at || '';
+      }
+    } catch (e) { /* not inspected yet */ }
+    state.manuscript = ms;
+  } catch (e) {
+    state.manuscript = { hasFile: false };
+  }
+  // Don't yank focus from someone already typing; the row fills on the next render.
+  const a = document.activeElement;
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT')) return;
   render();
 }
 
@@ -670,7 +706,7 @@ function renderChecklistSection() {
   const d = state.transmittal.data;
   const checklist = d.checklist || [];
   const backmatter = d.backmatter || [];
-  const stats = d.checklist_stats || {};
+  const manuscriptStats = renderManuscriptStats();
 
   function updateChecklistRow(collectionName, collection, index, nextStatus) {
     const item = collection[index];
@@ -754,18 +790,20 @@ function renderChecklistSection() {
       )),
       h('tbody', null,
         ...checklistRows,
-        // Stats rows
+        // Stats row. C7: only Parts is typed (it is the parts opt-in for the
+        // build); Chapters / Words / Images are read off the newest upload.
+        // Old checklist_stats.chapters / words_chars / ms_pp / est_book_pp
+        // keys stay in the JSON, just not shown.
         h('tr', { className: 'stats-row' },
           h('td', { colspan: '3' },
-            h('div', { className: 'tx-row' },
-              textField('Parts', 'checklist_stats.parts'),
-              textField('Chapters', 'checklist_stats.chapters'),
+            h('div', { className: 'tx-row-3 tx-stats-grid' },
+              textField('Parts', 'checklist_stats.parts', {
+                placeholder: 'none',
+                helpText: '1 or more if the book has parts; blank or “none” if not. With parts, Heading 1 = part, Heading 2 = chapter.',
+              }),
+              ...manuscriptStats.fields,
             ),
-            h('div', { className: 'tx-row-3' },
-              textField('Words/Chars', 'checklist_stats.words_chars'),
-              textField('MS pp', 'checklist_stats.ms_pp'),
-              textField('Est. Book pp', 'checklist_stats.est_book_pp'),
-            ),
+            manuscriptStats.note,
           ),
         ),
         // Back matter header
@@ -774,6 +812,40 @@ function renderChecklistSection() {
       ),
     ),
   );
+}
+
+// ─── Manuscript stats (C7) ───
+// Read-only "from your manuscript" values. Three states: no file yet, file
+// uploaded but not inspected (or inspected before word counts existed),
+// inspected. Never asks the author to type what the factory can count.
+function readonlyStat(label, value, help) {
+  return h('div', { className: 'tx-field tx-readonly' },
+    h('label', null, label),
+    h('div', { className: 'tx-readonly-value' + (value == null ? ' tx-readonly-empty' : '') },
+      value == null ? '\u2014' : String(value)),
+    help ? h('div', { className: 'tx-help' }, help) : null,
+  );
+}
+
+function renderManuscriptStats() {
+  const ms = state.manuscript;
+  const factoryUrl = '/' + state.pathClient + '/' + state.pathProject + '/factory/';
+  const fmtN = (n) => (typeof n === 'number' ? n.toLocaleString('en-US') : null);
+  const ok = !!(ms && ms.inspected);
+  let note;
+  if (!ms) note = 'Checking your manuscript\u2026';
+  else if (!ms.hasFile) note = h('span', null, 'Chapters, words and images are counted at upload \u2014 upload your manuscript on the ', h('a', { href: factoryUrl }, 'factory page'), '.');
+  else if (!ms.inspected) note = h('span', null, 'Chapters, words and images are counted when you Inspect ', h('b', null, ms.filename || 'your file'), ' on the ', h('a', { href: factoryUrl }, 'factory page'), '.');
+  else if (ms.words == null) note = h('span', null, 'From ', h('b', null, ms.filename || 'your manuscript'), '. ', h('a', { href: factoryUrl }, 'Inspect again'), ' for a word count.');
+  else note = h('span', null, 'From ', h('b', null, ms.filename || 'your manuscript'), ms.inspectedAt ? ', inspected ' + fmtDate(ms.inspectedAt) : '', '. Chapters are body sections; front and back matter are not counted.');
+  return {
+    fields: [
+      readonlyStat('Chapters', ok ? fmtN(ms.chapters) : null),
+      readonlyStat('Words', ok ? fmtN(ms.words) : null),
+      readonlyStat('Images', ok ? fmtN(ms.images) : null),
+    ],
+    note: h('div', { className: 'tx-help tx-stats-note' }, note),
+  };
 }
 
 // ─── Section: Illustrations ───

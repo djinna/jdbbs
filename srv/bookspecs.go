@@ -375,6 +375,17 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 		specData["custom_styles"] = mapped
 	}
 
+	// Parts opt-in (C7 / P4 step 6): the transmittal's Parts count becomes the
+	// spec's structure.parts flag, which specHasParts reads at build time.
+	// (Before this the count never left the transmittal, so the opt-in only
+	// worked when the spec was edited by hand.)
+	if cs, ok := tx["checklist_stats"].(map[string]any); ok {
+		if _, present := cs["parts"]; present {
+			st := ensureMap(specData, "structure")
+			st["parts"] = specHasParts(map[string]any{"checklist_stats": cs})
+		}
+	}
+
 	// Save
 	newData, _ := json.Marshal(specData)
 	_, err = q.UpsertBookSpec(ctx, dbgen.UpsertBookSpecParams{

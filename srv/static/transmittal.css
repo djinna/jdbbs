@@ -491,14 +491,25 @@ html.dark .tx-checklist td { border-bottom-color: var(--border); }
   outline: none;
   border-bottom-color: var(--accent);
 }
-/* Stats row (Parts / Chapters / Words / MS pp / Est. pp) holds ordinary
-   labelled fields, not inline row fields: keep the standard underline. */
+/* Stats row (C7): Parts is the one typed field (standard underline); Chapters /
+   Words / Images are read-only values counted from the uploaded manuscript. */
 .tx-checklist .stats-row .tx-field input[type="text"] {
   padding: 5px 2px;
   font-size: 13px;
   border-bottom-color: var(--border-strong);
 }
 .tx-checklist .stats-row .tx-field input[type="text"]:focus { border-bottom-color: var(--accent); }
+.tx-stats-grid { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+.tx-readonly-value {
+  padding: 5px 2px;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px dotted var(--border);
+  min-height: 1.5em;
+}
+.tx-readonly-value.tx-readonly-empty { color: var(--text-muted); }
+.tx-readonly .tx-help a, .tx-stats-note a { color: var(--accent); }
+.tx-stats-note { margin-top: 6px; }
 .tx-checklist input[type="date"]:disabled {
   background: none;
   color: var(--text-muted);
