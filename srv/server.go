@@ -358,6 +358,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /factory", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "factory.html")
 	})
+	// Plain-English terms (C11): linked from the offer page's Storage &
+	// privacy section and from the transmittal's rights attestation.
+	mux.HandleFunc("GET /factory/terms", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "factory-terms.html")
+	})
 	// Store (Stripe Checkout). All 404 unless PRODCAL_STORE=on; see store.go.
 	mux.HandleFunc("POST /api/public/store/checkout", s.handleStoreCheckout)
 	mux.HandleFunc("GET /api/public/store/session", s.handleStoreSession)

@@ -510,6 +510,16 @@ html.dark .tx-checklist td { border-bottom-color: var(--border); }
 .tx-readonly-value.tx-readonly-empty { color: var(--text-muted); }
 .tx-readonly .tx-help a, .tx-stats-note a { color: var(--accent); }
 .tx-stats-note { margin-top: 6px; }
+.tx-attest {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; margin-top: 4px;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  font-size: 13px; line-height: 1.45; cursor: pointer;
+}
+.tx-attest input { margin-top: 3px; flex: none; }
+.tx-attest span { text-transform: none; letter-spacing: 0; font-size: 13px; line-height: 1.45; }
+.tx-attest-on { border-color: var(--accent); }
+.tx-illus-guide a { color: var(--accent); }
 .tx-checklist input[type="date"]:disabled {
   background: none;
   color: var(--text-muted);

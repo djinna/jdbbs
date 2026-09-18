@@ -41,7 +41,7 @@ func defaultTransmittalData() string {
     {"component":"Other BM","status":"","here_now":false,"to_come_when":""}
   ],
   "illustrations": {"figures_no":0,"figures_here":false,"figures_to_come":"","tables_no":0,"tables_here":false,"tables_to_come":"","photos_no":0,"photos_here":false,"photos_to_come":"","other_no":0,"other_here":false,"other_to_come":"","art_plan":""},
-  "permissions": {"reprint_status":"","reprint_when":"","consents_status":"","consents_when":""},
+  "permissions": {"attested":false,"attested_at":""},
   "page_iv": {"copyright_year":"","held_by":"","credit":"","other_credit":"","photo_credit":""},
   "subrights": {"copub":"na","title_page":"na","page_iv":"na","cover":"na","remove_mktg":"na"},
   "editing": {"special_characters":"","math_formulas":""},
@@ -497,6 +497,11 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 		prod["weeks_in_production"] = ""
 		prod["target_date"] = ""
 		// Keep: print_run
+	}
+	// A new book needs its own rights attestation (C11).
+	if perm, ok := d["permissions"].(map[string]any); ok {
+		perm["attested"] = false
+		perm["attested_at"] = ""
 	}
 	if stats, ok := d["checklist_stats"].(map[string]any); ok {
 		for k := range stats {

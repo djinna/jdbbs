@@ -872,23 +872,30 @@ function renderIllustrationsSection() {
 }
 
 // ─── Section: Permissions ───
+// C11: the press-era status/date tracking (reprint_status, reprint_when,
+// consents_status, consents_when) is gone — the factory does not clear
+// rights. One courtesy line, one attestation checkbox, a timestamp. The old
+// permissions.* keys stay in the JSON, just not shown.
+const ATTESTATION_TEXT = 'Everything in this manuscript is mine or I have permission to reprint it. The factory typesets what I send; clearing rights is my responsibility.';
+
 function renderPermissionsSection() {
+  const attested = !!getField('permissions.attested');
+  const at = getField('permissions.attested_at');
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Permissions & Consents'),
-    h('div', { className: 'tx-field' },
-      h('label', null, 'Permissions (reprint material)'),
-      selectField('', 'permissions.reprint_status', [
-        ['','— Select —'],['no_permissions','No permissions needed'],['permissions_needed','Permissions needed'],['permissions_pending','Permissions pending']
-      ]),
+    h('div', { className: 'tx-section-header' }, 'Rights'),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'A courtesy, not a check: if the book quotes at length, reprints someone else\u2019s work or uses photographs you did not take, make sure you hold the permissions before you build. The factory cannot tell, and does not look. The full terms are on the ',
+      h('a', { href: '/factory/terms', target: '_blank', rel: 'noopener' }, 'terms page'), '.'),
+    h('label', { className: 'tx-check tx-attest' + (attested ? ' tx-attest-on' : '') },
+      h('input', { type: 'checkbox', checked: attested ? 'checked' : undefined,
+        onChange: (e) => {
+          setField('permissions.attested', e.target.checked);
+          setField('permissions.attested_at', e.target.checked ? new Date().toISOString() : '');
+          render();
+        } }),
+      h('span', null, ATTESTATION_TEXT),
     ),
-    textField('Permissions to come by', 'permissions.reprint_when', { type: 'date' }),
-    h('div', { className: 'tx-field' },
-      h('label', null, 'Consents (original material)'),
-      selectField('', 'permissions.consents_status', [
-        ['','— Select —'],['no_consents','No consents needed'],['consents_needed','Consents needed'],['consents_pending','Consents pending']
-      ]),
-    ),
-    textField('Consents to come by', 'permissions.consents_when', { type: 'date' }),
+    attested && at ? h('div', { className: 'tx-help' }, 'Attested ' + fmtDate(at) + '.') : null,
   );
 }
 
