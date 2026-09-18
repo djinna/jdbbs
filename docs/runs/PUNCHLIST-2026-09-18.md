@@ -47,7 +47,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
 - [x] 5.1 **Deploy-safe first (can land Fri/Sat):** C24 — one line on `/factory` that Kindle takes EPUB (no `.mobi`)
 - [x] 5.2 C27 CJK embed rule: fire only at ≥ 20 ideographs, and/or subset with `pyftsubset` (the 20 MB EPUB from one ASCII-art tweet)
-- [~] 5.3 P4 **front matter ingestion** — decisions already taken 2026-09-17 (every section head = Heading 1; classify by heading text against a closed vocabulary + position; untitled pre-H1 blocks = dedication/epigraph in transmittal order; title + © pages generated from the transmittal; Parts opt-in shifts chapters to H2; arabic 1 on a recto). Inspect prints the resulting book map
+- [x] 5.3 P4 **front matter ingestion** — decisions already taken 2026-09-17 (every section head = Heading 1; classify by heading text against a closed vocabulary + position; untitled pre-H1 blocks = dedication/epigraph in transmittal order; title + © pages generated from the transmittal; Parts opt-in shifts chapters to H2; arabic 1 on a recto). Inspect prints the resulting book map
 - [ ] 5.4 **C13 transmittal rewrite for the factory** (post-workshop, the big one):
     - [ ] 5.4a C6 drop press-era Production section (Mechs Delivery, Weeks in Prod., Bound Book Date, dup Transmittal Date); Print Run → Book; one optional "Target date"; keep old JSON keys readable
     - [ ] 5.4b C7 stop asking chapters / words / MS pp / est. book pp — Inspect counts them; fix missing input underline meanwhile
@@ -58,6 +58,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 - [x] 5.6 P1 review docs.typesafe.ai/introduction — anything for the factory? Write a ½-page note, then decide
 - [ ] 5.7 **Magic-link client login** (email → one-time link → cookie) replacing emailed passwords
 - [ ] 5.8 Machine-callable factory (from P2 beats 8/9): POST transmittal JSON + DOCX, read Inspect JSON, build — the "your factory calls my factory" endpoint. Spec first, ½ page, to Jenna
+- [ ] 5.10 Punch-list archive: export = checklist + every note thread → `docs/runs/PUNCHLIST-YYYY-MM-DD.md`; index in `docs/runs/README.md`; admin dashboard card “Runs” at `/admin/runs/` rendering those files from disk (read-only). Saturday, ~1 h
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 
 ## 6 · Ideas log (`docs/IDEAS.md`) — BOTH decide, then queue or kill
