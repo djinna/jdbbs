@@ -77,7 +77,7 @@ def analyse(pages, opts):
             full = l["x1"] >= x1 - 0.6 * em
             gaps = [ws[k + 1][0] - ws[k][1] for k in range(len(ws) - 1)]
             mean_gap = sum(gaps) / len(gaps) if gaps else 0
-            info.append(dict(text=text, indented=indented, full=full, gaps=gaps,
+            info.append(dict(text=text, indented=indented, full=full, gaps=gaps, x0=l["x0"],
                              gap_centres=[(ws[k][1] + ws[k + 1][0]) / 2 for k in range(len(ws) - 1)],
                              mean_gap=mean_gap, nwords=len(ws)))
 
@@ -87,7 +87,10 @@ def analyse(pages, opts):
 
         for i, li in enumerate(info):
             # paragraph starts: indented lines (or first line after a short line)
-            li["para_start"] = li["indented"] or (i > 0 and not info[i - 1]["full"])
+            # An indented line directly under another line with the same left
+            # edge is a hanging block (list item, block quote), not a new paragraph.
+            same_edge = i > 0 and info[i - 1]["indented"] and abs(info[i - 1]["x0"] - li["x0"]) < 1.0
+            li["para_start"] = (li["indented"] and not same_edge) or (i > 0 and not info[i - 1]["full"])
             li["para_end"] = not li["full"] or (i + 1 < n and info[i + 1]["indented"])
         for i, li in enumerate(info):
             if li["full"] and li["nwords"] >= MIN_WORDS:

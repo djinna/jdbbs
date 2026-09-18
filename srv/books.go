@@ -1237,7 +1237,11 @@ func escapeTypstString(s string) string {
 	return s
 }
 
-var typstMentionRe = regexp.MustCompile(`(^|[^[:alnum:]_/])@([A-Za-z0-9_]+)`)
+// typstMentionRe finds bare @handle mentions that typst would read as a
+// citation. Pandoc already emits `\@` for @ in markup, and @ inside a quoted
+// string (`#link("…/@user")`) is code mode; both are excluded — rewriting them
+// printed a literal "#sym.at" in Obliquities' email and footnote URLs.
+var typstMentionRe = regexp.MustCompile(`(^|[^[:alnum:]_/\\"])@([A-Za-z0-9_]+)`)
 var typstImageClampRe = regexp.MustCompile(`#image\("([^"]+)"(?:,\s*width:\s*[^,\)]+)?(?:,\s*height:\s*[^,\)]+)?([^\)]*)\)`)
 
 func literalTypstMentions(s string) string {
