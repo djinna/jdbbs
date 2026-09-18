@@ -47,8 +47,8 @@ func TestNavConvergence(t *testing.T) {
 		more, _ := filepath.Glob(filepath.Join(publicDocsDir(), "2026-pi-symposium", "*.html"))
 		for _, f := range append(entries, more...) {
 			base := filepath.Base(f)
-			if base == "talk.html" || base == "exedeck.html" {
-				continue
+			if base == "talk.html" || base == "exedeck.html" || base == "factory-talk.html" {
+				continue // deck stages: own controls, own nav
 			}
 			b, err := os.ReadFile(f)
 			if err != nil {
