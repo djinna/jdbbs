@@ -212,7 +212,7 @@
     nav.setAttribute('data-admin-nav', 'done');
   }
   // Client nav: the four customer pages under /{client}/[{project}/[factory|transmittal]/]
-  // share one strip — Your books · Transmittal · Factory · Calendar — derived
+  // share one strip — Your books · Transmittal · Factory — derived
   // from the URL, current page marked. Opt in with <nav data-client-nav>.
   function clientNav() {
     var nav = document.querySelector('.jdbb-masthead nav[data-client-nav]');
@@ -225,7 +225,9 @@
       var base = '/' + c + '/' + p + '/';
       items.push([base + 'transmittal/', 'Transmittal', 'Step 1: the spec sheet for this book']);
       items.push([base + 'factory/', 'Factory', 'Upload, inspect, build, download']);
-      items.push([base, 'Calendar', 'Schedule, tasks, budget']);
+      // Calendar hidden from customers (Jenna, 2026-09-18: not going to use it);
+      // the page itself still answers at /{client}/{project}/ for the admin.
+      // items.push([base, 'Calendar', 'Schedule, tasks, budget']);
     }
     var here = location.pathname.replace(/\/+$/, '') + '/';
     var first = nav.firstChild;

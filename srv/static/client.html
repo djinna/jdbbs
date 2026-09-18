@@ -447,7 +447,8 @@ function render() {
             <div class="project-actions">
               <a class="link-action" href="${esc(transmittalURL)}">Transmittal</a>
               <a class="link-action" href="${esc(factoryURL)}">Factory &rarr;</a>
-              <a class="link-action" href="${esc(projectURL)}">Calendar</a>
+              <!-- Calendar link hidden 2026-09-18 (not used by factory customers):
+              <a class="link-action" href="${esc(projectURL)}">Calendar</a> -->
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">Snapshot</button>
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="activity">Activity</button>
             </div>

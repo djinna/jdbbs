@@ -617,7 +617,8 @@ function renderForm() {
           window.location.href = '/' + state.pathClient + '/';
         }}, '← ' + (state.pathClient || 'Home').toUpperCase()),
         renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text-secondary)' }, state.project.Name),
-        h('a', { href: calendarUrl, style: 'font-size:0.8rem;color:var(--accent);text-decoration:none' }, 'Calendar'),
+        // Calendar link hidden 2026-09-18 (not used by factory customers):
+        // h('a', { href: calendarUrl, style: 'font-size:0.8rem;color:var(--accent);text-decoration:none' }, 'Calendar'),
         h('span', { className: 'page-status page-status-' + state.transmittal.status },
           state.transmittal.status
         ),
