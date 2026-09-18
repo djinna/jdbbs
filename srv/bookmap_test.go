@@ -2,11 +2,15 @@ package srv
 
 import (
 	"archive/zip"
+	"database/sql"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+
+	"srv.exe.dev/db/dbgen"
 )
 
 // tp is a test paragraph spec: style id, text, and flags.
@@ -280,7 +284,7 @@ func TestBuildBookMap(t *testing.T) {
 			if !reflect.DeepEqual(un, tc.untitled) {
 				t.Errorf("untitled = %v, want %v", un, tc.untitled)
 			}
-			all := strings.Join(m.Warnings, "\n")
+			all := strings.Join(m.Warnings, "\n") + "\n" + strings.Join(m.Notes, "\n")
 			for _, w := range tc.warnHas {
 				if !strings.Contains(all, w) {
 					t.Errorf("warnings missing %q; got:\n%s", w, all)
@@ -312,7 +316,7 @@ func TestBookMapCrossCheckSpec(t *testing.T) {
 	if len(m.UntitledFront) != 1 || m.UntitledFront[0].Name != "dedication" {
 		t.Errorf("untitled = %+v", m.UntitledFront)
 	}
-	all := strings.Join(m.Warnings, "\n")
+	all := strings.Join(m.Warnings, "\n") + "\n" + strings.Join(m.Notes, "\n")
 	for _, w := range []string{
 		"Transmittal lists Foreword but no “Foreword” heading was found.",
 		"“Preface” found in the manuscript but not ticked",
@@ -325,5 +329,86 @@ func TestBookMapCrossCheckSpec(t *testing.T) {
 	}
 	if strings.Contains(all, "Bibliography but no") {
 		t.Errorf("Works Cited should satisfy bibliography; got:\n%s", all)
+	}
+}
+
+func TestRunManuscriptPreflightIncludesBookMap(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	s.preflightRunner = func(docxPath string, declaredStylesPath string) ([]byte, []byte, error) {
+		html := []byte("<html><body><section class=\"overview\"><h2>Preflight summary</h2></section><section>rest</section></body></html>")
+		report := []map[string]any{{"type": "manual_formatting", "severity": "high", "text": "bold text"}}
+		jb, err := json.Marshal(report)
+		return html, jb, err
+	}
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name": "Book Map", "start_date": "2026-04-12", "client_slug": "vgr", "project_slug": "book-map",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: %d", resp.StatusCode)
+	}
+	var project map[string]any
+	decodeJSON(t, resp, &project)
+	pid := int64(project["ID"].(float64))
+
+	docx := writeBookMapDOCX(t, []tp{
+		{style: "Title", text: "Book Map Test"},
+		{text: "For M."},
+		{style: "Heading1", text: "Foreword"}, {text: "x"},
+		{style: "Heading1", text: "Chapter 1"}, {text: "x"},
+		{style: "Heading1", text: "Notes"}, {text: "x"},
+	})
+	data, err := os.ReadFile(docx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := dbgen.New(s.DB)
+	book, err := q.CreateBook(t.Context(), dbgen.CreateBookParams{
+		Title: "Book Map Test", Author: "Tester", SourceFilename: "map.docx", SourceData: data,
+		ProjectID: sql.NullInt64{Int64: pid, Valid: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+itoa(pid)+"/preflight", map[string]any{"book_id": book.ID})
+	if resp.StatusCode != 200 {
+		t.Fatalf("run preflight: %d", resp.StatusCode)
+	}
+	var body map[string]any
+	decodeJSON(t, resp, &body)
+	bm, _ := body["book_map"].(map[string]any)
+	if bm == nil {
+		t.Fatalf("no book_map in response: %v", body)
+	}
+	secs, _ := bm["sections"].([]any)
+	if len(secs) != 3 {
+		t.Fatalf("sections = %v", secs)
+	}
+	summary := body["summary"].(map[string]any)
+	// 1 python finding + book-map notes (Title dropped, untitled page vs default
+	// spec, Foreword / Notes found but not ticked); no warnings; the map itself
+	// is not counted.
+	if summary["total"] != float64(5) || summary["medium"] != float64(0) || summary["low"] != float64(4) {
+		t.Fatalf("summary = %v", summary)
+	}
+
+	// GET returns the same map from the stored report, and the HTML has the section.
+	resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+itoa(pid)+"/preflight?book_id="+itoa(book.ID), nil)
+	decodeJSON(t, resp, &body)
+	if bm, _ := body["book_map"].(map[string]any); bm == nil || bm["title"] != "Book Map Test" {
+		t.Fatalf("stored book_map = %v", body["book_map"])
+	}
+	stored, err := q.GetLatestManuscriptPreflight(t.Context(), dbgen.GetLatestManuscriptPreflightParams{ProjectID: pid, BookID: book.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stored.ReportHtml, `id="book-map"`) || !strings.Contains(stored.ReportHtml, "Front matter: Dedication, Foreword") {
+		t.Fatalf("html lacks book map section: %s", stored.ReportHtml)
+	}
+	if strings.Index(stored.ReportHtml, `id="book-map"`) < strings.Index(stored.ReportHtml, "Preflight summary") {
+		t.Fatal("book map should follow the overview section")
 	}
 }

@@ -53,6 +53,7 @@ type preflightResponse struct {
 	UpdatedAt      string                  `json:"updated_at,omitempty"`
 	Summary        *preflightSummary       `json:"summary,omitempty"`
 	Images         []map[string]any        `json:"images,omitempty"`
+	BookMap        *BookMap                `json:"book_map,omitempty"`
 	ReportURL      string                  `json:"report_url,omitempty"`
 	History        []preflightHistoryEntry `json:"history,omitempty"`
 	Error          string                  `json:"error,omitempty"`
@@ -142,6 +143,9 @@ func buildPreflightSummary(raw []byte) (*preflightSummary, error) {
 	}
 	summary := &preflightSummary{ByType: map[string]int{}}
 	for _, item := range findings {
+		if typ, _ := item["type"].(string); typ == bookMapFindingType {
+			continue // the map itself is information, not a finding
+		}
 		summary.Total++
 		if typ, _ := item["type"].(string); typ != "" {
 			summary.ByType[typ]++
@@ -332,6 +336,7 @@ func (s *Server) preflightResponseFromRow(projectID int64, row dbgen.ManuscriptP
 		resp.Summary = summary
 	}
 	resp.Images = parseStoredImages(row.ReportJson)
+	resp.BookMap = parseStoredBookMap(row.ReportJson)
 	if row.Status == "error" && row.ErrorMsg != "" {
 		resp.Error = row.ErrorMsg
 	}
@@ -550,6 +555,24 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
+	}
+	// Book map (P4): front / body / back from heading text + position.
+	if runErr == nil {
+		var specMap map[string]any
+		_ = json.Unmarshal([]byte(specData), &specMap)
+		title, _ := s.specTitleAuthor(book)
+		if title == "" {
+			title = book.Title
+		}
+		if bm, mErr := bookMapFromDOCX(tmpPath, specMap, title); mErr != nil {
+			slog.Warn("book map failed", "book_id", book.ID, "err", mErr)
+		} else {
+			if jsonBytes, err = appendBookMapFindings(jsonBytes, bm); err != nil {
+				jsonErr(w, err.Error(), 500)
+				return
+			}
+			htmlBytes = injectBookMapHTML(htmlBytes, bm)
+		}
 	}
 	summary, err := buildPreflightSummary(jsonBytes)
 	if err != nil {

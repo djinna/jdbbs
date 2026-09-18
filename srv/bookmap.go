@@ -63,7 +63,9 @@ type BookMap struct {
 	Subtitle      string            `json:"subtitle,omitempty"` // Subtitle-styled text found (dropped)
 	UntitledFront []BookMapUntitled `json:"untitled_front"`
 	Sections      []BookMapSection  `json:"sections"` // every H1 in order
-	Warnings      []string          `json:"warnings"`
+	Warnings      []string          `json:"warnings"` // things to fix (medium)
+	Notes         []string          `json:"notes"`    // things we did that the author should know (low)
+	SummaryLine   string            `json:"summary"`  // Summary(), stored so JSON consumers get it
 }
 
 // Front / Body / Back return the H1 titles of each kind, in order.
@@ -210,7 +212,13 @@ var untitledFrontNames = []string{"dedication", "epigraph"}
 // bookTitle (from the transmittal / book record) lets a first H1 that repeats
 // the title be recognised and dropped (the pre-P4 template model).
 func buildBookMap(paras []docxPara, untitledNames []string, bookTitle string) *BookMap {
-	m := &BookMap{UntitledFront: []BookMapUntitled{}, Sections: []BookMapSection{}, Warnings: []string{}}
+	m := buildBookMapInner(paras, untitledNames, bookTitle)
+	m.SummaryLine = m.Summary()
+	return m
+}
+
+func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle string) *BookMap {
+	m := &BookMap{UntitledFront: []BookMapUntitled{}, Sections: []BookMapSection{}, Warnings: []string{}, Notes: []string{}}
 
 	// Title / Subtitle: dropped, reported.
 	var body []docxPara
@@ -234,10 +242,10 @@ func buildBookMap(paras []docxPara, untitledNames []string, bookTitle string) *B
 		body = append(body, p)
 	}
 	if m.Title != "" {
-		m.Warnings = append(m.Warnings, fmt.Sprintf("Title-styled paragraph “%s” dropped: the title page is generated from the transmittal.", m.Title))
+		m.Notes = append(m.Notes, fmt.Sprintf("Title-styled paragraph “%s” dropped: the title page is generated from the transmittal.", m.Title))
 	}
 	if m.Subtitle != "" {
-		m.Warnings = append(m.Warnings, fmt.Sprintf("Subtitle-styled paragraph “%s” dropped: the title page is generated from the transmittal.", m.Subtitle))
+		m.Notes = append(m.Notes, fmt.Sprintf("Subtitle-styled paragraph “%s” dropped: the title page is generated from the transmittal.", m.Subtitle))
 	}
 
 	// First H1.
@@ -261,9 +269,21 @@ func buildBookMap(paras []docxPara, untitledNames []string, bookTitle string) *B
 		}
 		blocks[len(blocks)-1] = append(blocks[len(blocks)-1], p)
 	}
-	names := untitledNames
-	if names == nil {
-		names = untitledFrontNames
+	// Names: the transmittal's declared pieces first, then the canonical order
+	// for anything it didn't declare (a dedication is still a dedication when
+	// the box wasn't ticked).
+	names := append([]string{}, untitledNames...)
+	for _, n := range untitledFrontNames {
+		if len(names) >= len(blocks) {
+			break
+		}
+		known := false
+		for _, have := range names {
+			known = known || have == n
+		}
+		if !known {
+			names = append(names, n)
+		}
 	}
 	for i, b := range blocks {
 		name := fmt.Sprintf("untitled front-matter page %d", i+1)
@@ -272,8 +292,12 @@ func buildBookMap(paras []docxPara, untitledNames []string, bookTitle string) *B
 		}
 		m.UntitledFront = append(m.UntitledFront, BookMapUntitled{Name: name, Paras: len(b), Preview: preview(b[0].Text)})
 	}
-	if len(blocks) > len(names) && untitledNames != nil {
-		m.Warnings = append(m.Warnings, fmt.Sprintf("%d untitled pages before the first heading but the transmittal lists %d (%s). Extra pages are kept, in order.", len(blocks), len(names), strings.Join(names, ", ")))
+	if untitledNames != nil && len(blocks) > len(untitledNames) {
+		listed := "none"
+		if len(untitledNames) > 0 {
+			listed = strings.Join(untitledNames, ", ")
+		}
+		m.Notes = append(m.Notes, fmt.Sprintf("%s before the first heading; the transmittal lists %s. All are kept, in order, as %s.", plural(len(blocks), "untitled page"), listed, strings.Join(names, ", ")))
 	}
 	// A single block of several paragraphs where two pieces were declared is
 	// the usual mistake (no page break between dedication and epigraph).
@@ -305,7 +329,7 @@ func buildBookMap(paras []docxPara, untitledNames []string, bookTitle string) *B
 		first := normalizeHeading(spans[0].title)
 		if first != "" && (first == normalizeHeading(bookTitle) || first == normalizeHeading(m.Title)) {
 			kinds[0] = "title"
-			m.Warnings = append(m.Warnings, fmt.Sprintf("Heading “%s” matches the book title and was dropped with the %s under it (%s): the title and copyright pages are generated from the transmittal.",
+			m.Notes = append(m.Notes, fmt.Sprintf("Heading “%s” matches the book title and was dropped with the %s under it (%s): the title and copyright pages are generated from the transmittal.",
 				spans[0].title, plural(len(spans[0].paras), "paragraph"), previewParas(spans[0].paras)))
 		}
 	}
@@ -313,7 +337,7 @@ func buildBookMap(paras []docxPara, untitledNames []string, bookTitle string) *B
 	for i, sp := range spans {
 		if kinds[i] == "" && isContentsHeading(sp.title) {
 			kinds[i] = "toc"
-			m.Warnings = append(m.Warnings, fmt.Sprintf("“%s” and the %s under it dropped: the contents page is generated by the build.", sp.title, plural(len(sp.paras), "paragraph")))
+			m.Notes = append(m.Notes, fmt.Sprintf("“%s” and the %s under it dropped: the contents page is generated by the build.", sp.title, plural(len(sp.paras), "paragraph")))
 		}
 	}
 
@@ -461,7 +485,7 @@ func (m *BookMap) crossCheckSpec(spec map[string]any) {
 			case listed && !present && sec != nil:
 				m.Warnings = append(m.Warnings, fmt.Sprintf("Transmittal lists %s but no “%s” heading was found.", label, label))
 			case !listed && present && sec != nil:
-				m.Warnings = append(m.Warnings, fmt.Sprintf("“%s” found in the manuscript but not ticked on the transmittal; it is included anyway.", label))
+				m.Notes = append(m.Notes, fmt.Sprintf("“%s” found in the manuscript but not ticked on the transmittal; it is included anyway.", label))
 			}
 		}
 	}

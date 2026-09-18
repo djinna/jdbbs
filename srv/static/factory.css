@@ -254,6 +254,17 @@ body { font-family: var(--body); background: var(--bg); }
 }
 .fx-types-row { display: flex; justify-content: space-between; gap: 14px; }
 .fx-types-row span:last-child { color: var(--text); }
+.fx-types-row span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-types-row span:last-child { flex: none; }
+
+/* ── Book map (P4) ──────────────────────────────────────────── */
+.fx-bookmap { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border-strong); }
+.fx-bookmap-head { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); }
+.fx-bookmap-summary { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--text); }
+.fx-bookmap-warnings { margin: 10px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--accent); }
+.fx-bookmap-warnings li + li { margin-top: 4px; }
+.fx-bookmap-notes { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); }
+.fx-bookmap-notes li + li { margin-top: 3px; }
 
 /* ── Download ───────────────────────────────────────────────── */
 .fx-latest { margin-top: 4px; }

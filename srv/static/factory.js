@@ -425,7 +425,52 @@ var TYPE_LABELS = {
   footnote: 'Footnotes',
   table: 'Tables',
   hyperlink: 'Links',
+  book_map_warning: 'Book map: front / body / back matter',
+  book_map_note: 'Book map: what the build drops or renames',
 };
+
+// Book map (P4): how the build reads the file — front / body / back matter
+// from Heading 1 text + position. Rendered under the counts on the factory page.
+function renderBookMap(bm) {
+  if (!bm || !bm.sections) return '';
+  var kinds = { front: 'front matter', body: 'body', back: 'back matter', title: 'dropped (title page is generated)', toc: 'dropped (contents are generated)' };
+  var html = '<div class="fx-bookmap"><div class="fx-bookmap-head">How the build reads your file</div>';
+  html += '<p class="fx-bookmap-summary">' + esc(bm.summary || '') + '</p>';
+  var rows = [];
+  if (bm.title) rows.push(['Title style: ' + bm.title + (bm.subtitle ? ' \u2014 ' + bm.subtitle : ''), kinds.title]);
+  (bm.untitled_front || []).forEach(function (u) {
+    rows.push(['\u201c' + u.preview + '\u201d', u.name + ' (untitled front matter)']);
+  });
+  var body = bm.sections.filter(function (sec) { return sec.kind === 'body'; });
+  var bodyDone = false;
+  bm.sections.forEach(function (sec) {
+    if (sec.kind !== 'body') { rows.push([sec.title, kinds[sec.kind] || sec.kind]); return; }
+    if (bodyDone) return;
+    bodyDone = true;
+    var label = body.length === 1 ? '\u201c' + body[0].title + '\u201d' :
+      '\u201c' + body[0].title + '\u201d \u2026 \u201c' + body[body.length - 1].title + '\u201d';
+    rows.push([label, 'body, ' + body.length + ' ' + plural(body.length, 'section', 'sections') + ', page 1 starts here']);
+  });
+  if (rows.length) {
+    html += '<div class="fx-types">';
+    rows.forEach(function (r) {
+      html += '<div class="fx-types-row"><span>' + esc(r[0]) + '</span><span>' + esc(r[1]) + '</span></div>';
+    });
+    html += '</div>';
+  }
+  if (bm.warnings && bm.warnings.length) {
+    html += '<ul class="fx-bookmap-warnings">';
+    bm.warnings.forEach(function (w) { html += '<li>' + esc(w) + '</li>'; });
+    html += '</ul>';
+  }
+  if (bm.notes && bm.notes.length) {
+    html += '<ul class="fx-bookmap-notes">';
+    bm.notes.forEach(function (n) { html += '<li>' + esc(n) + '</li>'; });
+    html += '</ul>';
+  }
+  html += '<p class="fx-fine">Every section head is Heading 1; the build places it by its text. Front matter gets roman folios, the first chapter gets page 1. To move a section, rename or reorder its heading.</p></div>';
+  return html;
+}
 function typeLabel(t) {
   return TYPE_LABELS[t] || String(t || '').replace(/_/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); });
 }
@@ -522,6 +567,8 @@ function renderInspect() {
     html += '<p class="fx-fine">' + pf.images.length + ' ' + plural(pf.images.length, 'image', 'images') +
       ' found \u2014 the report lists each one\u2019s size in print.</p>';
   }
+
+  html += renderBookMap(pf.book_map);
 
   box.innerHTML = html;
 }
