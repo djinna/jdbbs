@@ -91,8 +91,13 @@ class H(http.server.BaseHTTPRequestHandler):
                 nums = [int(x) for x in re.findall(r"- \[[ x~]\] 0\.(\d+)", md)]
                 line = f"- [ ] 0.{max(nums, default=0) + 1} {text}  ·  _added {time.strftime('%a %H:%M UTC', time.gmtime())}_\n"
                 head, sep, tail = md.partition("## 0 · Inbox")
-                # append at the end of the inbox section (end of file, since it's last)
-                md = head + sep + tail.rstrip("\n") + "\n" + line
+                # append at the end of the inbox section, wherever it sits in the file
+                m = re.search(r"\n## ", tail)
+                if m:
+                    sec, rest = tail[:m.start()], tail[m.start():]
+                    md = head + sep + sec.rstrip("\n") + "\n" + line + rest
+                else:
+                    md = head + sep + tail.rstrip("\n") + "\n" + line
                 with open(MD, "w") as f: f.write(md)
                 return self._send(200, {"ok": True})
         self._send(404, {"error": "not found"})

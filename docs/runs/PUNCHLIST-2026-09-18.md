@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 17:54 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 18:07 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -17,7 +17,7 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 - [x] 1.2 Sender address `studio@` → `factory@mail.jdbb.studio` (display name stays "jdbb studio"); one test send — approved
 - [x] 1.3 Confirm nothing else hardcodes AgentMail as *sender* (archive CC rows `jdbb@agentmail.to` are fine); fix `snapshot_email.go` error text
 - [x] 1.4 Strike the done "Admin doc editor" row in `docs/IDEAS.md`
-- [x] 1.5 Checkpoint tag per `CHECKPOINTS.md`; full `go test ./srv/`; smoke `/factory`, `/admin/factory/`, `/admin/store/`, `/pinstitute/book-001/factory/` — tonight after 1.1–1.4 (re-tag after any later fix) — tag `checkpoint-2026-09-18-pre-workshop` at `0cd67fd`
+- [x] 1.5 Checkpoint tag per `CHECKPOINTS.md`; full `go test ./srv/`; smoke `/factory`, `/admin/factory/`, `/admin/store/`, `/pinstitute/book-001/factory/` — tonight after 1.1–1.4 (re-tag after any later fix) — re-tagged `checkpoint-2026-09-18-pre-workshop-v2` at `9ac2027` (Fri 18:10 UTC, after 5.14–5.16)
 - [x] 1.6 Dependabot: 5 vulns on djinna/jdbbs (3 high, 2 moderate) — check whether these were already fixed a day or two ago and just not marked; if new, fix now (rule: always address vulns)
 
   > **shelley** · 2026-09-18 00:13 UTC  
@@ -36,7 +36,11 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 - [x] 2.2 Sender address: `factory@` — yes
 - [x] 2.3 Cohort resend from your own address
 - [x] 2.4 Cal.com timezone — America/New_York confirmed correct. (Note to self: Jenna is **not** in HKT; HKT was chosen only for the store changeover / promo deadlines because of Asia participants.)
-- [ ] 2.5 Try the **New pass form** on `/admin/store/` with a throwaway address (this is the attendee-shows-up path Mon/Tue)
+- [x] 2.5 Try the **New pass form** on `/admin/store/` with a throwaway address (this is the attendee-shows-up path Mon/Tue)
+
+  > **shelley** · 2026-09-18 18:07 UTC  
+  > Did this from my side so Mon is quick: New pass form → pass 9, project 26 (tattendee/book-001), password issued, no email. Attendee side: right password unlocks the portal, wrong one 401, no cookie 401 on every project API. Throwaway deleted afterwards. One thing I noticed: a fresh pass’s transmittal starts with empty title/author even though the form asked for them — carrying to the new list as 5.18.
+
 - [ ] 2.6 Unlock the `pinstitute` portal and eyeball the new cards (Transmittal · Factory → · Calendar, `[FACTORY PASS]`)
 
   > **shelley** · 2026-09-18 17:24 UTC  
@@ -46,6 +50,9 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 
   > **shelley** · 2026-09-18 17:24 UTC  
   > Pre-checked the file itself: the template downloaded from book-001/factory has 13 qFormat styles (Normal, Heading 1–3, First Paragraph, Block Quote, Code Block, Section Break, Verse, Copyright, Epigraph, Signature, Glossary Entry), fonts Georgia / Arial / Courier New, page = the protocolized trim (4.91 × 7.59 in). Item text says 11 — read it as 13. What only Word can confirm is the Styles pane.
+
+  > **shelley** · 2026-09-18 18:07 UTC  
+  > Pre-checked the plumbing: the template download correctly refuses until the transmittal is marked final (409, ‘fill in the transmittal and mark it final first’). The Word-side look (Styles pane, fonts, page size) is yours — it is thirteen styles now, not eleven; wording fixed on the new list.
 
 
 ## 3 · P2 — talk deck from Venkat's "Have your factory call my factory" — BOTH
@@ -441,6 +448,29 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **shelley** · 2026-09-18 17:19 UTC  
   > Drafts are ready for your read (not ticking until you have): docs/brand/ABOUT-THE-BOOK-FACTORY-2026-09-18.md — also in the repo on GitHub. Three lengths: A colophon for the copyright page (78 w), A′ one line after the typesetting credit (26 w), B a back-matter page headed “About the Book Factory” (~490 w). Voice: plain third person, says what happened to the book, no adjectives; the URL is the only sell. Once you pick and mark up the wording I wire it as a transmittal checkbox (off by default): copyright-page colophon, or back-matter page, or both. The one-liner, so you can judge the voice here: “Set from the author's Word file by the jdbb studio book factory, print and EPUB from one source, no hand-composed pages. jdbbs.exe.xyz/factory”
+
+  > **shelley** · 2026-09-18 17:59 UTC  
+  > Sorry — I left these in a repo file, which you can’t open from this page. Here they are in full. Three lengths; the numbers are true of every build today (thirteen styles, ~9 s).
+  > A. Colophon (copyright page, small type) — 78 words
+  >  This book was made in the jdbb studio book factory. The author wrote it in Word, in a template of thirteen named styles generated from a one-page transmittal; the factory read the file, reported what it found, and set the print interior and the EPUB from that single source, in licensed type, with no hand-composed pages. Corrections are rebuilt the same way, so every copy of this edition is set from the same file. jdbbs.exe.xyz/factory
+  >
+  > A′. Colophon, shortest (one line after the typesetting credit) — 26 words
+  >  Set from the author's Word file by the jdbb studio book factory, print and EPUB from one source, no hand-composed pages. jdbbs.exe.xyz/factory
+  >  ---
+  >
+  > B. Back-matter page — "About the Book Factory" — 486 words
+  >  **About the Book Factory**
+  >  This book was not typeset in the usual sense. No one placed its pages by hand. It was built by the jdbb studio book factory, a small machine for turning a Word file into a book, and this page says how, because the method is part of what you are holding.
+  >  The author wrote in Word, in a template the factory generated for this title. The template has thirteen named paragraph styles and nothing else: Normal, First Paragraph, three levels of heading, Block Quote, Epigraph, Verse, Code Block, Section Break, Copyright, Signature and Glossary Entry. Every paragraph in the manuscript carries one of those names. That is the whole contract between writer and factory. There is no software to learn and nothing to install; the work of authorship stays in the tool the author already used.
+  >  Before the writing began, the author filled in a transmittal: a short form that records what the book is and how it should be set. The page size. The front matter — a dedication, an epigraph, a foreword — and its order. The copyright page, which the factory composes from the transmittal rather than asking anyone to type it. Special characters, mathematics, custom styles the book needs. The transmittal is the specification; the template is generated from it; the finished book follows it.
+  >  When a draft was ready, the author uploaded it and the factory inspected it: a machine read of the file that reports which styles were used, where the file departs from the template, how many images it found and how large each will print, where the chapters begin. The report is the factory's reply. The author fixes what it flags and uploads again, for as long as it takes.
+  >  Then the build. From that one Word file the factory produces two things at once: a print-ready interior PDF at the trim size on the transmittal, and an EPUB with the author's cover embedded. The interior is set in the studio's house design — a typographic system of margins, type sizes, running heads and spacing worked out once and applied to every book that passes through — in fonts the studio licenses for print. The two editions come from the same source, in the same pass, so they cannot drift apart.
+  >  This matters after publication. A book set by hand is finished when the typesetter stops; a correction means opening the files again and hoping the lines still fall where they did. A book from the factory is set from its source every time. Fix the Word file, rebuild, and every page is composed afresh, in seconds. The edition you hold is one build of a file that can be built again.
+  >  The factory is the work of jdbb studio, a one-person book studio that published books the ordinary way for thirty years before deciding that the ordinary way was mostly waiting. It is offered to anyone with a manuscript and a few hours. If you have written something and would like it to become a book like this one, the factory is at **jdbbs.exe.xyz/factory**.
+  >  ---
+  >  #
+  > Notes for Jenna
+  >  - "thirty years" and "one-person" in the last paragraph are placeholders for whatever is true; cut the sentence if you'd rather not do biography here. - "thirteen named paragraph styles" is true as of today (Signature and Glossary Entry added 2026-09-18). If the count changes, this line and the colophon change with it. - "in seconds" — a full build of a 250-page book is ~9 s on the VM; true. - The page is ~490 words; at 6 × 9 it fills one recto with air. If you want it on one page in Small trim, cut paragraph 4 (Inspect) to two sentences. - Suggested placement: last page of back matter, after About the Author, so the book ends on the author and then the maker.
 
 - [x] 0.9 New: I'm considering that we could add index as an add-on in the factory, and maybe that is a good use of Jev. The main problem is that a word list is not actual indexing. An indexer does a lot of thinking about what to include, but maybe this is the time, and an LLM can actually produce a pretty good index that is meaningful, not just a sorted word list.  We do a first pass on whether it looks feasible or not today. Add that to your list, and then let's hold on. If it's at all complicated, let's hold on to that for after the workshop. Also, maybe that tool we looked at earlier today, Jev, could be ideal for and we can do it now.  ·  _added Fri 17:07 UTC_
 
