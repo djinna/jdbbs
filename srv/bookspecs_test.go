@@ -207,3 +207,54 @@ func TestDeclaredStylesForPandoc(t *testing.T) {
 		t.Error("no styles should yield nil")
 	}
 }
+
+func TestParseTrimFreeForm(t *testing.T) {
+	cases := map[string][2]float64{
+		"7 x 10":         {7, 10},
+		"7x10":           {7, 10},
+		"6.14 × 9.21 in": {6.14, 9.21},
+		"6 x 9":          {6, 9}, // registry alias still wins
+	}
+	for in, want := range cases {
+		page := map[string]any{}
+		parseTrim(in, page)
+		if page["width_in"] != want[0] || page["height_in"] != want[1] {
+			t.Errorf("parseTrim(%q) = %v x %v, want %v", in, page["width_in"], page["height_in"], want)
+		}
+	}
+	page := map[string]any{}
+	parseTrim("coffee table", page)
+	if _, ok := page["width_in"]; ok {
+		t.Errorf("parseTrim of prose should not set a width")
+	}
+}
+
+func TestStudioTrimLeavesPageAlone(t *testing.T) {
+	_, ts, cleanup := testServer(t)
+	defer cleanup()
+	for _, v := range []string{"studio", "dont_care"} {
+		resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+			"name": "Studio trim " + v, "start_date": "2026-04-12",
+			"client_slug": "vgr", "project_slug": "studio-trim-" + v,
+		})
+		var project map[string]any
+		decodeJSON(t, resp, &project)
+		pid := itoa(int64(project["ID"].(float64)))
+
+		resp = apiRequestAdmin(t, ts, "GET", "/api/projects/"+pid+"/transmittal", nil)
+		var tx map[string]any
+		decodeJSON(t, resp, &tx)
+		data := tx["data"].(map[string]any)
+		data["design"].(map[string]any)["trim"] = v
+		resp = apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pid+"/transmittal", map[string]any{"status": "draft", "data": data})
+		resp.Body.Close()
+
+		resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/book-spec/pull-transmittal", nil)
+		var result map[string]any
+		decodeJSON(t, resp, &result)
+		page := result["data"].(map[string]any)["page"].(map[string]any)
+		if page["trim"] != "protocolized" {
+			t.Errorf("trim %q should leave the series trim alone, got page.trim=%v", v, page["trim"])
+		}
+	}
+}

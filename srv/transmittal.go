@@ -45,7 +45,7 @@ func defaultTransmittalData() string {
   "page_iv": {"copyright_year":"","held_by":"","publisher_city":"","edition_line":"","interior_credit":"","loc_line":"","printed_in":"","additional_notices":""},
   "subrights": {"copub":"na","title_page":"na","page_iv":"na","cover":"na","remove_mktg":"na"},
   "editing": {"special_characters":"","math_formulas":""},
-  "design": {"trim":"","est_pages":"","ppi":"","spine_width":"","complexity":"","outside_designer":"","reuse_previous":""},
+  "design": {"trim":"","trim_guidance":"","freeform_notes":""},
   "cover": {"paper":"","colors":"","jdbb_front":false,"jdbb_spine":false,"jdbb_back":false,"pub_front":false,"pub_spine":false,"pub_back":false,"credit":""},
   "files": {"printer_format":"","archives":[]},
   "proofs": {"reviewers":[]},

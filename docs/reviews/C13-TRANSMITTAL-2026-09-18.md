@@ -136,3 +136,28 @@ Photo Credit (as inputs; text still visible if present) · Cover: Cover credit
   editing values when present; harmless, tidy with the C13 remainder.
 - C13 remainder untouched: Book Design trim picker + reuse dropdown, delete
   Page Proofs / Deliverables / Subrights, front-matter menu, design guidance.
+
+## Addendum, same day — Format section (was Book Design)
+
+Jenna's inbox note: the trim radios still said "DON'T CARE", and PPI / spine
+width assumed we know the paper. We don't; the printer does.
+
+- Section renamed **Format**. Lead line says the one physical decision that is
+  the author's is the page size ("which printers call the trim").
+- "What kind of book is it, as an object?" (`design.trim_guidance`) moved to
+  the top, with civilian placeholders.
+- Trim choice is now a stacked list with one plain sentence each:
+  **Small** 5½ × 8½ · **Medium** 6 × 9 ("if you are unsure, choose this") ·
+  **Large** 8½ × 11 · **Let the studio choose** (value `studio`; legacy
+  `dont_care` selects this) · **Exact size** with a W × H text box.
+- `pullTransmittalIntoSpec`: `studio`/`dont_care` no longer overwrite
+  `page.trim` (previously wrote the literal string "dont_care" into the spec);
+  `parseTrim` now understands free-form `W x H` inches (`7 x 10`, `6.14 × 9.21 in`),
+  so "Exact size" really sets the page. `7 x 10` added to the registry.
+- Dropped inputs: Est. Book pp, PPI, Spine Width, Text Complexity (jdbb tier),
+  Outside Designer, Reuse Previous Book. Replaced by one paragraph: spine width
+  depends on the printer's paper (PPI); give the printer trim + page count when
+  the PDF is final, they return a cover template; bring that back if you want
+  help with the cover. Old keys still load/save; the new-transmittal default
+  drops them. Progress bar counts `design.trim` only.
+- Tests: `TestParseTrimFreeForm`, `TestStudioTrimLeavesPageAlone`.

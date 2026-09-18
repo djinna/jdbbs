@@ -420,10 +420,8 @@ function calcCompletion() {
     total += d.backmatter.length;
     filled += d.backmatter.filter(c => !!getChecklistItemStatus(c)).length;
   }
-  // Design
-  for (const k of ['trim','complexity']) {
-    total++; if (d.design && d.design[k]) filled++;
-  }
+  // Format: the trim choice (complexity tier dropped with the Format rewrite)
+  total++; if (d.design && d.design.trim) filled++;
   return total > 0 ? Math.round((filled / total) * 100) : 0;
 }
 
@@ -1082,73 +1080,76 @@ function renderEditingSection() {
   );
 }
 
-// ─── Section: Book Design ───
+// ─── Section: Format ───
+// Was "Book Design", a production editor's worksheet: trim radios with a
+// DON'T CARE, est. pages, PPI, spine width, a jdbb complexity tier, outside
+// designer, reuse-previous. The factory needs one physical decision from
+// the author — the page size — and the spine belongs to the printer, who
+// alone knows the paper. Old keys (design.est_pages, .ppi, .spine_width,
+// .complexity, .outside_designer, .reuse_previous) still load and save;
+// they just no longer have inputs.
+const TRIM_TIERS = [
+  { value: '5.5 x 8.5', name: 'Small', size: '5\u00bd \u00d7 8\u00bd in',
+    blurb: 'Fits a hand or a coat pocket. Fiction, essays, poetry. Fewer words to a page, so a longer book.' },
+  { value: '6 x 9', name: 'Medium', size: '6 \u00d7 9 in',
+    blurb: 'The standard trade paperback. Nonfiction, memoir, anything with notes or the occasional figure. If you are unsure, choose this.' },
+  { value: '8.5 x 11', name: 'Large', size: '8\u00bd \u00d7 11 in',
+    blurb: 'Workbooks, manuals, wide tables, many images. Heavy in the hand; not a book for reading in bed.' },
+];
+const TRIM_STUDIO = 'studio';            // legacy 'dont_care' shows as this
+const TRIM_STUDIO_ALIASES = [TRIM_STUDIO, 'dont_care'];
+
 function renderDesignSection() {
-  const trimVal = getField('design.trim') || '';
-  const standardTrims = ['5.5 x 8.5', '6 x 9', '8.5 x 11', 'dont_care', ''];
+  const trimVal = String(getField('design.trim') || '');
+  const isStudio = TRIM_STUDIO_ALIASES.includes(trimVal);
+  const isTier = TRIM_TIERS.some(t => t.value === trimVal);
+  const isOther = trimVal !== '' && !isStudio && !isTier;
+  const radio = (value, checked, onChange, ...label) =>
+    h('label', { className: 'tx-check tx-trim-tier' + (checked ? ' is-on' : '') },
+      h('input', { type: 'radio', name: 'trim', value, checked: checked ? 'checked' : undefined, onChange }),
+      h('span', { className: 'tx-trim-tier-text' }, ...label));
+  const pick = (v) => () => { setField('design.trim', v); render(); };
 
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Book Design'),
-    textareaField('Trim Guidance', 'design.trim_guidance', {
-      rows: 3,
+    h('div', { className: 'tx-section-header' }, 'Format'),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'One physical decision is yours: the page size, which printers call the trim. Margins, type size and running heads follow from the series design.'),
+    textareaField('What kind of book is it, as an object?', 'design.trim_guidance', {
+      rows: 2,
       className: 'tx-field-important',
-      placeholder: 'e.g. coffee table, pocket book size, gift format',
-      helpText: 'Trim intent, how flexible it is, and format direction.',
+      placeholder: 'e.g. a paperback novel \u00b7 a workbook people write in \u00b7 a small gift book \u00b7 a reference with wide tables',
+      helpText: 'Say it in words. It lets us sanity-check the size you choose below.',
     }),
     h('div', { className: 'tx-field' },
-      h('label', null, 'Trim Size'),
-      h('div', { className: 'tx-check-group tx-trim-options' },
-        ...['5.5 x 8.5', '6 x 9', '8.5 x 11'].map(sz =>
-          h('label', { className: 'tx-check' },
-            h('input', { type: 'radio', name: 'trim', value: sz,
-              checked: trimVal === sz ? 'checked' : undefined,
-              onChange: () => { setField('design.trim', sz); render(); }
-            }), sz.toUpperCase()
-          )
-        ),
-        h('label', { className: 'tx-check' },
-          h('input', { type: 'radio', name: 'trim', value: 'dont_care',
-            checked: trimVal === 'dont_care' ? 'checked' : undefined,
-            onChange: () => { setField('design.trim', 'dont_care'); render(); }
-          }), `DON'T CARE`
-        ),
-        h('label', { className: 'tx-check' },
-          h('input', { type: 'radio', name: 'trim', value: 'other',
-            checked: !standardTrims.includes(trimVal) ? 'checked' : undefined,
-            onChange: () => { setField('design.trim', '7 x 9'); render(); }
-          }), 'OTHER:'
-        ),
-        !standardTrims.includes(trimVal)
-          ? h('input', {
-              type: 'text',
-              className: 'tx-trim-other-input',
-              value: trimVal,
-              onInput: (e) => setField('design.trim', e.target.value)
-            })
-          : null,
+      h('label', null, 'Trim size'),
+      h('div', { className: 'tx-trim-tiers' },
+        ...TRIM_TIERS.map(t => radio(t.value, trimVal === t.value, pick(t.value),
+          h('strong', null, t.name), ' \u2014 ', t.size, '. ',
+          h('span', { className: 'tx-trim-blurb' }, t.blurb))),
+        radio(TRIM_STUDIO, isStudio, pick(TRIM_STUDIO),
+          h('strong', null, 'Let the studio choose'), '. ',
+          h('span', { className: 'tx-trim-blurb' }, 'We pick from the manuscript and your note above, and tell you what we chose.')),
+        radio('other', isOther, pick('7 x 10'),
+          h('strong', null, 'Exact size'), isOther ? ': ' : '. ',
+          isOther
+            ? h('input', { type: 'text', className: 'tx-trim-other-input', value: trimVal,
+                placeholder: '7 x 10', onInput: (e) => setField('design.trim', e.target.value) })
+            : null,
+          h('span', { className: 'tx-trim-blurb' }, ' When a printer, a series or a distributor already fixes the size. Width \u00d7 height in inches, e.g. 7 x 10.')),
       ),
     ),
-
-    h('div', { className: 'tx-row-3' },
-      textField('Est. Book pp', 'design.est_pages'),
-      textField('PPI', 'design.ppi'),
-      textField('Spine Width', 'design.spine_width'),
+    h('div', { className: 'tx-field' },
+      h('label', null, 'Spine, paper and the cover template'),
+      h('div', { className: 'tx-help tx-illus-guide' },
+        'We no longer estimate the spine here. Its width depends on the paper your printer uses \u2014 the PPI, pages per inch \u2014 and only the printer knows that. When your interior PDF is final, give the printer the trim and the page count; they send back a cover template with the exact spine. If you would like help laying out the cover, bring that template (or the PPI) back to us.'),
     ),
-    h('div', { className: 'tx-row' },
-      selectField('Text Complexity', 'design.complexity', [
-        ['','— Select —'],['simple_jdbb','Simple (jdbb)'],['complex_jdbb','Complex (jdbb)']
-      ]),
-      textField('Outside Designer', 'design.outside_designer'),
-    ),
-    textField('Reuse Previous Book', 'design.reuse_previous'),
-    textareaField('Additional Design Notes', 'design.freeform_notes', {
+    textareaField('Format notes', 'design.freeform_notes', {
       rows: 3,
-      placeholder: 'Any free-form direction for format, feel, or production constraints...',
+      placeholder: 'e.g. match the look of my previous book with you \u00b7 a designer is involved \u00b7 a size or paper your printer has already fixed',
     }),
   );
 }
 
-// ─── Section: Cover ───
 // Press-era fields (paper, colours, who does front/spine/back) came out with
 // the factory: the pass makes an interior, not a jacket. What's left is the
 // split of responsibilities and the two things the interior does need.

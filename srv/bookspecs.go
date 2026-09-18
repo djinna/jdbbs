@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -277,7 +278,9 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 		mapField(design, "outside_designer", typesetting, "outside_designer")
 		mapField(design, "reuse_previous", typesetting, "reuse_previous")
 		mapField(design, "freeform_notes", typesetting, "design_notes")
-		if trim, ok := design["trim"].(string); ok && trim != "" {
+		// "studio" (and the older "dont_care") means: leave the page as the
+		// spec/series already has it; the studio decides, not the form.
+		if trim, ok := design["trim"].(string); ok && trim != "" && !trimIsStudioChoice(trim) {
 			page := ensureMap(specData, "page")
 			page["trim"] = trim
 			parseTrim(trim, page)
@@ -1082,12 +1085,34 @@ var trimRegistry = map[string]trimPreset{
 	"6 x 9":     {"us-trade", 6.0, 9.0},
 	"5 x 8":     {"", 5.0, 8.0},
 	"8.5 x 11":  {"us-letter", 8.5, 11.0},
+	"7 x 10":    {"", 7.0, 10.0},
 }
+
+func trimIsStudioChoice(trim string) bool {
+	switch strings.ToLower(strings.TrimSpace(trim)) {
+	case "studio", "dont_care":
+		return true
+	}
+	return false
+}
+
+// trimWxH matches a free-form "W x H" in inches as typed under "Exact size"
+// on the transmittal: "7 x 10", "7x10", "6.14 × 9.21 in".
+var trimWxH = regexp.MustCompile(`(?i)^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:in|inches|")?\s*$`)
 
 func parseTrim(trim string, page map[string]any) {
 	if p, ok := trimRegistry[trim]; ok {
 		page["width_in"] = p.WidthIn
 		page["height_in"] = p.HeightIn
+		return
+	}
+	if m := trimWxH.FindStringSubmatch(trim); m != nil {
+		w, _ := strconv.ParseFloat(m[1], 64)
+		h, _ := strconv.ParseFloat(m[2], 64)
+		if w > 0 && h > 0 {
+			page["width_in"] = w
+			page["height_in"] = h
+		}
 	}
 }
 
