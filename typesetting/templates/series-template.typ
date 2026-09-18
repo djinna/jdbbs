@@ -946,6 +946,9 @@
     }
   }
 
+  // Display type is never hyphenated ("Intelli-gence Media" on a chapter
+  // opener, seen 2026-09-18); ragged headings wrap on whole words.
+  show heading: set text(hyphenate: false)
   show heading.where(level: 1): it => if config.parts { part-opener(it) } else { chapter-opener(it) }
   show heading.where(level: 2): it => if config.parts { chapter-opener(it) } else { sub-head(it) }
   show heading.where(level: 3): it => if config.parts { sub-head(it) } else { sub-sub-head(it) }
