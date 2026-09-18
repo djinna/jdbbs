@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 18:22 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 18:23 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -14,6 +14,11 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
 
   > **shelley** · 2026-09-18 18:22 UTC  
   > Done and live. Commented out (not deleted) in the three places a customer met it: the top nav strip (now Your books · Transmittal · Factory), the Calendar link on each book card on the portal, and the small Calendar link in the transmittal header. The page itself still answers at /{client}/{project}/ so you can reach it from the admin side, and the client nav still says CALENDAR nowhere. Hard-reload once; theme.js is cached for up to a minute. Left as is for now: the “N/N tasks done · 0 %” progress line on each card, which is calendar data — say if you want that gone too.
+
+- [x] 0.2 Question: can you look at what a ms inspection costs in tokens? Would be good to know if trivial or not  ·  _added Fri 18:22 UTC_
+
+  > **shelley** · 2026-09-18 18:23 UTC  
+  > Trivial — in fact zero. Inspect does not call a language model at all. It is a Python script (typesetting/scripts/detect-edge-cases.py, python-docx + ImageMagick) that reads the .docx and pattern-matches: styles used vs the template, images and their print sizes, chapter starts, special characters, odd formatting. Ghosts (24,000 words, 159 findings) takes 3.3 s and about 36 MB of RAM on the VM; the cost is a few CPU-seconds. Same for the build itself: pandoc → Typst, no model in the loop. The only things in the factory that touch a model are the ones I run by hand in a session (a review, the Obliquities read-through) and the two parked ideas that would add one — the Jev heading-classification pilot (5.12) and the LLM-drafted index (5.13). If either of those ships, a per-manuscript token cost appears for the first time; for a 24k-word book that would be roughly 35k input tokens per pass, i.e. cents, not dollars. Worth stating on the factory page, so I’ll add a line to Inspect’s blurb: “Inspect is a rules-based read of your file; no AI reads your manuscript.”
 
 
 ## 2 · Your side — YOU
