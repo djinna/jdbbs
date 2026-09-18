@@ -12,7 +12,7 @@ Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **
 - [x] 1.3 Confirm nothing else hardcodes AgentMail as *sender* (archive CC rows `jdbb@agentmail.to` are fine); fix `snapshot_email.go` error text
 - [x] 1.4 Strike the done "Admin doc editor" row in `docs/IDEAS.md`
 - [x] 1.5 Checkpoint tag per `CHECKPOINTS.md`; full `go test ./srv/`; smoke `/factory`, `/admin/factory/`, `/admin/store/`, `/pinstitute/book-001/factory/` — tonight after 1.1–1.4 (re-tag after any later fix) — tag `checkpoint-2026-09-18-pre-workshop` at `0cd67fd`
-- [~] 1.6 Dependabot: 5 vulns on djinna/jdbbs (3 high, 2 moderate) — check whether these were already fixed a day or two ago and just not marked; if new, fix now (rule: always address vulns)
+- [x] 1.6 Dependabot: 5 vulns on djinna/jdbbs (3 high, 2 moderate) — check whether these were already fixed a day or two ago and just not marked; if new, fix now (rule: always address vulns)
 
 ## 2 · Your side — YOU
 
