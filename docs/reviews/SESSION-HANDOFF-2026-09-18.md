@@ -136,4 +136,4 @@ Open on list 2 (all waiting on Jenna or post-workshop): 2.6–2.8, 3.2/3.4/3.5,
   - Failed typst builds keep their work dir at `$TMPDIR/prodcal-failed/book-N` (log line "failed build kept").
   - Book 23 (Obliquities rollup templated) rebuilt OK, 77 pp. Failed builds refund credits.
 - 0.6 Word-access resources posted as note (Word for the web / LibreOffice / Docs + `[[style]]` markers / trial). Offered a "No Word? Three ways in" box on factory + workshop pages — awaiting yes.
-- Noticed: chapter-title hyphenation in the PDF ("Intelli-gence Media", "Fac-tory") — headings should have `hyphenate: false`. Not yet fixed.
+- Chapter-title hyphenation fixed (e088520): `show heading: set text(hyphenate: false)`.
