@@ -21,11 +21,13 @@ button.save{background:#8ab4f8;color:#111;border:0;font-weight:600;padding:0 .9e
 .bar .hint{color:#888}
 </style></head><body>
 <div id="body">{{BODY}}</div>
-<div class="bar"><span class="hint">New item →</span><input id="add" placeholder="type a to-do, Enter to add to Inbox (Shelley triages)"><span class="hint" id="status"></span></div>
+<div class="bar"><span class="hint">New item →</span><input id="add" placeholder="type a to-do, Enter to add to Inbox (Shelley triages)"><span class="hint" id="status"></span><span class="hint" id="upd"></span></div>
 <script>
 const NEXT={o:'x',x:'~','~':'o'}, ST={o:' ',x:'x','~':'~'};
 let notes={};
-function busy(){return [...document.querySelectorAll('textarea')].some(t=>t.value.trim()||document.activeElement===t)||document.activeElement===document.getElementById('add');}
+// Hold the refresh only while there is unsaved typing. (An empty, still-focused
+// "New item" box used to count as busy, so the page stopped updating after every add.)
+function busy(){return [...document.querySelectorAll('textarea')].some(t=>t.value.trim()||(document.activeElement===t&&t.value))||document.getElementById('add').value.trim()!=='';}
 function decorate(){
   document.querySelectorAll('#body li').forEach(li=>{
     const id=li.querySelector(':scope > .id'); if(!id||li.dataset.done)return; li.dataset.done=1;
@@ -52,6 +54,7 @@ async function refresh(force){
   if(!force&&busy())return;
   const [h,n]=await Promise.all([fetch('/fragment').then(r=>r.text()),fetch('/notes').then(r=>r.json())]);
   notes=n; document.getElementById('body').innerHTML=h; decorate();
+  document.getElementById('upd').textContent='updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 document.getElementById('add').onkeydown=async e=>{if(e.key!=='Enter')return; const v=e.target.value.trim(); if(!v)return;
   await fetch('/add',{method:'POST',body:JSON.stringify({text:v})}); e.target.value=''; document.getElementById('status').textContent='added'; setTimeout(()=>document.getElementById('status').textContent='',1500); refresh(true);};
