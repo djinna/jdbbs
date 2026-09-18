@@ -670,6 +670,15 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 		return
 	}
 
+	// Step 1b: black-and-white interior — convert colour images for print.
+	// The EPUB build reads the .docx itself, so it keeps the originals.
+	if !specPrintColour(specMap) {
+		seen, conv := greyscaleMediaDir(filepath.Join(tmpDir, "media"), func(f string, a ...any) { slog.Warn(fmt.Sprintf(f, a...)) })
+		if conv > 0 {
+			slog.Info("images converted to grey for print", "book_id", bid, "converted", conv, "images", seen)
+		}
+	}
+
 	// Step 2: replace placeholder header with real metadata and any spec-driven config.
 	typData, err := os.ReadFile(typPath)
 	if err != nil {

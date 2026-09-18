@@ -61,6 +61,7 @@ func defaultSpecData() string {
     "toc": true, "foreword": false, "preface": false,
     "acknowledgments": false, "introduction": false
   },
+  "images": { "print_colour": false },
   "back_matter": {
     "notes": false, "appendix": false, "glossary": false,
     "bibliography": false, "index": false
@@ -285,6 +286,13 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 			page["trim"] = trim
 			parseTrim(trim, page)
 		}
+	}
+
+	// Images: colour interior switch (Illustrations section). Off = the print
+	// build converts colour images to grey; the EPUB keeps the originals.
+	if il, ok := tx["illustrations"].(map[string]any); ok {
+		im := ensureMap(specData, "images")
+		im["print_colour"] = il["print_colour"] == true
 	}
 
 	// Map front matter from checklist

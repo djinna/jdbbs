@@ -565,8 +565,11 @@ function renderInspect() {
   }
 
   if (pf.images && pf.images.length) {
+    var nColour = pf.images.filter(function (im) { return im.colour === true; }).length;
     html += '<p class="fx-fine">' + pf.images.length + ' ' + plural(pf.images.length, 'image', 'images') +
-      ' found \u2014 the report lists each one\u2019s size in print.</p>';
+      ' found \u2014 the report lists each one\u2019s size in print.' +
+      (nColour ? ' ' + nColour + ' ' + (nColour === 1 ? 'is' : 'are') + ' colour: kept in the EPUB, converted to grey for the print PDF. Already-grey images are left alone; place your own grey version in Word to override.' : '') +
+      '</p>';
   }
 
   html += renderBookMap(pf.book_map);

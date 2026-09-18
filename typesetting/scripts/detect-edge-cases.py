@@ -432,16 +432,39 @@ class EdgeCaseDetector:
         for i, shape in enumerate(self.doc.inline_shapes):
             width_in = round(shape.width / 914400, 2) if getattr(shape, 'width', None) else None
             height_in = round(shape.height / 914400, 2) if getattr(shape, 'height', None) else None
-            self.edge_cases.append({
+            colour = self._image_is_colour(shape)
+            finding = {
                 'type': 'image_inventory',
                 'location': f'Image {i+1}',
-                'text': f'Inline image {i+1}',
+                'text': f'Inline image {i+1}' + (' (colour)' if colour else ' (black and white)' if colour is False else ''),
                 'image_index': i + 1,
                 'width_in': width_in,
                 'height_in': height_in,
                 'severity': 'low',
-                'suggestion': 'Review caption / alt text / placement for this image'
-            })
+                'suggestion': ('Colour: kept in the EPUB, converted to grey for the print PDF (auto-level, gentle S-curve). '
+                               'Place your own grey version in Word if this one needs a careful hand.'
+                               if colour else 'Review caption / alt text / placement for this image')
+            }
+            if colour is not None:
+                finding['colour'] = colour
+            self.edge_cases.append(finding)
+
+    def _image_is_colour(self, shape):
+        """True/False from mean HSL saturation via ImageMagick; None if unknown."""
+        try:
+            rid = shape._inline.graphic.graphicData.pic.blipFill.blip.embed
+            blob = self.doc.part.related_parts[rid].blob
+        except Exception:
+            return None
+        try:
+            import subprocess
+            # Same recipe as srv/images.go colourArgs: share of pixels with clear chroma.
+            out = subprocess.run(['convert', '-[0]', '-resize', '400x400>', '-colorspace', 'sRGB',
+                                  '-fx', 'max(r,g,b)-min(r,g,b)', '-threshold', '10%',
+                                  '-format', '%[fx:mean]', 'info:'], input=blob, capture_output=True, timeout=60)
+            return float(out.stdout.decode().strip()) >= 0.005
+        except Exception:
+            return None
 
     def detect_observed_styles(self):
         """Inventory observed manuscript styles, but stay quiet for obvious built-ins."""
