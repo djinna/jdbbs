@@ -342,6 +342,12 @@ local para_style_map = {
   ["signoff"] = "signature",
   ["forewordsignature"] = "signature",
 
+  -- Glossary: one paragraph per term (bold term, then definition), hanging.
+  ["glossaryentry"] = "glossary-entry",
+  ["glossary"] = "glossary-entry",
+  ["glossaryterm"] = "glossary-entry",
+  ["definition"] = "glossary-entry",
+
   -- Project custom paragraph styles
   ["tweetp"] = "tweet-p",
   ["metadatap"] = "metadata-p",

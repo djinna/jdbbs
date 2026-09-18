@@ -770,6 +770,18 @@
 }
 
 // =============================================================================
+// GLOSSARY ENTRY
+// =============================================================================
+
+// One term per paragraph: the author bolds the term, the definition follows.
+// Hanging indent so turnover lines tuck under the definition; a half-line
+// between entries; ragged right (justified glossary lines look gappy).
+#let glossary-entry(content) = {
+  set par(first-line-indent: 0em, hanging-indent: 1.5em, justify: false)
+  block(breakable: false, below: 0.9em, content)
+}
+
+// =============================================================================
 // BLOCK QUOTE
 // =============================================================================
 

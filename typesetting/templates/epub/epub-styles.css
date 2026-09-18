@@ -269,6 +269,15 @@ div[custom-style="Signature"] + div[custom-style="Signature"] {
   margin-top: 0;
 }
 
+/* === Glossary Entry (bold term + definition, hanging) === */
+div[custom-style="Glossary Entry"] p,
+.glossary-entry p {
+  text-indent: -1.5em;
+  padding-left: 1.5em;
+  margin: 0 0 0.5em 0;
+  text-align: left;
+}
+
 /* === Front Matter === */
 .half-title {
   font-family: "Source Sans 3", sans-serif;

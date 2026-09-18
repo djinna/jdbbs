@@ -75,7 +75,7 @@ STANDIN_FONTS = {
 FACTORY_STYLES = [
     "Normal", "First Paragraph", "Heading 1", "Heading 2", "Heading 3",
     "Block Quote", "Epigraph", "Verse", "Code Block", "Section Break",
-    "Copyright", "Signature",
+    "Copyright", "Signature", "Glossary Entry",
 ]
 
 
@@ -498,6 +498,21 @@ def build_template(spec: dict) -> Document:
     _set_contextual_spacing(sig_style)
 
     # ------------------------------------------------------------------
+    # 9c. Glossary Entry — one paragraph per term: the term in bold, then
+    #     its definition. Hanging indent so wrapped lines sit under the
+    #     definition, not the term; a little space between entries.
+    # ------------------------------------------------------------------
+    gl_style = doc.styles.add_style("Glossary Entry", WD_STYLE_TYPE.PARAGRAPH)
+    gl_style.base_style = normal
+    _set_paragraph_style_font(gl_style, body_font, base_size)
+    _set_left_indent(gl_style, base_size * 1.5)
+    _set_first_line_indent(gl_style, -base_size * 1.5)
+    _set_alignment(gl_style, False)
+    gl_style.paragraph_format.space_before = Pt(0)
+    gl_style.paragraph_format.space_after = Pt(base_size * 0.5)
+    gl_style.paragraph_format.keep_together = True
+
+    # ------------------------------------------------------------------
     # 10. Custom styles from spec
     # ------------------------------------------------------------------
     for cs in customs:
@@ -696,6 +711,21 @@ def build_template(spec: dict) -> Document:
     for line in ("Ada Reader", "Founding Director, The Institute", "Whitehorse, Yukon"):
         doc.add_paragraph(line, style="Signature")
 
+    # --- Glossary Entry ---
+    p = doc.add_heading("Glossary Entry", level=3)
+    doc.add_paragraph(
+        "For a glossary, put each term and its definition in one paragraph in "
+        "'Glossary Entry' style, with the term in bold at the start. Entries "
+        "hang: wrapped lines tuck under the definition. Head the section "
+        "'Glossary' in Heading 1 so the factory files it as back matter:",
+        style="First Paragraph"
+    )
+    for term, defn in (("Transmittal", "The one-page record of what a book is and how it should be set; the factory generates the Word template from it."),
+                       ("Trim", "The finished page size of a printed book, width by height, in inches.")):
+        gp = doc.add_paragraph(style="Glossary Entry")
+        gp.add_run(term).bold = True
+        gp.add_run("  " + defn)
+
     # --- Copyright ---
     p = doc.add_heading("Copyright", level=3)
     doc.add_paragraph(
@@ -753,6 +783,7 @@ def build_template(spec: dict) -> Document:
         ("Epigraph",        f"{body_font}, {base_size}pt italic", "Book or chapter epigraph"),
         ("Copyright",       f"{body_font}, {cr_size:.1f}pt",      "Typed copyright page (dropped; generated from transmittal)"),
         ("Signature",       f"{body_font}, {base_size}pt",        "Name / title / place closing a foreword or afterword"),
+        ("Glossary Entry",  f"{body_font}, {base_size}pt, hanging", "One term (bold) + definition per paragraph"),
     ]
     for cs in customs:
         cs_name = cs.get("word_style") or cs.get("name", "Custom")

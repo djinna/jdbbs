@@ -31,6 +31,7 @@ class EdgeCaseDetector:
         'heading 4', 'heading 5', 'heading 6', 'title', 'subtitle', 'quote', 'block quote',
         'list paragraph', 'list bullet', 'list number', 'caption',
         'code block', 'section break', 'verse', 'copyright', 'epigraph', 'signature',
+        'glossary entry',
     }
     BUILTIN_CHARACTER_STYLES = {
         'default paragraph font', 'strong', 'emphasis', 'subtle emphasis', 'intense emphasis'
