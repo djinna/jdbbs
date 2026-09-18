@@ -46,7 +46,7 @@ function _applyTheme() {
   if (window.JdbbTheme) JdbbTheme.apply(document.getElementById('theme-bar'));
 }
 function themeBtn() { return h('div', { id: 'theme-bar' }); }
-function getTheme() { return window.JdbbTheme && JdbbTheme.state.dark ? 'dark' : 'light'; }
+function getTheme() { return window.JdbbTheme && JdbbTheme.isDark() ? 'dark' : 'light'; }
 
 // ─── State ───
 let state = {

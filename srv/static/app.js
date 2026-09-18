@@ -90,7 +90,7 @@ function _ensureThemeBar() {
 }
 // Legacy compat
 function themeBtn() { return h('span'); }
-function getTheme() { return window.JdbbTheme && JdbbTheme.state.dark ? 'dark' : 'light'; }
+function getTheme() { return window.JdbbTheme && JdbbTheme.isDark() ? 'dark' : 'light'; }
 
 function render() {
   const app = $('#app');

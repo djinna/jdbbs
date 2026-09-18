@@ -35,11 +35,19 @@
   // visitor to try, never auto-picked (decision 2026-09-11).
   var RANDOM_POOL = GROUPS[0].keys;
 
-  var state = { font: null, dark: false, chosen: false };
+  // Appearance: 'system' follows the OS (default), 'light' / 'dark' are
+  // explicit overrides. Older saves stored `dark: true|false`; those are read
+  // as an explicit choice.
+  var MODES = ['system', 'light', 'dark'];
+  var MODE_GLYPH = { system: '◐', light: '☀', dark: '☾' };
+  var MODE_LABEL = { system: 'Appearance: system (click for light)', light: 'Appearance: light (click for dark)', dark: 'Appearance: dark (click for system)' };
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var state = { font: null, mode: 'system', chosen: false };
   try {
     var saved = JSON.parse(localStorage.getItem(STORAGE));
     if (saved) {
-      state.dark = !!saved.dark;
+      if (MODES.indexOf(saved.mode) >= 0) state.mode = saved.mode;
+      else if (typeof saved.dark === 'boolean') state.mode = saved.dark ? 'dark' : 'light';
       if (FONTS[saved.font]) { state.font = saved.font; state.chosen = true; }
       else if (LEGACY[saved.font]) { state.font = LEGACY[saved.font]; state.chosen = true; }
     }
@@ -55,11 +63,16 @@
     try { sessionStorage.setItem(SESSION, state.font); } catch (e) {}
   }
 
-  // save persists only what the visitor has actually chosen: the dark toggle
-  // always, the font only once they've picked one from the selector.
+  function isDark() {
+    if (state.mode === 'system') return !!(mq && mq.matches);
+    return state.mode === 'dark';
+  }
+
+  // save persists only what the visitor has actually chosen: the appearance
+  // mode always, the font only once they've picked one from the selector.
   function save() {
     try {
-      var out = { dark: state.dark };
+      var out = { mode: state.mode, dark: isDark() };
       if (state.chosen) out.font = state.font;
       localStorage.setItem(STORAGE, JSON.stringify(out));
     } catch (e) {}
@@ -67,7 +80,7 @@
 
   function apply(bar) {
     document.documentElement.setAttribute('data-font', state.font);
-    document.documentElement.classList.toggle('dark', state.dark);
+    document.documentElement.classList.toggle('dark', isDark());
     if (!bar) return;
     var nameEl = bar.querySelector('.font-name');
     if (nameEl) nameEl.textContent = FONTS[state.font];
@@ -79,7 +92,12 @@
       if (marker) marker.hidden = !active;
     });
     var darkBtn = bar.querySelector('.dark-btn');
-    if (darkBtn) darkBtn.textContent = state.dark ? '☀' : '☾';
+    if (darkBtn) {
+      darkBtn.textContent = MODE_GLYPH[state.mode];
+      darkBtn.title = MODE_LABEL[state.mode];
+      darkBtn.setAttribute('aria-label', MODE_LABEL[state.mode]);
+      darkBtn.dataset.mode = state.mode;
+    }
   }
 
   function bind(bar) {
@@ -114,9 +132,14 @@
     var darkBtn = bar.querySelector('.dark-btn');
     if (darkBtn) {
       darkBtn.addEventListener('click', function () {
-        state.dark = !state.dark;
+        state.mode = MODES[(MODES.indexOf(state.mode) + 1) % MODES.length];
         apply(bar); save();
       });
+    }
+    if (mq) {
+      var onChange = function () { if (state.mode === 'system') apply(bar); };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
     }
     apply(bar);
   }
@@ -143,7 +166,7 @@
       }).join('') +
       '</div>' +
       '<span class="theme-sep"></span>' +
-      '<button type="button" class="dark-btn" title="Toggle dark mode"></button>';
+      '<button type="button" class="dark-btn" title="Appearance"></button>';
     bind(el);
   }
 
@@ -217,5 +240,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', navs);
   else navs();
 
-  window.JdbbTheme = { mount: mount, bind: bind, state: state, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav };
+  window.JdbbTheme = { mount: mount, bind: bind, state: state, isDark: isDark, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav };
 })();
