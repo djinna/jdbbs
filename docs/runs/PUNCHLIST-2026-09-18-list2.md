@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 18:08 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 18:10 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -73,7 +73,11 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
   > Notes for Jenna
   >  - "thirty years" and "one-person" in the last paragraph are placeholders for whatever is true; cut the sentence if you'd rather not do biography here. - "thirteen named paragraph styles" is true as of today (Signature and Glossary Entry added 2026-09-18). If the count changes, this line and the colophon change with it. - "in seconds" — a full build of a 250-page book is ~9 s on the VM; true. - The page is ~490 words; at 6 × 9 it fills one recto with air. If you want it on one page in Small trim, cut paragraph 4 (Inspect) to two sentences. - Suggested placement: last page of back matter, after About the Author, so the book ends on the author and then the maker.
 
-- [ ] 5.18 New pass → fresh transmittal starts with empty title/author although the pass form asked for both; prefill `book.title` / `book.author` from the pass (found Fri during 2.5)
+- [x] 5.18 New pass → fresh transmittal starts with empty title/author although the pass form asked for both; prefill `book.title` / `book.author` from the pass (found Fri during 2.5)
+
+  > **shelley** · 2026-09-18 18:10 UTC  
+  > Fixed and live (all three pass paths: admin form, coupon, store). The transmittal draft is now seeded with the title and author at the moment the pass is created, so an attendee opens it Monday and sees their book named. Verified with a throwaway pass, then revoked/archived it.
+
 - [~] 5.5 P3 **H&J / composition quality** in the print PDF — Typst 0.12 levers checked, nothing to change before Monday; scorer in `typesetting/scripts/compscore.py`; runts need Typst 0.13 `costs` (Wed 24+); still to do: compare against an InDesign-set page (YOU supply)
 
   > **shelley** · 2026-09-18 14:11 UTC  
