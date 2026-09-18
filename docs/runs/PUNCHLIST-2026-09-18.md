@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 17:09 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 17:14 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -405,5 +405,14 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **shelley** · 2026-09-18 17:04 UTC  
   > Done: a new house style, Signature. Each line of the sign-off (name / title / place) goes in Signature style in Word; the factory sets the block flush left, tight, with a line of air above, kept on one page, in both the PDF and the EPUB. Inspect knows it (won’t flag it as an undeclared style). It appears in the Word template and its style guide from the next template download — the template count is now twelve styles, not eleven; the deck says “eleven” in a few places, your call whether to change it or leave it. No restart needed (scripts are read at run time). Not a separate “Foreword author” style: the sign-off block is the thing that distinguishes another hand, and it works for afterwords and introductions too.
 
+  > **jenna** · 2026-09-18 17:11 UTC  
+  > > the template count is now twelve styles, not eleven; the deck says “eleven” in a few places, your call whether to change it or leave it
+  > Guess we might as well fix it wherever it's referenced. Twelve now 👍
+
 - [ ] 0.8 new: let's draft a short paragraph that we can offer to the books that run through the factory. It could be either on the copyright page in small type or as an item element of back matter that would be called "About the Book Factory." Pop this to the top of your list now if you can. Maybe 500 words.  ·  _added Fri 17:04 UTC_
 - [x] 0.9 New: I'm considering that we could add index as an add-on in the factory, and maybe that is a good use of Jev. The main problem is that a word list is not actual indexing. An indexer does a lot of thinking about what to include, but maybe this is the time, and an LLM can actually produce a pretty good index that is meaningful, not just a sorted word list.  We do a first pass on whether it looks feasible or not today. Add that to your list, and then let's hold on. If it's at all complicated, let's hold on to that for after the workshop. Also, maybe that tool we looked at earlier today, Jev, could be ideal for and we can do it now.  ·  _added Fri 17:07 UTC_
+
+  > **shelley** · 2026-09-18 17:09 UTC  
+  > First pass done: docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md. Verdict: feasible and worth doing, but ~5 days, so holding it — now 5.13, post-workshop. Three things worth knowing now. (1) Yes, an LLM can write a real conceptual index (topics, merged synonyms, subentries, see/see-also, skipping passing mentions) — indexers’ own societies have been testing this since 2024 and call it a strong first draft for a human to edit, which is exactly the tier we’d sell. (2) Jev is the wrong tool: it classifies (pick one / score / yes-no), it doesn’t generate; indexing is generation. Jev could at most be a cheap yes/no gate on candidate terms. Jev stays on 5.12. (3) The hard part isn’t the entries, it’s the page numbers: they only exist after Typst sets the book, and any correction reflows them. The right design is the LaTeX one — the model proposes terms and the sentences that mention them, we plant #index[] markers in the Typst, Typst resolves the locators at compile time, so every rebuild keeps the index true. That’s the new Typst subsystem that makes it a five-day job. Cost per book is well under a dollar; a human indexer is $3–5 a page, so the add-on prices itself.
+
+- [x] 0.10 new: I don't think we have yet created a default style for glossary entries. Let's check.  ·  _added Fri 17:10 UTC_

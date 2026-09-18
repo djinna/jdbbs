@@ -15,7 +15,7 @@ build. The URL is the one line that sells.
 ## A. Colophon (copyright page, small type) — 78 words
 
 > This book was made in the jdbb studio book factory. The author wrote it in
-> Word, in a template of twelve named styles generated from a one-page
+> Word, in a template of thirteen named styles generated from a one-page
 > transmittal; the factory read the file, reported what it found, and set the
 > print interior and the EPUB from that single source, in licensed type, with
 > no hand-composed pages. Corrections are rebuilt the same way, so every copy
@@ -38,9 +38,9 @@ build. The URL is the one line that sells.
 > is part of what you are holding.
 >
 > The author wrote in Word, in a template the factory generated for this
-> title. The template has twelve named paragraph styles and nothing else:
+> title. The template has thirteen named paragraph styles and nothing else:
 > Normal, First Paragraph, three levels of heading, Block Quote, Epigraph,
-> Verse, Code Block, Section Break, Copyright and Signature. Every paragraph
+> Verse, Code Block, Section Break, Copyright, Signature and Glossary Entry. Every paragraph
 > in the manuscript carries one of those names. That is the whole contract
 > between writer and factory. There is no software to learn and nothing to
 > install; the work of authorship stays in the tool the author already used.
@@ -86,8 +86,8 @@ build. The URL is the one line that sells.
 
 - "thirty years" and "one-person" in the last paragraph are placeholders for
   whatever is true; cut the sentence if you'd rather not do biography here.
-- "twelve named paragraph styles" is true as of today (Signature added
-  2026-09-18). If the count changes, this line and the colophon change with it.
+- "thirteen named paragraph styles" is true as of today (Signature and
+  Glossary Entry added 2026-09-18). If the count changes, this line and the colophon change with it.
 - "in seconds" — a full build of a 250-page book is ~9 s on the VM; true.
 - The page is ~490 words; at 6 × 9 it fills one recto with air. If you want
   it on one page in Small trim, cut paragraph 4 (Inspect) to two sentences.
