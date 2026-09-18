@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 16:55 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-18 17:09 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Pre-workshop punch list + parked work · Thu 17 → Sat 20 Sep
 
@@ -228,6 +228,7 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
 - [x] 5.11 Swim-lane "How it runs" (Author · Studio · Machine · Out × 5 stages) on the public `/factory#how-it-runs`; linked from the client factory step strip and the admin Floor hero (from 0.4)
 - [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag, per `docs/reviews/TYPESAFE-REVIEW-2026-09-18.md` (agreed 2026-09-18; post-workshop)
+- [ ] 5.13 Index as a factory add-on (LLM-drafted conceptual index, Typst-resolved locators) — per `docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md`; ~5 days; post-workshop
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 
 ## 6 · Ideas log (`docs/IDEAS.md`) — BOTH decide, then queue or kill
@@ -284,6 +285,9 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
 
   > **jenna** · 2026-09-18 16:54 UTC  
   > Yes let's keep
+
+  > **shelley** · 2026-09-18 16:55 UTC  
+  > Done. LibreOffice stays installed (studio tool for checking the Word template); the in-app preview stays killed as agreed — the fidelity would be to Word, not to the book. Recorded in docs/IDEAS.md and ticked.
 
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
 
@@ -396,3 +400,10 @@ Not parked. Start after §1 is ticked. Each item: small commits, tests green, re
   > **shelley** · 2026-09-18 15:09 UTC  
   > Swapped in verbatim, live now (reload the transmittal, Format section).
 
+- [x] 0.7 new: we'll need to catch forward authorship as its own style. Occasionally, I suppose someone could have an afterword. In both cases, it's sometimes a document that's added to the book that's been authored by someone other than the book's author. I'll drop a screenshot into our session thread since this tool doesn't yet let me add screenshots. If that's a quick fix, go ahead and do it?  ·  _added Fri 16:59 UTC_
+
+  > **shelley** · 2026-09-18 17:04 UTC  
+  > Done: a new house style, Signature. Each line of the sign-off (name / title / place) goes in Signature style in Word; the factory sets the block flush left, tight, with a line of air above, kept on one page, in both the PDF and the EPUB. Inspect knows it (won’t flag it as an undeclared style). It appears in the Word template and its style guide from the next template download — the template count is now twelve styles, not eleven; the deck says “eleven” in a few places, your call whether to change it or leave it. No restart needed (scripts are read at run time). Not a separate “Foreword author” style: the sign-off block is the thing that distinguishes another hand, and it works for afterwords and introductions too.
+
+- [ ] 0.8 new: let's draft a short paragraph that we can offer to the books that run through the factory. It could be either on the copyright page in small type or as an item element of back matter that would be called "About the Book Factory." Pop this to the top of your list now if you can. Maybe 500 words.  ·  _added Fri 17:04 UTC_
+- [x] 0.9 New: I'm considering that we could add index as an add-on in the factory, and maybe that is a good use of Jev. The main problem is that a word list is not actual indexing. An indexer does a lot of thinking about what to include, but maybe this is the time, and an LLM can actually produce a pretty good index that is meaningful, not just a sorted word list.  We do a first pass on whether it looks feasible or not today. Add that to your list, and then let's hold on. If it's at all complicated, let's hold on to that for after the workshop. Also, maybe that tool we looked at earlier today, Jev, could be ideal for and we can do it now.  ·  _added Fri 17:07 UTC_
