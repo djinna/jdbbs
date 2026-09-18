@@ -10,7 +10,7 @@ See README.md for build/deploy basics.
 - **`docs/IDEAS.md`** — parked ideas / to-do log.
 - **`docs/CONTEXT-HYGIENE.md`** — agent context rules: no `cat` on files over ~350 lines (enforced by `scripts/readguard.sh` via `~/.profile`), pipe through `tail`/`rg`, delegate bulk reads, handoff at ~50–65 % context. Read at session start.
 
-- **`srv/EMAIL_SYSTEM.md`** — Complete reference for all email pathways (5 total: 4 manual, 1 automatic). Read before modifying any email code.
+- **`srv/EMAIL_SYSTEM.md`** — Complete reference for all email pathways (8 total: 5 manual, 3 automatic). Read before modifying any email code.
 - **`DEPLOY.md`** — Deployment and hosting notes
 - **`CHECKPOINTS.md`** — Checkpoint tags and rollback workflow
 

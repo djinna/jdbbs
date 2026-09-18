@@ -28,7 +28,7 @@ All handlers check `s.Email == nil` and return 503 if not configured.
 
 ## Email Pathways
 
-There are **7 email pathways** in two categories (5 manual + 2 automatic):
+There are **8 email pathways** in two categories (5 manual + 3 automatic):
 
 ### Manual (button-triggered, user picks recipients)
 
@@ -50,6 +50,7 @@ First recipient = To, rest = CC.
 |---|---------|-----------|------|-------------|
 | 6 | **Client updates transmittal** (auto-save) | `j@djinna.com` | `srv/transmittal_notify.go` | Notification that a client is editing a transmittal. Throttled: max 1 per project per 30 min. Skipped when admin edits (X-ExeDev-UserID header present). |
 | 7 | **Factory Pass fulfilled** / **password reset** / **build delivered** | the pass customer | `srv/passes.go` | Transactional storefront mail: the welcome/sign-in message (also re-sent after an admin password reset) and the per-build receipt. |
+| 8 | **Client asks for a sign-in link** (portal / factory gate) | the address they typed, only if it is on file for that client | `srv/login_links.go` | Magic-link sign-in: one-shot `/auth/link?t=…`, 30-minute expiry, replaces typing the password. Silent when the address is unknown or the client has hit 3 live links in 15 min. |
 
 ## Pathway Details
 
@@ -114,6 +115,17 @@ First recipient = To, rest = CC.
 - `s.Email == nil` (local/dev/test) → log a warning and skip; fulfillment still succeeds
 - Support-edge copy lives in one place, `passSupportEdges`, shared by both mails and the page
 - Expiry warnings (T-30/T-7) and purge notices are **deferred** — nothing expires before March 2027
+- The fulfilment mail now leads with "Easiest way in: open your portal and enter this email address — we'll send you a sign-in link" above the password line, so pathway 8 is the expected first login; the password stays valid as the fallback.
+
+### 8. Client Sign-in Link (`srv/login_links.go`) — added 2026-09-18, punch list 5.7
+- **Automatic/server-initiated**, transactional. Triggered by the customer on `/{client}/` or `/{client}/{project}/factory/`: the auth gate's primary path is "Enter your email → we'll send you a sign-in link"; the password box sits behind "Have a password? Use it instead". The old "Forgot/Lost the password?" mailto links are gone — the same email form replaces them.
+- `POST /api/public/login-link` `{client, email}` → **always** `200 {ok:true}` (no account enumeration). A link is created and mailed only when the address (case-insensitive) is one we already know for that client: `clients.email` (new column, migration 042), a Factory Pass `customer_email` on one of the client's projects, a store order for such a pass, or the coupon / workshop registration the pass was redeemed from.
+- Subject: `Your sign-in link for {client name}`. Body: the link, "works once and for 30 minutes", "if it has expired, go back to your portal and enter your email again", "if you didn't ask for this, ignore it". Kind `login_link`, ref `client:{slug}`, triggered_by `public`. Fire-and-forget goroutine (the request has already answered ok).
+- Token: 32 random bytes, base64url in the URL; only the sha256 hex is stored (`login_links.token_hash`). `GET /auth/link?t=…` verifies hash + not expired + not used, marks it used (guarded UPDATE so a double-click resolves to one winner), sets the **same** `prodcal_client_{slug}` cookie a password login sets (`setClientAuthCookie`, shared with `handleClientVerify`), and 302s to `/{client}/`. Anything else → a themed "That sign-in link has expired" page (401) with a button back to `/{client}/` to request a new one.
+- Rate limit: max 3 unused links per client per 15 minutes; over the limit the endpoint still answers ok and simply does not send (logged as a warning).
+- Logged with `slog` (`login link issued` / `login link redeemed` / `login link rejected`, never the token) and as factory events `login.link_sent`, `login.link_denied`, `login` (detail "via emailed link") so the admin Floor feed shows sign-ins.
+- **Caveat:** like every other pathway the Mail report (`outbound_email`) keeps a copy of the body, which includes the link. Links are single-use and expire in 30 minutes, so the exposure window is small, but it is there.
+- Previews: `/admin/email-preview/login_link`. Tests: `srv/login_links_test.go`.
 
 ## HTML Email Conventions
 
@@ -137,6 +149,9 @@ Automatic email (6) inherits auth from the triggering request
 (the client already authenticated to call `PUT /api/projects/{id}/transmittal`).
 Automatic email (7) is addressed from the pass row, not from the request, so a
 build run by the admin still mails the customer who owns the pass.
+Automatic email (8) requires no auth at all — it *is* the way in — which is why
+it never reveals whether the address or the client exists, and never mails an
+address it does not already have on file.
 
 ## Environment Variables
 
