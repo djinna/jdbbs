@@ -372,10 +372,8 @@ function calcCompletion() {
   for (const k of ['author','title','publisher','editor','isbn_paper','isbn_epub','isbn_cloth']) {
     total++; if (d.book && d.book[k]) filled++;
   }
-  // Production
-  for (const k of ['start_date','pages_to_printer','pages_to_epub','print_run']) {
-    total++; if (d.production && d.production[k]) filled++;
-  }
+  // Schedule (Production section dropped in C6; the one field left is optional)
+  total++; if (d.production && d.production.target_date) filled++;
   // Checklist — count items with explicit status, while preserving older saved data
   if (d.checklist) {
     total += d.checklist.length;
@@ -614,7 +612,6 @@ function renderForm() {
       // LEFT COLUMN
       h('div', { className: 'tx-column' },
         renderBookSection(),
-        renderProductionSection(),
         renderChecklistSection(),
         renderIllustrationsSection(),
         renderCoverSection(),
@@ -648,29 +645,22 @@ function renderBookSection() {
       textField('Publisher', 'book.publisher'),
       textField('In-house Editor', 'book.editor'),
     ),
-    h('div', { className: 'tx-row' },
-      textField('Transmittal Date', 'book.transmittal_date', { type: 'date' }),
-    ),
     h('div', { className: 'tx-row-3' },
       textField('ISBN (paper)', 'book.isbn_paper'),
       textField('ISBN (EPUB)', 'book.isbn_epub'),
       textField('ISBN (cloth)', 'book.isbn_cloth'),
     ),
-  );
-}
-
-// ─── Section: Production ───
-function renderProductionSection() {
-  return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Production'),
-    h('div', { className: 'tx-row' },
-      textField('Transmittal Date', 'production.transmittal_date', { type: 'date' }),
-      textField('Mechs Delivery', 'production.mechs_delivery', { type: 'date' }),
-    ),
+    // C6: the press-era Production section (Mechs Delivery, Weeks in Prod.,
+    // Bound Book Date, a second Transmittal Date) is gone. Print Run moved
+    // here, still under its old key so saved transmittals load unchanged;
+    // Target date is the one schedule field the factory can act on. Old
+    // production.* keys stay in the JSON, just not shown.
     h('div', { className: 'tx-row-3' },
-      textField('Weeks in Prod.', 'production.weeks_in_production'),
-      textField('Bound Book Date', 'production.bound_book_date', { type: 'date' }),
-      textField('Print Run', 'production.print_run'),
+      textField('Transmittal Date', 'book.transmittal_date', { type: 'date' }),
+      textField('Target date', 'production.target_date', { type: 'date',
+        helpText: 'Optional. When you would like the finished files.' }),
+      textField('Print Run', 'production.print_run', { placeholder: 'e.g. 500',
+        helpText: 'Optional. For your printer, not the factory.' }),
     ),
   );
 }

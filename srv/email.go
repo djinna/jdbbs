@@ -449,6 +449,7 @@ type transmittalEmailData struct {
 		WeeksInProd     string `json:"weeks_in_production"`
 		BoundBookDate   string `json:"bound_book_date"`
 		PrintRun        string `json:"print_run"`
+		TargetDate      string `json:"target_date"` // C6: the one schedule field the factory asks for
 	} `json:"production"`
 	ChecklistStats struct {
 		Parts      string `json:"parts"`
@@ -525,6 +526,9 @@ func buildTransmittalTextSummary(status string, data *transmittalEmailData) stri
 	}
 	if data.Production.BoundBookDate != "" {
 		b.WriteString(fmt.Sprintf("Bound book date:  %s\n", data.Production.BoundBookDate))
+	}
+	if data.Production.TargetDate != "" {
+		b.WriteString(fmt.Sprintf("Target date:      %s\n", data.Production.TargetDate))
 	}
 	if data.Production.PrintRun != "" {
 		b.WriteString(fmt.Sprintf("Print run:        %s\n", data.Production.PrintRun))
@@ -655,6 +659,7 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 		{"Mechs delivery", data.Production.MechsDelivery},
 		{"Weeks in prod", data.Production.WeeksInProd},
 		{"Bound book date", data.Production.BoundBookDate},
+		{"Target date", data.Production.TargetDate},
 		{"Print run", data.Production.PrintRun},
 	} {
 		if r[1] != "" {

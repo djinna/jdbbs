@@ -13,7 +13,7 @@ import (
 func defaultTransmittalData() string {
 	return `{
   "book": {"author":"","title":"","subtitle":"","title_status":"tentative","series":"","publisher":"","editor":"","transmittal_date":"","isbn_paper":"","isbn_epub":"","isbn_cloth":""},
-  "production": {"transmittal_date":"","mechs_delivery":"","weeks_in_production":"","bound_book_date":"","print_run":""},
+  "production": {"target_date":"","print_run":""},
   "checklist": [
     {"component":"Half title pg","status":"","here_now":false,"to_come_when":"","indent":false},
     {"component":"Series title/Frontis.","status":"","here_now":false,"to_come_when":"","indent":false},
@@ -495,6 +495,7 @@ func (s *Server) handleDuplicateTransmittal(w http.ResponseWriter, r *http.Reque
 		prod["mechs_delivery"] = ""
 		prod["bound_book_date"] = ""
 		prod["weeks_in_production"] = ""
+		prod["target_date"] = ""
 		// Keep: print_run
 	}
 	if stats, ok := d["checklist_stats"].(map[string]any); ok {
