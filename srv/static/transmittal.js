@@ -1116,7 +1116,7 @@ function renderDesignSection() {
     h('div', { className: 'tx-field' },
       h('label', null, 'Spine, paper and the cover template'),
       h('div', { className: 'tx-help tx-illus-guide' },
-        'We no longer estimate the spine here. Its width depends on the paper your printer uses \u2014 the PPI, pages per inch \u2014 and only the printer knows that. When your interior PDF is final, give the printer the trim and the page count; they send back a cover template with the exact spine. If you would like help laying out the cover, bring that template (or the PPI) back to us.'),
+        'A book\u2019s spine width depends on the PPI, pages per inch, of the paper from your printer that you choose. When your interior PDF is final, you give the printer the trim and the page count; they send back a cover template your cover designer will use with the front-spine-back set up correctly.'),
     ),
     textareaField('Format notes', 'design.freeform_notes', {
       rows: 3,
