@@ -710,6 +710,19 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 	}
 
 	configOverride, specSnapshot := s.buildTypstConfig(bid, book)
+	templatePath := seriesTemplatePath()
+	if configOverride != "" {
+		// The template's module-level functions (running heads, title page,
+		// #section-break, chapter openers) close over the module's own
+		// `config`, not the one passed to book(); a copy of the template with
+		// the merged config bound at module level is the only way the spec's
+		// fonts and section-break style reach them (2026-09-19).
+		if p, err := writeSpecialisedTemplate(tmpDir, configOverride); err != nil {
+			slog.Warn("specialised template", "book_id", bid, "err", err)
+		} else {
+			templatePath = p
+		}
+	}
 	// Pass config explicitly to book.with so the caller's merged config (above)
 	// reaches the template's body styling. Without this, book()'s `config: config`
 	// parameter default captures the template module's default-config rather than
@@ -721,7 +734,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
   title: "%s",
   author: "%s",
 `,
-		seriesTemplatePath(),
+		templatePath,
 		configOverride,
 		escapeTypstString(book.Title),
 		escapeTypstString(book.Author),
@@ -1245,6 +1258,37 @@ func (s *Server) buildTypstConfig(bid int64, book dbgen.Book) (string, string) {
 	}
 
 	return specToTypstConfig(data), spec.Data
+}
+
+// writeSpecialisedTemplate copies series-template.typ (and its sibling
+// imports) into dir with the module-level `#let config = default-config`
+// replaced by the spec's merged config, so every template function sees the
+// book's fonts, sizes and section-break style. Returns the copy's path.
+func writeSpecialisedTemplate(dir, configOverride string) (string, error) {
+	src, err := os.ReadFile(seriesTemplatePath())
+	if err != nil {
+		return "", err
+	}
+	const anchor = "\n#let config = default-config\n"
+	if !strings.Contains(string(src), anchor) {
+		return "", fmt.Errorf("series-template.typ: config anchor not found")
+	}
+	out := strings.Replace(string(src), anchor, "\n"+configOverride+"\n", 1)
+	tplDir := filepath.Join(dir, "templates")
+	if err := os.MkdirAll(tplDir, 0755); err != nil {
+		return "", err
+	}
+	for _, sib := range []string{"styles.typ", "images.typ"} {
+		b, err := os.ReadFile(filepath.Join(filepath.Dir(seriesTemplatePath()), sib))
+		if err != nil {
+			return "", err
+		}
+		if err := os.WriteFile(filepath.Join(tplDir, sib), b, 0644); err != nil {
+			return "", err
+		}
+	}
+	p := filepath.Join(tplDir, "series-template.typ")
+	return p, os.WriteFile(p, []byte(out), 0644)
 }
 
 // nullStringFrom maps "" to NULL so legacy/no-spec rows stay NULL instead of empty.

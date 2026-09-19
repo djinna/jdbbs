@@ -296,9 +296,12 @@ type epubSpec struct {
 	ChapterBreak string
 	SectionBreak string
 	BodyFontSize string
-	EmbedFonts   bool
-	CustomCSS    string
-	Chapters     []epubChapter
+	// BlockParagraphs: transmittal typography.paragraphs == "block" (no
+	// first-line indent, space between paragraphs) — mirrors the print build.
+	BlockParagraphs bool
+	EmbedFonts      bool
+	CustomCSS       string
+	Chapters        []epubChapter
 }
 
 // epubChapter is a per-chapter override read from data.epub.chapters.
@@ -319,6 +322,10 @@ func parseEPUBSpec(specJSON string, book dbgen.Book) epubSpec {
 		Author:   book.Author,
 		Language: "en",
 		TOCDepth: 2,
+	}
+
+	if typo, ok := data["typography"].(map[string]any); ok {
+		spec.BlockParagraphs = typoParagraphsBlock(fmt.Sprint(typo["paragraphs"]))
 	}
 
 	// Pull from metadata section
@@ -802,8 +809,14 @@ func (s *epubSpec) buildCSS() string {
 		parts = append(parts, "hr { border: none; text-align: center; } hr::after { content: '\\2042'; font-size: 1.5em; }")
 	case "dinkus":
 		parts = append(parts, "hr { border: none; text-align: center; } hr::after { content: '* * *'; letter-spacing: 0.5em; }")
+	case "fleuron":
+		parts = append(parts, "hr { border: none; text-align: center; } hr::after { content: '\\2767'; font-size: 1.2em; }")
 	case "blank":
 		parts = append(parts, "hr { border: none; margin: 1.5em 0; }")
+	}
+
+	if s.BlockParagraphs {
+		parts = append(parts, "p { text-indent: 0; margin: 0 0 0.5em; }")
 	}
 
 	// Per-chapter author byline (TRK-DEV-009). Only emit when configured

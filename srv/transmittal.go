@@ -59,6 +59,7 @@ func defaultTransmittalData() string {
   "permissions": {"attested":false,"attested_at":""},
   "page_iv": {"copyright_year":"","held_by":"","publisher_city":"","edition_line":"","interior_credit":"","loc_line":"","printed_in":"","additional_notices":""},
   "editing": {"special_characters":"","math_formulas":""},
+  "typography": {"pairing":"studio","size":"standard","section_break":"space","paragraphs":"indented"},
   "design": {"trim":"","trim_guidance":"","freeform_notes":""},
   "cover": {"paper":"","colors":"","jdbb_front":false,"jdbb_spine":false,"jdbb_back":false,"pub_front":false,"pub_spine":false,"pub_back":false,"credit":""},
   "custom_styles": [],

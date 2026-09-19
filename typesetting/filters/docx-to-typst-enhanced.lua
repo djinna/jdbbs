@@ -405,7 +405,17 @@ function Div(el)
     table.insert(out, pandoc.RawBlock('typst', ']\n'))
     return out
   end
-  
+
+  -- Unmapped paragraph styles (Word's "Body Text", "Normal", …): unwrap the
+  -- Div. Left in place, pandoc's Typst writer emits each paragraph as its own
+  -- `#block[…]`, and a paragraph that is first in its block never gets the
+  -- first-line indent — so no body paragraph was ever indented (2026-09-19).
+  local plain = true
+  for _, item in ipairs(el.content) do
+    if item.t ~= "Para" and item.t ~= "Plain" then plain = false end
+  end
+  if plain then return el.content end
+
   return nil
 end
 

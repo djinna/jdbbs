@@ -478,6 +478,12 @@ type transmittalEmailData struct {
 		EstPages   string `json:"est_pages"`
 		Complexity string `json:"complexity"`
 	} `json:"design"`
+	Typography struct {
+		Pairing      string `json:"pairing"`
+		Size         string `json:"size"`
+		SectionBreak string `json:"section_break"`
+		Paragraphs   string `json:"paragraphs"`
+	} `json:"typography"`
 	OtherInstructions string `json:"other_instructions"`
 }
 
@@ -603,6 +609,16 @@ func buildTransmittalTextSummary(status string, data *transmittalEmailData) stri
 		b.WriteString("\n")
 	}
 
+	// Typography choices (always present once the form has been saved)
+	if data.Typography.Pairing != "" {
+		b.WriteString("TYPOGRAPHY\n")
+		b.WriteString(strings.Repeat("─", 30) + "\n")
+		for _, kv := range typographyChoiceLines(data) {
+			b.WriteString(fmt.Sprintf("%-14s %s\n", kv[0]+":", kv[1]))
+		}
+		b.WriteString("\n")
+	}
+
 	// Other instructions
 	if data.OtherInstructions != "" {
 		b.WriteString("OTHER INSTRUCTIONS\n")
@@ -706,6 +722,9 @@ func buildTransmittalHTMLSummary(status string, data *transmittalEmailData, proj
 			{"Est pages", data.Design.EstPages},
 			{"Complexity", data.Design.Complexity},
 		})
+	}
+	if data.Typography.Pairing != "" {
+		kv("Typography", typographyChoiceLines(data))
 	}
 
 	// Other instructions (same gate as the text version)
@@ -886,4 +905,27 @@ func (s *Server) handleEmailStatus(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{
 		"configured": s.Email != nil,
 	})
+}
+
+// typographyChoiceLines renders the transmittal's four typographic choices
+// as label/value pairs for the final-transmittal email.
+func typographyChoiceLines(data *transmittalEmailData) [][2]string {
+	t := data.Typography
+	pairing := "Studio's choice"
+	if t.Pairing != "" && t.Pairing != "studio" {
+		p := resolvePairing(t.Pairing)
+		pairing = fmt.Sprintf("%s (%s / %s)", p.Name, p.Body, p.Heading)
+	}
+	or := func(v, def string) string {
+		if v == "" {
+			return def
+		}
+		return v
+	}
+	return [][2]string{
+		{"Typeface", pairing},
+		{"Text size", or(t.Size, "standard")},
+		{"Section break", or(t.SectionBreak, "space")},
+		{"Paragraphs", or(t.Paragraphs, "indented")},
+	}
 }

@@ -597,18 +597,7 @@ function renderForm() {
               : clientMode()
                 ? 'Marks the transmittal final: generates your Word template and emails you the link. You can switch it back to Draft.'
                 : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
-            onClick: () => {
-              const wasDraft = state.transmittal.status !== 'final';
-              state.transmittal.status = wasDraft ? 'final' : 'draft';
-              scheduleSave();
-              // The studio's copy goes out from the server on Mark Final;
-              // only the studio itself needs the manual email step here.
-              if (wasDraft && !clientMode()) {
-                state.showEmail = true;
-                state.emailResult = null;
-              }
-              render();
-            }
+            onClick: toggleFinal,
           }, state.transmittal.status === 'final' ? 'Draft' : 'Mark Final'),
           themeBtn(),
         ),
@@ -627,6 +616,10 @@ function renderForm() {
         h('span', { id: 'tx-save-status', className: 'tx-save-status' }),
       ),
     ),
+    // Step strip: the transmittal is step 1 of the factory's five (0.13 A).
+    isPreview ? null : renderStepStrip(),
+    // Hand-off panel once final: what happened, what's next (0.13 C).
+    isPreview ? null : renderHandoff(),
     // Email modal
     renderEmailModal(),
     // Version history panel (slides in from right)
@@ -662,6 +655,78 @@ function renderForm() {
         renderDesignSection(),
         renderFilesSection(),
       ),
+    ),
+    // Finish block: the page ends with an action, not a field (0.13 A).
+    isPreview ? null : renderFinish(),
+  );
+}
+
+// ─── Final / Draft toggle (header button + finish block share it) ───
+function toggleFinal() {
+  const wasDraft = state.transmittal.status !== 'final';
+  state.transmittal.status = wasDraft ? 'final' : 'draft';
+  scheduleSave();
+  // The studio's copy goes out from the server on Mark Final;
+  // only the studio itself needs the manual email step here.
+  if (wasDraft && !clientMode()) {
+    state.showEmail = true;
+    state.emailResult = null;
+  }
+  render();
+  // The hand-off panel sits under the header; bring it into view.
+  if (wasDraft) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function factoryUrl(hash) {
+  return '/' + state.pathClient + '/' + state.pathProject + '/factory/' + (hash || '');
+}
+
+// Same strip as the factory page (classes in theme.css); here step 1 is
+// where you are, done once the transmittal is final.
+function renderStepStrip() {
+  const isFinal = state.transmittal.status === 'final';
+  const step = (n, name, href, cls) => h('a', { className: 'fx-step' + (cls ? ' ' + cls : ''), href: href },
+    h('span', { className: 'fx-step-n' }, String(n)), h('span', { className: 'fx-step-name' }, name));
+  return h('nav', { className: 'fx-steps tx-steps', 'aria-label': 'Where you are' },
+    step(1, 'Transmittal', '#', isFinal ? 'done' : 'current'),
+    step(2, 'Upload', factoryUrl('#upload')),
+    step(3, 'Inspect', factoryUrl('#inspect')),
+    step(4, 'Build', factoryUrl('#build')),
+    step(5, 'Download', factoryUrl('#download')),
+    h('a', { className: 'fx-step fx-step-how', href: '/factory#how-it-runs', target: '_blank', rel: 'noopener',
+      title: 'Who does what: Author, Studio, Machine, Out' }, 'How it runs →'),
+  );
+}
+
+function renderHandoff() {
+  if (state.transmittal.status !== 'final') return null;
+  const tpl = '/api/projects/' + state.projectId + '/word-template';
+  return h('div', { className: 'tx-handoff' },
+    h('div', null,
+      h('div', { className: 'tx-handoff-k' }, 'Transmittal is final'),
+      h('p', null, 'Your Word template has been generated from it. Two things next:'),
+      h('ol', null,
+        h('li', null, h('a', { href: tpl, download: '' }, 'Download the Word template'), ' and write (or restyle) your manuscript in it.'),
+        h('li', null, 'When a draft is ready, ', h('a', { href: factoryUrl() }, 'go to the Factory'), ' — upload, inspect, build.'),
+      ),
+    ),
+    h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →'),
+  );
+}
+
+function renderFinish() {
+  const isFinal = state.transmittal.status === 'final';
+  return h('div', { className: 'tx-finish' },
+    isFinal
+      ? h('p', null, h('b', null, 'This transmittal is final.'), ' Edit anything and it autosaves; switch back to Draft if you want the studio to wait.')
+      : h('p', null, h('b', null, 'That’s the whole form.'), ' Mark it final and the factory generates your Word template from it; you can switch back to Draft at any time.'),
+    h('div', { className: 'tx-finish-acts' },
+      isFinal
+        ? h('button', { className: 'link-action', onClick: toggleFinal }, 'Switch to Draft')
+        : h('a', { className: 'link-action', href: factoryUrl() }, 'Continue to the Factory →'),
+      isFinal
+        ? h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →')
+        : h('button', { className: 'btn-fill', onClick: toggleFinal }, 'Mark Final'),
     ),
   );
 }
@@ -1084,7 +1149,11 @@ function renderEditingSection() {
   // (developmental_edit, developmental_instructions, copyediting_level,
   // instructions) stay in the JSON, just not shown.
   return h('div', { className: 'tx-section' },
-    h('div', { className: 'tx-section-header' }, 'Typography notes'),
+    h('div', { className: 'tx-section-header' }, 'Typography'),
+    h('div', { className: 'tx-help tx-illus-guide' },
+      'Four choices are yours; margins, running heads and the rest follow from the trim and the series design. Each row\u2019s first answer is the studio default \u2014 leave them if you have no preference.'),
+    ...renderTypographyChoices(),
+    h('div', { className: 'tx-section-header', style: 'margin-top:16px' }, 'Typography notes'),
     h('div', { className: 'tx-help tx-illus-guide' },
       'The factory typesets what you send; it does not edit. Tell it here about anything in the text that needs special handling in type.'),
     textField('Special Characters', 'editing.special_characters', {
@@ -1112,6 +1181,76 @@ function renderEditingSection() {
     ),
     h('button', { className: 'tx-add-btn', type: 'button', onClick: addCustomStyle }, '+ Add custom style'),
   );
+}
+
+// ─── Typography choices (punch list 0.8 part 2) ───
+// Four radio rows, stored under transmittal.typography and mirrored into the
+// book spec by the server (srv/typochoices.go). Keys and defaults must match
+// that file: pairing studio|classic|house|literary · size compact|standard|
+// generous · section_break space|breve|ornament · paragraphs indented|block.
+const TYPO_PAIRINGS = [
+  { value: 'studio', name: 'Studio\u2019s choice', blurb: 'We pick for the manuscript \u2014 today that is the open classic pairing below.' },
+  { value: 'classic', name: 'Open classic', blurb: 'Libertinus Serif for the text, Source Sans for headings. Even, quiet, reads well at any size.' },
+  { value: 'house', name: 'Studio house', blurb: 'Plantin for the text, Proxima Nova for headings \u2014 the jdbb series look. Warm, slightly dark on the page.' },
+  { value: 'literary', name: 'Literary', blurb: 'EB Garamond for text and headings alike. Light, old-style, fiction and essays.' },
+];
+const TYPO_SIZES = [
+  { value: 'compact', name: 'Compact', factor: 0.95, blurb: 'A little smaller; more words to the page, so a shorter book.' },
+  { value: 'standard', name: 'Standard', factor: 1, blurb: 'The size the trim calls for.' },
+  { value: 'generous', name: 'Generous', factor: 1.06, blurb: 'A little larger; easier on the eyes, a longer book.' },
+];
+const TYPO_BREAKS = [
+  { value: 'space', name: 'White space', blurb: 'A blank line between scenes. Quiet; can be missed at the foot of a page.' },
+  { value: 'breve', name: 'Breve', blurb: 'Three small centred marks (\u02d8 \u02d8 \u02d8) \u2014 the studio\u2019s house mark.' },
+  { value: 'ornament', name: 'Ornament', blurb: 'A single centred fleuron (\u2767).' },
+];
+const TYPO_PARAS = [
+  { value: 'indented', name: 'Indented', blurb: 'First line indented, no space between paragraphs. The book convention.' },
+  { value: 'block', name: 'Block', blurb: 'No indent; half a line of space between paragraphs. Manuals, workbooks, some nonfiction.' },
+];
+
+// Trim → body size and a rough words-a-page figure, mirroring the server's
+// trim-derived defaults (srv/typodefaults.go): margins are fixed fractions
+// of the trim, 10.5pt from 5\u00bd in wide, 10pt below; leading 1.28\u00d7.
+function typoTrimDims() {
+  const t = String(getField('design.trim') || '');
+  const m = t.match(/^\s*(\d+(?:\.\d+)?)\s*[x\u00d7]\s*(\d+(?:\.\d+)?)\s*$/i);
+  if (m) return { w: parseFloat(m[1]), h: parseFloat(m[2]), assumed: false };
+  return { w: 6, h: 9, assumed: true };
+}
+function typoSizeDescription(opt) {
+  const d = typoTrimDims();
+  const base = d.w >= 5.5 ? 10.5 : 10;
+  const pt = Math.round(base * opt.factor * 4) / 4;
+  const lead = Math.round(pt * 1.28 * 10) / 10;
+  const textW = d.w * (1 - 0.146 - 0.125) * 72, textH = d.h * (1 - 0.089 - 0.111) * 72;
+  const charsPerLine = textW / pt * 2.3, lines = Math.floor(textH / (pt * 1.28));
+  const words = Math.round(charsPerLine * lines * 0.85 / 6 / 10) * 10;
+  return `${pt} on ${lead} pt, roughly ${words} words a page` + (d.assumed ? ' at 6 \u00d7 9' : '') + '.';
+}
+
+function renderTypographyChoices() {
+  const row = (label, path, name, options, extra) => {
+    const cur = String(getField(path) || options[0].value);
+    const pick = (v) => () => { setField(path, v); render(); };
+    return h('div', { className: 'tx-field' },
+      h('label', null, label),
+      h('div', { className: 'tx-trim-tiers tx-typo-rows' },
+        ...options.map(o => {
+          const on = cur === o.value;
+          return h('label', { className: 'tx-check tx-trim-tier' + (on ? ' is-on' : '') },
+            h('input', { type: 'radio', name, value: o.value, checked: on ? 'checked' : undefined, onChange: pick(o.value) }),
+            h('span', { className: 'tx-trim-tier-text' },
+              h('strong', null, o.name), ' \u2014 ',
+              h('span', { className: 'tx-trim-blurb' }, extra ? extra(o) + ' ' + o.blurb : o.blurb)));
+        })));
+  };
+  return [
+    row('Typeface', 'typography.pairing', 'typo-pairing', TYPO_PAIRINGS),
+    row('Text size', 'typography.size', 'typo-size', TYPO_SIZES, typoSizeDescription),
+    row('Section breaks', 'typography.section_break', 'typo-break', TYPO_BREAKS),
+    row('Paragraphs', 'typography.paragraphs', 'typo-paras', TYPO_PARAS),
+  ];
 }
 
 // ─── Section: Format ───

@@ -268,6 +268,13 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 		mapField(editing, "developmental_instructions", typesetting, "developmental_instructions")
 		mapField(editing, "instructions", typesetting, "copyeditor_instructions")
 	}
+	// The four typographic choices (pairing, size, section break, paragraphs);
+	// an absent map means an older transmittal and resolves to the defaults.
+	txTypo, _ := tx["typography"].(map[string]any)
+	if txTypo == nil {
+		txTypo = map[string]any{}
+	}
+	applyTypoChoices(txTypo, specData)
 	if design, ok := tx["design"].(map[string]any); ok {
 		typesetting := ensureMap(specData, "typesetting")
 		mapField(design, "trim_guidance", typesetting, "trim_guidance")
@@ -641,12 +648,21 @@ func specToTypstConfig(data map[string]any) string {
 		}
 		if v, ok := typo["leading_pt"].(float64); ok {
 			lines = append(lines, fmt.Sprintf("  leading: %gpt,", v))
+			// Paragraph spacing tracks the leading (continuous text) unless the
+			// transmittal asked for block paragraphs, which get half a line more.
+			if typoParagraphsBlock(fmt.Sprint(typo["paragraphs"])) {
+				lines = append(lines, fmt.Sprintf("  paragraph-spacing: %gpt,", round2(v+0.5*baseSizePt)))
+			} else {
+				lines = append(lines, fmt.Sprintf("  paragraph-spacing: %gpt,", v))
+			}
 		} else if v, ok := typo["leading_em"].(float64); ok && v > 0 {
 			// Old format: leading_em × base_size = pt
 			leadPt := v * baseSizePt
 			lines = append(lines, fmt.Sprintf("  leading: %gpt,", leadPt))
 		}
-		if v, ok := typo["paragraph_indent_em"].(float64); ok {
+		if typoParagraphsBlock(fmt.Sprint(typo["paragraphs"])) {
+			lines = append(lines, "  paragraph-indent: 0em,")
+		} else if v, ok := typo["paragraph_indent_em"].(float64); ok {
 			lines = append(lines, fmt.Sprintf("  paragraph-indent: %gem,", v))
 		}
 	}

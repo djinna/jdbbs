@@ -38,7 +38,7 @@ func capHeightRatio(bodyFont string) float64 {
 	case strings.Contains(bodyFont, "Cardo"):
 		return 0.64
 	case strings.Contains(bodyFont, "EB Garamond"), strings.Contains(bodyFont, "Garamond"):
-		return 0.65
+		return 0.65 // measured: OS/2 sCapHeight 650/1000 (EBGaramond-Regular.otf)
 	default:
 		return 0.68
 	}
@@ -108,7 +108,10 @@ func applyTypoDefaults(data map[string]any) {
 		return
 	}
 	if base <= 0 || base == 10 {
-		base = trimTypeSize(w)
+		// Trim-derived size, scaled by the transmittal's text-size choice
+		// (compact / standard / generous) and rounded to a quarter point.
+		size, _ := typo["size"].(string)
+		base = roundQuarterPt(trimTypeSize(w) * typoSizeFactor(size))
 		typo["base_size_pt"] = base
 	}
 	body, _ := typo["body_font"].(string)
