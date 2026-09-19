@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 12:42 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 12:49 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -113,6 +113,38 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > **shelley** · 2026-09-19 12:42 UTC  
   > Done and live: --bg is #FFFEF6 everywhere (theme.css is the single source, so admin, portals, factory, public pages all follow). Hairlines and progress tracks nudged a step lighter to match (#E4E2D8 / #F3F1E8); the press page colour note and the social card now say #FFFEF6 too. Hard refresh to see it.
 
+- [~] 0.12 new: I got to watch two people work through the transmittal form yesterday, and I saw that they had trouble distinguishi… — COMPS at :8767 (A boxed/B tinted/C paper) — YOU pick
+
+  > **shelley** · 2026-09-19 12:49 UTC  
+  > Comps are up (live markup, you can type in them): https://jdbbs.exe.xyz:8767/ — top half. What I think the trouble is: a field today is a bottom rule with mono text on it, in the same mono at nearly the same size as the label above and the help below, so nothing says “type here” and filled values read as printed text. Three directions beside the current one:
+  > A · Boxed wells — white well, hairline frame, your typed values in the sans. Plainest “this is an input”; bends our no-boxes rule for inputs only.
+  > B · Tinted wells — no frame, a slightly darker warm panel under the rule, white when focused. Gentlest; keeps the ledger look.
+  > C · Form-on-paper — heavier grey rule, dashed when empty (like a paper form), values in the sans, labels a shade darker.
+  > My lean: B if smallest change, A if the goal is nobody hesitates again. Each is ~10 lines of CSS once you point.
+
+- [~] 0.13 new: during the testing session yesterday, I saw people have trouble with the Final button up at the top because you are… — COMPS at :8767 (A strip+finish / B sticky / C hand-off panel; rec A+C) — YOU pick
+
+  > **shelley** · 2026-09-19 12:49 UTC  
+  > Same comps page, bottom half: https://jdbbs.exe.xyz:8767/ . Two problems, three directions that combine:
+  > A · Step strip + finish block — put the Factory’s 1–5 strip on the transmittal (step 1 current), and end the form with a strong rule, one sentence, the same Mark Final button, and “Continue to the Factory →”. The page ends with an action, not a field.
+  > B · Sticky status bar — a one-line bar pinned to the bottom of the window (status · saved · Mark Final), which after Final becomes “✓ Final · Word template ↓ · Next: upload your manuscript →”. Always in reach; costs ~40 px.
+  > C · Hand-off panel on Final — clicking Final scrolls to the top and shows a green-ruled panel: what just happened, then 1) download the template 2) go to the Factory. Fixes the “now what?” but not the tall page on its own.
+  > Recommendation: A + C. No pinned chrome, and the transmittal reads as step one of five, which is what it is. Building A+C is maybe an hour; B another hour. Say which.
+
+- [~] 0.14 new: I'm tempted to go back to using a domain I've owned for many years, jdbb.net, as my main contact for this project. … — ideas posted; chat; no build
+
+  > **shelley** · 2026-09-19 12:49 UTC  
+  > Ideas only, as asked. Two separate things: where mail goes OUT from (the factory’s automated sends) and where people write TO you (contact address). They don’t have to be the same domain, and today they aren’t: sends go from factory@mail.jdbb.studio (Resend, set up yesterday, with SPF/DKIM so they land), and Reply-To on every one of them is j@djinna.com.
+  >
+  > Options for the contact side:
+  > 1. Keep sending from mail.jdbb.studio; make j@jdbb.net (or hello@) the public contact and Reply-To. Cheapest: point jdbb.net’s MX at whatever already hosts your mail (Fastmail/Google/iCloud+ all take custom domains; you already own the name, so it’s a DNS change and an alias — an hour). Nothing on our side changes except one env var for Reply-To and the address on /press, /factory, the footer.
+  > 2. Send from jdbb.net too (factory@jdbb.net) — add jdbb.net as a second Resend domain, three DNS records, and switch PRODCAL_MAIL_FROM. Half an hour, but only worth doing if you want one domain everywhere. Warm-up caution: a fresh sending domain right before the workshop is the one thing I’d not do this week.
+  > 3. jdbb.studio as an inbox — it is only a sending subdomain today; receiving there means an actual mailbox provider or Resend’s inbound (which forwards to a webhook, not a mailbox — fine for the factory to read replies programmatically, wrong for you as a person).
+  >
+  > Redirects: web-side is easy — jdbb.net → jdbbs.exe.xyz is one exe.dev proxy/DNS setting, and both names can serve the site. Mail-side “redirect” is just forwarding, also easy.
+  >
+  > My pick: 1 now (after the workshop, as you say), and decide on 2 after you’ve seen a few weeks of real mail. Happy to chat whenever; nothing is built.
+
 
 ## 2 · Your side — YOU
 
@@ -148,7 +180,7 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 
 ## 5 · Queued — ME unless marked
 
-- [~] 0.8 New: the default typography for our print PDF is pretty bad. Can you review our typography.md and perhaps look at the Bringhurst references and go ahead and bui… — part 1 (trim-derived defaults) LIVE d187fa5; part 2 = transmittal typography choices (typeface pairing · text size · section break · paragraph style), IN PROGRESS (subagent typo-choices)
+- [~] 0.8 New: the default typography for our print PDF is pretty bad. Can you review our typography.md and perhaps look at the Bringhurst references and go ahead and bui… — part 1 (trim-derived defaults) LIVE d187fa5; part 2 = transmittal typography choices (typeface pairing · text size · section break · paragraph style), IN PROGRESS (subagent typo-choices, conv cDXESK6)
 
   > **shelley** · 2026-09-19 12:25 UTC  
   > Part 1 done and live — the defaults. Diagnosis from your Obliquities PDF: every book was getting the same margins (¾″ all round, whatever the trim) and a stored leading of 2pt, which on a 6×9 gave an 85-character line set 10 on 8.6 — tighter than solid. That’s the “pretty bad”. Bringhurst: 45–75 characters, 66 ideal; leading ~120–135 %; bottom margin deeper than top, inner narrower than outer.
@@ -182,6 +214,9 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 
   > **shelley** · 2026-09-19 12:42 UTC  
   > B is in progress (subagent): Bearer-token alias, a one-page curl recipe, and a stdlib-only Python script that uploads → builds → downloads. A still needs the three names/emails/working titles from you.
+
+  > **shelley** · 2026-09-19 12:49 UTC  
+  > B landed (ba069b6): `Authorization: Bearer <project token>` works on every factory endpoint; docs/API-CLI-RECIPE-2026-09-19.md is the one-page curl recipe; scripts/factory-cli.py (stdlib Python, ~60 lines) does upload → build → poll → download, or inspect. Tested end to end on Ghosts. This is your “their factory calls our factory” demo for Monday: a book built from a terminal, no browser. A (the three passes) still needs names.
 
 - [ ] 5.17 **About the Book Factory** text (was 0.8) — YOU pick A / A′ / B and edit the placeholders (drafts are on this item's notes); then ME: transmittal checkbox → colophon on the copyright page and/or back-matter page, off by default
 
