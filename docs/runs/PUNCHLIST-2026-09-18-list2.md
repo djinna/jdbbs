@@ -1,4 +1,4 @@
-<!-- exported 2026-09-18 20:13 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 12:26 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -50,7 +50,7 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > **shelley** · 2026-09-18 19:14 UTC  
   > Gone for customers (History · Duplicate · Print · Word template remain). You still see “Email” on the admin side. Live; reload.
 
-- [~] 0.6 New: in the work session we just had, both of the people I was teaching to use the factory had trouble with Word. Neither of them has a current license, and in one case, we were finally barely able to make the Claude Word work. In the other case, we tried using Pages, but couldn't get it to honor Word's style sheets. I don't know, maybe we could have fought with it some more. That person also tried giving the template and the exported Google Doc in a docx format to Claude to say, "Just do it for me," and that document also failed. We were able to upload it, but it didn't pass the inspection. It could be inspected, but it didn't pass the build, so something inside of it was just still a mess.  See if you can find out some resources I can give our participants in the workshop on Monday for how to use Word better, or how to get access. Surely, this is going to be a real pain point for a lot of people, and we should think about it.  ·  _added Fri 20:06 UTC_
+- [x] 0.6 New: in the work session we just had, both of the people I was teaching to use the factory had trouble with Word. Neither of them has a current license, and in one case, we were finally barely able to make the Claude Word work. In the other case, we tried using Pages, but couldn't get it to honor Word's style sheets. I don't know, maybe we could have fought with it some more. That person also tried giving the template and the exported Google Doc in a docx format to Claude to say, "Just do it for me," and that document also failed. We were able to upload it, but it didn't pass the inspection. It could be inspected, but it didn't pass the build, so something inside of it was just still a mess.  See if you can find out some resources I can give our participants in the workshop on Monday for how to use Word better, or how to get access. Surely, this is going to be a real pain point for a lot of people, and we should think about it.  ·  _added Fri 20:06 UTC_
 
   > **shelley** · 2026-09-18 20:12 UTC  
   > First, the failed build: I pulled the two files that failed this afternoon (books 22–25 on Obliquities) and the problem was ours, not the documents. Two pipeline bugs, both fixed and live:
@@ -76,6 +76,27 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > And the “Claude, just do it” route: it worked — the file was fine, the build bug was ours (see note above). Worth saying out loud on Monday: “hand the template + your Google Doc export to Claude, ask it to move the text into the template’s styles” is a legitimate path now, with Inspect as the check.
   >
   > Suggestion: I can add a short “No Word? Three ways in” box to the factory page and the workshop page with exactly the above — say yes and it’s twenty minutes.
+
+  > **shelley** · 2026-09-18 20:14 UTC  
+  > One more from the rebuilt PDF: chapter titles were hyphenating (“Intelli-gence Media”, “Have Your Factory Call My Fac-tory”). Headings never hyphenate now; live for your next build.
+
+  > **shelley** · 2026-09-19 12:26 UTC  
+  > Ticking this one: build bugs fixed, resources posted. The offered “No Word? Three ways in” box on the factory/workshop pages is a yes/no from you — if yes I’ll queue it as its own item.
+
+- [x] 0.7 For failed builds, let's think about some improvements to this message. We saw it yesterday during our testing, and it was not very helpful. The inspect report maybe could update to show the actual failure. Open to your other ideas too!  ·  _added Sat 12:17 UTC_
+
+  > **shelley** · 2026-09-19 12:20 UTC  
+  > Live. Failed builds now say what actually went wrong, in three layers:
+  >
+  > 1. Plain explanation + what to do (“A chapter start landed inside a styled block… add an empty Body paragraph before the heading” / “Your file uses a Word style (tweet-p) that isn’t in your template…” / “An image couldn’t be read — re-insert it in Word” / “Your template asks for a font we don’t have” / “We couldn’t read this Word file — re-save as .docx from Word or LibreOffice, especially if it came from Pages”). When it’s our bug, the message says so.
+  > 2. **Near: “…the text where it broke…”** — quoted from the document so they can Cmd-F it in Word.
+  > 3. A folded “Technical detail” line with the typesetter’s own error, for when they email you.
+  >
+  > The refund line stays underneath. I rewrote the three failure messages from this afternoon on Obliquities so the page shows the new wording (open the factory and you’ll see it).
+  >
+  > I put it on the build line rather than in Inspect: Inspect describes the file, the build line describes the build, and that’s where they’re looking when it fails. If you’d rather it also appear at the top of Inspect, say so.
+  >
+  > One more idea, not built: email you automatically whenever a *customer’s* build fails (message + who + which file), so on Monday you hear about it before they give up. Easy to add — yes/no?
 
 
 ## 2 · Your side — YOU
@@ -111,6 +132,35 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 - [ ] 4.4 Tue night: confirm `systemctl list-timers prodcal-store-live.timer` still armed; Wed 00:00 HKT check the go-live email arrived and `/api/public/store/config` says live
 
 ## 5 · Queued — ME unless marked
+
+- [~] 0.8 New: the default typography for our print PDF is pretty bad. Can you review our typography.md and perhaps look at the Bringhurst references and go ahead and bui… — part 1 (trim-derived defaults) LIVE d187fa5; part 2 = transmittal typography choices (typeface pairing · text size · section break · paragraph style), fresh session
+
+  > **shelley** · 2026-09-19 12:25 UTC  
+  > Part 1 done and live — the defaults. Diagnosis from your Obliquities PDF: every book was getting the same margins (¾″ all round, whatever the trim) and a stored leading of 2pt, which on a 6×9 gave an 85-character line set 10 on 8.6 — tighter than solid. That’s the “pretty bad”. Bringhurst: 45–75 characters, 66 ideal; leading ~120–135 %; bottom margin deeper than top, inner narrower than outer.
+  >
+  > Now derived from the trim: 6×9 → inside 0.88″, outside 0.75″, top 0.8″, bottom 1.0″; 10.5pt on 13.4 (computed from the typeface’s cap height, so it holds when the face changes); 1.25em indent; small trims keep 10pt. Obliquities lands at ~70 characters a line and reads like a book. Your next build picks it up; page count goes 77 → ~110, which is the honest number.
+  >
+  > Part 2 — putting choices back on the transmittal. Proposal, deliberately few, each a radio row with a one-line description:
+  > • **Typeface**: 3 pairings from TYPOGRAPHY_PAIRINGS.md (e.g. Plantin + Proxima “studio house”, Libertinus + Source Sans “open classic”, EB Garamond + … “literary”) + “studio’s choice”.
+  > • **Text size**: Compact · Standard · Generous (10/12.5, 10.5/13.5, 11/14.5 — one knob, shown as “roughly N words a page”).
+  > • **Section breaks**: white space · breve · ornament.
+  > • **Paragraphs**: indented (default) · block with space between (for essays/nonfiction).
+  > Alignment stays justified+hyphenated (a real choice only for poetry, which the Verse style already handles). Anything else stays studio-side in the spec. Then a review pass over a real build for each pairing. I’d hand this to a fresh session/subagent — half a day.
+
+- [ ] 0.9 new: I'd like to at least start building out how someone else can hit the book factory from their own factory via our API. I have, today, three customers, and i… — plan on the item: A) three passes on this VM (15 min, need names); B) bearer token + CLI/Python recipe, fresh session
+
+  > **shelley** · 2026-09-19 12:25 UTC  
+  > First think, in plain terms. Two very different things are hiding in this item, and I’d separate them:
+  >
+  > **A. Portals for your three customers (Monday-showable).** This is *not* new code. ProdCal is already multi-tenant: each customer is a client slug with a portal at /{client}/ and a Factory Pass per project. So “a portal for each of the three” = three passes on this VM, today: Admin → Store → New pass (name, email, project). Each gets /{client}/{project}/factory/ with transmittal, Inspect, builds. One VM, one codebase, always in sync because it *is* the app. Handing it to them = sending the login. I can set all three up in fifteen minutes if you give me names + emails + working titles; you did one earlier today (snitkey). Separate VMs would mean three copies to keep in sync and three sets of licensed fonts — worse, not better.
+  >
+  > **B. “Hit the book factory from their own factory” — the API.** The Factory Pass API already exists and is documented (docs/API.md, docs/specs/FACTORY-PASS-API-2026-09-03.md): upload a .docx, POST /api/books/{id}/convert, poll, download PDF/EPUB, all against a project the pass owns. What’s missing for an outside program (or an outside agent) to use it:
+  >  1. **A token instead of a browser login.** Passes authenticate via a cookie; a program needs `Authorization: Bearer <pass token>`. Small server change; the pass already has a secret.
+  >  2. **A one-page “build a book from the command line” recipe**: curl upload → convert → poll → download, plus the same as a 30-line Python script. This is the demo for Monday: “here is a book being built from a terminal, no browser.”
+  >  3. **Machine-readable Inspect and build errors** (both exist as JSON already; document them).
+  >  4. Later: webhooks when a build finishes; a spec/transmittal PUT so the caller can set trim/title without the form.
+  >
+  > Plan: fresh session, starts from a copy of the API doc, does 1+2 today (2–3 h), demo = the Python script building Ghosts on project 14. It touches srv/auth for the bearer path and adds docs; it won’t collide with what I’m doing here (transmittal, template, filters). A is a 15-minute task in either session — send me the three names.
 
 - [ ] 5.17 **About the Book Factory** text (was 0.8) — YOU pick A / A′ / B and edit the placeholders (drafts are on this item's notes); then ME: transmittal checkbox → colophon on the copyright page and/or back-matter page, off by default
 
