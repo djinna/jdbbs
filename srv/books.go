@@ -1478,6 +1478,9 @@ func frontMatterTypst(spec map[string]any, book dbgen.Book) string {
 		"isbn-epub: " + q(str(meta, "isbn_epub")),
 		"copyright-year: " + q(str(meta, "copyright_year")),
 		"copyright-holder: " + q(str(meta, "copyright_holder")),
+		// 5.22: the whole © / licence line, resolved server-side (rights.go) so
+		// PDF, Word template and EPUB say the same thing.
+		"rights-line: " + q(rightsLine(str(meta, "rights"), str(meta, "copyright_year"), str(meta, "copyright_holder"))),
 		"credit-lines: " + q(str(meta, "credit_lines")),
 		"cover-credit: " + q(str(cover, "credit")),
 		// C12 copyright-page builder fields.

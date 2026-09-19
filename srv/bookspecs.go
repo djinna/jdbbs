@@ -257,6 +257,7 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 		mapField(pageIV, "loc_line", meta, "loc_line")
 		mapField(pageIV, "printed_in", meta, "printed_in")
 		mapField(pageIV, "additional_notices", meta, "additional_notices")
+		mapField(pageIV, "rights", meta, "rights") // 5.22: all_rights | cc_by … | cc0; wording in rights.go
 	}
 	if cover, ok := tx["cover"].(map[string]any); ok {
 		// cover.credit is read by frontMatterTypst from spec.cover; until C12

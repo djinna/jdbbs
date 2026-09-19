@@ -1029,13 +1029,40 @@ function renderPermissionsSection() {
 // read-only below so nothing typed is lost.
 const INTERIOR_CREDIT_DEFAULT = 'Typeset by jdbb studio in {typeface}';
 
+// Rights choice (5.22). Mirrors srv/rights.go — the server resolves the same
+// wording for the PDF, the Word template and the EPUB's dc:rights.
+const RIGHTS_OPTIONS = [
+  ['all_rights', 'All rights reserved', null, null],
+  ['cc_by', 'CC BY \u2014 attribution', 'Attribution 4.0 International', 'licenses/by/4.0/'],
+  ['cc_by_sa', 'CC BY-SA \u2014 attribution, share-alike', 'Attribution-ShareAlike 4.0 International', 'licenses/by-sa/4.0/'],
+  ['cc_by_nc', 'CC BY-NC \u2014 attribution, non-commercial', 'Attribution-NonCommercial 4.0 International', 'licenses/by-nc/4.0/'],
+  ['cc_by_nc_sa', 'CC BY-NC-SA \u2014 attribution, non-commercial, share-alike', 'Attribution-NonCommercial-ShareAlike 4.0 International', 'licenses/by-nc-sa/4.0/'],
+  ['cc_by_nd', 'CC BY-ND \u2014 attribution, no derivatives', 'Attribution-NoDerivatives 4.0 International', 'licenses/by-nd/4.0/'],
+  ['cc_by_nc_nd', 'CC BY-NC-ND \u2014 attribution, non-commercial, no derivatives', 'Attribution-NonCommercial-NoDerivatives 4.0 International', 'licenses/by-nc-nd/4.0/'],
+  ['cc0', 'CC0 \u2014 public domain dedication', 'CC0 1.0 Universal', 'publicdomain/zero/1.0/'],
+];
+
+function rightsLine(code, year, holder) {
+  const o = RIGHTS_OPTIONS.find(r => r[0] === code) || RIGHTS_OPTIONS[0];
+  const who = [year, holder].filter(Boolean).join(' ');
+  const cline = who ? 'Copyright \u00a9 ' + who + '.' : '';
+  if (o[0] === 'cc0') {
+    return (holder || 'The author') + ' has dedicated this work to the public domain under the Creative Commons CC0 1.0 Universal dedication. To view a copy, visit https://creativecommons.org/' + o[3];
+  }
+  if (o[3]) {
+    const lic = 'This work is licensed under a Creative Commons ' + o[2] + ' License. To view a copy of this license, visit https://creativecommons.org/' + o[3];
+    return cline ? cline + ' ' + lic : lic;
+  }
+  return cline ? cline + ' All rights reserved.' : 'All rights reserved.';
+}
+
 function copyrightPageLines() {
   const g = (p) => String(getField(p) || '').trim();
   const lines = [];
   const title = g('book.title');
   if (title) lines.push({ text: title, strong: true });
   const year = g('page_iv.copyright_year'), holder = g('page_iv.held_by') || g('book.author');
-  lines.push({ text: 'Copyright \u00a9 ' + [year, holder].filter(Boolean).join(' ') + '. All rights reserved.' });
+  lines.push({ text: rightsLine(g('page_iv.rights'), year, holder) });
   const pub = g('book.publisher'), city = g('page_iv.publisher_city');
   if (pub) lines.push({ text: 'Published by ' + pub + (city ? ', ' + city : '') + '.' });
   if (g('page_iv.edition_line')) lines.push({ text: g('page_iv.edition_line') });
@@ -1081,6 +1108,8 @@ function renderPageIVSection() {
       fromBook('Publisher (from Book)', 'book.publisher'),
       textField('Publisher city', 'page_iv.publisher_city', { placeholder: 'e.g. Hong Kong' }),
     ),
+    selectField('Rights', 'page_iv.rights', RIGHTS_OPTIONS.map(r => [r[0], r[1]]), {
+      helpText: 'Printed after the \u00a9 line, in the wording Creative Commons recommends; the EPUB\u2019s rights metadata matches. All rights reserved unless you choose otherwise.' }),
     textField('Edition / printing line', 'page_iv.edition_line', { placeholder: 'e.g. First edition, 2026' }),
     h('div', { className: 'tx-row' },
       fromBook('ISBN paper (from Book)', 'book.isbn_paper'),
@@ -1093,7 +1122,7 @@ function renderPageIVSection() {
     textField('Library of Congress / CIP line', 'page_iv.loc_line', { placeholder: 'optional \u2014 e.g. Library of Congress Control Number: 2026xxxxxx' }),
     textField('Printed in', 'page_iv.printed_in', { placeholder: 'e.g. Printed in the United States of America' }),
     textareaField('Additional notices', 'page_iv.additional_notices', { rows: 3,
-      placeholder: 'Permissions acknowledgements, a disclaimer, a Creative Commons licence, a dedication of the type\u2026',
+      placeholder: 'Permissions acknowledgements, a disclaimer, a dedication of the type\u2026',
       helpText: 'Printed as typed, after the ISBNs.' }),
     legacy.length ? h('div', { className: 'tx-legacy' },
       h('div', { className: 'tx-help' }, 'From the earlier form (not printed \u2014 move what you still want into Additional notices):'),

@@ -203,6 +203,9 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 	if spec.Description != "" {
 		args = append(args, fmt.Sprintf("--metadata=description:%s", spec.Description))
 	}
+	if spec.Rights != "" {
+		args = append(args, fmt.Sprintf("--metadata=rights:%s", spec.Rights))
+	}
 
 	// Embed only the OFL fallback families the manuscript actually needs.
 	// Latin-only books should stay tiny; CJK and Thai text still carry fonts
@@ -291,6 +294,7 @@ type epubSpec struct {
 	Language     string
 	Subject      string
 	Description  string
+	Rights       string // dc:rights, from rightsShort (5.22)
 	TOCDepth     int
 	CoverImage   string
 	ChapterBreak string
@@ -336,6 +340,12 @@ func parseEPUBSpec(specJSON string, book dbgen.Book) epubSpec {
 		if v, ok := meta["author"].(string); ok && v != "" {
 			spec.Author = v
 		}
+		ms := func(k string) string { v, _ := meta[k].(string); return strings.TrimSpace(v) }
+		holder := ms("copyright_holder")
+		if holder == "" {
+			holder = spec.Author
+		}
+		spec.Rights = rightsShort(ms("rights"), ms("copyright_year"), holder)
 	}
 
 	// Pull from epub section

@@ -601,7 +601,11 @@
   v(1fr)
   let holder = fm-get(fm, "copyright-holder", default: author)
   let year = fm-get(fm, "copyright-year")
-  let cline = if year != none and holder != none [Copyright © #year #holder. All rights reserved.]
+  // rights-line arrives resolved from the server (srv/rights.go: all rights
+  // reserved, or a Creative Commons notice); the fallback is for hand-built fm.
+  let rights = fm-get(fm, "rights-line")
+  let cline = if rights != none [#rights]
+    else if year != none and holder != none [Copyright © #year #holder. All rights reserved.]
     else if holder != none [Copyright © #holder. All rights reserved.]
     else [All rights reserved.]
   [#strong(title)]

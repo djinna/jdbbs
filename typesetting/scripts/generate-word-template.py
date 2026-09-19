@@ -239,6 +239,34 @@ def _tidy_styles_pane(doc, visible: list[str]):
     _insert_setting(settings, flt)
 
 
+# Mirrors srv/rights.go (5.22): keep the wording in step.
+CC_LICENCES = {
+    "cc_by": ("Attribution 4.0 International", "licenses/by/4.0/"),
+    "cc_by_sa": ("Attribution-ShareAlike 4.0 International", "licenses/by-sa/4.0/"),
+    "cc_by_nc": ("Attribution-NonCommercial 4.0 International", "licenses/by-nc/4.0/"),
+    "cc_by_nc_sa": ("Attribution-NonCommercial-ShareAlike 4.0 International", "licenses/by-nc-sa/4.0/"),
+    "cc_by_nd": ("Attribution-NoDerivatives 4.0 International", "licenses/by-nd/4.0/"),
+    "cc_by_nc_nd": ("Attribution-NonCommercial-NoDerivatives 4.0 International", "licenses/by-nc-nd/4.0/"),
+}
+
+
+def rights_line(code, year, holder):
+    """© line + licence sentence for p. iv, as srv/rights.go prints it."""
+    code = (code or "").strip()
+    who = " ".join(x for x in ((year or "").strip(), (holder or "").strip()) if x)
+    cline = f"Copyright © {who}." if who else ""
+    if code == "cc0":
+        h = (holder or "").strip() or "The author"
+        return (f"{h} has dedicated this work to the public domain under the Creative Commons "
+                "CC0 1.0 Universal dedication. To view a copy, visit https://creativecommons.org/publicdomain/zero/1.0/")
+    if code in CC_LICENCES:
+        name, path = CC_LICENCES[code]
+        lic = (f"This work is licensed under a Creative Commons {name} License. "
+               f"To view a copy of this license, visit https://creativecommons.org/{path}")
+        return f"{cline} {lic}" if cline else lic
+    return f"{cline} All rights reserved." if cline else "All rights reserved."
+
+
 def copyright_page_text(spec, author, body_font):
     """The copyright page (p. iv) as the build will set it, one line per
     element, from the transmittal's copyright-page builder (C12). Mirrors
@@ -255,7 +283,7 @@ def copyright_page_text(spec, author, body_font):
         lines.append(title)
     year = g(meta, "copyright_year") or str(datetime.date.today().year)
     holder = g(meta, "copyright_holder") or author
-    lines.append(f"Copyright © {year} {holder}. All rights reserved.")
+    lines.append(rights_line(g(meta, "rights"), year, holder))
     publisher = g(meta, "publisher")
     city = g(meta, "publisher_city")
     if publisher:
