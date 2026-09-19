@@ -377,6 +377,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /factory/terms", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "factory-terms.html")
 	})
+	// Factory API recipe (punch list 0.9): the six calls, curl + Python. The
+	// script is a symlink in jdbbs-public to scripts/factory-cli.py.
+	mux.HandleFunc("GET /factory/api", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "factory-api.html")
+	})
+	mux.HandleFunc("GET /factory/api/factory-cli.py", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "factory-cli.py")
+	})
 	// Store (Stripe Checkout). All 404 unless PRODCAL_STORE=on; see store.go.
 	mux.HandleFunc("POST /api/public/store/checkout", s.handleStoreCheckout)
 	mux.HandleFunc("GET /api/public/store/session", s.handleStoreSession)
@@ -577,7 +585,12 @@ func (s *Server) servePublicDocIn(w http.ResponseWriter, dir, name string) {
 		http.Error(w, "not found", 404)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	ctype := "text/html; charset=utf-8"
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".py", ".sh", ".txt", ".md":
+		ctype = "text/plain; charset=utf-8"
+	}
+	w.Header().Set("Content-Type", ctype)
 	w.Write(data)
 }
 
