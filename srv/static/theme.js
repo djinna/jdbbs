@@ -248,7 +248,7 @@
     ['/workshop', 'Workshop', 'Protocolize Your Book — the workshop'],
     ['/field-notes', 'Field notes', 'Notes from the studio'],
     ['/factory', 'Factory', 'Factory Pass: Word manuscript → EPUB + print PDF'],
-    ['/#portal', 'Client portal', 'Sign in to your books']
+    ['/portal', 'Client portal', 'Sign in to your books']
   ];
   function fillNav(nav, items, attr) {
     Array.prototype.slice.call(nav.querySelectorAll(':scope > a')).forEach(function (a) { nav.removeChild(a); });

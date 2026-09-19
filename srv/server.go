@@ -421,6 +421,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		s.serveLanding(w)
 	})
+	// Client-code sign-in, moved off the landing page (punch list 0.24).
+	mux.HandleFunc("GET /portal", func(w http.ResponseWriter, r *http.Request) {
+		s.serveStaticPage(w, "static/portal.html")
+	})
 
 	// /{client}/{project}/ serves the SPA, /{client}/ serves client portal
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
@@ -591,6 +595,16 @@ func (s *Server) servePublicDocIn(w http.ResponseWriter, dir, name string) {
 		ctype = "text/plain; charset=utf-8"
 	}
 	w.Header().Set("Content-Type", ctype)
+	w.Write(data)
+}
+
+func (s *Server) serveStaticPage(w http.ResponseWriter, name string) {
+	data, err := readStatic(name)
+	if err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(data)
 }
 

@@ -16,7 +16,7 @@ import (
 func TestNavConvergence(t *testing.T) {
 	admin := []string{"admin.html", "store-admin.html", "factory-admin.html", "registrations.html", "docs-editor.html", "content-review.html"}
 	client := []string{"client.html", "index.html", "factory.html", "project-stylesheet.html"}
-	public := []string{"housestyle.html", "cohort.html", "store-thanks.html"}
+	public := []string{"housestyle.html", "cohort.html", "store-thanks.html", "portal.html"}
 	check := func(files []string, attr string) {
 		for _, f := range files {
 			b, err := os.ReadFile(filepath.Join("static", f))

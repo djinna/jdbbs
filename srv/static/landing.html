@@ -164,48 +164,6 @@ body {
 }
 .readout-foot .pass { color: var(--green); }
 
-/* ---- client portal ---- */
-.portal { padding: 72px 0 80px; }
-.portal .kicker { display: block; margin-bottom: 36px; }
-.portal-line {
-  display: flex;
-  align-items: flex-end;
-  gap: 28px;
-  max-width: 640px;
-}
-.portal-field {
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  border-bottom: 1px solid var(--border-strong);
-}
-.portal-field:focus-within { border-bottom-color: var(--accent); }
-.portal-field .prompt { font-family: var(--mono); font-size: 17.2px; color: var(--accent); }
-.portal-field .input-bare { border-bottom: none; font-size: 17.2px; padding: 12px 0; }
-.portal .btn-fill { min-height: 44px; }
-.portal-help {
-  margin-top: 22px;
-  font-size: 14.9px;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-.portal-help a {
-  color: var(--text);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-}
-.portal-help a:hover { color: var(--accent); }
-#portal-error {
-  display: none;
-  margin-top: 16px;
-  font-family: var(--mono);
-  font-size: 13.8px;
-  letter-spacing: 0.04em;
-  color: var(--red);
-}
-
 /* ---- capabilities ledger ---- */
 .capabilities { padding: 72px 0 0; }
 .cap-head {
@@ -319,7 +277,7 @@ body {
 /* ---- narrow screens ---- */
 @media (max-width: 720px) {
   .hero { padding: 56px 0 48px; }
-  .portal, .capabilities { padding-top: 56px; }
+  .capabilities { padding-top: 56px; }
 
   .readout-row {
     grid-template-columns: 24px 1fr 88px;
@@ -337,14 +295,6 @@ body {
   .specline { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 520px) {
-  .portal-line {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 20px;
-  }
-  .portal .btn-fill { width: 100%; }
-}
 </style>
 </head>
 <body>
@@ -356,7 +306,7 @@ body {
     <nav>
       <a href="/factory">Factory&nbsp;Pass</a>
       <a href="#capabilities">Capabilities</a>
-      <a href="#portal">Client&nbsp;portal</a>
+      <a href="/portal">Client&nbsp;portal</a>
       <a href="mailto:j@djinna.com" data-contact-mail>Contact</a>
       <div id="theme-bar"></div>
     </nav>
@@ -442,24 +392,6 @@ body {
     <hr class="rule-strong">
   </section>
 
-  <!-- client portal -->
-  <section class="portal" id="portal">
-    <span class="kicker">Client portal</span>
-    <form id="portal-form">
-      <div class="portal-line">
-        <div class="portal-field">
-          <span class="prompt">&gt;</span>
-          <input id="client-slug" class="input-bare" type="text" placeholder="Your client code" aria-label="Client code" autocomplete="off" spellcheck="false">
-        </div>
-        <button type="submit" class="btn-fill">Open&nbsp;&rarr;</button>
-      </div>
-      <p class="portal-help">Enter your client code to view your projects, schedules, and proofs.</p>
-      <p class="portal-help">Your client code is in your welcome email &mdash; or ask <a id="contact-link" href="mailto:j@djinna.com" data-contact-mail>j@djinna.com</a>.</p>
-      <div id="portal-error"></div>
-    </form>
-  </section>
-  <hr class="rule">
-
   <!-- capabilities -->
   <section class="capabilities" id="capabilities">
     <div class="cap-head">
@@ -534,7 +466,7 @@ body {
   <!-- footer -->
   <footer class="jdbb-footer">
     <a class="jdbb-wordmark" href="https://www.djinna.com" rel="noopener"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
-    <nav aria-label="Footer"><a href="/workshop">Workshop</a><a href="/field-notes">Field notes</a><a href="/litmags">Lit-mag stack</a><a href="/admin/">Admin</a></nav>
+    <nav aria-label="Footer"><a href="/workshop">Workshop</a><a href="/field-notes">Field notes</a><a href="/litmags">Lit-mag stack</a><a href="/portal">Client portal</a><a href="/admin/">Admin</a></nav>
     <span class="copy">&copy; 2026 Jenna Dixon</span>
   </footer>
   <hr class="rule footer-close">
@@ -564,25 +496,6 @@ fetch('/api/public/config').then(function(r) { return r.ok ? r.json() : null; })
     });
   }
 }).catch(function() {});
-
-// Portal form: normalize slug and jump to the client space.
-var portalForm = document.getElementById('portal-form');
-var clientSlugInput = document.getElementById('client-slug');
-var portalError = document.getElementById('portal-error');
-
-portalForm.addEventListener('submit', function(e) {
-  e.preventDefault();
-  var raw = (clientSlugInput.value || '').trim().toLowerCase();
-  var slug = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  if (!slug) {
-    portalError.textContent = 'Enter your client code.';
-    portalError.style.display = 'block';
-    clientSlugInput.focus();
-    return;
-  }
-  portalError.style.display = 'none';
-  window.location.href = absoluteURL('/' + slug + '/');
-});
 
 function absoluteURL(path) {
   return new URL(path, window.location.origin + '/').toString();
