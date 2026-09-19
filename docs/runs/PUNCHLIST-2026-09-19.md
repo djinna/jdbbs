@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 15:42 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 15:57 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -34,6 +34,11 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > Redirects: web-side is easy — jdbb.net → jdbbs.exe.xyz is one exe.dev proxy/DNS setting, and both names can serve the site. Mail-side “redirect” is just forwarding, also easy.
   >
   > My pick: 1 now (after the workshop, as you say), and decide on 2 after you’ve seen a few weeks of real mail. Happy to chat whenever; nothing is built.
+
+- [x] 0.18 new: tested our doc editor for the first time. https://jdbbs.exe.xyz/admin/docs/?file=factory.html -- check my commit, and if all looks good, add to your next push? "committed 07ecd3f"  ·  _added Sat 15:44 UTC_
+
+  > **shelley** · 2026-09-19 15:44 UTC  
+  > Checked 07ecd3f — one paragraph in “How it runs — who does what”: “visible part of the factory” / “programs installed on the factory’s server” reads better than the old wording, and the five canonical links (python-docx, Pandoc, Lua, Typst, EPUB3) are all correct URLs. HTML parses clean. It was already live (public docs are served from disk), and it’s now pushed to GitHub (`jdbbs-public` main = 07ecd3f). Nothing to fix. First edit through /admin/docs worked end to end — commit message and all.
 
 
 ## 1 · This weekend — ME (from list 2, decided)
@@ -160,6 +165,20 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 12:49 UTC  
   > B landed (ba069b6): `Authorization: Bearer <project token>` works on every factory endpoint; docs/API-CLI-RECIPE-2026-09-19.md is the one-page curl recipe; scripts/factory-cli.py (stdlib Python, ~60 lines) does upload → build → poll → download, or inspect. Tested end to end on Ghosts. This is your “their factory calls our factory” demo for Monday: a book built from a terminal, no browser. A (the three passes) still needs names.
 
+  > **jenna** · 2026-09-19 15:52 UTC  
+  > This all sounds great. Not sure what I can look at to see what we've got. Is this something we add to the factory sales page, or is it a separate page that we link to? Not sure how to present this option on the website. Also, I want to add it into what I use for the workshop on Monday and Tuesday, and my session on Wednesday. Help me think this through?
+
+  > **shelley** · 2026-09-19 15:55 UTC  
+  > **What exists to look at (nothing public yet):** the recipe `docs/API-CLI-RECIPE-2026-09-19.md` (on GitHub; I can render it at a URL) and `scripts/factory-cli.py`. The demo is a terminal: `python3 scripts/factory-cli.py build ghosts.docx` → PDF and EPUB land in the folder, no browser.
+  >
+  > **Website — my recommendation: both, but unequal.** The `/factory` sales page is written for an author; keep it that way and add one short section near the foot, after “How it runs”: *“Have your own factory? The book factory is an API. Everything the page above does, a program can do — upload, inspect, build, download — with one token.”* → link. The link goes to a **separate page, `/factory/api`**: the recipe rendered as a public doc (same treatment as `/factory` itself — a file in jdbbs-public, so you can edit it in the doc editor). Reason: the API audience is a publisher’s tech person or someone’s agent, not the author reading the price; give them their own page and keep the sales page short. I can put both up Sunday (one small route + one HTML file; no risk to the app).
+  >
+  > **Workshop Mon/Tue:** participants live in the browser factory. The API earns *one* 90-second moment at the end of the build session: “this is the same factory” — I run the CLI on a manuscript on screen, the PDF appears, and the point lands: the web page is just one door into it. Nothing for them to do.
+  >
+  > **Wednesday session:** it’s the closing argument of the *machine factory* idea: the swim-lane diagram on `/factory` (“How it runs”) shows four lanes; the API slide says *any* of the top-lane work can be done by a program or an agent, and here are the four calls. One slide of the curl recipe, one slide of the diagram. If the Index add-on PDF lands today, that’s the third slide: a machine-drafted index, reviewed by a human.
+  >
+  > Say yes and I’ll do the page + section Sunday morning, and hand you a 6-line demo script for the terminal moment.
+
 - [ ] 5.17 **About the Book Factory** text (was 0.8) — YOU pick A / A′ / B and edit the placeholders (drafts are on this item's notes); then ME: transmittal checkbox → colophon on the copyright page and/or back-matter page, off by default
 
   > **shelley** · 2026-09-18 17:19 UTC  
@@ -227,6 +246,18 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 15:18 UTC  
   > 1/ Done — /factory lists 'Index · coming soon' in the Add-ons table (live now; price 'tbd'). 2/ Started: brief at scratch/briefs/index-addon-2026-09-19.md, subagent `index-addon` (conv cYBS6TS) running in parallel. Safety: it works in a git worktree on branch `index-addon` (/home/exedev/prodcal-index), never touches main, the live service, the DB or the API; no factory UI (that's phase 2, mine, after 0.17); develops on Ghosts only — it will ask here before touching Obliquities. Deliverables: Typst index piece (flagged), LLM drafting pass via the VM's keyless LLM gateway, marker anchoring, a design note docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md, and a report. I'll post its summary here when it lands. If you'd rather drive it from your own session instead, the brief file is the prompt — paste it in.
 
+  > **jenna** · 2026-09-19 15:49 UTC  
+  > Do you have an update from the subagent? If we're close, I'd like to go ahead and push this today, but I haven't seen anything to review yet.
+
+  > **shelley** · 2026-09-19 15:54 UTC  
+  > Update from the branch (`index-addon`, worktree, nothing on main yet):
+  >
+  > - **Piece 1 done and committed (b67e4b0):** `#index[term]` markers + an `index-page()` back-matter function in the series template, with a fixture (`typesetting/test/index-fixture.typ`) compiling identically under Typst 0.12 and 0.13. That’s the typesetting half — the thing that turns markers into a real index with page numbers.
+  > - **Piece 2 in progress:** the drafter — Go tools that read a manuscript, ask the LLM for a candidate term list (headwords, subentries, cross-refs), and anchor the terms back into the Typst source as markers. `srv/indexer/typtext.go` and `llm.go` compile; `cmd/indexdraft` / `cmd/indexanchor` are scaffolded. The internal LLM endpoint is confirmed answering.
+  > - **Remaining:** finish the two tools, run them on Ghosts to produce a sample index PDF, write `docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md`.
+  >
+  > “Push today” — honest answer: the **Ghosts sample index** (a PDF you can read) is realistic today, and that’s the thing worth reviewing: is the index any good? Wiring it into the factory (the SKU, a “Draft my index” step, review UI) is phase 2 and stays post-workshop under the freeze — it touches builds and the store. So today = a PDF to judge and the design doc; I’ll post both here when the subagent lands them. If the index reads well, you can talk about it Wednesday as a working thing, not a promise.
+
 - [ ] 5.19 Tuned per-image grey conversion + proof sheet as a ~$100 add-on (from 5.15; post-workshop)
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 - [ ] 5.21 Plantin MT Pro **Bold** missing on the VM (see `docs/IDEAS.md`) — YOU supply the OTF; never committed
@@ -244,7 +275,32 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **jenna** · 2026-09-18 01:08 UTC  
   > I'm going to make a big deal about style sheets in both senses (for the workshop and in my presentation to the symposium), and disambiguating style sheets (like in Microsoft Word) and the style sheets we mean here (lke whether to use the Oxford comma or not) feels worth doing now and handling exposing the UX in the client dashboard. In the workshop, I think I'd encourage them to accept all of our defaults for efficiency, but also to allow them to add or edit. Am I crazy?
 
-- [ ] 6.2 Reusable "review table" pattern from the sitemap-review tool (JSON table + per-row reply box)
+  > **jenna** · 2026-09-19 15:47 UTC  
+  > did you reply to this question? if so it didn't land here in the punch list
+
+  > **shelley** · 2026-09-19 15:48 UTC  
+  > No, I never answered this one — your 01:08 note came after my reply and got lost at the session handoff. Sorry.
+  >
+  > Not crazy. The framing is right and the pedagogy is right (accept our defaults, then add/edit). The question is only *how much* lands before Monday, because a per-client accept/reject instance is new feature work inside the freeze. Two sizes:
+  >
+  > **A. Workshop-ready, low risk (Sunday, ~2–3 h, no schema):** the trimmed universal sheet already exists as a page (`/housestyle`, 62 rules, fiction/nonfiction/both). I put a **Style sheet** card on the client portal and a line in the transmittal that says plainly: *“Your book follows the jdbb house style sheet unless you tell us otherwise”* → link → and a free-text **Exceptions & additions** box right there (Oxford comma yes/no, spellings, names). Plus a short disambiguation paragraph at the top of `/housestyle`: Word *styles* (Heading 1, Body Text — what the template gives you) vs the editorial *style sheet* (the decisions a copyeditor keeps — this page). Participants accept-all by doing nothing, and can add. Nothing new can break.
+  >
+  > **B. Full 6.1 (post-workshop, ~1 day):** per-project copy of the 62 rows seeded from house_style, each row accept / reject / edit, add-a-rule, shown in the portal; whatever participants typed into the Exceptions box on Monday migrates into their instance. Same model as the PI review tool (`stylesheet_items`), so it’s known work.
+  >
+  > My recommendation: A tomorrow, B the week after. If you’d rather have B by Monday I can do it Sunday, but it means a new table + UI going live the morning of the workshop with only my own testing behind it — I’d rather not. Your call; say A or B and I’ll start.
+
+  > **jenna** · 2026-09-19 15:54 UTC  
+  > B feels doable? and we still have a bunch of time today, Saturday. We just need to be careful about crashing with whatever else we keep going on this afternoon but you have seemed really strong on staging our improvements.
+
+  > **shelley** · 2026-09-19 15:55 UTC  
+  > B it is. Starting now, staged so nothing collides with the index or 0.9 work:
+  > 1. Schema (new table only, seeded from the 62 house-style rows per project on first open — no changes to existing tables).
+  > 2. API under `/api/projects/{id}/stylesheet` (client-scoped like the transmittal).
+  > 3. Portal: a **Style sheet** card per book + the page: each rule accept / reject / edit, add a rule, “Accept all” at the top, plus the Word-styles-vs-style-sheet paragraph.
+  > 4. Tests → build → restart → smoke on mcheck; nothing touches builds or the store, so the worst case is the new page being wrong, not the factory.
+  > I’ll post screenshots here as it comes together.
+
+- [x] 6.2 Reusable "review table" pattern from the sitemap-review tool (JSON table + per-row reply box)
 
   > **jenna** · 2026-09-18 00:19 UTC  
   > I don't know enough about what you mean for this one.
@@ -254,6 +310,22 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **jenna** · 2026-09-18 01:06 UTC  
   > Hmm feels like, through the course of the workshop, I might very quickly end up with a bunch of small borks/nits/qols that we could fix in near real time, and a clean punch list to keep track of them instead of throwing things at you in a session would feel much safer. Maybe we make a blank page shaped like this that has a starter data entry field that I could use to kick off things as they come up on Monday and Tuesday.
+
+  > **jenna** · 2026-09-19 15:47 UTC  
+  > 6.2 did you reply to this question? if so it didn't land here in the punch list
+
+  > **shelley** · 2026-09-19 15:48 UTC  
+  > Missed this one too — sorry. Yes, and you already have it: this page *is* that. Plan for the workshop:
+  >
+  > Sunday night I archive list 3 to `/admin/runs/` and start **Punch list 4 — Workshop** at the same URL (https://jdbbs.exe.xyz:8766/): empty apart from §0 Inbox, the New-item bar at the top as the starter field, screenshots paste in as now. Everything you drop in Mon/Tue lands in my chat instantly; I triage each into **Hotfix now** (typos, broken links, a wrong label — fixed in minutes, ticked with a note) or **After workshop** (anything needing a build or a schema change, per the freeze). You never have to hold a thought or open a session — just type it on the page. No build needed for any of this, so it fits the freeze. Only you can see it (the port is behind the exe.dev login).
+
+  > **jenna** · 2026-09-19 15:56 UTC  
+  > Yes, good plan. I may even show the window as a model for one way to iterate through a bunch of quick improvements for this modern era of building. Using Chrome's new split tabs feels like a really good way to keep the context clear on a bunch of quick changes. eg
+  >
+  > ![screenshot](img/20260919-155612-739.png)
+
+  > **shelley** · 2026-09-19 15:57 UTC  
+  > Good — that split view is exactly the loop: you type on the right, the fix lands on the left, the tick comes back on the right. Worth showing. Punch list 4 (Workshop) goes up Sunday night at this URL; I’ll leave list 3 readable at /admin/runs/. One thought for the demo: the punch list is the *shape* of the pattern (items, notes both ways, ticks), not a product — the same shape works with any agent that can read a file and POST a note.
 
 - [ ] 6.3 Client-visible on-disk documents (`pi-client/{slug}/` + `serveClientDoc`) — trigger: first real client doc
 
@@ -265,6 +337,14 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **jenna** · 2026-09-18 01:04 UTC  
   > Hmmm we'll have a bunch of clients once the workshop participants start Monday, so this is something that needs to be ready before the workshop, unless I'm still not quite understanding what you mean here.
+
+  > **jenna** · 2026-09-19 15:47 UTC  
+  > 6.3 did you reply to this question? if so it didn't land here in the punch list
+
+  > **shelley** · 2026-09-19 15:48 UTC  
+  > And this one — sorry. You’re understanding it right, but the need isn’t what it sounds like. Everything a participant needs when they become a client on Monday is **generated by the app per client already**: their portal, factory, transmittal, Word template, builds, house style. No files need dropping anywhere.
+  >
+  > 6.3 is narrower: it’s for the day you want to *hand-write* a one-off HTML page for one specific client — a bespoke design memo, a custom brief — and have it show only to them behind their login, the way `/exedeck` shows to everyone. That day hasn’t come; when it does it’s an hour of work (mirror `servePublicDoc` with a login check). Until then an email or the transmittal Notes covers a one-off. So: nothing needed before the workshop; keep parked.
 
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
 
@@ -293,4 +373,19 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **shelley** · 2026-09-18 14:03 UTC  
   > Done row struck (Admin doc editor → a Done section at the foot of docs/IDEAS.md). Already-decided ideas moved to §5 with dates: 5.7 magic-link (was there), 5.12 Jev pilot (new). 6.1–6.5 are still yours to keep or kill — tick or note each and I’ll move the keepers to §5 and drop the rest from IDEAS.
+
+  > **jenna** · 2026-09-19 15:48 UTC  
+  > remind me what is left for 6.6? me or you?
+
+  > **shelley** · 2026-09-19 15:49 UTC  
+  > Mostly me, gated on you. 6.6 is just “tidy docs/IDEAS.md once 6.1–6.5 are decided”: strike the done rows, move the keepers into §5 with a date, drop the killed ones. The tracker part (per-note export, master index, /admin/runs/) is done (5.10).
+  >
+  > State of the five:
+  > - **6.1** stylesheet — decided *keep*; needs your **A or B** on my note above, then it moves to §5.
+  > - **6.2** review table — resolved: the punch list already is it; Punch list 4 (Workshop) starts Sunday night. I’ll tick it.
+  > - **6.3** client docs — *park* (my recommendation on the note); a tick or “agree” from you and it stays in IDEAS as parked.
+  > - **6.4** — already gone from the list (decided Thursday).
+  > - **6.5** cover/spine — you said keep on ideas with Bookmobile + Accutrack; already in IDEAS. Done unless you want it queued.
+  >
+  > So: **you** — answer 6.1 (A/B) and nod on 6.3. **Me** — then 15 minutes to tidy IDEAS.md and tick 6.6.
 

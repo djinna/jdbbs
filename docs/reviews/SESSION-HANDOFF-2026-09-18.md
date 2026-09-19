@@ -228,3 +228,26 @@ Then: **5.20 Typst swap** (keep 0.12 as `/usr/local/bin/typst-0.12`; `make build
 Waiting on Jenna: 0.9A names, 0.10 placeholders, 5.17, 0.6, 0.7, 2.8, 3.2/3.4, §6.
 
 Metrics: ~60 % context at handoff; files read in full (guard bypass): 1 (INDEX-ADDON-FEASIBILITY, 74 lines).
+
+## Addendum 9 (2026-09-19, ~16:05 UTC) — before compaction
+
+Landed since addendum 8 (all pushed; VM = main = 7f196b3):
+- **0.17 checks complete, ticked** (draft state, Mark Final ↔ draft on mcheck, Print, History, redirect, customer magic-link → mount, mobile). The "tattendee didn't mount" scare was project 26 being archived.
+- **5.20 done, ticked**: `/usr/local/bin/typst` = 0.13.1, 0.12 kept as `typst-0.12`. Live rebuild of mcheck book 14 OK (mcheck pass now 2/3 used). DEPLOY.md updated.
+- **5.5**: `costs: (runt: 200%, hyphenation: 70%)` in series-template (0e36abc, requires Typst ≥ 0.13); sampler rebuilt + deployed; scores posted on the note. Stays `[~]` for Jenna's InDesign page.
+- Jenna's jdbbs-public commit 07ecd3f (doc editor, /factory "How it runs" links) reviewed + pushed; 0.18 ticked.
+- Answered the three §6 follow-ups that were missed on 18 Sep (6.1, 6.2, 6.3) and 6.6/0.9/5.13 questions.
+
+**Running subagents (check with `subagent` tool, slug + short timeout):**
+- `index-addon` (cYBS6TS) — worktree `/home/exedev/prodcal-index`, branch `index-addon`. Piece 1 committed (b67e4b0: `#index[]` markers + `index-page()` + fixture). Piece 2 (Go drafter/anchorer `srv/indexer/`, `cmd/indexdraft`, `cmd/indexanchor`) in progress; then Ghosts sample PDF + `docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md` + REPORT. Jenna wants the Ghosts index PDF today to judge; factory wiring is post-workshop. Post on 5.13 when it lands.
+- `stylesheet-61` (cTYSBXT) — **6.1 B chosen by Jenna**: per-project interactive style sheet. Brief `scratch/briefs/stylesheet-6.1-2026-09-19.md`. Works on main (migration 046, `/api/projects/{id}/stylesheet…`, page `/{client}/{project}/stylesheet/`, portal + admin links, tests). Commits but does not push — review `git log`, run `go test ./srv/`, browser-check on mcheck/book-001, then push and post screenshots on 6.1. **Don't build/restart in parallel with it.**
+
+**Decisions / promises made on the punch list today:**
+- 0.9: proposed a short "Have your own factory? It's an API" section at the foot of `/factory` + a separate public page `/factory/api` rendering `docs/API-CLI-RECIPE-2026-09-19.md` (jdbbs-public file + one route), plus a 6-line terminal demo script for the workshop — **Sunday morning if Jenna says yes**.
+- 6.2: **Sunday night**: archive list 3 (`scripts/punchlist-export.py`, already writes docs/runs), start Punch list 4 — Workshop at the same runpage URL, §0 Inbox only. During Mon/Tue triage each item Hotfix-now vs After-workshop.
+- 6.6: mine once 6.1 lands and Jenna nods on 6.3 (park): tidy docs/IDEAS.md (move 6.1 to §5 dated, keep 6.3/6.5 parked), tick 6.6.
+- 5.13: told Jenna today = Ghosts sample index PDF + design doc to judge; SKU/UI post-workshop.
+
+Waiting on Jenna: 0.9 (yes/no on page + the three customer names for passes), 0.10, 5.17, 0.6, 0.7, 2.8, 3.2/3.4, 5.5 InDesign page, 6.3 nod.
+
+Metrics: ~55 % context at handoff; files read in full (guard bypass): 0.
