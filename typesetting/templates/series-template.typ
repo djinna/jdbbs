@@ -49,6 +49,13 @@
   // Text flow
   justify: true,
   hyphenate: true,
+  // Line-breaker costs (Typst ≥ 0.13; 100% = Typst default). Tuned on Ghosts
+  // (117 pp, 3,100 body lines) with typesetting/scripts/compscore.py,
+  // 2026-09-19: runt 200% cut single-word last lines 145 → 129 for +4% loose
+  // lines; hyphenation 70% then brought loose lines 546 → 485 with one
+  // three-in-a-row hyphen stack. 50% went further (443) but stacked hyphens
+  // 3× and raised rivers, so this is the moderate setting.
+  costs: (runt: 200%, hyphenation: 70%),
 
   // Headings (em relative to base-size)
   h1-size: 1.667em,
@@ -875,6 +882,7 @@
     size: config.base-size,
     lang: "en",
     hyphenate: config.hyphenate,
+    costs: config.costs,
   )
   
   // Paragraph settings
