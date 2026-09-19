@@ -45,7 +45,7 @@ ORDER BY o.created_at DESC, o.id DESC
 LIMIT 1;
 
 -- name: GetBooksByProject :many
-SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at
+SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at, build_kind
 FROM books WHERE project_id = ? ORDER BY created_at DESC;
 
 -- name: GetBookProjectID :one

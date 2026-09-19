@@ -98,6 +98,7 @@ var S = {
   pendingFile: null,
   uploading: false,
   building: false,
+  buildingKind: null,  // 'proof' | 'final' while a build we started is in flight (0.28)
   inspecting: false,
   contactEmail: 'j@djinna.com',
   retry: null,         // re-run after the password gate clears
@@ -121,6 +122,7 @@ function normBook(b) {
     filename: b.SourceFilename != null ? b.SourceFilename : b.source_filename,
     status: b.Status != null ? b.Status : b.status,
     errorMsg: b.ErrorMsg != null ? b.ErrorMsg : b.error_msg,
+    buildKind: b.BuildKind != null ? b.BuildKind : (b.build_kind || 'final'),  // kind of the in-flight / last build (0.28)
     projectId: pid,
     createdAt: b.CreatedAt != null ? b.CreatedAt : b.created_at,
     updatedAt: b.UpdatedAt != null ? b.UpdatedAt : b.updated_at,
@@ -208,7 +210,7 @@ function renderHeader() {
     var left = creditsLeft();
     var total = creditsTotal();
     var cls = left === 0 ? 'fx-pass-out' : '';
-    var builds = '<span class="' + cls + '">' + left + ' of ' + total + ' ' + plural(total, 'build', 'builds') + ' left</span>';
+    var builds = '<span class="' + cls + '">' + left + ' of ' + total + ' ' + plural(total, 'final', 'finals') + ' left</span>';
     // Past tense once the pass is over — "storage until <a date last month>"
     // reads like a bug.
     var ended = S.pass.live === false || S.pass.status === 'expired';
@@ -237,12 +239,12 @@ function renderHeader() {
     if (canBuy) {
       var b3 = S.store.items['builds-3'], s6 = S.store.items['storage-6mo'];
       contact.innerHTML = 'Need more? ' +
-        '<button type="button" class="fx-link" data-addon="builds-3">+3 builds' + (b3 ? ' (' + esc(b3.display) + ')' : '') + '</button> \u00b7 ' +
+        '<button type="button" class="fx-link" data-addon="builds-3">+3 finals' + (b3 ? ' (' + esc(b3.display) + ')' : '') + '</button> \u00b7 ' +
         '<button type="button" class="fx-link" data-addon="storage-6mo">+6 months storage' + (s6 ? ' (' + esc(s6.display) + ')' : '') + '</button>' +
         ' \u2014 card checkout through Stripe. A pair of eyes on it? Email <a href="mailto:' +
         esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.';
     } else {
-      contact.innerHTML = 'Need more builds, more time, or a pair of eyes on it? Email <a href="mailto:' +
+      contact.innerHTML = 'Need more finals, more time, or a pair of eyes on it? Email <a href="mailto:' +
         esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.';
     }
   }
@@ -279,7 +281,7 @@ function confirmOrderFromURL() {
     .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
     .then(function (r) {
       if (r.ok && r.d.status === 'paid') {
-        banner('<b>Added to your pass.</b> ' + esc(r.d.credits_remaining) + ' builds remaining; storage until ' + esc(fmtDate(r.d.expires_at || '')) + '. A confirmation email is on its way.');
+        banner('<b>Added to your pass.</b> ' + esc(r.d.credits_remaining) + ' finals remaining; storage until ' + esc(fmtDate(r.d.expires_at || '')) + '. A confirmation email is on its way.');
         return loadPass().then(renderHeader);
       }
       if (r.ok && r.d.status === 'pending') { banner('Stripe hasn\u2019t confirmed the payment yet. If you were charged, it will land within a few minutes \u2014 reload then.'); return; }
@@ -555,7 +557,7 @@ function renderInspect() {
   if (total === 0) {
     html += '<p class="fx-fine">Nothing flagged. Go ahead and build.</p>';
   } else if (Number(sum.high || 0) > 0) {
-    html += '<p class="fx-fine">You can build anyway \u2014 nothing here blocks it. But the report explains each item, and fixing the \u201cworth fixing\u201d ones in Word before you spend a build usually saves you one.</p>';
+    html += '<p class="fx-fine">You can build anyway \u2014 nothing here blocks it. But the report explains each item, and fixing the \u201cworth fixing\u201d ones in Word before you export a final usually saves you one. Proofs are free, so build one and read it.</p>';
   } else {
     html += '<p class="fx-fine">Nothing serious. The report has the detail if you\u2019re curious.</p>';
   }
@@ -578,29 +580,44 @@ function renderBuild() {
   var st = passState();
   var left = creditsLeft();
   var total = creditsTotal();
+  var proofBtn = $('fx-proof-btn');
   var btn = $('fx-build-btn');
   var meta = $('fx-build-meta');
   var busy = S.building || isBuilding(S.current);
+  var noPass = !S.pass || S.pass.exists === false;
 
   if (meta) {
     meta.className = 'fx-sec-meta' + (left === 0 && S.pass && S.pass.exists !== false ? ' err' : '');
     if (!S.pass) setText(meta, '');
     else if (S.pass.exists === false) setText(meta, 'Read-only');
-    else setText(meta, left + ' of ' + total + ' ' + plural(total, 'build', 'builds') + ' left');
+    else setText(meta, left + ' of ' + total + ' ' + plural(total, 'final', 'finals') + ' left \u00b7 proofs free');
   }
 
+  // Two actions (0.28): a proof is free and unlimited; a final uses a credit.
+  if (proofBtn) {
+    if (noPass) {
+      proofBtn.textContent = 'Build proof';
+      proofBtn.disabled = true;
+    } else if (busy) {
+      proofBtn.textContent = (S.buildingKind || (S.current && S.current.buildKind)) === 'proof' ? 'Building proof\u2026' : 'Build proof';
+      proofBtn.disabled = true;
+    } else {
+      proofBtn.textContent = 'Build proof \u2014 free';
+      proofBtn.disabled = !st.ok || !S.current;
+    }
+  }
   if (btn) {
-    if (!S.pass || S.pass.exists === false) {
-      btn.textContent = 'Build EPUB + print PDF';
+    if (noPass) {
+      btn.textContent = 'Export final';
       btn.disabled = true;
     } else if (busy) {
-      btn.textContent = 'Building\u2026';
+      btn.textContent = (S.buildingKind || (S.current && S.current.buildKind)) === 'final' ? 'Exporting final\u2026' : 'Export final';
       btn.disabled = true;
     } else if (left <= 0) {
-      btn.textContent = 'No builds left';
+      btn.textContent = 'No finals left';
       btn.disabled = true;
     } else {
-      btn.textContent = 'Build EPUB + print PDF \u2014 uses 1 of ' + total;
+      btn.textContent = 'Export final \u2014 uses 1 of ' + total;
       btn.disabled = !st.ok || !S.current;
     }
   }
@@ -608,24 +625,28 @@ function renderBuild() {
   var status = $('fx-build-status');
   if (!status) return;
 
+  var kind = (S.buildingKind || (S.current && S.current.buildKind) || 'final');
   // Only own this line when we're not mid-flight with our own message.
   if (busy) {
     status.className = 'fx-status busy';
-    status.textContent = buildingText();
+    status.textContent = buildingText(kind);
   } else if (isFailed(S.current)) {
     status.className = 'fx-status err';
-    status.innerHTML = 'That build failed: ' + esc(shortErr(S.current.errorMsg || 'unknown error')) +
+    status.innerHTML = 'That ' + (kind === 'proof' ? 'proof' : 'final') + ' failed: ' + esc(shortErr(S.current.errorMsg || 'unknown error')) +
       errDetailHTML(S.current.errorMsg) +
-      '<span class="fx-status-more">Failed builds are not counted \u2014 you still have ' + left + ' ' +
-      plural(left, 'build', 'builds') + '. Stuck? Email ' + esc(S.contactEmail) + ' with the message above.</span>';
+      '<span class="fx-status-more">' + (kind === 'proof'
+        ? 'Proofs are free, so nothing was used.'
+        : 'Failed finals are not counted \u2014 you still have ' + left + ' ' + plural(left, 'final', 'finals') + '.') +
+      ' Stuck? Email ' + esc(S.contactEmail) + ' with the message above.</span>';
   } else if (isBuilt(S.current) && S.current.errorMsg) {
     status.className = 'fx-status warn';
     status.innerHTML = 'Build warning: ' + esc(shortErr(S.current.errorMsg)) +
-      '<span class="fx-status-more">Your print PDF is still ready below. This build is counted because a deliverable was produced.</span>';
+      '<span class="fx-status-more">Your print PDF is still ready below.' +
+      (kind === 'final' ? ' This final is counted because a deliverable was produced.' : '') + '</span>';
   } else if (left <= 0 && S.pass && S.pass.exists !== false) {
     status.className = 'fx-status';
-    status.innerHTML = 'You\u2019ve used all ' + total + ' ' + plural(total, 'build', 'builds') + ' on this pass.' +
-      '<span class="fx-status-more">Need more builds? Email <a href="mailto:' + esc(S.contactEmail) + '">' +
+    status.innerHTML = 'You\u2019ve used all ' + total + ' ' + plural(total, 'final', 'finals') + ' on this pass. Proofs still work.' +
+      '<span class="fx-status-more">Need more finals? Add +3 above, or email <a href="mailto:' + esc(S.contactEmail) + '">' +
       esc(S.contactEmail) + '</a>. Everything you\u2019ve already built stays downloadable below.</span>';
   } else if (!S.current && S.pass) {
     status.className = 'fx-status';
@@ -642,9 +663,6 @@ function renderDownload() {
   var earlier = $('fx-earlier');
   var meta = $('fx-download-meta');
 
-  var haveFormats = {};
-  S.outputs.forEach(function (o) { haveFormats[o.output_format] = true; });
-
   if (meta) {
     meta.className = 'fx-sec-meta';
     setText(meta, S.outputs.length ? S.outputs.length + ' ' + plural(S.outputs.length, 'file', 'files') + ' kept' : '');
@@ -658,38 +676,52 @@ function renderDownload() {
     return;
   }
 
+  // Newest of each format within each kind (0.28): finals first, then the
+  // latest proof. Rows before migration 049 carry kind 'final'.
   var base = '/api/books/' + S.current.id + '/download/';
-  var pdfOK = haveFormats.pdf;
-  var epubOK = haveFormats.epub;
-  var html = '<div class="fx-dl">';
-  var newest = {};
-  S.outputs.forEach(function (o) { if (!newest[o.output_format]) newest[o.output_format] = o; });
-  function when(fmt) {
-    var o = newest[fmt];
+  var newest = { final: {}, proof: {} };
+  S.outputs.forEach(function (o) {
+    var k = o.kind === 'proof' ? 'proof' : 'final';
+    if (!newest[k][o.output_format]) newest[k][o.output_format] = o;
+  });
+  function when(o) {
     return o && o.created_at ? ' <span class="fx-dl-when">' + esc(fmtWhen(o.created_at)) + '</span>' : '';
   }
-  html += pdfOK ? '<span><a id="fx-dl-pdf" href="' + base + 'pdf">Download print PDF</a>' + when('pdf') + '</span>'
-                : '<span class="fx-dl-missing">Print PDF \u2014 not built yet</span>';
-  html += epubOK ? '<span><a href="' + base + 'epub">Download EPUB</a>' + when('epub') + '</span>'
-                 : '<span class="fx-dl-missing">EPUB \u2014 not built yet</span>';
-  html += '</div>';
-  html += '<p class="fx-fine">Latest files for \u201c' + esc(S.current.title || 'your book') + '\u201d. ' +
-    'Read the EPUB first \u2014 it\u2019s the quickest way to see how the machine understood your file \u2014 then check the print PDF. ' +
-    'Save these somewhere of your own; the PDF is the one to send a printer.</p>';
+  function group(kind, label, note) {
+    var pdf = newest[kind].pdf, epub = newest[kind].epub;
+    if (!pdf && !epub) return '';
+    var q = '?kind=' + kind;
+    var h = '<div class="fx-list-head">' + label + '</div><div class="fx-dl">';
+    h += pdf ? '<span><a ' + (kind === 'final' || !newest.final.pdf ? 'id="fx-dl-pdf" ' : '') + 'href="' + base + 'pdf' + q + '">Download ' +
+               (kind === 'proof' ? 'proof PDF' : 'print PDF') + '</a>' + when(pdf) + '</span>'
+             : '<span class="fx-dl-missing">Print PDF \u2014 not built yet</span>';
+    h += epub ? '<span><a href="' + base + 'epub' + q + '">Download EPUB</a>' + when(epub) + '</span>'
+              : '<span class="fx-dl-missing">EPUB \u2014 not built yet</span>';
+    h += '</div>';
+    if (note) h += '<p class="fx-fine">' + note + '</p>';
+    return h;
+  }
+  var title = esc(S.current.title || 'your book');
+  var html = group('final', 'Final files',
+    'Clean print PDF for \u201c' + title + '\u201d \u2014 the one to send a printer. Save these somewhere of your own.');
+  html += group('proof', 'Latest proof',
+    'Read the EPUB first \u2014 it\u2019s the quickest way to see how the machine understood your file \u2014 then the PDF. ' +
+    'The proof PDF carries a PROOF line on every page; export a final when it\u2019s right.');
   latest.innerHTML = html;
 
   if (!earlier) return;
-  // Newest of each format is the "latest" above; the rest are history.
+  // The newest of each kind+format is shown above; the rest are history.
   var seen = {};
   var older = S.outputs.filter(function (o) {
-    if (!seen[o.output_format]) { seen[o.output_format] = true; return false; }
+    var key = (o.kind === 'proof' ? 'proof' : 'final') + '/' + o.output_format;
+    if (!seen[key]) { seen[key] = true; return false; }
     return true;
   });
   if (!older.length) { earlier.innerHTML = ''; return; }
   var h2 = '<div class="fx-list-head">Earlier builds</div>';
   older.forEach(function (o) {
     h2 += '<div class="fx-row">' +
-      '<div><div class="fx-row-main">' + esc(String(o.output_format || '').toUpperCase()) + '</div>' +
+      '<div><div class="fx-row-main">' + (o.kind === 'proof' ? 'Proof ' : 'Final ') + esc(String(o.output_format || '').toUpperCase()) + '</div>' +
       '<div class="fx-row-sub">' + esc(fmtWhen(o.created_at)) +
       (o.size_bytes ? ' \u00b7 ' + esc(fmtSize(o.size_bytes)) : '') + '</div></div>' +
       '<div class="fx-row-right"><a class="link-action accent" href="/api/books/' + S.current.id +
@@ -703,12 +735,12 @@ function renderDownload() {
 // here" impossible to miss. Every other step's action stays an underlined link.
 function emphasize() {
   var cur = currentStep();
-  [[2, 'fx-upload-btn'], [3, 'fx-inspect-btn'], [4, 'fx-build-btn']].forEach(function (pair) {
+  [[2, 'fx-upload-btn'], [3, 'fx-inspect-btn'], [4, 'fx-proof-btn']].forEach(function (pair) {
     var btn = $(pair[1]);
     if (!btn) return;
     var fill = pair[0] === cur;
-    // The build action stays a button (outlined) when not filled; the rest
-    // fall back to text links.
+    // The proof action stays a button (outlined) when not filled; the rest
+    // fall back to text links. "Export final" is always outlined (0.28).
     btn.className = fill ? 'btn-fill' : (pair[0] === 4 ? 'btn-line' : 'link-action accent');
   });
   // Step 5 has no button — its action is a download link — so when that's the
@@ -1143,33 +1175,39 @@ async function doInspect() {
 }
 
 // ─── build ─────────────────────────────────────────────────────────────────
-function buildingText() {
-  return 'Building your EPUB and print PDF\u2026 usually a minute or two, longer if other books are building at the same time. You can leave this page open.';
+function buildingText(kind) {
+  return (kind === 'proof' ? 'Building your proof \u2014 EPUB and print PDF\u2026' : 'Exporting your final \u2014 EPUB and clean print PDF\u2026') +
+    ' usually a minute or two, longer if other books are building at the same time. You can leave this page open.';
 }
 
-// One build = the EPUB and the print PDF together, one credit.
-async function doBuild() {
+// One build = the EPUB and the print PDF together. kind is 'proof' (free,
+// PROOF line on the PDF) or 'final' (one credit, clean PDF) — 0.28.
+async function doBuild(kind) {
   if (!S.current || S.building) return;
+  kind = kind === 'proof' ? 'proof' : 'final';
   var left = creditsLeft();
   var total = creditsTotal();
-  var okToGo = window.confirm(
-    'Build \u201c' + (S.current.title || 'your book') + '\u201d now?\n\n' +
-    'This makes the EPUB and the print PDF and uses 1 of your ' + total + ' ' + plural(total, 'build', 'builds') +
-    '. You\u2019ll have ' + Math.max(0, left - 1) + ' left afterwards.\n\n' +
-    'A build that fails is not counted.'
-  );
-  if (!okToGo) return;
+  if (kind === 'final') {
+    var okToGo = window.confirm(
+      'Export a final of \u201c' + (S.current.title || 'your book') + '\u201d now?\n\n' +
+      'This makes the EPUB and the clean print PDF and uses 1 of your ' + total + ' ' + plural(total, 'final', 'finals') +
+      '. You\u2019ll have ' + Math.max(0, left - 1) + ' left afterwards.\n\n' +
+      'A final that fails is not counted. Proofs are always free.'
+    );
+    if (!okToGo) return;
+  }
 
   var status = $('fx-build-status');
   S.building = true;
+  S.buildingKind = kind;
   renderBuild();
   status.className = 'fx-status busy';
-  status.textContent = 'Starting the build\u2026';
+  status.textContent = kind === 'proof' ? 'Starting the proof\u2026' : 'Starting the final\u2026';
 
   try {
-    await api('/api/books/' + S.current.id + '/convert', { method: 'POST', body: JSON.stringify({ format: 'both' }) });
+    await api('/api/books/' + S.current.id + '/convert', { method: 'POST', body: JSON.stringify({ format: 'both', kind: kind }) });
     status.className = 'fx-status busy';
-    status.textContent = buildingText();
+    status.textContent = buildingText(kind);
     await loadPass();
     renderHeader();
     startPolling();
@@ -1179,16 +1217,22 @@ async function doBuild() {
     if (e.status === 403) { await handleForbidden(status); return; }
     if (e.status === 402) {
       status.className = 'fx-status err';
-      status.innerHTML = 'No builds left on this pass.' +
-        '<span class="fx-status-more">Need more builds? Email <a href="mailto:' + esc(S.contactEmail) + '">' +
+      status.innerHTML = 'No finals left on this pass \u2014 proofs still work.' +
+        '<span class="fx-status-more">Need more finals? Add +3 above, or email <a href="mailto:' + esc(S.contactEmail) + '">' +
         esc(S.contactEmail) + '</a>. Everything you\u2019ve already built stays downloadable below.</span>';
       await loadPass();
       renderAll();
       return;
     }
+    if (e.status === 429) {
+      status.className = 'fx-status err';
+      status.textContent = 'That\u2019s a lot of proofs for one day \u2014 the limit is 30 per project per 24 hours. Try again later.';
+      renderBuild();
+      return;
+    }
     if (e.status === 409) {
       status.className = 'fx-status busy';
-      status.textContent = 'A build is already running for this book. Sit tight \u2014 this page will update when it finishes.';
+      status.textContent = 'A build is already running for this project. Sit tight \u2014 this page will update when it finishes.';
       startPolling();
       return;
     }
@@ -1240,6 +1284,8 @@ async function pollTick() {
 
   stopPolling();
   S.building = false;
+  var kind = (b && b.buildKind) || S.buildingKind || 'final';
+  S.buildingKind = null;
 
   if (isFailed(b)) {
     await loadPass();           // the refund lands here
@@ -1247,10 +1293,10 @@ async function pollTick() {
     var el = $('fx-build-status');
     if (el) {
       el.className = 'fx-status err';
-      el.innerHTML = 'That build failed: ' + esc(shortErr(b.errorMsg || 'unknown error')) +
+      el.innerHTML = 'That ' + (kind === 'proof' ? 'proof' : 'final') + ' failed: ' + esc(shortErr(b.errorMsg || 'unknown error')) +
         errDetailHTML(b.errorMsg) +
-        '<span class="fx-status-more">Failed builds are not counted \u2014 your credit came back. Stuck? Email ' +
-        esc(S.contactEmail) + ' with the message above.</span>';
+        '<span class="fx-status-more">' + (kind === 'proof' ? 'Proofs are free, so nothing was used.' : 'Failed finals are not counted \u2014 your credit came back.') +
+        ' Stuck? Email ' + esc(S.contactEmail) + ' with the message above.</span>';
     }
     return;
   }
@@ -1266,7 +1312,7 @@ async function pollTick() {
         '<span class="fx-status-more">Your print PDF is ready in step 5 below.</span>';
     } else {
       done.className = 'fx-status ok';
-      done.textContent = 'Build finished. Your files are in step 5 below.';
+      done.textContent = (kind === 'proof' ? 'Proof finished.' : 'Final exported.') + ' Your files are in step 5 below.';
     }
   }
   var sec = $('download');
@@ -1327,7 +1373,9 @@ function wire() {
   if (ins) ins.addEventListener('click', doInspect);
 
   var bld = $('fx-build-btn');
-  if (bld) bld.addEventListener('click', doBuild);
+  if (bld) bld.addEventListener('click', function () { doBuild('final'); });
+  var prf = $('fx-proof-btn');
+  if (prf) prf.addEventListener('click', function () { doBuild('proof'); });
 
   var authBtn = $('fx-auth-btn');
   if (authBtn) authBtn.addEventListener('click', doUnlock);

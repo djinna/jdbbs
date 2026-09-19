@@ -153,7 +153,7 @@ func (q *Queries) GetBookProjectID(ctx context.Context, id int64) (GetBookProjec
 }
 
 const getBooksByProject = `-- name: GetBooksByProject :many
-SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at
+SELECT id, title, author, series, source_filename, status, error_msg, project_id, created_at, updated_at, build_kind
 FROM books WHERE project_id = ? ORDER BY created_at DESC
 `
 
@@ -168,6 +168,7 @@ type GetBooksByProjectRow struct {
 	ProjectID      sql.NullInt64
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	BuildKind      string
 }
 
 func (q *Queries) GetBooksByProject(ctx context.Context, projectID sql.NullInt64) ([]GetBooksByProjectRow, error) {
@@ -190,6 +191,7 @@ func (q *Queries) GetBooksByProject(ctx context.Context, projectID sql.NullInt64
 			&i.ProjectID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.BuildKind,
 		); err != nil {
 			return nil, err
 		}

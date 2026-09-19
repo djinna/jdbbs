@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="style.css?v=20260705a">
 <link rel="stylesheet" href="transmittal.css?v=20260919q">
-<link rel="stylesheet" href="factory.css?v=20260919f">
+<link rel="stylesheet" href="factory.css?v=20260920a">
 </head>
 <body>
 <div id="app" class="jdbb-shell">
@@ -210,16 +210,19 @@
         <span class="fx-sec-meta" id="fx-build-meta"></span>
       </div>
       <p class="fx-body">
-        One build makes both files: the <b>EPUB</b> and the typeset <b>print PDF</b> at your
-        trim size. It takes a minute or two and uses one of your builds. You can stay on this page.
-        When it lands, read the EPUB first &mdash; it&rsquo;s the quickest way to see how the machine
-        understood your file &mdash; then check the PDF, the one you send a printer.
+        A build makes both files: the <b>EPUB</b> and the typeset <b>print PDF</b> at your trim size.
+        It takes a minute or two; you can stay on this page. Build a <b>proof</b> as often as you like
+        &mdash; it&rsquo;s free, and its PDF carries a small <span class="fx-mono">PROOF</span> line along the
+        foot of every page. Read the EPUB first &mdash; it&rsquo;s the quickest way to see how the machine
+        understood your file &mdash; then check the PDF. When it&rsquo;s right, <b>export a final</b>: the same
+        build, clean, using one of your finals. That&rsquo;s the one you send a printer.
       </p>
       <p class="fx-actions">
-        <button class="btn-line" id="fx-build-btn" disabled>Build EPUB + print PDF</button>
+        <button class="btn-line" id="fx-proof-btn" disabled>Build proof</button>
+        <button class="btn-line" id="fx-build-btn" disabled>Export final</button>
       </p>
       <p class="fx-status" id="fx-build-status"></p>
-      <p class="fx-fine">A build that fails is not counted &mdash; you keep the credit.</p>
+      <p class="fx-fine">Proofs don&rsquo;t count. A final that fails is not counted either &mdash; you keep it.</p>
     </section>
 
     <hr class="rule">
@@ -274,6 +277,6 @@
 </div>
 <script src="/static/theme.js"></script>
 <script src="transmittal.js?v=20260919r"></script>
-<script src="factory.js?v=20260919b"></script>
+<script src="factory.js?v=20260920a"></script>
 </body>
 </html>
