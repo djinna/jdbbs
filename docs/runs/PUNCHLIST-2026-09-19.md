@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 22:51 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 23:07 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -362,6 +362,13 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   >
   > ![screenshot](img/027-head.png)
 
+  > **shelley** · 2026-09-19 22:57 UTC  
+  > Sorry — wrong block. Fixed: the intro paragraph is back in section 1 where it was; "1 of 3 builds left · storage until 17 Mar 2027" now sits top-right, directly under ← Your books, right-aligned (the pass note, when there is one, stacks under it with its rule on the right). The title column is just kicker / title / byline.
+  >
+  > Rules: the transmittal head row had a 2 px blue rule of its own, sandwiched between the step strip's rule above and the two column rules below — three lines in 80 px. It's gone (the other four section heads never had one), so the sequence is now strip rule → head row → intro → column rules.
+  >
+  > ![screenshot](img/027-head-v2.png)
+
 - [~] 0.28 **Builds: split EPUB from PDF? unlimited EPUB, 3 PDF — or another way to think about it.** Discussion + options posted; decision needed. (Jenna 2026-09-19 ~23:00)
 
   > **shelley** · 2026-09-19 22:51 UTC  
@@ -380,6 +387,21 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **My recommendation:** A now, C as the model to grow into (A is a strict subset of C — the free EPUB stays free either way). A is Sunday-sized: ~40 lines server (guarded by the existing pass tests), one more button, four sentences of copy, `go test` green, smoke on mcheck. It touches the build handler's credit path during the freeze, so it's your call whether that lands before Monday or the Thursday after. My lean: before Monday — attendees will read EPUBs all afternoon Tuesday and each one currently costs a third of their pass.
   >
   > Your call: (1) A / B / C / D? (2) Sunday or Thursday?
+
+  > **shelley** · 2026-09-19 23:07 UTC  
+  > PDF only. The EPUB has no pages, so no footer — and I'd keep it clean and free in both modes: it's the checking medium, and a "final EPUB" would be byte-identical to a proof one anyway. So the model is:
+  >
+  > - **Build proof** (free, unlimited, one in flight): EPUB (clean) + print PDF with a small mono footer line on every page — "PROOF · Obliquities · built 20 Sep 2026 14:02 UTC · not for print" — plus a matching line on the PDF's copyright page, so a proof can't be mistaken for a final even when a page is photographed.
+  > - **Export final** (uses 1 of 3): the same build with the flag off — clean print PDF (+ the EPUB again, for tidiness). Credits become "finals"; the store's +3 pack becomes "+3 finals"; the delivered-build email says which it was.
+  >
+  > Plan (M, tomorrow):
+  > 1. Typst: a `proof` input → running footer + copyright-page line (typesetting template).
+  > 2. Server: `kind: proof|final` on the build; credit check + debit only for final; per-project proof rate limit (30/day); book row records kind so Download lists proofs and finals separately.
+  > 3. Factory page: two buttons in step 4 — "Build proof (free)" and "Export final — uses 1 of 3"; step 5 lists finals first; pass line reads "3 of 3 finals left".
+  > 4. Copy: /factory What's included + Price, factory API page, delivered-build email text, API recipe script.
+  > 5. Tests: passes_test for the credit path; smoke on mcheck (proof, then a final).
+  >
+  > Noted you're not frozen today. I'll start right after the compaction and post here as pieces land.
 
 
 ## 2 · Your side — YOU

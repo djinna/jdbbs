@@ -280,3 +280,18 @@ Landed since addendum 10 (all pushed; VM = main):
 3. 0.22 follow-ups (rename "Set password"; project-path line) if she answers.
 4. Sunday night: archive punch list 3, start Punch list 4 — Workshop.
 Waiting on Jenna: 0.9 read, 0.9A names, 0.10, 5.17, 0.7, 2.8, 3.2/3.4, 5.13 verdict.
+
+## Addendum 12 (2026-09-19, ~23:40 UTC) — before compaction #4
+
+Landed since addendum 11 (all pushed): 0.24 `/portal` (done). 0.25 Word-free intake: decision note `docs/reviews/WORD-FREE-AUTHORING-2026-09-19.md`; `/factory#bring` + `/workshop#bring` copy (jdbbs-public, pushed); transmittal handoff copy; `?format=odt` on `GET /api/projects/{id}/word-template` (soffice headless, `docxToODT` in `srv/bookspecs.go`). 0.26 portal card = Factory → · Style sheet; factory step strip sticky + scroll-spy (`.here`). 0.27 factory header: pass line under ← Your books; section-1 head rule removed; completion bar → "84% filled" figure. Landing/portal/handoff buttons ↓.
+
+**NEXT: 0.28 — Proof vs. Final builds (Jenna: "great idea", go; freeze is NOT on today/Sunday).**
+Model: **Build proof** = free, unlimited (one in flight, ~30/day/project): clean EPUB + print PDF with a small mono footer on every page ("PROOF · {title} · built {date} UTC · not for print") and a matching line on the copyright page. **Export final** = uses 1 of 3: same build, flag off, clean PDF (+EPUB). EPUB is never watermarked. Credits → "finals"; store `builds-3` → "+3 finals".
+Where things are:
+- Build handler `srv/books.go` ~L268–360: `format` parsing, credit check (`passCreditsRemaining`), `debitBuildCredit` (refund in `failConversion`); `runConversion(format)` L572; `runEPUBBuild` L885. Add `kind: proof|final` (default final for API back-compat? — decide: default **proof** on the factory page, API default final to keep the recipe honest; document).
+- Typst template: `typesetting/` (series template; find where inputs like trim/typeface are passed — `--input` from Go). Add `proof` input → footer + copyright line.
+- Books table: add `kind` column (migration 049) so Download lists finals first; pass line "N of 3 finals left".
+- Factory UI `srv/static/factory.js` ~L581–603 (`fx-build-btn` text), L1170 (`convert` POST `{format:'both'}`), step 5 list; `factory.html` step 4/5 markup.
+- Copy: `~/jdbbs-public/factory.html` (What's included, Price, How a build works step 4), `factory-api.html`, `scripts/factory-cli.py` / `factory-demo.sh`, email `buildDeliveredText/HTML` in `srv/passes.go` L1375+, `srv/store.go` L53 pack description.
+- Tests: `srv/passes_test.go` (debit paths ~L784, 826, 1374). Smoke on mcheck (id 17) — never pinstitute (22).
+Open decisions still with Jenna: 0.9A names, 0.22 follow-ups, 5.13, 5.17, 0.7, 2.8, 3.2/3.4, 0.10. Sunday night: archive punch list 3 → Punch list 4 (Workshop).
