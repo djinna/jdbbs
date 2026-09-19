@@ -66,6 +66,9 @@ func (s *Server) sendAddonEmail(pass dbgen.Pass, order dbgen.StoreOrder, title, 
 		fmt.Fprintf(&t, "Hi %s,\n\n", firstName(pass.CustomerName))
 		fmt.Fprintf(&t, "Thanks — %s has been added to your Factory Pass for %s.\n\n", bought, title)
 		fmt.Fprintf(&t, "Builds left: %d\n", credits)
+		if pass.IndexIncluded != 0 {
+			t.WriteString("Index:             included — draft and review it in step 4 of your factory page\n")
+		}
 		fmt.Fprintf(&t, "Pass live until:   %s\n", expires)
 		fmt.Fprintf(&t, "Paid:              %s\n", fmtUSD(order.AmountTotal))
 		fmt.Fprintf(&t, "Your factory:      %s\n\n", portalURL)
@@ -75,11 +78,12 @@ func (s *Server) sendAddonEmail(pass dbgen.Pass, order dbgen.StoreOrder, title, 
 		var h strings.Builder
 		h.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(pass.CustomerName)))))
 		h.WriteString(emailP(fmt.Sprintf("Thanks &mdash; <b>%s</b> has been added to your Factory Pass for <b>%s</b>.", html.EscapeString(bought), html.EscapeString(title))))
-		h.WriteString(emailKV([][2]string{
-			{"Builds left", fmt.Sprint(credits)},
-			{"Pass live until", expires},
-			{"Paid", fmtUSD(order.AmountTotal)},
-		}))
+		kv := [][2]string{{"Builds left", fmt.Sprint(credits)}}
+		if pass.IndexIncluded != 0 {
+			kv = append(kv, [2]string{"Index", "included — draft and review it in step 4 of your factory page"})
+		}
+		kv = append(kv, [2]string{"Pass live until", expires}, [2]string{"Paid", fmtUSD(order.AmountTotal)})
+		h.WriteString(emailKV(kv))
 		h.WriteString(emailButton(portalURL, "Open your factory"))
 		h.WriteString(emailSmall("Stripe sends the card receipt separately."))
 		h.WriteString(emailSignoff())

@@ -399,6 +399,10 @@ func (s *Server) handleStoreCheckout(w http.ResponseWriter, r *http.Request) {
 				jsonErr(w, "That add-on isn't available.", http.StatusBadRequest)
 				return
 			}
+			if it.Index && pass.IndexIncluded != 0 {
+				jsonErr(w, "The index is already on this pass.", http.StatusBadRequest)
+				return
+			}
 			p, err := s.Store.price(ctx, it.LookupKey)
 			if err != nil {
 				jsonErr(w, "The store isn't reachable right now. Please try again in a minute.", http.StatusBadGateway)
