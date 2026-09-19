@@ -1280,6 +1280,7 @@ function renderTypographyChoices() {
   };
   return [
     row('Typeface', 'typography.pairing', 'typo-pairing', TYPO_PAIRINGS),
+    renderTypoSamples(),
     row('Text size', 'typography.size', 'typo-size', TYPO_SIZES, typoSizeDescription),
     row('Section breaks', 'typography.section_break', 'typo-break', TYPO_BREAKS),
     (getField('typography.section_break') === 'custom')
@@ -1289,6 +1290,56 @@ function renderTypographyChoices() {
       : null,
     row('Paragraphs', 'typography.paragraphs', 'typo-paras', TYPO_PARAS),
   ];
+}
+
+// ─── Typography sampler chips (punch list 0.8 part 3) ───
+// One text page per pairing (recto 3 of the sampler, same story in each),
+// rendered at 2× by typesetting/scripts/build-sampler.sh into
+// srv/static/samples/. Click enlarges in a plain full-screen overlay (no
+// modal lib on this page); click anywhere or Escape closes. Hidden in print.
+const TYPO_SAMPLES = [
+  { key: 'classic', name: 'Open classic', faces: 'Libertinus Serif · Source Sans 3' },
+  { key: 'house', name: 'Studio house', faces: 'Plantin · Proxima Nova' },
+  { key: 'literary', name: 'Literary', faces: 'EB Garamond' },
+];
+const TYPO_SAMPLES_V = '20260919';
+function typoSampleUrl(file) { return '/static/samples/' + file + '?v=' + TYPO_SAMPLES_V; }
+
+function openTypoLightbox(sample) {
+  closeTypoLightbox();
+  const onKey = (e) => { if (e.key === 'Escape') closeTypoLightbox(); };
+  const box = h('div', { className: 'tx-lightbox', role: 'dialog', 'aria-label': sample.name + ' sample page', onClick: closeTypoLightbox },
+    h('img', { src: typoSampleUrl('page-' + sample.key + '.png'), alt: 'A text page set in the ' + sample.name + ' pairing (' + sample.faces + ')' }),
+    h('div', { className: 'tx-lightbox-caption' },
+      sample.name + ' \u00b7 ' + sample.faces + ' \u00b7 6 \u00d7 9 in, standard size',
+      h('span', { className: 'tx-lightbox-hint' }, 'click or Esc to close')));
+  box._onKey = onKey;
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(box);
+}
+function closeTypoLightbox() {
+  const box = document.querySelector('.tx-lightbox');
+  if (!box) return;
+  if (box._onKey) document.removeEventListener('keydown', box._onKey);
+  box.remove();
+}
+
+function renderTypoSamples() {
+  return h('div', { className: 'tx-typo-samples' },
+    h('div', { className: 'tx-typo-chips' },
+      ...TYPO_SAMPLES.map(s => h('button', {
+        type: 'button', className: 'tx-typo-chip',
+        title: 'Enlarge the ' + s.name + ' sample page',
+        onClick: () => openTypoLightbox(s),
+      },
+        h('img', { src: typoSampleUrl('chip-' + s.key + '.png'), width: 240, height: 360, loading: 'lazy',
+          alt: 'Text page in the ' + s.name + ' pairing' }),
+        h('span', { className: 'tx-typo-chip-name' }, s.name),
+        h('span', { className: 'tx-typo-chip-faces' }, s.faces)))),
+    h('div', { className: 'tx-typo-samples-foot' },
+      h('span', { className: 'tx-typo-samples-note' }, 'Same page, three settings \u2014 click a page to enlarge.'),
+      h('a', { className: 'link-action', href: typoSampleUrl('typography-sampler.pdf'), target: '_blank', rel: 'noopener' },
+        'Download the full sampler (PDF)')));
 }
 
 // ─── Section: Format ───

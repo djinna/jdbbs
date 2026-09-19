@@ -1052,3 +1052,48 @@ html.dark .email-warning { background: none; }
 /* Custom section-break mark (typography row "Your own") — narrow, centred, text face */
 .tx-typo-custom { max-width: 260px; margin-top: -4px; }
 .tx-typo-custom input { text-align: center; font-family: Georgia, "Times New Roman", serif; font-size: 16px; }
+
+/* ─── Typography sampler chips (Typeface row) — page thumbnails, no boxes:
+   the hairline is the page edge on white, the captions are mono kickers ─── */
+.tx-typo-samples { margin: 4px 0 18px; padding-top: 10px; border-top: 1px solid var(--border); }
+.tx-typo-chips { display: flex; flex-wrap: wrap; gap: 16px 20px; align-items: flex-start; }
+.tx-typo-chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  flex: 1 1 0; min-width: 140px; max-width: 240px; padding: 0; margin: 0;
+  background: none; border: none; border-radius: 0; box-shadow: none;
+  color: var(--text); font: inherit; text-align: left; cursor: zoom-in;
+}
+.tx-typo-chip img {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--border-strong); background: #fff;
+}
+.tx-typo-chip:hover img, .tx-typo-chip:focus-visible img { border-color: var(--accent); }
+.tx-typo-chip:focus-visible { outline: none; }
+.tx-typo-chip-name {
+  margin-top: 4px; font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text);
+}
+.tx-typo-chip-faces { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--text-muted); }
+.tx-typo-samples-foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 18px;
+  margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+}
+.tx-typo-samples-foot .link-action { color: var(--accent); text-decoration-color: var(--accent); }
+
+/* Lightbox: fixed full-screen, click anywhere or Esc closes (transmittal.js) */
+.tx-lightbox {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 24px; box-sizing: border-box;
+  background: rgba(14, 17, 22, 0.92); cursor: zoom-out;
+}
+.tx-lightbox img {
+  display: block; max-width: min(1200px, 100%); max-height: calc(100vh - 80px); width: auto; height: auto;
+  background: #fff; border: 1px solid var(--border-strong);
+}
+.tx-lightbox-caption {
+  display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; justify-content: center;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #E8E6E1;
+}
+.tx-lightbox-hint { color: #9A9890; text-transform: none; letter-spacing: 0.02em; }
+@media print { .tx-typo-samples, .tx-lightbox { display: none !important; } }
