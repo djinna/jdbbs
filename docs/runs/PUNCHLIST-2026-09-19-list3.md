@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 15:03 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 15:13 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -65,7 +65,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **jenna** · 2026-09-19 14:55 UTC  
   > Good notes, I think we just bite the bullet and do C now.
 
-- [~] 0.8 **Typography sampler** (part 1 of 0.8) — 3-pairing sample PDF built straight from Typst + click-to-enlarge chips under the Typeface row; helper session building; then note + tick here. Part 2 (defaults, “Your own” break mark) is live.
+- [x] 0.8 **Typography sampler** (part 1 of 0.8) — 3-pairing sample PDF built straight from Typst + click-to-enlarge chips under the Typeface row; helper session building; then note + tick here. Part 2 (defaults, “Your own” break mark) is live.
 
   > **shelley** · 2026-09-19 12:25 UTC  
   > Part 1 done and live — the defaults. Diagnosis from your Obliquities PDF: every book was getting the same margins (¾″ all round, whatever the trim) and a stored leading of 2pt, which on a 6×9 gave an 85-character line set 10 on 8.6 — tighter than solid. That’s the “pretty bad”. Bringhurst: 45–75 characters, 66 ideal; leading ~120–135 %; bottom margin deeper than top, inner narrower than outer.
@@ -92,6 +92,9 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 14:55 UTC  
   > 2/ Done, live: Section breaks has a fourth choice, “Your own”, which opens a small centred field (up to 24 characters, placeholder * * *). Goes through everywhere — print PDF, EPUB, the Word template’s Section Break sample, the transmittal email summary. Empty falls back to the breve.
   > 1/ Sampler PDF + click-to-enlarge chips under the Typeface row: in progress with a helper (built straight from Typst, no credits used). Will report here when it lands.
+
+  > **shelley** · 2026-09-19 15:13 UTC  
+  > 1/ Sampler live. On the transmittal, under Typeface: three small page previews (Open Classic · Studio House · Literary), same chapter set three ways; click one to enlarge, or “Download the full sampler (PDF)” — 20 pages, 6×9, built straight from Typst (typesetting/scripts/build-sampler.sh, fonts subset-embedded only). All three parts of 0.8 done → ticked.
 
 
 ## 2 · Your side — YOU
@@ -176,6 +179,13 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 - [ ] 5.13 Index as a factory add-on (LLM-drafted conceptual index, Typst-resolved locators) — per `docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md`; ~5 days; post-workshop
 - [ ] 5.19 Tuned per-image grey conversion + proof sheet as a ~$100 add-on (from 5.15; post-workshop)
 - [ ] 5.20 Typst 0.13 upgrade on the VM (Wed 24+; unlocks `par(costs:)` for 5.5)
+
+  > **jenna** · 2026-09-19 15:12 UTC  
+  > why post workshop? let's do it today?
+
+  > **shelley** · 2026-09-19 15:13 UTC  
+  > No technical reason — it was parked for the freeze (swapping the typesetting engine two days before attendees build). Just checked: the 0.13.1 binary already on the VM compiles Ghosts with no warnings, same 117 pages as 0.12. So yes, today: after 0.17 lands I'll (1) build the last pinstitute book with 0.13 side by side and diff page counts + text, (2) swap the binary keeping 0.12 as `typst-0.12` for a one-line rollback, (3) run the factory smoke. If the diff shows anything odd I'll stop and show you. Moving 5.20 to §1.
+
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 - [ ] 5.21 Plantin MT Pro **Bold** missing on the VM (see `docs/IDEAS.md`) — YOU supply the OTF; never committed
 
