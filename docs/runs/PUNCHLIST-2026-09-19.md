@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 22:46 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 22:51 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -352,6 +352,34 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > ![screenshot](img/026-strip.png)
   >
   > ![screenshot](img/026-sticky.png)
+
+- [x] 0.27 Factory page top: blue completion bar read as a broken rule (→ "84% filled" figure in the section head); transmittal intro paragraph moved to the header's right column beside "← Your books" so section 1 starts with the form. (Jenna 2026-09-19 ~23:00)
+
+  > **shelley** · 2026-09-19 22:51 UTC  
+  > Both live (one screenshot, pinstitute, nothing built).
+  > 1/ The partial blue rule was the transmittal's completeness meter — a bare 2 px line with no label, so it read as a broken rule sitting between the intro and the two column rules. On the factory page it's gone; the figure now sits in the section head: "[DRAFT] · 84% filled · autosaves as you edit". (The standalone transmittal page keeps the bar.) Gave the columns 28 px of air under the section rule so the rules no longer stack.
+  > 2/ The intro paragraph ("The transmittal is the mise en place…") now lives in the header's right column, small and muted, directly under "← Your books"; shortened by a third; hidden once the transmittal is final and on phones. Section 1 now opens straight onto Book information / Format.
+  >
+  > ![screenshot](img/027-head.png)
+
+- [~] 0.28 **Builds: split EPUB from PDF? unlimited EPUB, 3 PDF — or another way to think about it.** Discussion + options posted; decision needed. (Jenna 2026-09-19 ~23:00)
+
+  > **shelley** · 2026-09-19 22:51 UTC  
+  > Good instinct, and the code is closer to it than you'd think — so let me lay out what's actually scarce, then the options with real effort.
+  >
+  > **Facts.** The build endpoint already accepts format = epub | pdf | both. The EPUB-only path is a separate function: pandoc only, no Typst, about one second. The PDF path is ~4 s. Every path debits one credit in one place (and refunds on failure). The store sells "+3 builds" for $9.90. Every build is kept for six months (a few MB each).
+  >
+  > **What the 3 actually protects.** Not compute — 4 s is nothing. It protects (a) against runaway loops via the API, (b) storage growth from "every build kept", (c) the *shape* of a $549 pass (a number you can put on the page), and (d) your attention: someone who builds 40 times instead of reading Inspect will also email you 40 times. (c) and (d) are the real ones.
+  >
+  > **Options.**
+  > A — **Your proposal: EPUB unlimited, print PDF 3.** Effort S: skip the credit check + debit when format is epub; factory page gets two buttons — "Build EPUB (free, unlimited)" and "Build EPUB + print PDF — uses 1 of 3"; copy on /factory and the delivered-build email. Rate-limit EPUB to one in flight (already true) and, say, 30/day. Strong rationale that's already in our own copy: "Read the EPUB first — it's the quickest way to see how the machine understood your file." Charging a credit for the *checking* medium is perverse; the PDF is the deliverable. Keeps the +3 pack meaningful (it's now "+3 print PDFs").
+  > B — **Unlimited everything, sell access not builds.** Pass = one manuscript, 6 months, storage, unlimited builds, one in flight, N/day. Effort S. Simplest to explain; loses the +3 line (small money) and the number on the page. Risk (d) grows.
+  > C — **Proof vs. Final.** Unlimited *proof* builds (EPUB + a PDF with a small "PROOF · 19 Sep 2026" footer line), and 3 *final* print PDFs (clean, what goes to Ingram). Effort M (a Typst flag, a second button, the store pack becomes "+3 finals"). This is how print already thinks — proofs are free, press-ready exports are the event — so the 3 finally *means* something to an author instead of feeling like a meter. Same compute, better story. It also gently solves (d): you iterate on proofs; when you export a final you mean it.
+  > D — **Do nothing, raise the number** (3 → 10). Effort zero (it's a column default + copy). Doesn't fix the EPUB-costs-a-credit oddity.
+  >
+  > **My recommendation:** A now, C as the model to grow into (A is a strict subset of C — the free EPUB stays free either way). A is Sunday-sized: ~40 lines server (guarded by the existing pass tests), one more button, four sentences of copy, `go test` green, smoke on mcheck. It touches the build handler's credit path during the freeze, so it's your call whether that lands before Monday or the Thursday after. My lean: before Monday — attendees will read EPUBs all afternoon Tuesday and each one currently costs a third of their pass.
+  >
+  > Your call: (1) A / B / C / D? (2) Sunday or Thursday?
 
 
 ## 2 · Your side — YOU
