@@ -332,6 +332,27 @@ hr.rule-strong { border: none; border-top: 1px solid var(--border-strong); margi
 .link-action.accent { color: var(--accent); }
 .link-action.danger { color: var(--red); }
 
+/* Step strip 1–5 (factory page + transmittal; step 1 lives on the transmittal) */
+.fx-steps {
+  display: flex; flex-wrap: wrap; gap: 4px 22px;
+  padding: 14px 0;
+}
+.fx-step {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  text-decoration: none; color: var(--text-muted);
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; white-space: nowrap;
+  padding-bottom: 3px; border-bottom: 2px solid transparent;
+}
+.fx-step:hover { color: var(--text); }
+.fx-step-how { margin-left: auto; color: var(--accent); }
+.fx-step .fx-step-n { font-weight: 600; }
+.fx-step.done { color: var(--green); }
+.fx-step.done .fx-step-n::after { content: " \2713"; }
+.fx-step.current {
+  color: var(--accent); border-bottom-color: var(--accent); font-weight: 600;
+}
+
 /* Bare inputs: bottom rule only */
 .input-bare {
   font-family: var(--mono); font-size: 14px; color: var(--text);

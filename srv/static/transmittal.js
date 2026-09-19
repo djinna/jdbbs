@@ -627,7 +627,8 @@ function renderForm() {
     // Duplicate modal
     renderDuplicateModal(),
     // Intro: what this document is and what Mark Final does
-    isPreview ? null : h('p', { className: 'tx-intro' },
+    // Once final the hand-off panel says what to do; the intro steps aside.
+    (isPreview || state.transmittal.status === 'final') ? null : h('p', { className: 'tx-intro' },
       'The transmittal is the mise en place for your book — the handoff record of what the book is, what’s in the file, and how it should be set, prepared before any typesetting starts. Fill in what you know; leave the rest. When it’s ready, ',
       h('b', null, 'Mark Final'),
       ': that generates your Word template from it (the ',

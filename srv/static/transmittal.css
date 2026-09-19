@@ -1014,3 +1014,37 @@ html.dark .email-warning { background: none; }
   border-bottom: 1px solid var(--border-strong);
 }
 .tx-checklist td.tx-muted { color: var(--text-muted); text-align: center; }
+
+/* ─── 0.13: step strip, hand-off panel on Final, finish block ─── */
+.tx-steps { padding: 10px 0 0; margin-bottom: 6px; }
+.tx-steps .fx-step.done { pointer-events: none; }
+
+.tx-handoff {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 24px; flex-wrap: wrap;
+  border-left: 2px solid var(--green);
+  background: var(--surface);
+  padding: 14px 18px; margin: 14px 0 6px;
+}
+.tx-handoff-k {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--green); font-weight: 700;
+}
+.tx-handoff p { margin: 4px 0 0; font-size: 14px; line-height: 1.5; }
+.tx-handoff ol { margin: 6px 0 0 1.2em; font-size: 13.5px; line-height: 1.7; }
+.tx-handoff a { color: var(--accent); }
+.tx-handoff .btn-fill { font-size: 11px; padding: 10px 16px; text-decoration: none; color: var(--fill-text); }
+
+.tx-finish {
+  border-top: 2px solid var(--border-strong);
+  margin-top: 28px; padding-top: 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 20px; flex-wrap: wrap;
+}
+.tx-finish p { margin: 0; font-size: 13.5px; line-height: 1.5; max-width: 56ch; color: var(--text-secondary); }
+.tx-finish b { color: var(--text); }
+.tx-finish-acts { display: flex; gap: 18px; align-items: center; }
+.tx-finish .btn-fill { font-size: 11px; padding: 9px 16px; text-decoration: none; color: var(--fill-text); }
+.tx-finish .link-action { color: var(--accent); text-decoration-color: var(--accent); }
+
+@media print { .tx-steps, .tx-handoff, .tx-finish { display: none; } }
