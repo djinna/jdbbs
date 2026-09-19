@@ -793,9 +793,12 @@ function renderHandoff() {
   return h('div', { className: 'tx-handoff' },
     h('div', null,
       h('div', { className: 'tx-handoff-k' }, 'Transmittal is final'),
-      h('p', null, 'Your Word template has been generated from it. Two things next:'),
+      h('p', null, 'Your authoring template has been generated from it. Two things next:'),
       h('ol', null,
-        h('li', null, h('a', { href: tpl, download: '' }, 'Download the Word template'), ' and write (or restyle) your manuscript in it.'),
+        h('li', null, 'Get your manuscript into shape \u2014 in any editor. ',
+          h('b', null, 'Already have a draft?'), ' Chapter titles as Heading 1, sub-heads as Heading 2, and type ',
+          h('code', null, '[[quote]]'), ', ', h('code', null, '[[verse]]'), ', ', h('code', null, '[[epigraph]]'), ', ', h('code', null, '[[code]]'), '\u2026 at the start of any special paragraph; the factory applies the style and removes the marker. No template needed. ',
+          h('b', null, 'Starting fresh?'), ' ', h('a', { href: tpl, download: '' }, 'Download the template'), ' (.docx for Word', h('span', { className: 'tx-fine' }, ' \u00b7 ', h('a', { href: tpl + '?format=odt', download: '' }, '.odt'), ' for LibreOffice Writer'), ') and write in its styles.'),
         state.embedded
           ? h('li', null, 'When a draft is ready, ', h('a', { href: '#upload' }, 'upload it below'), ' — step 2 — then inspect and build.')
           : h('li', null, 'When a draft is ready, ', h('a', { href: factoryUrl() }, 'go to the Factory'), ' — upload, inspect, build.'),

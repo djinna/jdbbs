@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -982,15 +983,19 @@ func generateWordTemplate(specJSON string) ([]byte, error) {
 }
 
 func serveWordTemplate(w http.ResponseWriter, projectName string, docx []byte) {
+	serveTemplateFile(w, projectName, docx, "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+}
+
+func serveTemplateFile(w http.ResponseWriter, projectName string, data []byte, ext, ctype string) {
 	filename := sanitizeFilename(projectName)
 	if filename == "" {
 		filename = "template"
 	}
-	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-template.docx"`, filename))
-	w.Header().Set("Content-Length", strconv.Itoa(len(docx)))
+	w.Header().Set("Content-Type", ctype)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-template.%s"`, filename, ext))
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.Header().Set("Cache-Control", "no-store")
-	w.Write(docx)
+	w.Write(data)
 }
 
 var errTransmittalNotFinal = errors.New("fill in the transmittal and mark it final first")
@@ -1083,8 +1088,42 @@ func (s *Server) handleClientWordTemplate(w http.ResponseWriter, r *http.Request
 		return
 	}
 	project, _ := q.GetProject(r.Context(), pid)
+	if r.URL.Query().Get("format") == "odt" {
+		odt, err := docxToODT(docx)
+		if err != nil {
+			jsonErr(w, "could not convert the template to .odt: "+err.Error(), 500)
+			return
+		}
+		serveTemplateFile(w, project.Name, odt, "odt", "application/vnd.oasis.opendocument.text")
+		s.factoryEventR(r, pid, "template.downloaded", "odt "+formatBytesIEC(int64(len(odt))))
+		return
+	}
 	serveWordTemplate(w, project.Name, docx)
 	s.factoryEventR(r, pid, "template.downloaded", formatBytesIEC(int64(len(docx))))
+}
+
+// docxToODT converts the generated Word template to OpenDocument with the
+// LibreOffice on the VM (libreoffice-writer-nogui). Style names survive the
+// conversion, so a manuscript written in Writer round-trips to .docx with
+// the factory styles intact (punch list 0.25, verified 2026-09-19).
+func docxToODT(docx []byte) ([]byte, error) {
+	dir, err := os.MkdirTemp("", "tpl-odt-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+	in := filepath.Join(dir, "template.docx")
+	if err := os.WriteFile(in, docx, 0o600); err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "soffice", "--headless", "-env:UserInstallation=file://"+dir+"/profile",
+		"--convert-to", "odt", "--outdir", dir, in)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("soffice: %v: %s", err, strings.TrimSpace(string(out)))
+	}
+	return os.ReadFile(filepath.Join(dir, "template.odt"))
 }
 
 // helpers
