@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 16:41 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 16:51 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -185,6 +185,23 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > - "Set password" → customers sign in by magic link now; the password path is the legacy gate. I'd keep it but rename "Password gate" so it reads as the exception it is.
   > - The project-path line (http://…/snitkey/book-001/) points at the old calendar SPA root. Suggest it shows the portal URL (/snitkey/) or the factory URL instead, since those are what you'd copy for a customer.
 
+- [~] 0.23 new: I like a quiet sales approach, but burying the sales page in the factory pass link is a little bit too quiet. Thoughts?  ![screenshot](img/20260919-164909-560.png) — comps A/B/C on the item, awaiting pick
+
+  > **shelley** · 2026-09-19 16:51 UTC  
+  > Agree — and it's quieter than you think: the home page is the *only* public page whose top nav doesn't say Factory (the others have Workshop · Field notes · Factory · Client portal). So from `/` the sole way in is that one underlined word in the small-print line. Also the lede still sells "shared production calendars", which we retired this week.
+  >
+  > Three levels, comps not built (browser mock-ups):
+  >
+  > **A — nav only.** Add "Factory Pass" as the first nav item. Still quiet, but findable from every page. 1 line.
+  >
+  > **B — nav + a CTA row** replacing the "New here?" line: a filled `FACTORY PASS · $549 →` button, an outlined `EMAIL A FEW PAGES` beside it, and a muted one-liner ("one manuscript → EPUB + print PDF · 3 builds · no software to learn"). Lede reworded: "…manuscript transmittals, and a book factory that turns one Word file into an EPUB and a print-ready PDF". Still one screen, no marketing block; the price does the loudness.
+  > Now: ![](/img/023-now.png)
+  > B: ![](/img/023-comp-B.png)
+  >
+  > **C — B plus a product card** between the hero and the pipeline readout (what's included in four lines, the price, Redeem/Buy). That's the point where it stops being a studio page with an offer on it and becomes a storefront — I'd hold C until after the workshop and see who arrives.
+  >
+  > My vote: B now (hero is the one place first-timers actually look; the readout below it already proves the factory is real), C later if the workshop brings strangers. Say A/B/C and I'll build it — ten minutes.
+
 
 ## 2 · Your side — YOU
 
@@ -284,7 +301,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > Notes for Jenna
   >  - "thirty years" and "one-person" in the last paragraph are placeholders for whatever is true; cut the sentence if you'd rather not do biography here. - "thirteen named paragraph styles" is true as of today (Signature and Glossary Entry added 2026-09-18). If the count changes, this line and the colophon change with it. - "in seconds" — a full build of a 250-page book is ~9 s on the VM; true. - The page is ~490 words; at 6 × 9 it fills one recto with air. If you want it on one page in Small trim, cut paragraph 4 (Inspect) to two sentences. - Suggested placement: last page of back matter, after About the Author, so the book ends on the author and then the maker.
 
-- [~] 5.5 P3 **H&J / composition quality** in the print PDF — Typst 0.12 levers checked, nothing to change before Monday; scorer in `typesetting/scripts/compscore.py`; runts need Typst 0.13 `costs` (Wed 24+); still to do: compare against an InDesign-set page (YOU supply) — **19 Sep:** VM on Typst 0.13.1, `costs: (runt: 200%, hyphenation: 70%)` shipped in the series template, sampler rebuilt; scores on the note. Open: InDesign page comparison.
+- [x] 5.5 P3 **H&J / composition quality** in the print PDF — Typst 0.12 levers checked, nothing to change before Monday; scorer in `typesetting/scripts/compscore.py`; runts need Typst 0.13 `costs` (Wed 24+); still to do: compare against an InDesign-set page (YOU supply) — **19 Sep:** VM on Typst 0.13.1, `costs: (runt: 200%, hyphenation: 70%)` shipped in the series template, sampler rebuilt; scores on the note. Open: InDesign page comparison.
 
   > **shelley** · 2026-09-18 14:11 UTC  
   > Scorer landed: `python3 typesetting/scripts/compscore.py book.pdf --list` counts loose lines, runts, widows/orphans, hyphen runs, stacks and rivers per book. Ghosts today: 27 loose, 42 runts, 0 widows/orphans, ~90 rivers over 2395 lines.
@@ -313,6 +330,19 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > So: 12% fewer single-word last lines and 8% fewer loose lines, at the price of one three-in-a-row hyphen stack in the whole book. Pushing hyphenation cheaper (50%) buys more even spacing but stacks hyphens 3× and adds rivers, so I stopped at 70%. Widows didn't move — Typst already guards them; the 23 the scorer counts are two-line paragraphs it can't help.
   >
   > Sampler rebuilt under 0.13.1 with the new costs: runts 20 → 14, loose 18 → 16; chips/pages/PDF regenerated and deployed (page-house looks clean — no runts on the sample page). Commit on GitHub. The knob is `costs:` in the series-template config, so it can be tuned per book if one fights it. Still open on this item: your InDesign-set page for comparison.
+
+  > **jenna** · 2026-09-19 16:50 UTC  
+  > "Still open on this item: your InDesign-set page for comparison" -- I'm going to skip this step. Go ahead and delete it, but for the sampler, is there a link I should be looking at? Unclear.
+
+  > **shelley** · 2026-09-19 16:51 UTC  
+  > InDesign comparison struck; ticking 5.5 — the 0.13 `costs` lever is shipped and scored, nothing else is open.
+  >
+  > The sampler: it's the **Typeface row of any transmittal** — three chips (House / Classic / Literary); click one and the full page opens. Direct links:
+  > - PDF, all three pairings: https://jdbbs.exe.xyz/static/samples/typography-sampler.pdf
+  > - the three pages as images: /static/samples/page-house.png · page-classic.png · page-literary.png
+  > - e.g. in situ: https://jdbbs.exe.xyz/mcheck/book-001/transmittal/ → Format → Typeface.
+  >
+  > Those are the 0.13 build with the runt/hyphenation costs on, i.e. exactly what the factory sets now.
 
 - [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag, per `docs/reviews/TYPESAFE-REVIEW-2026-09-18.md` (agreed 2026-09-18; post-workshop)
 - [~] 5.13 Index as a factory add-on — listed as coming soon on /factory; phase 1 (Typst index piece, LLM drafting, anchoring) running in parallel on branch `index-addon` (brief `scratch/briefs/index-addon-2026-09-19.md`); phase 2 UI after 0.17 — per `docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md`
