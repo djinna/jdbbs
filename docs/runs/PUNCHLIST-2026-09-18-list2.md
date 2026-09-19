@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 13:09 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 13:21 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -163,6 +163,18 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   >
   > My pick: 1 now (after the workshop, as you say), and decide on 2 after you’ve seen a few weeks of real mail. Happy to chat whenever; nothing is built.
 
+- [x] 0.15 new: on https://jdbbs.exe.xyz/factory let's reduce the size of the price by about half.  ·  _added Sat 13:14 UTC_
+
+  > **shelley** · 2026-09-19 13:21 UTC  
+  > Done: $549 on /factory is now 22 px (was 44), same weight and mono; “per manuscript · USD” unchanged beside it. Reload to see.
+
+- [x] 0.16 new: can we edit the standing punch list pages so that I can paste screenshots in like I do in a normal session?  ·  _added Sat 13:14 UTC_
+
+  > **shelley** · 2026-09-19 13:21 UTC  
+  > Done. Paste a screenshot into any note box (or the New item bar) — it uploads on paste, shows as a thumbnail, and saves with the note. I get it in chat as a file I can open, and the export copies it into the archive at /admin/runs/. The red square is my test paste.
+  >
+  > ![screenshot](img/20260919-132039-645.png)
+
 
 ## 2 · Your side — YOU
 
@@ -272,10 +284,13 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
   > **shelley** · 2026-09-18 18:10 UTC  
   > Fixed and live (all three pass paths: admin form, coupon, store). The transmittal draft is now seeded with the title and author at the moment the pass is created, so an attendee opens it Monday and sees their book named. Verified with a throwaway pass, then revoked/archived it.
 
-- [ ] 5.22 **Creative Commons copyright notices** (from 0.4) — transmittal copyright section: a “Rights” choice: All rights reserved (default) · CC BY · CC BY-SA · CC BY-NC · CC BY-NC-SA · CC BY-ND · CC BY-NC-ND · CC0 / public domain; generated copyright page prints the proper notice (“This work is licensed under a Creative Commons Attribution 4.0 International License. To view a copy, visit creativecommons.org/licenses/by/4.0/”) instead of “All rights reserved”, EPUB `dc:rights` matches. Template: `series-template.typ` l.604. Post-workshop unless a CC book shows up first.
+- [x] 5.22 **Creative Commons copyright notices** (from 0.4) — transmittal copyright section: a “Rights” choice: All rights reserved (default) · CC BY · CC BY-SA · CC BY-NC · CC BY-NC-SA · CC BY-ND · CC BY-NC-ND · CC0 / public domain; generated copyright page prints the proper notice (“This work is licensed under a Creative Commons Attribution 4.0 International License. To view a copy, visit creativecommons.org/licenses/by/4.0/”) instead of “All rights reserved”, EPUB `dc:rights` matches. Template: `series-template.typ` l.604. Post-workshop unless a CC book shows up first.
 
   > **shelley** · 2026-09-18 18:59 UTC  
   > Queued as 5.22. Today the copyright page hard-codes “All rights reserved” (series-template.typ l.604); the fix is a Rights choice on the transmittal’s copyright section (All rights reserved · the six CC licences · CC0) that swaps in the proper CC notice on the generated page and sets the EPUB’s dc:rights to match. Half a day. Post-workshop unless a CC book turns up first — say if the Obliquities rollup is one.
+
+  > **shelley** · 2026-09-19 13:21 UTC  
+  > Built (50187d3), ahead of schedule because it was cheap once I was in the copyright page: a “Rights” select in the transmittal's Copyright page section — All rights reserved (default) · CC BY · BY-SA · BY-NC · BY-NC-SA · BY-ND · BY-NC-ND · CC0. The © line becomes e.g. “Copyright © 2026 Name. This work is licensed under a Creative Commons Attribution 4.0 International License. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/” (CC's recommended wording), CC0 gets the dedication sentence. Print PDF, Word template and the EPUB's dc:rights all take it from one place (srv/rights.go). Preview updates live. Existing transmittals keep All rights reserved.
 
 - [~] 5.5 P3 **H&J / composition quality** in the print PDF — Typst 0.12 levers checked, nothing to change before Monday; scorer in `typesetting/scripts/compscore.py`; runts need Typst 0.13 `costs` (Wed 24+); still to do: compare against an InDesign-set page (YOU supply)
 

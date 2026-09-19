@@ -202,6 +202,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/factory/board", s.handleAdminFactoryBoard)
 	mux.HandleFunc("GET /admin/runs/{$}", s.handleAdminRunsIndex)
 	mux.HandleFunc("GET /admin/runs/{name}", s.handleAdminRunFile)
+	mux.HandleFunc("GET /admin/runs/{kind}/{name}", s.handleAdminRunImage) // kind=img: screenshots pasted on the punch list
 	mux.HandleFunc("GET /admin/factory/{$}", func(w http.ResponseWriter, r *http.Request) {
 		if !s.requireExeDevAdmin(w, r) {
 			return

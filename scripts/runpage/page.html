@@ -13,6 +13,9 @@ li{margin:.35rem 0;list-style:none;position:relative} ul{padding-left:1.2rem}
 .note{border-left:3px solid #fa5;padding:.1rem .6rem;margin:.25rem 0;white-space:pre-wrap}
 .note.shelley{border-color:#5c5}
 .note .m{color:#888;font-size:.8em;display:block}
+.note img,#body img{display:block;max-width:100%;max-height:22rem;margin:.4rem 0;border:1px solid #333;cursor:zoom-in}
+.pend{display:flex;gap:.4rem;flex-wrap:wrap;margin:.2rem 0 0 1.6rem} .pend img{height:3.5rem;border:1px solid #555} .pend .x{color:#f66;cursor:pointer;font-size:.8em}
+.reply{flex-wrap:wrap}
 .reply{display:flex;gap:.4rem;margin:.3rem 0 .6rem 1.6rem}
 textarea{flex:1;min-height:2.4em;background:#1a1a1a;color:#ddd;border:1px solid #444;font:14px/1.4 system-ui;padding:.4em .6em;resize:vertical}
 button.save{background:#8ab4f8;color:#111;border:0;font-weight:600;padding:0 .9em;cursor:pointer}
@@ -21,13 +24,14 @@ button.save{background:#8ab4f8;color:#111;border:0;font-weight:600;padding:0 .9e
 .bar .hint{color:#888}
 </style></head><body>
 <div id="body">{{BODY}}</div>
-<div class="bar"><span class="hint">New item →</span><input id="add" placeholder="type a to-do, Enter to add to Inbox (Shelley triages)"><span class="hint" id="status"></span><span class="hint" id="upd"></span></div>
+<div class="bar"><span class="hint">New item →</span><input id="add" placeholder="type a to-do (paste a screenshot if useful), Enter to add to Inbox (Shelley triages)"><span class="hint" id="status"></span><span class="hint" id="upd"></span></div>
 <script>
 const NEXT={o:'x',x:'~','~':'o'}, ST={o:' ',x:'x','~':'~'};
 let notes={};
 // Hold the refresh only while there is unsaved typing. (An empty, still-focused
 // "New item" box used to count as busy, so the page stopped updating after every add.)
-function busy(){return [...document.querySelectorAll('textarea')].some(t=>t.value.trim()||(document.activeElement===t&&t.value))||document.getElementById('add').value.trim()!=='';}
+function busy(){return [...document.querySelectorAll('textarea')].some(t=>t.value.trim()||(document.activeElement===t&&t.value))||document.querySelectorAll('.pend img').length>0||document.getElementById('add').value.trim()!=='';}
+async function upload(file){if(!file)return null; const r=await fetch('/upload',{method:'POST',headers:{'Content-Type':file.type},body:file}); if(!r.ok){alert('upload failed: '+(await r.text()));return null;} return (await r.json()).url;}
 function decorate(){
   document.querySelectorAll('#body li').forEach(li=>{
     const id=li.querySelector(':scope > .id'); if(!id||li.dataset.done)return; li.dataset.done=1;
@@ -38,13 +42,18 @@ function decorate(){
     const b=document.createElement('button'); b.className='nbtn'; b.textContent='note'; id.after(b);
     const n=(notes[iid]||[]); if(n.length){b.textContent=`notes ${n.length}`; b.classList.add('has');}
     const wrap=document.createElement('div'); wrap.className='notes'; wrap.style.display=n.length?'block':'none';
-    n.forEach(x=>{const d=document.createElement('div'); d.className='note '+x.who; d.innerHTML=`<span class="m">${x.who} · ${x.ts}</span>`; d.append(x.text); wrap.append(d);});
+    n.forEach(x=>{const d=document.createElement('div'); d.className='note '+x.who; d.innerHTML=`<span class="m">${x.who} · ${x.ts}</span>`; d.append(x.text);
+      (x.images||[]).forEach(u=>{const a=document.createElement('a'); a.href=u; a.target='_blank'; const im=document.createElement('img'); im.src=u; a.append(im); d.append(a);}); wrap.append(d);});
     const rp=document.createElement('div'); rp.className='reply'; rp.style.display='none';
-    const ta=document.createElement('textarea'); ta.placeholder='explanation / question for Shelley…';
+    const ta=document.createElement('textarea'); ta.placeholder='explanation / question for Shelley… (paste a screenshot here too)';
     const sv=document.createElement('button'); sv.className='save'; sv.textContent='Save';
-    sv.onclick=async()=>{if(!ta.value.trim())return; await fetch('/note',{method:'POST',body:JSON.stringify({id:iid,text:ta.value,who:'jenna'})}); ta.value=''; rp.style.display='none'; refresh(true);};
+    const pend=document.createElement('div'); pend.className='pend'; let imgs=[];
+    const showPend=()=>{pend.innerHTML=''; imgs.forEach((u,i)=>{const im=document.createElement('img'); im.src=u; const x=document.createElement('span'); x.className='x'; x.textContent='remove'; x.onclick=()=>{imgs.splice(i,1); showPend();}; pend.append(im,x);});};
+    ta.onpaste=async e=>{const its=[...(e.clipboardData||{}).items||[]].filter(i=>i.type.startsWith('image/')); if(!its.length)return; e.preventDefault();
+      for(const it of its){const u=await upload(it.getAsFile()); if(u){imgs.push(u); showPend();}}};
+    sv.onclick=async()=>{if(!ta.value.trim()&&!imgs.length)return; await fetch('/note',{method:'POST',body:JSON.stringify({id:iid,text:ta.value,images:imgs,who:'jenna'})}); ta.value=''; imgs=[]; showPend(); rp.style.display='none'; refresh(true);};
     ta.onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))sv.onclick();};
-    rp.append(ta,sv);
+    rp.append(ta,sv,pend);
     b.onclick=()=>{wrap.style.display='block'; rp.style.display=rp.style.display==='none'?'flex':'none'; if(rp.style.display==='flex')ta.focus();};
     // insert after the li's own inline content but before nested ul
     const sub=li.querySelector(':scope > ul'); if(sub){li.insertBefore(wrap,sub); li.insertBefore(rp,sub);} else li.append(wrap,rp);
@@ -56,6 +65,8 @@ async function refresh(force){
   notes=n; document.getElementById('body').innerHTML=h; decorate();
   document.getElementById('upd').textContent='updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
+document.getElementById('add').onpaste=async e=>{const its=[...(e.clipboardData||{}).items||[]].filter(i=>i.type.startsWith('image/')); if(!its.length)return; e.preventDefault();
+  const inp=e.target; for(const it of its){const u=await upload(it.getAsFile()); if(u)inp.value=(inp.value+' ![screenshot]('+u+')').trim();}};
 document.getElementById('add').onkeydown=async e=>{if(e.key!=='Enter')return; const v=e.target.value.trim(); if(!v)return;
   await fetch('/add',{method:'POST',body:JSON.stringify({text:v})}); e.target.value=''; document.getElementById('status').textContent='added'; setTimeout(()=>document.getElementById('status').textContent='',1500); refresh(true);};
 fetch('/notes').then(r=>r.json()).then(n=>{notes=n;decorate();});

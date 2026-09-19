@@ -8,7 +8,7 @@ Writes the checklist with each item's notes nested beneath it as a blockquote
 (who · when), then rebuilds docs/runs/README.md as an index of every file in
 the directory. The admin page /admin/runs/ renders these files from disk.
 """
-import json, os, re, sys, time
+import json, os, re, shutil, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MD = os.path.join(ROOT, "scratch/run/CHECKLIST.md")
@@ -16,8 +16,24 @@ NOTES = os.path.join(ROOT, "scratch/run/notes.json")
 OUT = os.path.join(ROOT, "docs/runs")
 ITEM = re.compile(r"^(\s*)- \[[ x~]\] (\d+\.\d+[a-z]?)\b")
 
+IMG_SRC = os.path.join(ROOT, "scratch/run/img")
+IMG_OUT = os.path.join(OUT, "img")
+
+def archive_img(url):
+    """Copy a runpage image (/img/name) into docs/runs/img/ and return the
+    relative markdown path. Screenshots pasted on the punch list travel with
+    the archive; the scratch dir is gitignored."""
+    name = os.path.basename(url)
+    src = os.path.join(IMG_SRC, name)
+    if os.path.isfile(src):
+        os.makedirs(IMG_OUT, exist_ok=True)
+        dst = os.path.join(IMG_OUT, name)
+        if not os.path.exists(dst): shutil.copyfile(src, dst)
+    return "img/" + name
+
 def export(date):
     md = open(MD).read().rstrip("\n").split("\n")
+    md = [re.sub(r"\]\(/img/([^)]+)\)", lambda m: "](" + archive_img(m.group(1)) + ")", ln) for ln in md]
     try: notes = json.load(open(NOTES))
     except FileNotFoundError: notes = {}
     out = []
@@ -33,6 +49,9 @@ def export(date):
             out.append(f"{ind}> **{n.get('who','?')}** · {n.get('ts','')}  ")
             for t in (n.get("text") or "").split("\n"):
                 out.append(f"{ind}> {t}" if t.strip() else f"{ind}>")
+            for u in n.get("images") or []:
+                out.append(f"{ind}>")
+                out.append(f"{ind}> ![screenshot]({archive_img(u)})")
         out.append("")
     stamp = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
     head = [f"<!-- exported {stamp} by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->", ""]

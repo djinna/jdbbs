@@ -140,3 +140,23 @@ func (s *Server) handleAdminRunFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	fmt.Fprint(w, runsShell(name, "Runs", name, `<span class="mono small">docs/runs/`+html.EscapeString(name)+`.md · read-only</span>`, body))
 }
+
+// handleAdminRunImage serves docs/runs/img/<name> — screenshots pasted on the
+// punch list, copied into the archive by scripts/punchlist-export.py.
+func (s *Server) handleAdminRunImage(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdmin(w, r) {
+		return
+	}
+	name := r.PathValue("name")
+	if r.PathValue("kind") != "img" || name == "" || strings.ContainsAny(name, `/\`) || strings.Contains(name, "..") || strings.HasPrefix(name, ".") {
+		http.NotFound(w, r)
+		return
+	}
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp":
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFile(w, r, filepath.Join(runsDir(), "img", name))
+}
