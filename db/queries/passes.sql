@@ -117,3 +117,7 @@ LIMIT ?;
 
 -- name: ListStoreOrdersForPass :many
 SELECT * FROM store_orders WHERE pass_id = ? ORDER BY fulfilled_at DESC, id DESC;
+
+-- name: SetPassIndexIncluded :exec
+-- Back-of-book index add-on fulfilment (store "index" item or admin grant).
+UPDATE passes SET index_included = 1 WHERE id = ?;

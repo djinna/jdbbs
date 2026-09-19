@@ -30,6 +30,8 @@ type Book struct {
 	UpdatedAt      time.Time
 	ProjectID      sql.NullInt64
 	BuildKind      string
+	IndexJson      sql.NullString
+	IndexStatus    string
 }
 
 type BookOutput struct {
@@ -258,6 +260,7 @@ type Pass struct {
 	StripeSessionID string
 	AmountPaid      int64
 	PromoCode       string
+	IndexIncluded   int64
 }
 
 type PassLedger struct {

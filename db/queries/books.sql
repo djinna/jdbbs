@@ -50,3 +50,11 @@ FROM books WHERE project_id = ? ORDER BY created_at DESC;
 
 -- name: GetBookProjectID :one
 SELECT id, project_id FROM books WHERE id = ?;
+
+-- name: UpdateBookIndexStatus :exec
+-- Back-of-book index state machine (off|drafting|draft|reviewed|error).
+UPDATE books SET index_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+
+-- name: UpdateBookIndex :exec
+-- Stores a drafted or reviewed index document together with its status.
+UPDATE books SET index_json = ?, index_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;

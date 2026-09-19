@@ -108,7 +108,7 @@ INSERT INTO passes (
     builds_included, expires_at, note
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, datetime(CURRENT_TIMESTAMP, '+6 months'), ?)
-RETURNING id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code
+RETURNING id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code, index_included
 `
 
 type CreatePassParams struct {
@@ -154,6 +154,7 @@ func (q *Queries) CreatePass(ctx context.Context, arg CreatePassParams) (Pass, e
 		&i.StripeSessionID,
 		&i.AmountPaid,
 		&i.PromoCode,
+		&i.IndexIncluded,
 	)
 	return i, err
 }
@@ -279,7 +280,7 @@ func (q *Queries) GetCouponByCode(ctx context.Context, code string) (Coupon, err
 }
 
 const getPass = `-- name: GetPass :one
-SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code FROM passes WHERE id = ?
+SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code, index_included FROM passes WHERE id = ?
 `
 
 func (q *Queries) GetPass(ctx context.Context, id int64) (Pass, error) {
@@ -303,12 +304,13 @@ func (q *Queries) GetPass(ctx context.Context, id int64) (Pass, error) {
 		&i.StripeSessionID,
 		&i.AmountPaid,
 		&i.PromoCode,
+		&i.IndexIncluded,
 	)
 	return i, err
 }
 
 const getPassByProject = `-- name: GetPassByProject :one
-SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code FROM passes WHERE project_id = ?
+SELECT id, project_id, sku, source, coupon_id, customer_email, customer_name, builds_included, builds_used, builds_extra, fulfilled_at, expires_at, status, note, stripe_session_id, amount_paid, promo_code, index_included FROM passes WHERE project_id = ?
 `
 
 func (q *Queries) GetPassByProject(ctx context.Context, projectID int64) (Pass, error) {
@@ -332,6 +334,7 @@ func (q *Queries) GetPassByProject(ctx context.Context, projectID int64) (Pass, 
 		&i.StripeSessionID,
 		&i.AmountPaid,
 		&i.PromoCode,
+		&i.IndexIncluded,
 	)
 	return i, err
 }
@@ -688,6 +691,16 @@ type SetCouponRegistrationParams struct {
 
 func (q *Queries) SetCouponRegistration(ctx context.Context, arg SetCouponRegistrationParams) error {
 	_, err := q.db.ExecContext(ctx, setCouponRegistration, arg.RegistrationID, arg.ID)
+	return err
+}
+
+const setPassIndexIncluded = `-- name: SetPassIndexIncluded :exec
+UPDATE passes SET index_included = 1 WHERE id = ?
+`
+
+// Back-of-book index add-on fulfilment (store "index" item or admin grant).
+func (q *Queries) SetPassIndexIncluded(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, setPassIndexIncluded, id)
 	return err
 }
 

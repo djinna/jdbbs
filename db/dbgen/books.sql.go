@@ -14,7 +14,7 @@ import (
 const createBook = `-- name: CreateBook :one
 INSERT INTO books (title, author, series, source_filename, source_data, project_id, status, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, 'uploaded', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id, build_kind
+RETURNING id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id, build_kind, index_json, index_status
 `
 
 type CreateBookParams struct {
@@ -49,6 +49,8 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		&i.UpdatedAt,
 		&i.ProjectID,
 		&i.BuildKind,
+		&i.IndexJson,
+		&i.IndexStatus,
 	)
 	return i, err
 }
@@ -63,7 +65,7 @@ func (q *Queries) DeleteBook(ctx context.Context, id int64) error {
 }
 
 const getBook = `-- name: GetBook :one
-SELECT id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id, build_kind FROM books WHERE id = ?
+SELECT id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id, build_kind, index_json, index_status FROM books WHERE id = ?
 `
 
 func (q *Queries) GetBook(ctx context.Context, id int64) (Book, error) {
@@ -82,6 +84,8 @@ func (q *Queries) GetBook(ctx context.Context, id int64) (Book, error) {
 		&i.UpdatedAt,
 		&i.ProjectID,
 		&i.BuildKind,
+		&i.IndexJson,
+		&i.IndexStatus,
 	)
 	return i, err
 }
@@ -278,6 +282,37 @@ type UpdateBookBuildKindParams struct {
 
 func (q *Queries) UpdateBookBuildKind(ctx context.Context, arg UpdateBookBuildKindParams) error {
 	_, err := q.db.ExecContext(ctx, updateBookBuildKind, arg.BuildKind, arg.ID)
+	return err
+}
+
+const updateBookIndex = `-- name: UpdateBookIndex :exec
+UPDATE books SET index_json = ?, index_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+`
+
+type UpdateBookIndexParams struct {
+	IndexJson   sql.NullString
+	IndexStatus string
+	ID          int64
+}
+
+// Stores a drafted or reviewed index document together with its status.
+func (q *Queries) UpdateBookIndex(ctx context.Context, arg UpdateBookIndexParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookIndex, arg.IndexJson, arg.IndexStatus, arg.ID)
+	return err
+}
+
+const updateBookIndexStatus = `-- name: UpdateBookIndexStatus :exec
+UPDATE books SET index_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+`
+
+type UpdateBookIndexStatusParams struct {
+	IndexStatus string
+	ID          int64
+}
+
+// Back-of-book index state machine (off|drafting|draft|reviewed|error).
+func (q *Queries) UpdateBookIndexStatus(ctx context.Context, arg UpdateBookIndexStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookIndexStatus, arg.IndexStatus, arg.ID)
 	return err
 }
 

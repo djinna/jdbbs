@@ -24,6 +24,7 @@ import (
 
 	"srv.exe.dev/db"
 	"srv.exe.dev/db/dbgen"
+	"srv.exe.dev/srv/indexer"
 )
 
 //go:embed static/*
@@ -36,11 +37,14 @@ type preflightRunnerFunc func(docxPath string, declaredStylesPath string) ([]byt
 type epubRunnerFunc func(bookID int64, book dbgen.Book) error
 
 type Server struct {
-	DB              *sql.DB
-	Hostname        string
-	BaseURL         string
-	Email           *EmailConfig
-	Store           *store // Factory Pass store; nil when PRODCAL_STORE is off
+	DB       *sql.DB
+	Hostname string
+	BaseURL  string
+	Email    *EmailConfig
+	Store    *store // Factory Pass store; nil when PRODCAL_STORE is off
+	// IndexClient is the LLM gateway client for index drafting; nil means
+	// indexer.NewClientFromEnv() (tests inject a replay client).
+	IndexClient     *indexer.Client
 	preflightRunner preflightRunnerFunc
 	epubRunner      epubRunnerFunc
 	secret          []byte
@@ -196,6 +200,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/passes", s.handleAdminCreatePass)
 	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
 	mux.HandleFunc("POST /api/admin/passes/{id}/status", s.handleAdminPassStatus)
+	mux.HandleFunc("POST /api/admin/passes/{id}/index", s.handleAdminGrantPassIndex)
 	mux.HandleFunc("GET /api/admin/store/orders", s.handleAdminStoreOrders)
 	// Factory floor: live activity board + feed for workshop sessions (monitoring L2)
 	mux.HandleFunc("GET /api/admin/factory/events", s.handleAdminFactoryEvents)
@@ -291,6 +296,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/books/{id}/outputs/{output_id}/download", s.handleDownloadBookOutput)
 	mux.HandleFunc("PUT /api/books/{id}/project", s.handleLinkBookProject)
 	mux.HandleFunc("POST /api/books/{id}/detect-chapters", s.handleDetectChapters)
+	// Back-of-book index add-on (srv/index.go)
+	mux.HandleFunc("POST /api/books/{id}/index/draft", s.handleDraftBookIndex)
+	mux.HandleFunc("GET /api/books/{id}/index", s.handleGetBookIndex)
+	mux.HandleFunc("PUT /api/books/{id}/index", s.handlePutBookIndex)
 	mux.HandleFunc("DELETE /api/books/{id}", s.handleDeleteBook)
 
 	// Book Spec API

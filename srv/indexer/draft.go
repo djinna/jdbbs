@@ -27,6 +27,9 @@ type Index struct {
 	Usage         Usage     `json:"usage"`
 	CostUSD       float64   `json:"cost_usd"`
 	Notes         []string  `json:"notes,omitempty"` // merge decisions, drops
+	// Unmatched is filled by the server after a dry-run of PlaceMarkers
+	// against the current manuscript: anchors the review UI should flag.
+	Unmatched []Unmatched `json:"unmatched,omitempty"`
 }
 
 // Entry is one index line: a heading, optional run-in subheading, optional
