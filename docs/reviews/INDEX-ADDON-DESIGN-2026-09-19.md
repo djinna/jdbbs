@@ -1,9 +1,32 @@
-# Index as a factory add-on — phase 1 design note
+# Index as a factory add-on — design note (phases 1 + 2)
 
-**Date:** 2026-09-19 · punch list 5.13 · branch `index-addon` (worktree, not merged)
+**Date:** 2026-09-19, phase 2 added 2026-09-20 · punch list 5.13 · branch `index-addon`
 **Follows:** docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md — design A (Typst-resolved
 locators), generative model for the entries. This note records what was built, the
-formats the pieces exchange, and the phase-2 surface (API, UI, SKU) left for the lead.
+formats the pieces exchange, and (§ Phase 2) the shipped API, UI and $100 SKU.
+
+## Phase 2 — what is built now (2026-09-20)
+
+Jenna's verdict on the Ghosts sample: "looks really amazing … add it on now as a $100
+add-on. Get rid of the letters that precede each section." Shipped on the branch:
+
+| Piece | Where | Notes |
+|---|---|---|
+| Index page polish | `series-template.typ` index-page() | no letter heads (Chicago run-in; `v(1em, weak)` ≈ 0.6 em extra between letter groups); code-like headings get zero-width break opportunities after `_ / . -` (`index-breakable`) so `AmaStore_L47_…` wraps instead of running into the gutter |
+| Drafting quality | `srv/indexer/draft.go` | consolidation call gains a `sub` op (narrower heading → run-in subentry of a broader one: *AI mediators* → *artificial intelligence: in mediation…*), stricter *see also* rules in the prompt; `crossRefs()` makes refs proper: dangling targets dropped (or `Heading, sub` trimmed to `Heading`), self-refs removed, a reciprocal *see also* pair whose one side is thin (1 anchor, no subentries, not a proper name) is folded into the other and left as a *see*. `Tidy()` is exported and runs on every reviewed edit too |
+| Schema | `db/migrations/050-index-addon.sql` | `books.index_json TEXT`, `books.index_status TEXT NOT NULL DEFAULT 'off'` (off → drafting → draft → reviewed; error), `passes.index_included INTEGER NOT NULL DEFAULT 0` |
+| API | `srv/index.go` | `POST /api/books/{id}/index/draft` (async, 409 while drafting or a build runs), `GET /api/books/{id}/index` → `{book_id,status,entitled,error?,index}`, `PUT /api/books/{id}/index {entries}` (validated, tidied, anchors re-checked by a pandoc dry-run → `index.unmatched`, sets reviewed), `POST /api/admin/passes/{id}/index` (grant). Gate: `requirePassAccess` + `index_included` (admin always) else **402 `{"addon":"index"}`** |
+| Build | `srv/books.go` | `POST …/convert {"index": true}` → 402 without the entitlement, 400 without a draft; `runConversion(…, withIndex)` adds `index: true` to the merged Typst config (`indexTypstConfig`) and runs `PlaceMarkers` after the header/cleanup step. Unmatched anchors → factory event `index.placed` (never a failed build) |
+| Store | `srv/store.go` | `{LookupKey: "index", Name: "Back-of-book index", Amount: 10000, Index: true}`; fulfilled in the add-on path and in a pass cart via `grantPassIndex` (ledger row delta 0, reason `index_purchase`/`index_grant`); can't be bought twice; pass JSON and admin pass list expose `index_included`; `/admin/store/` has a **+ index** button |
+| Factory page | `srv/static/factory.{html,js,css}` | step **4 · Index** between Inspect and Build (strip is 1–6 now). Not entitled: one line "Back-of-book index · $100 add-on" + store button (`data-addon="index"`). Entitled: "Draft the index" (polls `GET …/index` every 5 s), then the review table — heading · subentry · see · see also · pages (anchor count, ⚠ n unmatched) · merge/delete, "Add an entry", Save (PUT), and "Include the index in the next build" (→ `index: true` on convert). Heading input sits on a group's first line and renames the group |
+| Tests | `srv/index_test.go`, `srv/indexer/draft_test.go` | gating (402/401/403, 400 without draft), draft state machine with an in-process fake gateway (`indexer.Client.Fake`), PUT validation, 409s, failed draft keeps the reviewed doc; full pandoc+typst convert with `index:true` (checks `index.placed` and the PDF text). `TestTidyCrossRefs` for the cross-reference rules |
+| Copy | `~/jdbbs-public/factory.html`, `factory-api.html` (NOT pushed), `DEPLOY.md` | add-ons row "Index · $100"; API page documents `"index": true`; DEPLOY: test-mode Stripe means a 4242 card buys it free for the workshop |
+
+Deviations from the brief, on purpose: `"index": true` is **rejected** (400/402) rather
+than silently ignored when it can't be honoured, so the page can say why; `Index` gained an
+`unmatched` field (filled by the server) so the review UI has its flags without re-running
+pandoc on every GET. Not done: Word `XE` passthrough (piece 4), pass-fulfilment email copy
+for a pass bought with the index in the same cart (the add-on email does mention it).
 
 ## What was built (pieces 1–3 of the brief)
 
@@ -66,9 +89,9 @@ look (no running head, drop folio), sets running heads *book title / INDEX*, and
 at all when the manuscript carries no markers. Folios come from `folio-text`, so roman
 front-matter pages would show roman.
 
-**Known limits.** Sort key is ASCII after folding (CJK/Thai headings group under `#`).
-An unbreakable token longer than a column (`AmaStore_L47_HeartVariant1.0` in the Ghosts
-draft) overflows; the review step should reword such headings. Locators are page folios only
+**Known limits.** Sort key is ASCII after folding (CJK/Thai headings group together at
+the top). Code-like headings (`AmaStore_L47_HeartVariant1.0`) wrap at `_ / . -` since
+phase 2; a single token longer than a column still breaks mid-word. Locators are page folios only
 (no `n` for notes, no bold for main discussion).
 
 ## Piece 2 — drafting
@@ -144,7 +167,7 @@ Ghosts: 380 anchors, 377 placed (9 fuzzy), 3 unmatched (all model paraphrases of
 21 cross-references; compiled to 105 pages (100 body + 5 index) on both binaries with
 identical text. Sample: `scratch/idx/ghosts-indexed-typst0.13.pdf` pp. 101–105.
 
-## Phase 2 — proposed surface (not built)
+## Phase 2 — the surface as proposed on 2026-09-19 (kept for the record; see the table above for what shipped)
 
 **API** (all under the existing book auth; drafting costs money, so admin- or pass-gated):
 
