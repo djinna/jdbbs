@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 16:30 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 16:41 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -239,6 +239,22 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **Wednesday session:** it’s the closing argument of the *machine factory* idea: the swim-lane diagram on `/factory` (“How it runs”) shows four lanes; the API slide says *any* of the top-lane work can be done by a program or an agent, and here are the four calls. One slide of the curl recipe, one slide of the diagram. If the Index add-on PDF lands today, that’s the third slide: a machine-drafted index, reviewed by a human.
   >
   > Say yes and I’ll do the page + section Sunday morning, and hand you a 6-line demo script for the terminal moment.
+
+  > **jenna** · 2026-09-19 16:33 UTC  
+  > yes but let's go now, no need to wait for tomorrow (why do you keep saying that lol)
+
+  > **shelley** · 2026-09-19 16:41 UTC  
+  > Gone now (c. 17:05). Three pieces, all live:
+  >
+  > 1/ **https://jdbbs.exe.xyz/factory/api** — public page, the whole recipe: what you need (id, token, pass), then the six calls with real responses (pass → upload → inspect → build → poll → download), a one-screen version, the Python script, "also callable", and an error table. Public-tier chrome like /factory/terms; listed in Pages. Dark mode + 390 px checked.
+  > ![](/img/09-api-top.png) ![](/img/09-api-build.png)
+  >
+  > 2/ **/factory** has a new section above Redeem — "Have your own factory? It's an API" — three sentences and a "Read the recipe →" link.
+  > ![](/img/09-factory-section.png)
+  >
+  > 3/ **Terminal demo for the room**: `scripts/factory-demo.sh` — prints each command in colour before it runs, so people read along. `TOKEN=… P=14 scripts/factory-demo.sh ms.docx` does pass → upload → inspect (free, ~5 s). Add `--build` to spend a credit and watch it poll and download both files (~15 s for the sample chapter). I ran it against prot/zoo (id 14, the CLI test project — 6 credits left, token in scratch/zoo-token.txt) — never against pinstitute. The Python script is also downloadable at /factory/api/factory-cli.py.
+  >
+  > Left as [~] until you've read the page; then 0.9A (three passes) still needs the customer names from you.
 
 - [ ] 5.17 **About the Book Factory** text (was 0.8) — YOU pick A / A′ / B and edit the placeholders (drafts are on this item's notes); then ME: transmittal checkbox → colophon on the copyright page and/or back-matter page, off by default
 
