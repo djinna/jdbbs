@@ -225,6 +225,7 @@
     if (p) {
       var base = '/' + c + '/' + p + '/';
       items.push([base + 'factory/', 'Factory', 'Transmittal, upload, inspect, build, download']);
+      items.push([base + 'stylesheet/', 'Style sheet', 'Your book\u2019s editorial style sheet: accept, edit or add rules']);
       // Calendar hidden from customers (Jenna, 2026-09-18: not going to use it);
       // the page itself still answers at /{client}/{project}/ for the admin.
       // items.push([base, 'Calendar', 'Schedule, tasks, budget']);

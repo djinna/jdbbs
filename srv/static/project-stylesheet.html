@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Style sheet · jdbb studio</title>
+<link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist+Mono:wght@400;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<script>
+(function() {
+  var FONTS = { jetbrains: 1, martian: 1, plex: 1, geist: 1, literata: 1, 'ibm-serif': 1, 'source-serif': 1, newsreader: 1 };
+  var LEGACY = { menlo: 'jetbrains', 'ibm-sans': 'geist' };
+  try {
+    var t = JSON.parse(localStorage.getItem('prodcal-theme-v1'));
+    if (t) {
+      if (t.dark) document.documentElement.classList.add('dark');
+      var f = LEGACY[t.font] || t.font;
+      if (f && FONTS[f]) document.documentElement.setAttribute('data-font', f);
+    }
+  } catch(e) {}
+})();
+</script>
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/project-stylesheet.css?v=20260919c">
+</head>
+<body>
+<div class="jdbb-shell">
+
+  <header class="jdbb-masthead">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+    <nav data-client-nav><div id="theme-bar"></div></nav>
+  </header>
+
+  <!-- Sign-in gate (project-stylesheet.js shows it on 401). Same two paths as
+       the factory page: emailed sign-in link first, password as a fallback. -->
+  <div class="auth-screen" id="ss-auth" hidden>
+    <div class="kicker">Style sheet</div>
+    <div id="ss-auth-email">
+      <h2>Sign in by email</h2>
+      <p class="auth-sub">Enter the email address your Factory Pass was sent to and we&rsquo;ll send you a sign-in link &mdash; no password needed.</p>
+      <input type="email" class="input-bare" id="ss-auth-em" placeholder="you@example.com" autocomplete="email">
+      <p class="ss-actions"><button class="btn-fill" id="ss-auth-link-btn">Email me a sign-in link</button></p>
+    </div>
+    <div id="ss-auth-sent" hidden>
+      <h2>Check your email</h2>
+      <p class="auth-sub">If that is the address your Factory Pass was sent to, a sign-in link is on its way. It is good for <b>30 minutes</b> and works once. Nothing after a few minutes? Check spam.</p>
+    </div>
+    <div id="ss-auth-password" hidden>
+      <h2>Enter your password</h2>
+      <p class="auth-sub" id="ss-auth-pw-sub">Enter the password from your Factory Pass email.</p>
+      <input type="password" class="input-bare" id="ss-auth-pw" placeholder="Password" autocomplete="current-password">
+      <p class="ss-actions"><button class="btn-fill" id="ss-auth-btn">Unlock</button></p>
+    </div>
+    <div class="ss-err" id="ss-auth-err" hidden></div>
+    <p class="ss-forgot"><a href="#" id="ss-auth-toggle">Have a password? Use it instead</a></p>
+  </div>
+
+  <main id="ss-shell">
+
+    <header class="ss-head">
+      <div class="ss-head-top">
+        <div>
+          <div class="kicker">Style sheet</div>
+          <h1 id="ss-title">Loading&hellip;</h1>
+          <p class="ss-byline" id="ss-byline"></p>
+        </div>
+        <a class="ss-home" id="ss-home" href="../../">&larr; Your books</a>
+      </div>
+
+      <!-- The point of the page, in the first three sentences. -->
+      <div class="jdbb-prose ss-intro">
+        <p>This is your book&rsquo;s <strong>editorial style sheet</strong>: the decisions a copyeditor
+        keeps while reading &mdash; serial comma or not, US or UK spelling, how dialogue is punctuated,
+        which words stay capitalised. It is not the same thing as <em>Word styles</em> (Heading&nbsp;1,
+        Body Text), which are the named formats in the template we give you; those shape how the book
+        <em>looks</em>, these shape how it <em>reads</em>.</p>
+        <p>We have seeded it from the studio house sheet, and every rule is already accepted. If our
+        defaults suit the book, do nothing. Otherwise reject a rule, edit its wording, or add your own
+        &mdash; your copyeditor works from what is here.</p>
+      </div>
+    </header>
+
+    <div class="ss-banner" id="ss-banner" hidden></div>
+
+    <section class="ss-kind" id="ss-kind" hidden>
+      <div class="kicker">Is this book fiction or nonfiction?</div>
+      <p class="ss-kind-sub" id="ss-kind-sub">Right now you are seeing the rules that apply to any book.
+      Tell us which this is and we will add the rules for it &mdash; nothing you have decided is lost.</p>
+      <p class="ss-actions">
+        <button class="btn-fill" data-kind="fiction">Fiction</button>
+        <button class="btn-fill" data-kind="nonfiction">Nonfiction</button>
+        <button class="btn-plain" id="ss-kind-later">Not yet</button>
+      </p>
+    </section>
+
+    <div class="ss-toolbar">
+      <div class="ss-counts" id="ss-counts">&nbsp;</div>
+      <div class="ss-tools">
+        <button class="btn-plain" id="ss-accept-all">Accept all</button>
+        <a class="ss-dl" id="ss-md" href="index.md">Download as Markdown</a>
+        <a class="ss-dl" href="/stylesheet/" target="_blank" rel="noopener">House sheet</a>
+        <span class="ss-save" id="ss-save"></span>
+      </div>
+    </div>
+
+    <div id="ss-body"><p class="ss-empty">Loading your style sheet&hellip;</p></div>
+
+    <p class="ss-colophon">Questions, or a decision you would rather talk through?
+    Email <a href="mailto:j@djinna.com">j@djinna.com</a>. Changes save as you make them.</p>
+  </main>
+
+  <footer class="jdbb-footer">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav aria-label="Footer"><a href="/">Home</a><a href="/stylesheet/">House style</a><a href="/factory">Factory</a></nav>
+    <span class="copy">&copy; 2026 Jenna Dixon</span>
+  </footer>
+</div>
+
+<script src="/static/theme.js"></script>
+<script src="/static/project-stylesheet.js?v=20260919a"></script>
+</body>
+</html>

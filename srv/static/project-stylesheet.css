@@ -1,0 +1,130 @@
+/* Per-project style sheet page (6.1 B). Terminal Folio: rules and whitespace,
+   no cards, zero radius, zero shadows. Tokens come from theme.css; the rule
+   grid deliberately echoes /stylesheet/ (housestyle.html) so a client can see
+   the same sheet in both places. */
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+
+/* ── head ─────────────────────────────────────────────────────────────── */
+.ss-head { padding: 30px 0 18px; border-bottom: 1px solid var(--border-strong); }
+.ss-head-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.ss-head h1 { font: 600 clamp(22px, 3.6vw, 32px)/1.15 var(--mono); margin: 6px 0 4px; }
+.ss-byline { color: var(--text-secondary); margin: 0; font-size: 13px; font-family: var(--mono); }
+.ss-home { color: var(--text-secondary); text-decoration: none; font-family: var(--mono); font-size: 12px; }
+.ss-home:hover { color: var(--text); }
+.ss-intro { margin: 18px 0 0; }
+.ss-intro p { margin: .5rem 0; color: var(--text-secondary); }
+.ss-intro strong, .ss-intro em { color: var(--text); }
+
+.ss-banner { margin: 16px 0 0; padding: 10px 12px; border-left: 2px solid var(--accent); color: var(--text-secondary); font-size: 14px; }
+
+/* ── book kind chooser ────────────────────────────────────────────────── */
+.ss-kind { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.ss-kind-sub { max-width: var(--prose-measure); color: var(--text-secondary); margin: .35rem 0 .7rem; }
+
+/* ── toolbar ──────────────────────────────────────────────────────────── */
+.ss-toolbar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px 24px; flex-wrap: wrap; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.ss-counts { font-family: var(--mono); font-size: 12px; color: var(--text-secondary); letter-spacing: .03em; }
+.ss-counts b { color: var(--text); font-weight: 600; }
+.ss-tools { display: flex; align-items: baseline; gap: .5rem 1.1rem; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; }
+.ss-dl { color: var(--text-secondary); white-space: nowrap; }
+.ss-dl:hover { color: var(--text); }
+.ss-save { color: var(--text-muted); min-width: 5.5em; }
+.ss-save.saving { color: var(--text-secondary); }
+.ss-save.saved { color: var(--green, var(--accent)); }
+.ss-save.err { color: var(--red, var(--accent)); }
+
+/* ── buttons ──────────────────────────────────────────────────────────── */
+.btn-fill, .btn-plain {
+  font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  padding: 8px 12px; border-radius: 0; cursor: pointer;
+  border: 1px solid var(--border-strong); background: transparent; color: var(--text);
+}
+.btn-fill { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn-fill:hover { opacity: .85; }
+.btn-plain:hover { border-color: var(--accent); color: var(--accent); }
+.ss-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: .6rem 0 0; }
+
+/* ── sections + rules ─────────────────────────────────────────────────── */
+.ss-section { margin-top: 2.2rem; }
+.ss-section > h2 { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin: 0; padding-bottom: .5rem; border-bottom: 1px solid var(--border-strong); }
+.ss-section > h2 .n { color: var(--accent); margin-right: .6em; }
+
+.ss-item { padding: .85rem 0; border-bottom: 1px solid var(--border); }
+.ss-grid { display: grid; grid-template-columns: 190px minmax(0, 1fr) minmax(0, .6fr) 172px; gap: .35rem 1.4rem; align-items: start; }
+.ss-c1 { font-weight: 600; }
+.ss-c3 { color: var(--text-secondary); }
+.ss-prose { max-width: var(--prose-measure); }
+.ss-prose p { margin: .35rem 0; }
+.ss-prose ul, .ss-prose ol { padding-left: 1.4rem; margin: .3rem 0; }
+.ss-proserow { display: grid; grid-template-columns: minmax(0, 1fr) 172px; gap: .35rem 1.4rem; align-items: start; }
+code { font-family: var(--mono); font-size: .85em; color: var(--accent); }
+
+.ss-meta { font-family: var(--mono); font-size: 11px; text-align: right; }
+.ss-mark { display: block; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .35rem; }
+.ss-mark.edited { color: var(--accent); }
+.ss-mark.rejected { color: var(--text-muted); }
+.ss-mark.added { color: var(--green, var(--accent)); }
+.ss-acts { display: flex; gap: .55rem; flex-wrap: wrap; justify-content: flex-end; }
+.ss-acts button { background: none; border: 0; padding: 0; cursor: pointer; font: 11px/1.4 var(--mono); color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px; }
+.ss-acts button:hover { color: var(--accent); }
+
+.ss-item.is-rejected .ss-c1, .ss-item.is-rejected .ss-c2,
+.ss-item.is-rejected .ss-c3, .ss-item.is-rejected .ss-prose { text-decoration: line-through; color: var(--text-muted); }
+.ss-item.is-added { border-left: 2px solid var(--accent); padding-left: .8rem; }
+
+.ss-note { grid-column: 1 / -1; font-size: 13px; color: var(--text-secondary); font-style: italic; margin-top: .3rem; }
+.ss-note:empty { display: none; }
+
+/* inline editing + add-a-rule */
+.ss-edit { grid-column: 1 / -1; display: grid; grid-template-columns: 190px minmax(0, 1fr) minmax(0, .6fr); gap: .5rem 1.4rem; margin-top: .4rem; }
+.ss-edit.one { grid-template-columns: minmax(0, 1fr); }
+.ss-edit textarea, .ss-edit input, .ss-note-input {
+  width: 100%; font: 14px/1.45 var(--body); color: var(--text); background: var(--bg-subtle, transparent);
+  border: 1px solid var(--border-strong); border-radius: 0; padding: 6px 8px; resize: vertical;
+}
+.ss-edit-actions { grid-column: 1 / -1; display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.ss-edit-actions button {
+  font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  padding: 7px 11px; border: 1px solid var(--border-strong); border-radius: 0;
+  background: transparent; color: var(--text); cursor: pointer; text-decoration: none;
+}
+.ss-edit-actions button:hover { border-color: var(--accent); color: var(--accent); }
+.ss-add { padding: .7rem 0 0; }
+.ss-add > button { background: none; border: 0; padding: 0; cursor: pointer; font: 11px/1.4 var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--text-secondary); text-decoration: underline; text-underline-offset: 3px; }
+.ss-add > button:hover { color: var(--accent); }
+
+.ss-empty { color: var(--text-muted); padding: 30px 0; }
+.ss-colophon { margin: 2.6rem 0 1rem; max-width: var(--prose-measure); color: var(--text-secondary); font-size: .92rem; }
+.ss-err { color: var(--red, var(--accent)); font-size: 13px; margin: .6rem 0; }
+
+/* ── sign-in gate ─────────────────────────────────────────────────────── */
+.auth-screen { max-width: 420px; margin: 8vh auto; }
+.auth-screen h2 { font: 600 20px/1.2 var(--mono); margin: .4rem 0 .5rem; }
+.auth-sub { color: var(--text-secondary); font-size: 14px; }
+.input-bare { width: 100%; font: 15px/1.4 var(--body); color: var(--text); background: transparent; border: 0; border-bottom: 1px solid var(--border-strong); border-radius: 0; padding: 8px 2px; }
+.input-bare:focus { outline: none; border-bottom-color: var(--accent); }
+.ss-forgot { font-size: 12px; font-family: var(--mono); }
+.ss-forgot a { color: var(--text-secondary); }
+
+/* ── mobile: the grid becomes stacked rows ────────────────────────────── */
+@media (max-width: 860px) {
+  .ss-grid { grid-template-columns: 1fr; gap: .2rem; }
+  .ss-proserow { grid-template-columns: 1fr; }
+  .ss-edit { grid-template-columns: 1fr; }
+  .ss-meta { text-align: left; margin-top: .45rem; }
+  .ss-acts { justify-content: flex-start; }
+  .ss-mark { display: inline-block; margin-right: .8rem; }
+}
+@media (max-width: 520px) {
+  .ss-head-top { gap: 8px; }
+  .ss-toolbar { gap: 8px; }
+}
+
+@media print {
+  @page { margin: .6in; }
+  .ss-toolbar, .ss-kind, .ss-acts, .ss-add, #theme-bar, .jdbb-masthead nav { display: none !important; }
+  body { background: #fff; color: #000; }
+  .ss-item { break-inside: avoid; }
+}

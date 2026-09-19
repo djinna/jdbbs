@@ -257,6 +257,9 @@ function renderProject() {
 
   const txUrl = state.project.ClientSlug && state.project.ProjectSlug
     ? absoluteURL('/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/factory/#transmittal') : null;
+  // Same URL the customer uses; requireAuth lets the admin straight in (6.1 B).
+  const styleUrl = state.project.ClientSlug && state.project.ProjectSlug
+    ? absoluteURL('/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/stylesheet/') : null;
   const clientUrl = state.project.ClientSlug ? absoluteURL('/' + state.project.ClientSlug + '/') : absoluteURL('/');
 
   return h('div', null,
@@ -276,6 +279,7 @@ function renderProject() {
         h('button', { className: 'page-header-back', onClick: () => { window.location.href = clientUrl; } }, '← ' + (state.project.ClientSlug || 'Projects').toUpperCase()),
         renderProjectSwitcher() || h('span', { style: 'font-size:13px;color:var(--text-secondary)' }, state.project.Name),
         txUrl ? h('a', { href: txUrl, style: 'color:var(--accent)' }, 'Transmittal') : null,
+        styleUrl ? h('a', { href: styleUrl, style: 'color:var(--accent)' }, 'Style sheet') : null,
         h('span', { className: 'page-status' + (done === t.length && t.length > 0 ? ' page-status-final' : ' page-status-draft') },
           done + '/' + t.length + ' done'
         ),
