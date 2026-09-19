@@ -137,3 +137,25 @@ Open on list 2 (all waiting on Jenna or post-workshop): 2.6–2.8, 3.2/3.4/3.5,
   - Book 23 (Obliquities rollup templated) rebuilt OK, 77 pp. Failed builds refund credits.
 - 0.6 Word-access resources posted as note (Word for the web / LibreOffice / Docs + `[[style]]` markers / trial). Offered a "No Word? Three ways in" box on factory + workshop pages — awaiting yes.
 - Chapter-title hyphenation fixed (e088520): `show heading: set text(hyphenate: false)`.
+
+## Addendum 4 (late evening) — stopping point + order for what's left
+
+Landed since addendum 3:
+- 0.7 **Failed-build messages** (d125b3e): `srv/builderr.go` `diagnoseBuildFailure` → explanation + `Near: “…”` (text quoted from the book.typ line typst points at) + folded `Technical detail`. factory.js `errDetailHTML`; css 20260918b, js 20260918e. Books 22/24/25 error_msg rewritten by hand.
+- 0.8 part 1 **Trim-derived typography defaults** (d187fa5): `srv/typodefaults.go` `applyTypoDefaults` called at top of `specToTypstConfig`. Legacy margins quad / `leading_pt ≤ 3` / `base 10` / `indent 0.75` are treated as unset. Escape hatches: `page.margins_custom`, `typography.leading_custom`. Cap-height table per face. Test `TestApplyTypoDefaults`.
+- Headings never hyphenate (e088520).
+- 0.9 plan posted on the item (A: three passes here; B: bearer token + CLI recipe).
+
+### Suggested order for the next session(s)
+1. **Jenna answers** (5 min each, unblock everything below): 0.6 "No Word?" box yes/no · 0.7 email-on-customer-failure yes/no · 0.9A three names/emails/titles · 5.17 A/A′/B · 5.22 does Obliquities need CC.
+2. **0.9A** three passes (15 min) — most demo value per minute for Monday.
+3. **0.8 part 2** transmittal typography choices (half day; needs a build-review pass with a real book per pairing). Own session/subagent; touches transmittal.js/go, bookspecs.go sync, TYPOGRAPHY_PAIRINGS.md.
+4. **0.9B** bearer token + CLI/Python recipe (2–3 h). Own session; touches auth + docs/API.md only.
+5. **0.6 box** + **0.7 email** if yes (20 min each).
+6. 5.22 CC notices, 3.x deck once Jenna has done 3.2/3.4, 6.6 after 6.x decisions.
+7. Workshop watch §4 Mon/Tue. `journalctl -u prodcal -f | rg 'conversion failed|failed build kept|style markers'`.
+
+### Gotchas
+- Failed builds keep work dir at `/tmp/prodcal-failed/book-N` — compile by hand with `typst compile --root / --font-path typesetting/fonts …/book.typ out.pdf` (media paths inside point at the original tmp dir; sed them).
+- Build credits: admin builds on passed projects debit; failures refund. Free tests only on project 14 / book 9.
+- Obliquities (project 22) now builds; next build will be ~110 pp at 10.5/13.4 instead of 77 pp.
