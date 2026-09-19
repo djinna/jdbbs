@@ -277,6 +277,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/transmittals/{id}/versions/{vid}/restore", s.handleRestoreTransmittalVersion)
 	mux.HandleFunc("POST /api/transmittals/{id}/duplicate", s.handleDuplicateTransmittal)
 
+	// Per-project editorial style sheet (6.1 B). Same {id} convention as the
+	// transmittal: one sheet per project, every handler behind requireAuth.
+	s.registerProjectStylesheetRoutes(mux)
+
 	// Books API
 	mux.HandleFunc("GET /api/books", s.handleListBooks)
 	mux.HandleFunc("POST /api/books/upload", s.handleUploadBook)
@@ -446,6 +450,26 @@ func (s *Server) Handler() http.Handler {
 		// page since 0.17 (C); old links (emails, bookmarks) land on the section.
 		if len(parts) == 3 && parts[2] == "transmittal" {
 			http.Redirect(w, r, "/"+parts[0]+"/"+parts[1]+"/factory/#transmittal", http.StatusFound)
+			return
+		}
+		// /vgr/aog/stylesheet/ -> the book's own editorial style sheet (6.1 B),
+		// with the effective sheet for the copyeditor at .../index.md.
+		if len(parts) == 3 && parts[2] == "stylesheet" && !strings.HasSuffix(path, "/") {
+			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
+			return
+		}
+		if len(parts) >= 3 && parts[2] == "stylesheet" {
+			if len(parts) == 4 && parts[3] == "index.md" {
+				s.handleProjectStylesheetMD(w, r, parts[0], parts[1])
+				return
+			}
+			if len(parts) > 3 {
+				assetPath := strings.Join(parts[3:], "/")
+				r.URL.Path = "/" + assetPath
+				staticServer.ServeHTTP(w, r)
+				return
+			}
+			s.serveStaticHTML(w, "static/project-stylesheet.html")
 			return
 		}
 		// /vgr/aog/factory/ -> serve the customer factory page (Factory Pass).
