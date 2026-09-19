@@ -92,6 +92,14 @@
   poem-size: 0.75em,
   code-block-size: 0.8em,
   footnote-size: 0.75em,
+
+  // Back-of-book index (punch list 5.13, docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md).
+  // Off by default: books without an index are byte-identical to before the
+  // piece existed. When true, book() appends index-page() after the body,
+  // collecting every #index[...] marker in the manuscript.
+  index: false,
+  index-title: "Index",
+  index-columns: 2,
 )
 
 // Merge overrides into defaults. Caller can pass a partial dict.
@@ -789,8 +797,194 @@
 }
 
 // =============================================================================
-// BLOCK QUOTE
+// BACK-OF-BOOK INDEX (punch list 5.13)
 // =============================================================================
+// Design A of docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md: markers in
+// the manuscript, locators resolved by Typst at compile time, so the index
+// stays true through every rebuild. Written in-house (in-dexter 0.7 has no
+// see/see-also, no run-in subentries, no article-insensitive sort, and would
+// put a package fetch inside the build path).
+//
+// Markers — invisible, zero-size, placed at the mention:
+//   #index[Rice]                             heading only
+//   #index("Rice", "as staple")              heading + subentry (run in)
+//   #index("Typesetting", see: "Typst")      cross-reference, no locator
+//   #index("Beaings", see-also: "ghosts")    added after the locators
+//   #index("Rice", sort: "rice")             explicit sort key (rare)
+// A marker with `see` or `see-also` still contributes its page unless it
+// carries `locator: false`.
+//
+// index-page() — called by book() when config.index is true — queries the
+// markers, sorts case- and diacritic-insensitively with a leading article
+// dropped, groups under letter heads, collapses runs of consecutive folios
+// into ranges (12–14), and sets the whole in config.index-columns columns.
+
+// Content → plain string, so #index[Rice] and #index("Rice") agree.
+#let index-text(c) = {
+  if c == none or c == auto { none }
+  else if type(c) == str { c }
+  else if type(c) == int { str(c) }
+  else if type(c) != content { repr(c) }
+  else if c.has("text") { c.text }
+  else if c.has("children") { c.children.map(index-text).join("") }
+  else if c.has("body") { index-text(c.body) }
+  else { " " }
+}
+
+// Sort key: lower-case, diacritics folded, leading article dropped, then
+// only letters/digits/spaces so "Typst (program)" sorts as "typst program".
+#let index-sort-key(s) = {
+  let k = lower(s)
+  let folds = (
+    ("[àáâãäåā]", "a"), ("[çćč]", "c"), ("[èéêëē]", "e"), ("[ìíîïī]", "i"),
+    ("[ñń]", "n"), ("[òóôõöøō]", "o"), ("[ùúûüū]", "u"), ("[ýÿ]", "y"),
+    ("[šś]", "s"), ("[žź]", "z"), ("ß", "ss"), ("æ", "ae"), ("œ", "oe"),
+  )
+  for (pat, rep) in folds { k = k.replace(regex(pat), rep) }
+  k = k.replace(regex("^(the|a|an) "), "")
+  k = k.replace(regex("[^a-z0-9 ]"), "").replace(regex(" +"), " ").trim()
+  k
+}
+
+// Letter head for a sort key: A–Z, or a shared head for anything else.
+#let index-letter(key) = {
+  if key.len() == 0 { "#" }
+  else {
+    let c = key.first()
+    if c.match(regex("[a-z]")) != none { upper(c) } else { "#" }
+  }
+}
+
+// The marker. Positional: heading [, subheading]. Both accept str or content.
+#let index(..args, see: none, see-also: none, sort: none, locator: true) = {
+  let pos = args.pos()
+  let h = if pos.len() > 0 { index-text(pos.at(0)) } else { none }
+  let sub = if pos.len() > 1 { index-text(pos.at(1)) } else { none }
+  if h == none or h.trim() == "" { panic("#index needs a heading") }
+  [#metadata((
+    heading: h.trim(),
+    sub: if sub == none { none } else { sub.trim() },
+    see: index-text(see),
+    see-also: index-text(see-also),
+    sort: index-text(sort),
+    locator: locator,
+  )) <index-entry>]
+}
+
+// Collapse a sorted list of (folio-int, folio-str, location) into
+// "12–14, 17" as content, each locator linked to its page.
+#let index-locators(locs) = {
+  // Dedupe by folio, keep first location per folio.
+  let seen = ()
+  let uniq = ()
+  for l in locs {
+    if l.n not in seen { seen.push(l.n); uniq.push(l) }
+  }
+  uniq = uniq.sorted(key: l => l.n)
+  // Runs of consecutive folios → ranges. A run of two stays "12, 13"?
+  // No: Chicago collapses any run, so 12–13.
+  let runs = ()
+  for l in uniq {
+    if runs.len() > 0 and runs.last().last().n + 1 == l.n {
+      runs.last().push(l)
+    } else {
+      runs.push((l,))
+    }
+  }
+  runs.map(r => {
+    let a = r.first()
+    if r.len() == 1 { link(a.loc, a.text) }
+    else { link(a.loc, a.text) + sym.dash.en + link(r.last().loc, r.last().text) }
+  }).join(", ")
+}
+
+// Build the nested entry table from the queried markers:
+//   key → (heading, sub: (subkey → (sub, locs)), locs, see, see-also)
+#let index-collect(marks) = {
+  let entries = (:)
+  for m in marks {
+    let v = m.value
+    let loc = m.location()
+    let skey = if v.sort != none { index-sort-key(v.sort) } else { index-sort-key(v.heading) }
+    if skey == "" { skey = lower(v.heading) }
+    let e = entries.at(skey, default: (heading: v.heading, subs: (:), locs: (), see: (), see-also: ()))
+    let page = counter(page).at(loc).first()
+    let phys = loc.page()
+    let l = (n: page, text: folio-text(phys, page), loc: loc)
+    if v.sub == none {
+      if v.locator { e.locs.push(l) }
+    } else {
+      let sk = index-sort-key(v.sub)
+      let s = e.subs.at(sk, default: (sub: v.sub, locs: ()))
+      if v.locator { s.locs.push(l) }
+      e.subs.insert(sk, s)
+    }
+    if v.see != none and v.see not in e.see { e.see.push(v.see) }
+    if v.see-also != none and v.see-also not in e.see-also { e.see-also.push(v.see-also) }
+    entries.insert(skey, e)
+  }
+  entries
+}
+
+// One entry as a hanging-indent paragraph with run-in subentries (Chicago
+// run-in style): "Khlongs, 5: as commons, 2; as irrigation, 1–2. See also
+// canals." A heading with subentries but no locators of its own takes a
+// colon straight after the heading.
+#let index-entry(e) = {
+  let head = e.heading
+  if e.see.len() > 0 and e.locs.len() == 0 and e.subs.len() == 0 {
+    // Pure cross-reference: "Typesetting. See Typst"
+    return par(hanging-indent: 1.2em, first-line-indent: 0em, justify: false,
+      [#head. #emph[See] #e.see.join("; ")])
+  }
+  let out = [#head]
+  if e.locs.len() > 0 { out += [, #index-locators(e.locs)] }
+  let subs = e.subs.keys().sorted().map(sk => {
+    let s = e.subs.at(sk)
+    if s.locs.len() > 0 { [#s.sub, #index-locators(s.locs)] } else { [#s.sub] }
+  })
+  if subs.len() > 0 {
+    out += [: ] + subs.join([; ])
+  }
+  let xrefs = ()
+  if e.see.len() > 0 { xrefs.push([#emph[See] #e.see.join("; ")]) }
+  if e.see-also.len() > 0 { xrefs.push([#emph[See also] #e.see-also.join("; ")]) }
+  if xrefs.len() > 0 { out += [. ] + xrefs.join([. ]) }
+  par(hanging-indent: 1.2em, first-line-indent: 0em, justify: false, out)
+}
+
+// The back-matter piece. Own recto, chapter-style head, running heads
+// book title / Index, letter groups, two columns, series body face one step
+// down. Emits nothing at all when there are no markers.
+#let index-page(title: none, cols: none) = {
+  let title = if title == none { config.index-title } else { title }
+  let ncols = if cols == none { config.index-columns } else { cols }
+  context {
+    let marks = query(<index-entry>)
+    if marks.len() == 0 { return }
+    start-back()
+    let bi = book-info.get()
+    set-story-info(title: title, author: bi.title)
+    let parts = parts-state.get()
+    heading(level: if parts { 2 } else { 1 }, numbering: none)[#title]
+    let entries = index-collect(marks)
+    let keys = entries.keys().sorted()
+    set text(size: 0.9em)
+    set par(leading: 0.4em, spacing: 0.4em)
+    show: it => if ncols > 1 { columns(ncols, gutter: 1.2em, it) } else { it }
+    let letter = none
+    for k in keys {
+      let l = index-letter(k)
+      if l != letter {
+        block(above: if letter == none { 0em } else { 1.1em }, below: 0.45em, breakable: false,
+          text(font: config.heading-font, weight: config.h2-weight, size: 1.1em, l))
+        letter = l
+      }
+      index-entry(entries.at(k))
+    }
+  }
+}
+
 
 #let blockquote(content) = {
   set par(first-line-indent: 0em)
@@ -999,4 +1193,7 @@
     generated-front-matter(front-matter, title, subtitle, author)
   }
   body
+  // Back-of-book index: only when the spec asks for it (config.index), and
+  // index-page() itself emits nothing when the manuscript carries no markers.
+  if config.at("index", default: false) { index-page() }
 }
