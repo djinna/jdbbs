@@ -445,10 +445,10 @@ body {
       <label>Client<select id="pf-client"><option value="">All clients</option></select></label>
       <label>Status<select id="pf-status">
         <option value="">Any</option>
-        <option value="active">In progress</option>
-        <option value="complete">All tasks done</option>
-        <option value="untouched">No tasks done</option>
         <option value="transmittal">Has transmittal</option>
+        <option value="final">Transmittal final</option>
+        <option value="draft">Transmittal draft</option>
+        <option value="none">No transmittal yet</option>
         <option value="open">Open access (no password)</option>
       </select></label>
       <label>Sort<select id="pf-sort">
@@ -456,7 +456,6 @@ body {
         <option value="created">Newest</option>
         <option value="name">Name A–Z</option>
         <option value="client">Client A–Z</option>
-        <option value="pct">Least complete</option>
       </select></label>
       <label>Per page<select id="pf-size"><option>10</option><option selected>20</option><option>50</option><option value="0">All</option></select></label>
     </div>
@@ -1176,17 +1175,19 @@ async function loadClients() {
 }
 
 function renderStats(projects) {
-  const totalTasks = projects.reduce((s, p) => s + p.task_count, 0);
-  const totalDone = projects.reduce((s, p) => s + p.done_count, 0);
-  const totalActive = projects.reduce((s, p) => s + p.active_count, 0);
+  // Calendar/task counts are gone from the console (Jenna, 2026-09-19: the
+  // calendar is not used); the factory's own states are what matter here.
   const withTransmittal = projects.filter(p => p.has_transmittal).length;
+  const finals = projects.filter(p => p.has_transmittal && p.transmittal_status === 'final').length;
+  const drafts = withTransmittal - finals;
+  const open = projects.filter(p => !p.has_auth).length;
 
   $stats.innerHTML = `
     <div class="stat"><div class="label">Projects</div><div class="value">${projects.length}</div></div>
-    <div class="stat"><div class="label">Total Tasks</div><div class="value">${totalTasks}</div></div>
-    <div class="stat"><div class="label">Completed</div><div class="value">${totalDone}</div></div>
-    <div class="stat"><div class="label">In Progress</div><div class="value">${totalActive}</div></div>
     <div class="stat"><div class="label">Transmittals</div><div class="value">${withTransmittal}</div></div>
+    <div class="stat"><div class="label">Final</div><div class="value">${finals}</div></div>
+    <div class="stat"><div class="label">Draft</div><div class="value">${drafts}</div></div>
+    <div class="stat"><div class="label">Open access</div><div class="value">${open}</div></div>
   `;
 }
 
@@ -1214,15 +1215,14 @@ function filterProjects(projects) {
   const q = pf('pf-q').value.trim().toLowerCase();
   const client = pf('pf-client').value;
   const status = pf('pf-status').value;
-  const pct = p => p.task_count > 0 ? p.done_count / p.task_count : 0;
   let out = projects.filter(p => {
     if (client && p.client_slug !== client) return false;
     if (q && !(`${p.name} ${p.client_slug} ${p.project_slug} ${p.path || ''}`.toLowerCase().includes(q))) return false;
     switch (status) {
-      case 'active': return p.active_count > 0 || (p.done_count > 0 && p.done_count < p.task_count);
-      case 'complete': return p.task_count > 0 && p.done_count === p.task_count;
-      case 'untouched': return p.done_count === 0;
       case 'transmittal': return !!p.has_transmittal;
+      case 'final': return !!p.has_transmittal && p.transmittal_status === 'final';
+      case 'draft': return !!p.has_transmittal && p.transmittal_status !== 'final';
+      case 'none': return !p.has_transmittal;
       case 'open': return !p.has_auth;
     }
     return true;
@@ -1233,7 +1233,6 @@ function filterProjects(projects) {
     created: (a, b) => String(b.created_at).localeCompare(String(a.created_at)),
     name: (a, b) => a.name.localeCompare(b.name),
     client: (a, b) => a.client_slug.localeCompare(b.client_slug) || a.name.localeCompare(b.name),
-    pct: (a, b) => pct(a) - pct(b) || String(b.updated_at).localeCompare(String(a.updated_at)),
   }[by] || (() => 0);
   return out.sort(cmp);
 }
@@ -1269,8 +1268,6 @@ function renderProjects(projects, filtered) {
   }
 
   $projects.innerHTML = projects.map(p => {
-    const pct = p.task_count > 0 ? Math.round((p.done_count / p.task_count) * 100) : 0;
-    const barClass = pct === 100 ? 'green' : pct > 50 ? 'blue' : 'yellow';
     const authBadge = p.has_auth
       ? '<span class="badge badge-green"><span class="status-dot green"></span> Project password</span>'
       : '<span class="badge badge-red"><span class="status-dot red"></span> Open access</span>';
@@ -1283,7 +1280,8 @@ function renderProjects(projects, filtered) {
     const updated = p.updated_at ? localDateStr(new Date(p.updated_at)) : 'N/A';
 
     const projectURL = absoluteURL(p.path);
-    const transmittalURL = absoluteURL(p.path + 'transmittal/');
+    const factoryURL = absoluteURL(p.path + 'factory/');
+    const transmittalURL = absoluteURL(p.path + 'factory/#transmittal');
 
     return `
       <div class="project">
@@ -1298,13 +1296,8 @@ function renderProjects(projects, filtered) {
           </div>
         </div>
         <div class="project-meta">Created: ${created} &nbsp; Start: ${start} &nbsp; Updated: ${updated}</div>
-        <div class="task-row">
-          <span>${p.done_count}/${p.task_count} tasks done${p.active_count > 0 ? ` &middot; <span class="active-count">${p.active_count} active</span>` : ''}</span>
-          <span${pct===100?' style="color:var(--green)"':''}>${pct}%</span>
-        </div>
-        <div class="progress"><div class="progress-fill ${barClass}" style="width:${pct}%"></div></div>
         <div class="links">
-          <a href="${esc(projectURL)}" target="_blank">Calendar</a>
+          <a href="${esc(factoryURL)}" target="_blank">Factory</a>
           <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
@@ -1326,7 +1319,8 @@ function renderArchivedProjects(projects) {
   }
   $archivedProjects.innerHTML = projects.map(p => {
     const projectURL = absoluteURL(p.path);
-    const transmittalURL = absoluteURL(p.path + 'transmittal/');
+    const factoryURL = absoluteURL(p.path + 'factory/');
+    const transmittalURL = absoluteURL(p.path + 'factory/#transmittal');
     const archived = p.archived_at ? p.archived_at.split('T')[0].split(' ')[0] : '—';
     return `
       <div class="project">
@@ -1339,7 +1333,7 @@ function renderArchivedProjects(projects) {
         </div>
         <div class="project-meta">Created: ${esc(p.created_at || '—')} &nbsp; Start: ${esc(p.start_date || '—')} &nbsp; Updated: ${esc(p.updated_at || '—')}</div>
         <div class="links">
-          <a href="${esc(projectURL)}" target="_blank">Calendar</a>
+          <a href="${esc(factoryURL)}" target="_blank">Factory</a>
           <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
           <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
@@ -1360,7 +1354,7 @@ function openNewProjectModal() {
   modal.className = 'modal-card';
   modal.innerHTML = `
     <h2>New Project</h2>
-    <p class="subtitle">Create a new seeded production calendar.</p>
+    <p class="subtitle">Create a new project (a portal page + factory for one manuscript).</p>
     <div class="book-form active" style="margin-bottom:0">
       <div class="full"><label>Project name<input type="text" id="np-name" placeholder="The New Book"></label></div>
       <div><label>Client slug<input type="text" id="np-client" list="np-client-list" placeholder="vgr"></label><datalist id="np-client-list">${cachedClients.map(c => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('')}</datalist></div>

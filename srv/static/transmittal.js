@@ -664,19 +664,22 @@ function renderForm() {
     ),
     // Two-column layout
     h('div', { className: 'tx-columns' + (isPreview ? ' tx-preview-mode' : '') },
-      // LEFT COLUMN
+      // LEFT COLUMN — the book and who owns it (0.19, Jenna 2026-09-19:
+      // rights + copyright page moved here so the columns balance; measured
+      // 3712 / 3373 px at 1280 vs 2660 / 4425 before).
       h('div', { className: 'tx-column' },
         renderBookSection(),
         renderChecklistSection(),
         renderIllustrationsSection(),
-        renderCoverSection(),
-      ),
-      // RIGHT COLUMN
-      h('div', { className: 'tx-column' },
-        renderEditingSection(),
         renderPermissionsSection(),
         renderPageIVSection(),
+      ),
+      // RIGHT COLUMN — how it looks and what comes out. Format leads, then
+      // Typography (they belong together), Cover, deliverables.
+      h('div', { className: 'tx-column' },
         renderDesignSection(),
+        renderEditingSection(),
+        renderCoverSection(),
         renderFilesSection(),
       ),
     ),
