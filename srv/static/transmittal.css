@@ -1023,7 +1023,7 @@ html.dark .email-warning { background: none; }
   display: flex; justify-content: space-between; align-items: center;
   gap: 24px; flex-wrap: wrap;
   border-left: 2px solid var(--green);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--green) 7%, var(--bg));
   padding: 14px 18px; margin: 14px 0 6px;
 }
 .tx-handoff-k {

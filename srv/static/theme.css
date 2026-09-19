@@ -42,7 +42,7 @@
   --badge-dim-bg: #F3F1E8;     /* progress tracks etc. (warm, was #EDF1F4) */
   --progress-bg: #F3F1E8;
   --toggle-bg: #F3F1E8;
-  --well-bg: #F6EFDD;          /* form-field wells: warmer than the dim tint (0.12 B, 2026-09-19) */
+  --well-bg: #F9F4E6;          /* form-field wells: warm, a shade lighter (0.12 B, 2026-09-19 pm) */
   --hover-tint: rgba(0, 150, 199, 0.05);
   --modal-backdrop: rgba(14, 17, 22, 0.35);
   --theme-bg: var(--bg);
