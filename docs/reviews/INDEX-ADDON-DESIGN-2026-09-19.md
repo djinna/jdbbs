@@ -184,7 +184,12 @@ pass like `builds`. Model cost is well under a dollar a book.
 
 ## What remains, honest effort
 
-- Piece 4, Word `XE` passthrough in the Lua filter: ½ day; not started.
+- Piece 4, Word `XE` passthrough: ½ day; not started. Correction to the feasibility doc:
+  pandoc's docx reader drops field code (`w:fldSimple`/`w:instrText`) before any Lua filter
+  runs, so the filter cannot read it. Do it as a docx pre-pass like the `[[style]]` markers
+  (`srv/stylemarkers.go`): rewrite each `XE "heading:subheading"` field into a run with a
+  custom character style (e.g. `IndexEntry`), which `docx+styles` keeps as a span the Lua
+  filter can turn into `#index("heading", "subheading");`.
 - Server integration of the chain (columns, endpoints, build flag, `specToTypstConfig`):
   1 day. Factory UI step: 1 day (lead, after 0.17).
 - Prompt tuning on a non-fiction book (Obliquities) and a page-measured budget (read the
