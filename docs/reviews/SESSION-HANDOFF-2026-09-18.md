@@ -205,3 +205,26 @@ In flight:
 - **0.17 — Jenna chose C**: one page. The transmittal becomes section 1 of the factory page (`/{client}/{project}/factory/`): factory header ("// FACTORY · Title · builds left"), step strip as in-page anchors, "// 1 · TRANSMITTAL" section with History/Print/Email/Word template/Return to draft actions on the section rule, the two-column form, finish block "Continue to 2 · Upload →"; steps 2–5 below. Transmittal URL redirects to the factory page (`#transmittal`). Top nav drops the separate TRANSMITTAL entry (`clientNav()` in theme.js; check `srv/nav_convergence_test.go`). Comps: `scratch/run/img/comp-017-C-*.png`. Files: factory.html/js/css, transmittal.js (1575 lines; renderForm ~l.557, renderStepStrip/renderHandoff/renderFinish after it), transmittal.css, server.go routing ~l.445–475, theme.js. Not started — do this in a fresh session; plan first (transmittal.js mounts into `#app`; factory.js is vanilla with `renderAll()`), probably load transmittal.js inside factory.html and mount it into a `#fx-transmittal` section, with factory's own step-1 stub removed.
 
 Waiting on Jenna: 0.9A names, 0.10 placeholders, 5.17, 0.6, 0.7, 2.8, 3.2/3.4, §6.
+
+## Addendum 8 (2026-09-19, ~16:10 UTC) — before compaction
+
+Landed since addendum 7 (all pushed to GitHub; VM = main):
+- **0.8 sampler** committed by the sampler subagent (9fc1822, fe58b62) — verified chips + lightbox in the browser; ticked.
+- **0.17 (C) one-page factory** — 72c4214, deployed. Transmittal is section 1 of `/{c}/{p}/factory/`; `/transmittal/` 302s to `…/factory/#transmittal`; TRANSMITTAL out of clientNav; transmittal.html deleted; migration 045. Design as in the commit message. `go test ./srv/` green.
+- **5.13 Index**: `/factory` add-ons table lists "Index · coming soon" (jdbbs-public 6b7e278). Phase 1 running in **subagent `index-addon` (conv cYBS6TS)** from `scratch/briefs/index-addon-2026-09-19.md`, in worktree `/home/exedev/prodcal-index` on branch `index-addon` — it must not touch main. When it reports: read its bullets, check `git log index-addon`, note + tick on 5.13; phase 2 (factory UI, SKU) is ours, post-workshop.
+- **5.20 Typst 0.13** moved to §1, today (Jenna). 0.13.1 binary at `scratch/typst-x86_64-unknown-linux-musl/typst` compiles Ghosts identically (117 pp). 5.5 note posted: after the swap, add `par(costs:)` runt control to the series template, rebuild sampler with 0.13, compscore before/after, regenerate `srv/static/samples/`.
+- runpage re-pointed at conv cF3VYRP (`RUNPAGE_CHAT_CONV`); restart tmux `runpage` with the new id when a new conversation starts.
+
+**0.17 remaining (small):**
+1. Walk the **draft** state (project 23 `pinstitute/perception` is draft): section rule shows `[DRAFT]` + Mark Final accent link; intro paragraph; finish block "Mark Final"; step strip has 1 current. Then Mark Final → handoff panel appears, strip flips 1 ✓, `tx:status` mirrors; Return to draft. Do NOT toggle Obliquities (22) — Mark Final emails the customer.
+2. Walk the **customer sign-in** path (no admin header: `localhost:8000/pinstitute/book-001/factory/`) — gate shows, transmittal section stays empty until unlock (tx:unauthorized → showAuth), then mounts.
+3. Print preview via the section's Print action (only section 1 should print).
+4. Mobile width (≤ 800 px): `.tx-columns` collapses; check the section rule wraps cleanly.
+5. Export punch list (`python3 scripts/punchlist-export.py`), note on 0.17 with a screenshot, tick, commit.
+6. `srv/email_test.go:278` still uses a `/transmittal/` URL literal — harmless; update when touching.
+
+Then: **5.20 Typst swap** (keep 0.12 as `/usr/local/bin/typst-0.12`; `make build` not needed; factory smoke as `pinstitute` after), then 5.5 costs + sampler rebuild.
+
+Waiting on Jenna: 0.9A names, 0.10 placeholders, 5.17, 0.6, 0.7, 2.8, 3.2/3.4, §6.
+
+Metrics: ~60 % context at handoff; files read in full (guard bypass): 1 (INDEX-ADDON-FEASIBILITY, 74 lines).
