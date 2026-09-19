@@ -598,7 +598,7 @@ function renderForm() {
                 ? 'Marks the transmittal final: generates your Word template and emails you the link. You can switch it back to Draft.'
                 : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
             onClick: toggleFinal,
-          }, state.transmittal.status === 'final' ? 'Draft' : 'Mark Final'),
+          }, state.transmittal.status === 'final' ? 'Return to draft' : 'Mark Final'),
           themeBtn(),
         ),
       ),
@@ -719,12 +719,12 @@ function renderFinish() {
   const isFinal = state.transmittal.status === 'final';
   return h('div', { className: 'tx-finish' },
     isFinal
-      ? h('p', null, h('b', null, 'This transmittal is final.'), ' Edit anything and it autosaves; switch back to Draft if you want the studio to wait.')
-      : h('p', null, h('b', null, 'That’s the whole form.'), ' Mark it final and the factory generates your Word template from it; you can switch back to Draft at any time.'),
+      ? h('p', null, h('b', null, 'This transmittal is final.'), ' Edit anything and it autosaves; return to draft mode if you want the studio to wait.')
+      : h('p', null, h('b', null, 'That’s the whole form.'), ' Mark it final and the factory generates your Word template from it; you can return to draft mode at any time.'),
     h('div', { className: 'tx-finish-acts' },
       isFinal
-        ? h('button', { className: 'link-action', onClick: toggleFinal }, 'Switch to Draft')
-        : h('a', { className: 'link-action', href: factoryUrl() }, 'Continue to the Factory →'),
+        ? h('button', { className: 'link-action', onClick: toggleFinal }, 'Return to draft mode')
+        : null,
       isFinal
         ? h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →')
         : h('button', { className: 'btn-fill', onClick: toggleFinal }, 'Mark Final'),
