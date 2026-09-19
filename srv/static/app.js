@@ -256,7 +256,7 @@ function renderProject() {
   const done = t.filter(x => x.Status === 'done').length;
 
   const txUrl = state.project.ClientSlug && state.project.ProjectSlug
-    ? absoluteURL('/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/transmittal/') : null;
+    ? absoluteURL('/' + state.project.ClientSlug + '/' + state.project.ProjectSlug + '/factory/#transmittal') : null;
   const clientUrl = state.project.ClientSlug ? absoluteURL('/' + state.project.ClientSlug + '/') : absoluteURL('/');
 
   return h('div', null,

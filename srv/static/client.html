@@ -430,7 +430,7 @@ function render() {
           ? '<span class="tag ok">[COMPLETE]</span>'
           : (p.active_count > 0 ? '<span class="tag warn">[IN PROGRESS]</span>' : '<span class="tag">[SCHEDULED]</span>');
         const projectURL = absoluteURL(p.path);
-        const transmittalURL = absoluteURL(p.path + 'transmittal/');
+        const transmittalURL = absoluteURL(p.path + 'factory/#transmittal'); // section 1 of the factory page (0.17 C)
         const factoryURL = absoluteURL(p.path + 'factory/');
         const passTag = p.has_pass ? '<span class="tag ok">[FACTORY PASS]</span>' : '';
         return `
@@ -445,8 +445,8 @@ function render() {
             </div>
             <div class="progress-line"><span class="${pct === 100 ? 'done' : ''}" style="width:${pct}%"></span></div>
             <div class="project-actions">
-              <a class="link-action" href="${esc(transmittalURL)}">Transmittal</a>
               <a class="link-action" href="${esc(factoryURL)}">Factory &rarr;</a>
+              <a class="link-action" href="${esc(transmittalURL)}">Transmittal</a>
               <!-- Calendar link hidden 2026-09-18 (not used by factory customers):
               <a class="link-action" href="${esc(projectURL)}">Calendar</a> -->
               <button class="email-btn" data-email-project="${p.id}" data-email-name="${esc(p.name)}" data-email-type="snapshot">Snapshot</button>

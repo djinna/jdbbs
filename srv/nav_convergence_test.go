@@ -15,7 +15,7 @@ import (
 // right list here when you add it to the router.
 func TestNavConvergence(t *testing.T) {
 	admin := []string{"admin.html", "store-admin.html", "factory-admin.html", "registrations.html", "docs-editor.html", "content-review.html"}
-	client := []string{"client.html", "index.html", "factory.html", "transmittal.html"}
+	client := []string{"client.html", "index.html", "factory.html"}
 	public := []string{"housestyle.html", "cohort.html", "store-thanks.html"}
 	check := func(files []string, attr string) {
 		for _, f := range files {

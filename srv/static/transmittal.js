@@ -51,6 +51,11 @@ function getTheme() { return window.JdbbTheme && JdbbTheme.isDark() ? 'dark' : '
 // ─── State ───
 let state = {
   view: 'loading', // loading, auth, form
+  // 0.17 (C): the transmittal is section 1 of the factory page. factory.js
+  // calls JdbbTransmittal.mount() and we render into #fx-transmittal without
+  // our own page header, step strip or sign-in gate (the factory owns those).
+  embedded: false,
+  mount: null,
   projectId: null,
   project: null,
   transmittal: null, // {id, project_id, status, data}
@@ -221,13 +226,26 @@ function getField(path) {
 
 // ─── Render ───
 function render() {
-  const app = $('#app');
+  const app = state.mount || $('#app');
+  if (!app) return;
   app.innerHTML = '';
+  if (state.view === 'auth' && state.embedded) {
+    // The factory page has the sign-in gate; tell it and stay empty.
+    document.dispatchEvent(new CustomEvent('tx:unauthorized'));
+    return;
+  }
   if (state.view === 'loading') app.appendChild(h('div', { className: 'tx-container' }, h('p', null, 'Loading...')));
   else if (state.view === 'auth') app.appendChild(renderAuth());
   else if (state.view === 'form') app.appendChild(renderForm());
+  if (state.embedded) return;
   _ensureThemeBar();
   _applyTheme();
+}
+
+// Let the host page (factory.js) mirror the status in its step strip.
+function emitStatus() {
+  if (!state.embedded || !state.transmittal) return;
+  document.dispatchEvent(new CustomEvent('tx:status', { detail: { status: state.transmittal.status } }));
 }
 
 // ─── Auth (reused pattern from calendar) ───
@@ -271,6 +289,7 @@ async function loadTransmittal() {
   state.transmittal = tx;
   state.view = 'form';
   render();
+  emitStatus();
   loadManuscriptStats();
 }
 
@@ -308,7 +327,32 @@ async function loadManuscriptStats() {
   render();
 }
 
+// Embedded entry point (factory page). factory.js has already resolved the
+// project and passed the sign-in gate; `info` is its /api/project-by-path
+// response. Errors after this point surface as tx:unauthorized (handled by
+// the factory's gate) or as a line inside the section.
+window.JdbbTransmittal = {
+  mount: async function (el, client, project, info) {
+    state.embedded = true;
+    state.mount = el;
+    state.pathClient = client;
+    state.pathProject = project;
+    state.project = info.project;
+    state.projectId = info.project.ID;
+    state.isAdmin = !!info.is_admin;
+    state.passEmail = info.pass_email || '';
+    try {
+      await loadTransmittal();
+      loadAllProjects();
+    } catch (e) {
+      if (e.message === 'unauthorized') { state.view = 'auth'; render(); }
+      else { el.textContent = 'Couldn\u2019t load the transmittal: ' + e.message; }
+    }
+  },
+};
+
 (async function boot() {
+  if (document.getElementById('fx-transmittal')) return; // factory page drives via mount()
   const parts = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
   // Expect: [client, project, 'transmittal']
   if (parts.length >= 3 && parts[2] === 'transmittal') {
@@ -568,38 +612,14 @@ function renderForm() {
       h('button', { className: 'btn btn-sm', onClick: () => restoreVersion(state.transmittal._preview) }, 'Restore this version'),
       h('button', { className: 'btn btn-sm', onClick: exitPreview }, 'Exit preview'),
     ) : null,
-    // Header
-    h('div', { className: 'page-header' },
+    // Header: the factory page has its own; there we draw the section rule instead.
+    state.embedded ? renderEmbeddedHead(isPreview) : h('div', { className: 'page-header' },
       h('div', { className: 'page-header-top' },
         h('div', { className: 'page-header-left' },
           h('h1', { className: 'page-header-title' }, state.transmittal?.data?.book?.title || state.project?.Name || 'Transmittal'),
         ),
         h('div', { className: 'page-header-actions' },
-          h('button', { className: 'btn btn-sm', onClick: () => {
-            state.showVersions = !state.showVersions;
-            if (state.showVersions) { state.versions = null; loadVersions(); }
-            else render();
-          }}, 'History'),
-          h('button', { className: 'btn btn-sm', onClick: () => {
-            state.showDuplicate = true; render();
-          }}, 'Duplicate'),
-          h('button', { className: 'btn btn-sm', onClick: () => window.print() }, 'Print'),
-          // Customers get no email button (Jenna, 2026-09-18); the admin keeps 'Email'.
-          clientMode() ? null : h('button', { className: 'btn btn-sm',
-            onClick: () => { state.showEmail = true; render(); }}, 'Email'),
-          state.transmittal.status === 'final' && !isPreview
-            ? h('a', { className: 'btn btn-sm btn-primary', href: '/api/projects/' + state.projectId + '/word-template', download: '',
-                title: 'Downloads the Word template generated from this transmittal. Write your manuscript in it.' },
-                'Word template')
-            : null,
-          h('button', { className: 'btn btn-sm' + (state.transmittal.status === 'final' ? '' : ' btn-primary'),
-            title: state.transmittal.status === 'final'
-              ? 'Switches the transmittal back to Draft so you can keep editing.'
-              : clientMode()
-                ? 'Marks the transmittal final: generates your Word template and emails you the link. You can switch it back to Draft.'
-                : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
-            onClick: toggleFinal,
-          }, state.transmittal.status === 'final' ? 'Return to draft' : 'Mark Final'),
+          ...headerActions('btn btn-sm', isPreview),
           themeBtn(),
         ),
       ),
@@ -618,7 +638,8 @@ function renderForm() {
       ),
     ),
     // Step strip: the transmittal is step 1 of the factory's five (0.13 A).
-    isPreview ? null : renderStepStrip(),
+    // On the factory page the strip is the factory's own.
+    (isPreview || state.embedded) ? null : renderStepStrip(),
     // Hand-off panel once final: what happened, what's next (0.13 C).
     isPreview ? null : renderHandoff(),
     // Email modal
@@ -634,7 +655,8 @@ function renderForm() {
       h('b', null, 'Mark Final'),
       ': that generates your Word template from it (the ',
       h('b', null, 'Word template'),
-      ' button appears above) and sends it to the studio; the build follows it. You can switch it back to Draft at any time.',
+      state.embedded ? ' link appears on the section rule above' : ' button appears above',
+      ') and sends it to the studio; the build follows it. You can switch it back to Draft at any time.',
     ),
     // Progress
     h('div', { className: 'tx-progress' },
@@ -675,8 +697,70 @@ function toggleFinal() {
     state.emailResult = null;
   }
   render();
+  emitStatus();
   // The hand-off panel sits under the header; bring it into view.
-  if (wasDraft) window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (wasDraft) {
+    const top = state.embedded && document.getElementById('transmittal');
+    if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// Print only the transmittal when it lives on the factory page (0.17 C):
+// factory.css hides the other sections while body.print-transmittal is set.
+function printTransmittal() {
+  if (!state.embedded) { window.print(); return; }
+  document.body.classList.add('print-transmittal');
+  const off = () => document.body.classList.remove('print-transmittal');
+  window.addEventListener('afterprint', off, { once: true });
+  window.print();
+  setTimeout(off, 2000);
+}
+
+// Header actions shared by the standalone page header and the embedded
+// section rule. `cls` is the class each button/link takes.
+function headerActions(cls, isPreview) {
+  const isFinal = state.transmittal.status === 'final';
+  return [
+    h('button', { className: cls, onClick: () => {
+      state.showVersions = !state.showVersions;
+      if (state.showVersions) { state.versions = null; loadVersions(); }
+      else render();
+    }}, 'History'),
+    // Duplicate copies this transmittal to another project: a studio tool.
+    clientMode() ? null : h('button', { className: cls, onClick: () => { state.showDuplicate = true; render(); } }, 'Duplicate'),
+    h('button', { className: cls, onClick: printTransmittal }, 'Print'),
+    // Customers get no email button (Jenna, 2026-09-18); the admin keeps 'Email'.
+    clientMode() ? null : h('button', { className: cls, onClick: () => { state.showEmail = true; render(); } }, 'Email'),
+    isFinal && !isPreview
+      ? h('a', { className: cls + ' accent', href: '/api/projects/' + state.projectId + '/word-template', download: '',
+          title: 'Downloads the Word template generated from this transmittal. Write your manuscript in it.' },
+          'Word template \u2193')
+      : null,
+    h('button', { className: cls + (isFinal ? '' : ' accent'),
+      title: isFinal
+        ? 'Switches the transmittal back to Draft so you can keep editing.'
+        : clientMode()
+          ? 'Marks the transmittal final: generates your Word template and emails you the link. You can switch it back to Draft.'
+          : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
+      onClick: toggleFinal,
+    }, isFinal ? 'Return to draft' : 'Mark Final'),
+  ];
+}
+
+// Section rule on the factory page: "// 1 · Transmittal [FINAL] · autosaves"
+// left, the actions right (comp-017-C). Replaces the standalone page header.
+function renderEmbeddedHead(isPreview) {
+  const status = state.transmittal.status;
+  return h('div', { className: 'tx-embed-head' + (status === 'final' ? ' is-final' : '') },
+    h('div', { className: 'tx-embed-left' },
+      h('span', { className: 'kicker' }, '1 \u00b7 Transmittal'),
+      h('span', { className: 'tx-embed-status tx-embed-status-' + status }, '[' + String(status).toUpperCase() + ']'),
+      h('span', { className: 'tx-embed-note' }, '\u00b7 autosaves as you edit'),
+      h('span', { id: 'tx-save-status', className: 'tx-save-status' }),
+    ),
+    h('div', { className: 'tx-embed-acts' }, ...headerActions('link-action', isPreview)),
+  );
 }
 
 function factoryUrl(hash) {
@@ -709,10 +793,14 @@ function renderHandoff() {
       h('p', null, 'Your Word template has been generated from it. Two things next:'),
       h('ol', null,
         h('li', null, h('a', { href: tpl, download: '' }, 'Download the Word template'), ' and write (or restyle) your manuscript in it.'),
-        h('li', null, 'When a draft is ready, ', h('a', { href: factoryUrl() }, 'go to the Factory'), ' — upload, inspect, build.'),
+        state.embedded
+          ? h('li', null, 'When a draft is ready, ', h('a', { href: '#upload' }, 'upload it below'), ' — step 2 — then inspect and build.')
+          : h('li', null, 'When a draft is ready, ', h('a', { href: factoryUrl() }, 'go to the Factory'), ' — upload, inspect, build.'),
       ),
     ),
-    h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →'),
+    state.embedded
+      ? h('a', { className: 'btn-fill', href: '#upload' }, 'Continue to 2 \u00b7 Upload \u2192')
+      : h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →'),
   );
 }
 
@@ -727,7 +815,9 @@ function renderFinish() {
         ? h('button', { className: 'link-action', onClick: toggleFinal }, 'Return to draft mode')
         : null,
       isFinal
-        ? h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →')
+        ? (state.embedded
+            ? h('a', { className: 'btn-fill', href: '#upload' }, 'Continue to 2 \u00b7 Upload \u2192')
+            : h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →'))
         : h('button', { className: 'btn-fill', onClick: toggleFinal }, 'Mark Final'),
     ),
   );
@@ -943,13 +1033,15 @@ function readonlyStat(label, value, help) {
 function renderManuscriptStats() {
   const ms = state.manuscript;
   const factoryUrl = '/' + state.pathClient + '/' + state.pathProject + '/factory/';
+  const up = state.embedded ? '#upload' : factoryUrl, insp = state.embedded ? '#inspect' : factoryUrl;
+  const where = state.embedded ? 'below (step 2)' : 'factory page';
   const fmtN = (n) => (typeof n === 'number' ? n.toLocaleString('en-US') : null);
   const ok = !!(ms && ms.inspected);
   let note;
   if (!ms) note = 'Checking your manuscript\u2026';
-  else if (!ms.hasFile) note = h('span', null, 'Chapters, words and images are counted at upload \u2014 upload your manuscript on the ', h('a', { href: factoryUrl }, 'factory page'), '.');
-  else if (!ms.inspected) note = h('span', null, 'Chapters, words and images are counted when you Inspect ', h('b', null, ms.filename || 'your file'), ' on the ', h('a', { href: factoryUrl }, 'factory page'), '.');
-  else if (ms.words == null) note = h('span', null, 'From ', h('b', null, ms.filename || 'your manuscript'), '. ', h('a', { href: factoryUrl }, 'Inspect again'), ' for a word count.');
+  else if (!ms.hasFile) note = h('span', null, 'Chapters, words and images are counted at upload \u2014 upload your manuscript ', h('a', { href: up }, where), '.');
+  else if (!ms.inspected) note = h('span', null, 'Chapters, words and images are counted when you Inspect ', h('b', null, ms.filename || 'your file'), state.embedded ? ' in step 3 ' : ' on the ', h('a', { href: insp }, state.embedded ? 'below' : 'factory page'), '.');
+  else if (ms.words == null) note = h('span', null, 'From ', h('b', null, ms.filename || 'your manuscript'), '. ', h('a', { href: insp }, 'Inspect again'), ' for a word count.');
   else note = h('span', null, 'From ', h('b', null, ms.filename || 'your manuscript'), ms.inspectedAt ? ', inspected ' + fmtDate(ms.inspectedAt) : '', '. Chapters are body sections; front and back matter are not counted.');
   return {
     fields: [

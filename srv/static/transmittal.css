@@ -1097,3 +1097,29 @@ html.dark .email-warning { background: none; }
 }
 .tx-lightbox-hint { color: #9A9890; text-transform: none; letter-spacing: 0.02em; }
 @media print { .tx-typo-samples, .tx-lightbox { display: none !important; } }
+
+/* ─── Embedded on the factory page (0.17 C): section 1 of /{client}/{project}/factory/.
+   The factory owns the page header, step strip and sign-in gate; here the
+   transmittal starts with its own section rule (kicker + status left, actions
+   right) and the two-column form runs in the factory's shell. ─── */
+#fx-transmittal .tx-container { max-width: none; padding: 0 0 8px; }
+.tx-embed-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap;
+  padding-bottom: 10px; margin-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+.tx-embed-left { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.tx-embed-status, .tx-embed-note {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--text-muted);
+}
+.tx-embed-status-final { color: var(--green); }
+.tx-embed-left .tx-save-status { font-size: 11px; }
+.tx-embed-acts { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+.tx-embed-acts .link-action { font-size: 12px; }
+#fx-transmittal .tx-intro { margin-top: 18px; }
+#fx-transmittal .tx-handoff { margin-top: 18px; }
+#fx-transmittal .tx-finish { border-top: 1px solid var(--border-strong); }
+@media print {
+  .tx-embed-acts { display: none !important; }
+  .tx-embed-head { border-bottom-color: black; }
+}

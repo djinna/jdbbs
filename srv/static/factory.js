@@ -292,6 +292,7 @@ function confirmOrderFromURL() {
 // Which step are you on? Cheap heuristic, deliberately generous: the point is
 // to answer "what do I do next", not to police anything.
 function currentStep() {
+  if (S.transmittalStatus && S.transmittalStatus !== 'final') return 1;
   if (!S.books.length) return 2;
   if (isBuilding(S.current)) return 4;
   if (hasDownloads()) return 5;
@@ -318,25 +319,6 @@ function renderSteps() {
     else if (done[i]) cls += ' done';
     el.className = cls;
     el.setAttribute('aria-current', i === cur ? 'step' : 'false');
-  }
-  var txMeta = $('fx-tx-meta');
-  if (txMeta) {
-    txMeta.className = 'fx-sec-meta' + (S.transmittalStatus === 'final' ? ' ok' : '');
-    setText(txMeta, S.transmittalStatus === 'final' ? '[FINAL]'
-      : S.transmittalStatus ? '[' + String(S.transmittalStatus).toUpperCase() + ']' : '');
-  }
-  // The Word template is generated from the final transmittal, on demand.
-  var tpl = $('fx-template-link');
-  var tplStatus = $('fx-template-status');
-  var isFinal = S.transmittalStatus === 'final';
-  if (tpl) {
-    tpl.href = '/api/projects/' + S.projectId + '/word-template';
-    show(tpl, isFinal);
-  }
-  if (tplStatus) {
-    setText(tplStatus, isFinal
-      ? 'Your Word template is ready. Write in it; upload the .docx in step 2.'
-      : (S.transmittalStatus ? 'Mark the transmittal final and your Word template appears here.' : ''));
   }
 }
 
@@ -882,6 +864,30 @@ async function loadCover() {
   } catch (e) { S.hasCover = false; S.coverURL = null; }
 }
 
+// The transmittal form is section 1 of this page (0.17 C): transmittal.js
+// (loaded before us) exposes JdbbTransmittal.mount; it renders into
+// #fx-transmittal and reports its status via the tx:status event so the step
+// strip stays in step. If the script failed to load we fall back to reading
+// the status ourselves and say so in the section.
+function mountTransmittal(info) {
+  var el = $('fx-transmittal');
+  if (!el) return;
+  if (window.JdbbTransmittal && typeof JdbbTransmittal.mount === 'function') {
+    JdbbTransmittal.mount(el, S.clientSlug, S.projectSlug, info);
+    return;
+  }
+  el.innerHTML = '<p class="fx-status err">The transmittal form didn\u2019t load. Reload the page; if it keeps happening, email <a href="mailto:' +
+    esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.</p>';
+  loadTransmittal().then(renderSteps);
+}
+document.addEventListener('tx:status', function (e) {
+  S.transmittalStatus = e.detail && e.detail.status ? e.detail.status : null;
+  renderSteps();
+});
+document.addEventListener('tx:unauthorized', function () {
+  showAuth(function () { return boot(); });
+});
+
 async function loadTransmittal() {
   try {
     var tx = await api('/api/projects/' + S.projectId + '/transmittal');
@@ -1337,8 +1343,8 @@ function wire() {
     setAuthMode(S.authMode === 'password' ? 'email' : (S.authMode === 'sent' ? 'email' : 'password'));
   });
 
-  // Step links scroll; step 1 is a real link to the transmittal.
-  [2, 3, 4, 5].forEach(function (n) {
+  // Step links scroll (0.17 C: the transmittal is section 1 of this page).
+  [1, 2, 3, 4, 5].forEach(function (n) {
     var el = $('fx-step-' + n);
     if (!el) return;
     el.addEventListener('click', function (e) {
@@ -1392,7 +1398,7 @@ async function boot() {
 
   if (info.has_auth && !info.authenticated) { showAuth(function () { return boot(); }); return; }
 
-  loadTransmittal().then(renderSteps);
+  mountTransmittal(info);
   try {
     await refresh();
   } catch (e) {
@@ -1424,6 +1430,13 @@ fetch('/api/public/store/config')
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-addon]');
   if (b) buyAddon(b.getAttribute('data-addon'));
+  // In-page links from the transmittal section ("Continue to 2 · Upload →",
+  // "upload it below") scroll like the step strip does.
+  var a = e.target.closest && e.target.closest('#fx-transmittal a[href^="#"]');
+  if (a) {
+    var t = $(a.getAttribute('href').slice(1));
+    if (t && t.scrollIntoView) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
 });
 
 mountTheme();

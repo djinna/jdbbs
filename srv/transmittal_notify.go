@@ -83,7 +83,7 @@ func (n *transmittalNotifier) send(s *Server, projectID int64) {
 	}
 	_ = json.Unmarshal([]byte(dataStr), &txData)
 
-	projectURL := fmt.Sprintf("%s/%s/%s/transmittal/", s.BaseURL, clientSlug, projectSlug)
+	projectURL := fmt.Sprintf("%s/%s/%s/factory/#transmittal", s.BaseURL, clientSlug, projectSlug)
 
 	bookTitle := txData.Book.Title
 	if bookTitle == "" {

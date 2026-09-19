@@ -442,20 +442,10 @@ func (s *Server) Handler() http.Handler {
 			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
 			return
 		}
-		// /vgr/aog/transmittal/ -> serve transmittal SPA
-		if len(parts) == 3 && parts[2] == "transmittal" && !strings.HasSuffix(path, "/") {
-			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
-			return
-		}
-		if len(parts) >= 3 && parts[2] == "transmittal" {
-			if len(parts) > 3 {
-				// /vgr/aog/transmittal/style.css -> serve static
-				assetPath := strings.Join(parts[3:], "/")
-				r.URL.Path = "/" + assetPath
-				staticServer.ServeHTTP(w, r)
-				return
-			}
-			s.serveTransmittal(w)
+		// /vgr/aog/transmittal/ -> the transmittal is section 1 of the factory
+		// page since 0.17 (C); old links (emails, bookmarks) land on the section.
+		if len(parts) == 3 && parts[2] == "transmittal" {
+			http.Redirect(w, r, "/"+parts[0]+"/"+parts[1]+"/factory/#transmittal", http.StatusFound)
 			return
 		}
 		// /vgr/aog/factory/ -> serve the customer factory page (Factory Pass).
@@ -505,16 +495,6 @@ func (s *Server) Serve(addr string) error {
 
 	slog.Info("starting server", "addr", addr)
 	return http.Serve(listener, s.Handler())
-}
-
-func (s *Server) serveTransmittal(w http.ResponseWriter) {
-	data, err := readStatic("static/transmittal.html")
-	if err != nil {
-		http.Error(w, "internal error", 500)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(data)
 }
 
 func (s *Server) serveClientPortal(w http.ResponseWriter) {

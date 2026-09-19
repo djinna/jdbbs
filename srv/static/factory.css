@@ -13,12 +13,27 @@
 body { font-family: var(--body); background: var(--bg); }
 
 .fx-shell {
-  width: min(100% - 40px, 720px);
+  /* 0.17 C: the transmittal (two columns) is section 1, so the page runs the
+     full 1240 shell; prose in steps 2–5 is capped at a reading measure. */
+  width: 100%;
+  max-width: var(--shell-max);
   margin: 0 auto;
   padding: 34px 0 72px;
 }
 @media (max-width: 620px) {
-  .fx-shell { width: min(100% - 24px, 720px); padding-top: 22px; }
+  .fx-shell { padding-top: 22px; }
+}
+.fx-sec:not(.fx-sec-tx) .fx-body, .fx-sec:not(.fx-sec-tx) .fx-fine, .fx-sec:not(.fx-sec-tx) .fx-status,
+.fx-foot-list, .fx-foot-contact, .fx-pass-note { max-width: 72ch; }
+.fx-sec-tx { padding-top: 22px; }
+
+/* Print from the transmittal's Print action: only section 1 (transmittal.js
+   sets body.print-transmittal around window.print()). */
+@media print {
+  body.print-transmittal .fx-head, body.print-transmittal .fx-steps, body.print-transmittal .rule-strong,
+  body.print-transmittal .fx-sec:not(.fx-sec-tx), body.print-transmittal .fx-sec:not(.fx-sec-tx) + .rule,
+  body.print-transmittal .fx-foot, body.print-transmittal .jdbb-masthead, body.print-transmittal .jdbb-footer,
+  body.print-transmittal .fx-banner { display: none !important; }
 }
 
 /* ── Header ─────────────────────────────────────────────────── */

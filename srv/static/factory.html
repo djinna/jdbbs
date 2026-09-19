@@ -24,7 +24,8 @@
 </script>
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="style.css?v=20260705a">
-<link rel="stylesheet" href="factory.css?v=20260919a">
+<link rel="stylesheet" href="transmittal.css?v=20260919h">
+<link rel="stylesheet" href="factory.css?v=20260919b">
 </head>
 <body>
 <div id="app" class="jdbb-shell">
@@ -84,7 +85,7 @@
 
     <!-- ── Step strip ─────────────────────────────────────────── -->
     <nav class="fx-steps" id="fx-steps" aria-label="Where you are">
-      <a class="fx-step" id="fx-step-1" href="../transmittal/">
+      <a class="fx-step" id="fx-step-1" href="#transmittal">
         <span class="fx-step-n">1</span>
         <span class="fx-step-name">Transmittal</span>
       </a>
@@ -110,21 +111,11 @@
     <hr class="rule-strong">
 
     <!-- ── 1. Transmittal ─────────────────────────────────────── -->
-    <section class="fx-sec" id="transmittal">
-      <div class="fx-sec-head">
-        <span class="kicker">1 &middot; Transmittal</span>
-        <span class="fx-sec-meta" id="fx-tx-meta"></span>
-      </div>
-      <p class="fx-body">
-        The transmittal is the record of how your book should be set &mdash; trim size,
-        fonts, front matter, what to do with the odd bits. Fill it in first: when you
-        mark it final, your Word template is generated from it, and the build follows it.
-      </p>
-      <p class="fx-actions">
-        <a class="link-action accent" href="../transmittal/">Open the transmittal &rarr;</a>
-        <a class="link-action" id="fx-template-link" href="#" download hidden>Download your Word template &rarr;</a>
-      </p>
-      <p class="fx-status" id="fx-template-status"></p>
+    <!-- The transmittal form itself (transmittal.js, embedded mode) mounts
+         into #fx-transmittal once factory.js has resolved the project and
+         passed the sign-in gate (0.17 C: one page, five steps). -->
+    <section class="fx-sec fx-sec-tx" id="transmittal">
+      <div id="fx-transmittal"><p class="fx-status">Loading the transmittal&hellip;</p></div>
     </section>
 
     <hr class="rule">
@@ -280,6 +271,7 @@
   </footer>
 </div>
 <script src="/static/theme.js"></script>
-<script src="factory.js?v=20260918e"></script>
+<script src="transmittal.js?v=20260919h"></script>
+<script src="factory.js?v=20260919a"></script>
 </body>
 </html>
