@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 22:11 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 22:46 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -341,6 +341,17 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > ![screenshot](img/025-bring.png)
   >
   > ![screenshot](img/025-handoff.png)
+
+- [x] 0.26 Client portal card row: Factory / Transmittal duplicative, Snapshot + Activity obsolete → card now Factory → · Style sheet only. Factory step strip is a persistent eyebrow (sticky) with a "you are here" marker. (Jenna 2026-09-19 ~22:30)
+
+  > **shelley** · 2026-09-19 22:46 UTC  
+  > Both live.
+  > 1/ Portal card row is now just FACTORY → · STYLE SHEET. Transmittal, Snapshot and Activity are commented out in the markup (same treatment as Calendar on the 18th) — the email modal code is untouched, nothing in the email system changed.
+  > 2/ Yes, and it was cheap: the step strip is now sticky at the top of the factory page as you scroll (it carries its own rule; the hr under it is gone). I added one more thing while there: a scroll-spy — the step whose section is under the strip gets a dark underline ("you are here"), while the accent underline still marks where the work is (state). So on a project that's ready to download but you're re-reading the transmittal, you see 1 TRANSMITTAL (dark) and 5 DOWNLOAD (accent) at once. Anchor jumps land 60 px below the strip so headings aren't hidden.
+  >
+  > ![screenshot](img/026-strip.png)
+  >
+  > ![screenshot](img/026-sticky.png)
 
 
 ## 2 · Your side — YOU
