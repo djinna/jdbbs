@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 12:37 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 12:42 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -98,12 +98,20 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   >
   > One more idea, not built: email you automatically whenever a *customer’s* build fails (message + who + which file), so on Monday you hear about it before they give up. Easy to add — yes/no?
 
-- [~] 0.10 new: https://desertant.com/press/ -- using this page as a model, can you draft a similar page for me in the factory? I also really like the… — DRAFT LIVE at /press (1cbe387); warm bg #FBFAF4 live app-wide; YOU fill the [bracketed] bits; wordmark SVG + social card to follow
+- [~] 0.10 new: https://desertant.com/press/ -- using this page as a model, can you draft a similar page for me in the factory? I also really like the… — DRAFT LIVE at /press (1cbe387); warm bg #FBFAF4 live app-wide; YOU fill the [bracketed] bits (bio, entity, founded, city); assets done
 
   > **shelley** · 2026-09-19 12:37 UTC  
   > Draft is up: https://jdbbs.exe.xyz/press — same skeleton as Desert Ant’s (lede · About · Facts · Products · Brand assets · The studio), in our chrome. Everything on it is true today except the orange [bracketed] bits, which are yours to fill: one sentence of biography if you want it, legal entity (or delete the line), founded year, city. Their “Independent research” block I left out — we don’t have third-party numbers yet; if you have a quote or two (Bringhurst, a press stat), that’s where they’d go. Wordmark SVG and a 1200×630 social card are the missing assets; I can generate both from the favicon outlines when you want them.
   >
   > The colour: done, and it’s live app-wide. Background went from our cool #FCFDFD to their #FBFAF4, and the hairlines/progress tracks moved to the same warm axis so nothing looks blue against it. Text and the cyan are unchanged. For scale: Anthropic’s cream is #F0EEE6 — ours is now about a fifth of the way there from white, which is the “hint, not tint” you asked for. Hard refresh to see it; if it reads as too much or too little on your screen, say and I nudge one value.
+
+  > **shelley** · 2026-09-19 12:40 UTC  
+  > Brand assets are no longer “to follow”: wordmark SVG (paper and ink versions, plus [jdbb] alone) and a 1200×630 social card are generated from the JetBrains Mono outlines and linked on the page; the page also carries the og:image so a pasted link shows the card. Left for you: the four orange placeholders.
+
+- [x] 0.11 new: I did some more testing about the background color, and let's go with this hex for now. #FFFEF6  ·  _added Sat 12:42 UTC_
+
+  > **shelley** · 2026-09-19 12:42 UTC  
+  > Done and live: --bg is #FFFEF6 everywhere (theme.css is the single source, so admin, portals, factory, public pages all follow). Hairlines and progress tracks nudged a step lighter to match (#E4E2D8 / #F3F1E8); the press page colour note and the social card now say #FFFEF6 too. Hard refresh to see it.
 
 
 ## 2 · Your side — YOU
@@ -140,7 +148,7 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 
 ## 5 · Queued — ME unless marked
 
-- [~] 0.8 New: the default typography for our print PDF is pretty bad. Can you review our typography.md and perhaps look at the Bringhurst references and go ahead and bui… — part 1 (trim-derived defaults) LIVE d187fa5; part 2 = transmittal typography choices (typeface pairing · text size · section break · paragraph style), fresh session
+- [~] 0.8 New: the default typography for our print PDF is pretty bad. Can you review our typography.md and perhaps look at the Bringhurst references and go ahead and bui… — part 1 (trim-derived defaults) LIVE d187fa5; part 2 = transmittal typography choices (typeface pairing · text size · section break · paragraph style), IN PROGRESS (subagent typo-choices)
 
   > **shelley** · 2026-09-19 12:25 UTC  
   > Part 1 done and live — the defaults. Diagnosis from your Obliquities PDF: every book was getting the same margins (¾″ all round, whatever the trim) and a stored leading of 2pt, which on a 6×9 gave an 85-character line set 10 on 8.6 — tighter than solid. That’s the “pretty bad”. Bringhurst: 45–75 characters, 66 ideal; leading ~120–135 %; bottom margin deeper than top, inner narrower than outer.
@@ -154,7 +162,10 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
   > • **Paragraphs**: indented (default) · block with space between (for essays/nonfiction).
   > Alignment stays justified+hyphenated (a real choice only for poetry, which the Verse style already handles). Anything else stays studio-side in the spec. Then a review pass over a real build for each pairing. I’d hand this to a fresh session/subagent — half a day.
 
-- [ ] 0.9 new: I'd like to at least start building out how someone else can hit the book factory from their own factory via our API. I have, today, three customers, and i… — plan on the item: A) three passes on this VM (15 min, need names); B) bearer token + CLI/Python recipe, fresh session
+  > **shelley** · 2026-09-19 12:42 UTC  
+  > Part 2 is now in progress (a subagent is building it while I keep the list moving): four radio rows on the transmittal — Typeface (Open classic = Libertinus/Source Sans · Studio house = Plantin/Proxima · Literary = EB Garamond · studio’s choice), Text size (Compact/Standard/Generous), Section breaks (space/breve/ornament), Paragraphs (indented/block). Report here when it lands; I’ll want your eye on the three sample spreads.
+
+- [~] 0.9 new: I'd like to at least start building out how someone else can hit the book factory from their own factory via our API. I have, today, three customers, and i… — plan on the item: A) three passes on this VM (15 min, need names); B) bearer token + CLI/Python recipe, fresh session
 
   > **shelley** · 2026-09-19 12:25 UTC  
   > First think, in plain terms. Two very different things are hiding in this item, and I’d separate them:
@@ -168,6 +179,9 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
   >  4. Later: webhooks when a build finishes; a spec/transmittal PUT so the caller can set trim/title without the form.
   >
   > Plan: fresh session, starts from a copy of the API doc, does 1+2 today (2–3 h), demo = the Python script building Ghosts on project 14. It touches srv/auth for the bearer path and adds docs; it won’t collide with what I’m doing here (transmittal, template, filters). A is a 15-minute task in either session — send me the three names.
+
+  > **shelley** · 2026-09-19 12:42 UTC  
+  > B is in progress (subagent): Bearer-token alias, a one-page curl recipe, and a stdlib-only Python script that uploads → builds → downloads. A still needs the three names/emails/working titles from you.
 
 - [ ] 5.17 **About the Book Factory** text (was 0.8) — YOU pick A / A′ / B and edit the placeholders (drafts are on this item's notes); then ME: transmittal checkbox → colophon on the copyright page and/or back-matter page, off by default
 
