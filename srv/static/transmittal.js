@@ -237,23 +237,9 @@ function render() {
   if (state.view === 'loading') app.appendChild(h('div', { className: 'tx-container' }, h('p', null, 'Loading...')));
   else if (state.view === 'auth') app.appendChild(renderAuth());
   else if (state.view === 'form') app.appendChild(renderForm());
-  if (state.embedded) { renderIntroAside(); return; }
+  if (state.embedded) return;
   _ensureThemeBar();
   _applyTheme();
-}
-
-// On the factory page the "what a transmittal is" paragraph lives in the
-// header's right column (#fx-intro), beside "← Your books", so the form
-// starts where the work starts (0.27, Jenna 2026-09-19). Hidden once final.
-function renderIntroAside() {
-  const slot = document.getElementById('fx-intro');
-  if (!slot) return;
-  slot.innerHTML = '';
-  if (state.view !== 'form' || !state.transmittal || state.transmittal.status === 'final') { slot.hidden = true; return; }
-  slot.hidden = false;
-  slot.appendChild(h('p', null,
-    'The transmittal is the mise en place for your book \u2014 what the book is, what\u2019s in the file, how it should be set. Fill in what you know; leave the rest. ',
-    h('b', null, 'Mark Final'), ' generates your authoring template and tells the studio the build can follow. You can return it to Draft at any time.'));
 }
 
 // Let the host page (factory.js) mirror the status in its step strip.
@@ -664,12 +650,12 @@ function renderForm() {
     renderDuplicateModal(),
     // Intro: what this document is and what Mark Final does
     // Once final the hand-off panel says what to do; the intro steps aside.
-    (isPreview || state.embedded || state.transmittal.status === 'final') ? null : h('p', { className: 'tx-intro' },
+    (isPreview || state.transmittal.status === 'final') ? null : h('p', { className: 'tx-intro' },
       'The transmittal is the mise en place for your book — the handoff record of what the book is, what’s in the file, and how it should be set, prepared before any typesetting starts. Fill in what you know; leave the rest. When it’s ready, ',
       h('b', null, 'Mark Final'),
       ': that generates your authoring template from it (the ',
       h('b', null, 'Word template'),
-      state.embedded ? ' link appears on the section rule above' : ' button appears above',
+      state.embedded ? ' link appears beside Mark Final, above' : ' button appears above',
       ') and sends it to the studio; the build follows it. You can switch it back to Draft at any time.',
     ),
     // Completion is shown as a figure in the section head (embedded) or the

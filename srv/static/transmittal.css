@@ -1125,8 +1125,10 @@ html.dark .email-warning { background: none; }
 #fx-transmittal .tx-container { max-width: none; padding: 0 0 8px; }
 .tx-embed-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap;
-  padding-bottom: 10px; margin-bottom: 28px;
-  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0; margin-bottom: 18px;
+  /* No rule of its own (0.27): the step strip's rule sits just above and the
+     two column rules just below; a third line here was the one that fought.
+     The other factory sections' heads are bare rows too. */
 }
 .tx-embed-left { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
 .tx-embed-status, .tx-embed-note {
@@ -1141,5 +1143,5 @@ html.dark .email-warning { background: none; }
 #fx-transmittal .tx-finish { border-top: 1px solid var(--border-strong); }
 @media print {
   .tx-embed-acts { display: none !important; }
-  .tx-embed-head { border-bottom-color: black; }
+  .tx-embed-head { border-bottom: 2px solid black; padding-bottom: 10px; }
 }
