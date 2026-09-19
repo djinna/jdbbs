@@ -286,7 +286,8 @@
 // =============================================================================
 
 // Section break renderer — style determined by config.section-break
-// Supported styles: "breve", "asterism", "dinkus", "blank", "fleuron"
+// Supported styles: "breve", "asterism", "dinkus", "blank", "fleuron",
+// "custom" (the mark in config.section-break-text, set from the transmittal)
 #let section-break = {
   if config.section-break == "blank" {
     v(1em)
@@ -302,6 +303,8 @@
         \* #h(1.5em) \* #h(1.5em) \*
       ] else if config.section-break == "fleuron" [
         ❧
+      ] else if config.section-break == "custom" [
+        #config.at("section-break-text", default: "˘ ˘ ˘")
       ] else [
         ˘ #h(1.5em) ˘ #h(1.5em) ˘
       ]

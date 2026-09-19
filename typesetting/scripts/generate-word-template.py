@@ -463,6 +463,10 @@ def build_template(spec: dict) -> Document:
     # ------------------------------------------------------------------
     sb_char_key = elms.get("section_break", "breve")
     sb_char = SECTION_BREAK_CHARS.get(sb_char_key, sb_char_key)
+    if sb_char_key == "custom":
+        sb_char = elms.get("section_break_text") or SECTION_BREAK_CHARS["breve"]
+    elif sb_char_key == "blank":
+        sb_char = ""
 
     sb_style = doc.styles.add_style("Section Break", WD_STYLE_TYPE.PARAGRAPH)
     sb_style.base_style = normal

@@ -299,7 +299,10 @@ type epubSpec struct {
 	CoverImage   string
 	ChapterBreak string
 	SectionBreak string
-	BodyFontSize string
+	// SectionBreakText is the customer's own mark when SectionBreak is
+	// "custom" (transmittal typography row, 2026-09-19).
+	SectionBreakText string
+	BodyFontSize     string
 	// BlockParagraphs: transmittal typography.paragraphs == "block" (no
 	// first-line indent, space between paragraphs) — mirrors the print build.
 	BlockParagraphs bool
@@ -367,6 +370,9 @@ func parseEPUBSpec(specJSON string, book dbgen.Book) epubSpec {
 		}
 		if v, ok := epub["section_break"].(string); ok {
 			spec.SectionBreak = v
+		}
+		if v, ok := epub["section_break_text"].(string); ok {
+			spec.SectionBreakText = v
 		}
 		if v, ok := epub["body_font_size"].(string); ok {
 			spec.BodyFontSize = v
@@ -823,6 +829,8 @@ func (s *epubSpec) buildCSS() string {
 		parts = append(parts, "hr { border: none; text-align: center; } hr::after { content: '\\2767'; font-size: 1.2em; }")
 	case "blank":
 		parts = append(parts, "hr { border: none; margin: 1.5em 0; }")
+	case "custom":
+		parts = append(parts, "hr { border: none; text-align: center; } hr::after { content: '"+cssStringEscape(s.SectionBreakText)+"'; letter-spacing: 0.25em; }")
 	}
 
 	if s.BlockParagraphs {
@@ -858,3 +866,22 @@ func joinLines(ss []string) string {
 
 // Ensure sql import is used
 var _ = sql.ErrNoRows
+
+// cssStringEscape makes s safe inside a single-quoted CSS string: backslash
+// and quote are escaped, and anything outside printable ASCII is written as
+// a CSS hex escape so the stylesheet stays 7-bit clean.
+func cssStringEscape(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch {
+		case r == '\\' || r == '\'':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case r < 0x20 || r > 0x7e:
+			fmt.Fprintf(&b, "\\%X ", r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}

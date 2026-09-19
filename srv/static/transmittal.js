@@ -346,6 +346,7 @@ function textField(label, path, opts = {}) {
     value: val,
     placeholder: opts.placeholder || '',
     readOnly: opts.readOnly ? 'readonly' : undefined,
+    maxLength: opts.maxLength || undefined,
     onInput: opts.readOnly ? undefined : (e) => setField(path, opts.type === 'number' ? (parseFloat(e.target.value) || 0) : e.target.value),
   });
   return h('div', { className: `tx-field ${opts.className || ''}`.trim() },
@@ -1217,7 +1218,8 @@ function renderEditingSection() {
 // Four radio rows, stored under transmittal.typography and mirrored into the
 // book spec by the server (srv/typochoices.go). Keys and defaults must match
 // that file: pairing studio|classic|house|literary · size compact|standard|
-// generous · section_break space|breve|ornament · paragraphs indented|block.
+// generous · section_break space|breve|ornament|custom (+ section_break_text) ·
+// paragraphs indented|block.
 const TYPO_PAIRINGS = [
   { value: 'studio', name: 'Studio\u2019s choice', blurb: 'We pick for the manuscript \u2014 today that is the open classic pairing below.' },
   { value: 'classic', name: 'Open classic', blurb: 'Libertinus Serif for the text, Source Sans for headings. Even, quiet, reads well at any size.' },
@@ -1233,6 +1235,7 @@ const TYPO_BREAKS = [
   { value: 'space', name: 'White space', blurb: 'A blank line between scenes. Quiet; can be missed at the foot of a page.' },
   { value: 'breve', name: 'Breve', blurb: 'Three small centred marks (\u02d8 \u02d8 \u02d8) \u2014 the studio\u2019s house mark.' },
   { value: 'ornament', name: 'Ornament', blurb: 'A single centred fleuron (\u2767).' },
+  { value: 'custom', name: 'Your own', blurb: 'Type the mark you want centred between scenes \u2014 an asterism (\u2042), three asterisks, a tilde, a word.' },
 ];
 const TYPO_PARAS = [
   { value: 'indented', name: 'Indented', blurb: 'First line indented, no space between paragraphs. The book convention.' },
@@ -1279,6 +1282,11 @@ function renderTypographyChoices() {
     row('Typeface', 'typography.pairing', 'typo-pairing', TYPO_PAIRINGS),
     row('Text size', 'typography.size', 'typo-size', TYPO_SIZES, typoSizeDescription),
     row('Section breaks', 'typography.section_break', 'typo-break', TYPO_BREAKS),
+    (getField('typography.section_break') === 'custom')
+      ? textField('Your break mark', 'typography.section_break_text',
+          { placeholder: '* * *', className: 'tx-typo-custom', maxLength: 24,
+            helpText: 'Set in the text face, centred, with a line of space above and below. Up to 24 characters; leave empty for the breve.' })
+      : null,
     row('Paragraphs', 'typography.paragraphs', 'typo-paras', TYPO_PARAS),
   ];
 }

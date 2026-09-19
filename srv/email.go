@@ -479,10 +479,11 @@ type transmittalEmailData struct {
 		Complexity string `json:"complexity"`
 	} `json:"design"`
 	Typography struct {
-		Pairing      string `json:"pairing"`
-		Size         string `json:"size"`
-		SectionBreak string `json:"section_break"`
-		Paragraphs   string `json:"paragraphs"`
+		Pairing          string `json:"pairing"`
+		Size             string `json:"size"`
+		SectionBreak     string `json:"section_break"`
+		SectionBreakText string `json:"section_break_text"`
+		Paragraphs       string `json:"paragraphs"`
 	} `json:"typography"`
 	OtherInstructions string `json:"other_instructions"`
 }
@@ -925,7 +926,19 @@ func typographyChoiceLines(data *transmittalEmailData) [][2]string {
 	return [][2]string{
 		{"Typeface", pairing},
 		{"Text size", or(t.Size, "standard")},
-		{"Section break", or(t.SectionBreak, "space")},
+		{"Section break", sectionBreakSummary(t.SectionBreak, t.SectionBreakText)},
 		{"Paragraphs", or(t.Paragraphs, "indented")},
 	}
+}
+
+// sectionBreakSummary names the transmittal's section-break choice for the
+// email summary; a custom mark is shown in quotes.
+func sectionBreakSummary(choice, text string) string {
+	if choice == "custom" && strings.TrimSpace(text) != "" {
+		return "custom " + strconv.Quote(strings.TrimSpace(text))
+	}
+	if choice == "" {
+		return "space"
+	}
+	return choice
 }

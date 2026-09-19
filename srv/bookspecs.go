@@ -731,6 +731,9 @@ func specToTypstConfig(data map[string]any) string {
 		if v, ok := elem["section_break"].(string); ok && v != "" {
 			lines = append(lines, fmt.Sprintf(`  section-break: "%s",`, v))
 		}
+		if v, ok := elem["section_break_text"].(string); ok && v != "" {
+			lines = append(lines, fmt.Sprintf(`  section-break-text: %s,`, strconv.Quote(v)))
+		}
 		if v, ok := elem["blockquote_style"].(string); ok && v != "" {
 			lines = append(lines, fmt.Sprintf(`  blockquote-style: "%s",`, v))
 		}

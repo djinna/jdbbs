@@ -9,7 +9,8 @@ import "strings"
 //
 //   typography.pairing        studio | classic | house | literary
 //   typography.size           compact | standard | generous
-//   typography.section_break  space | breve | ornament
+//   typography.section_break  space | breve | ornament | custom
+//   typography.section_break_text  the customer's own mark when custom (e.g. "* * *")
 //   typography.paragraphs     indented | block
 //
 // Unset or unknown values resolve to the first (default) of each row, so
@@ -64,8 +65,21 @@ func typoSectionBreakStyle(choice string) string {
 		return "breve"
 	case "ornament":
 		return "fleuron"
+	case "custom":
+		return "custom"
 	}
 	return "blank"
+}
+
+// typoSectionBreakText tidies the customer's own break mark: trimmed,
+// single-spaced, at most 24 characters. Empty means "fall back to the
+// template's default mark" — the renderers treat a blank custom as breve.
+func typoSectionBreakText(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if r := []rune(s); len(r) > 24 {
+		s = string(r[:24])
+	}
+	return s
 }
 
 // typoParagraphsBlock reports whether the transmittal asked for block
@@ -100,6 +114,17 @@ func applyTypoChoices(txTypo map[string]any, specData map[string]any) {
 	typo["size"] = get("size")
 	typo["paragraphs"] = get("paragraphs")
 	sb := typoSectionBreakStyle(get("section_break"))
-	ensureMap(specData, "elements")["section_break"] = sb
-	ensureMap(specData, "epub")["section_break"] = sb
+	sbText := typoSectionBreakText(get("section_break_text"))
+	if sb == "custom" && sbText == "" {
+		sb = "breve"
+	}
+	for _, k := range []string{"elements", "epub"} {
+		m := ensureMap(specData, k)
+		m["section_break"] = sb
+		if sb == "custom" {
+			m["section_break_text"] = sbText
+		} else {
+			delete(m, "section_break_text")
+		}
+	}
 }

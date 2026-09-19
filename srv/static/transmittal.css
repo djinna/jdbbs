@@ -1048,3 +1048,7 @@ html.dark .email-warning { background: none; }
 .tx-finish .link-action { color: var(--accent); text-decoration-color: var(--accent); }
 
 @media print { .tx-steps, .tx-handoff, .tx-finish { display: none; } }
+
+/* Custom section-break mark (typography row "Your own") — narrow, centred, text face */
+.tx-typo-custom { max-width: 260px; margin-top: -4px; }
+.tx-typo-custom input { text-align: center; font-family: Georgia, "Times New Roman", serif; font-size: 16px; }
