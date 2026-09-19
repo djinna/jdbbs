@@ -21,7 +21,15 @@ type Rune struct {
 
 // Text is the manuscript text extracted from a Typst source.
 type Text struct {
-	Runes []Rune
+	Runes    []Rune
+	Headings []Heading // heading markers met, in order
+}
+
+// Heading records a `=` marker: its level and the index in Runes where the
+// heading text begins (so chapters can be delimited in the extracted text).
+type Heading struct {
+	Level   int
+	RuneIdx int
 }
 
 // String returns the plain text.
@@ -41,6 +49,7 @@ func (t Text) String() string {
 // heading text is kept so chapter titles can be anchored too.
 func ExtractText(src string) Text {
 	var out []Rune
+	var heads []Heading
 	depth := 0 // open content brackets we skipped the `[` of
 	i := 0
 	n := len(src)
@@ -70,6 +79,10 @@ func ExtractText(src string) Text {
 				continue
 			}
 			i = skipCall(src, i)
+			// `#call(...);` — the semicolon terminates the expression.
+			if i < n && src[i] == ';' {
+				i++
+			}
 			// A following `[` opens content we keep.
 			for i < n && src[i] == '[' {
 				depth++
@@ -94,6 +107,7 @@ func ExtractText(src string) Text {
 				j++
 			}
 			if j < n && src[j] == ' ' {
+				heads = append(heads, Heading{Level: j - i, RuneIdx: len(out)})
 				i = j + 1
 				continue
 			}
@@ -117,7 +131,7 @@ func ExtractText(src string) Text {
 		lineStart = r == '\n'
 		i += size
 	}
-	return Text{Runes: out}
+	return Text{Runes: out, Headings: heads}
 }
 
 // keywordAt returns the statement keyword starting at i, or "".
