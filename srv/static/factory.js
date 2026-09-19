@@ -1439,6 +1439,32 @@ document.addEventListener('click', function (e) {
   }
 });
 
+// Scroll-spy for the sticky step strip (0.26): the step whose section is under
+// the strip gets .here, so the reader can see where they are as well as where
+// the work is (.current, set by state).
+(function () {
+  var ids = ['transmittal', 'upload', 'inspect', 'build', 'download'];
+  var ticking = false;
+  function update() {
+    ticking = false;
+    var strip = $('fx-steps');
+    var line = (strip ? strip.getBoundingClientRect().bottom : 0) + 24;
+    var here = null;
+    ids.forEach(function (id, i) {
+      var sec = $(id);
+      if (sec && sec.getBoundingClientRect().top <= line) here = i + 1;
+    });
+    ids.forEach(function (_, i) {
+      var el = $('fx-step-' + (i + 1));
+      if (el) el.classList.toggle('here', here === i + 1);
+    });
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, { passive: true });
+  window.addEventListener('load', update);
+})();
+
 mountTheme();
 wire();
 renderAll();

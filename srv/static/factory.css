@@ -322,3 +322,15 @@ body { font-family: var(--body); background: var(--bg); }
   font: inherit; color: var(--accent); text-decoration: underline; text-underline-offset: 2px;
 }
 .fx-link:disabled { opacity: .5; cursor: default; }
+
+/* Step strip stays put as the reader works down the page (0.26, 2026-09-19).
+   It carries its own bottom rule so the <hr> that followed it can go. */
+.fx-steps {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-strong);
+  margin-bottom: 0;
+}
+.fx-steps + .rule-strong { display: none; }
+.fx-sec[id] { scroll-margin-top: 60px; }
+.fx-step.here:not(.current) { color: var(--text); border-bottom-color: var(--border-strong); }
