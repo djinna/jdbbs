@@ -602,8 +602,8 @@ func TestConvertWithoutCreditsReturns402(t *testing.T) {
 	}
 	var body map[string]any
 	decodeJSON(t, resp, &body)
-	if body["error"] != "no builds remaining" {
-		t.Errorf("402 error = %v, want \"no builds remaining\"", body["error"])
+	if body["error"] != "no finals remaining" {
+		t.Errorf("402 error = %v, want \"no finals remaining\"", body["error"])
 	}
 	if body["credits_remaining"] != float64(0) {
 		t.Errorf("402 credits_remaining = %v, want 0", body["credits_remaining"])
@@ -1557,5 +1557,94 @@ func TestAdminAttachPassToExistingProject(t *testing.T) {
 	resp = apiRequestAdmin(t, ts, "POST", "/api/admin/passes", map[string]any{"project_id": 999999})
 	if resp.StatusCode != 404 {
 		t.Errorf("unknown project: expected 404, got %d", resp.StatusCode)
+	}
+}
+
+// TestProofBuildIsFreeAndNeverRefunded (0.28): a proof build is not debited
+// at request time, records kind=proof on the book, and when the pipeline
+// fails no refund row appears — there was nothing to give back. A final
+// build on the same book is debited as before.
+func TestProofBuildIsFreeAndNeverRefunded(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, password, clientSlug, _ := grantedPass(t, s, ts, "Proof Reader", "Proofed Book")
+	cookie := clientCookie(t, ts, clientSlug, password)
+
+	resp := uploadBook(t, ts, itoa(pass.ProjectID), cookie, false)
+	if resp.StatusCode != 201 {
+		t.Fatalf("upload: expected 201, got %d", resp.StatusCode)
+	}
+	var created map[string]any
+	decodeJSON(t, resp, &created)
+	bookID := int64(created["id"].(float64))
+
+	post := func(body string) (int, map[string]any) {
+		req, _ := http.NewRequest("POST", ts.URL+"/api/books/"+itoa(bookID)+"/convert", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(cookie)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out map[string]any
+		decodeJSON(t, resp, &out)
+		return resp.StatusCode, out
+	}
+	waitFailed := func() {
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			var status string
+			if err := s.DB.QueryRow(`SELECT status FROM books WHERE id = ?`, bookID).Scan(&status); err != nil {
+				t.Fatal(err)
+			}
+			if status == "error" {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("build never failed (status %q)", status)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+
+	code, out := post(`{"format":"both","kind":"proof"}`)
+	if code != 200 || out["kind"] != "proof" {
+		t.Fatalf("proof convert: %d %v", code, out)
+	}
+	var kind string
+	if err := s.DB.QueryRow(`SELECT build_kind FROM books WHERE id = ?`, bookID).Scan(&kind); err != nil || kind != "proof" {
+		t.Fatalf("build_kind = %q (%v), want proof", kind, err)
+	}
+	if n := countLedger(t, s, pass.ID, "build"); n != 0 {
+		t.Fatalf("proof wrote %d debit rows, want 0", n)
+	}
+	waitFailed()
+	if n := countLedger(t, s, pass.ID, "build_failed_refund"); n != 0 {
+		t.Fatalf("failed proof wrote %d refund rows, want 0", n)
+	}
+
+	if code, _ = post(`{"format":"both","kind":"nonsense"}`); code != 400 {
+		t.Fatalf("bad kind: expected 400, got %d", code)
+	}
+
+	// Default kind is final: debited, then refunded when this one fails too.
+	if code, out = post(`{"format":"both"}`); code != 200 || out["kind"] != "final" {
+		t.Fatalf("final convert: %d %v", code, out)
+	}
+	if n := countLedger(t, s, pass.ID, "build"); n != 1 {
+		t.Fatalf("final wrote %d debit rows, want 1", n)
+	}
+	waitForLedger(t, s, pass.ID, "build_failed_refund")
+}
+
+// TestProofStampLine: the footer text a proof PDF carries.
+func TestProofStampLine(t *testing.T) {
+	at := time.Date(2026, 9, 20, 14, 2, 0, 0, time.UTC)
+	if got := proofStampLine("Obliquities", at); got != "PROOF · Obliquities · built 20 Sep 2026 14:02 UTC · not for print" {
+		t.Errorf("got %q", got)
+	}
+	if got := proofStampLine("  ", at); !strings.HasPrefix(got, "PROOF · Untitled ·") {
+		t.Errorf("empty title: %q", got)
 	}
 }

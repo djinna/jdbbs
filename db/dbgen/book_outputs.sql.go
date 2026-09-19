@@ -11,13 +11,33 @@ import (
 	"time"
 )
 
+const countProofOutputsByProjectSince = `-- name: CountProofOutputsByProjectSince :one
+SELECT COUNT(*) FROM book_outputs o
+JOIN books b ON b.id = o.book_id
+WHERE b.project_id = ? AND o.kind = 'proof' AND o.output_format = 'pdf' AND o.created_at >= ?
+`
+
+type CountProofOutputsByProjectSinceParams struct {
+	ProjectID sql.NullInt64
+	CreatedAt time.Time
+}
+
+// Proof PDFs built for a project's books since a moment: the per-project
+// proof rate limit (proofs are free, so this is the only brake).
+func (q *Queries) CountProofOutputsByProjectSince(ctx context.Context, arg CountProofOutputsByProjectSinceParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countProofOutputsByProjectSince, arg.ProjectID, arg.CreatedAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createBookOutput = `-- name: CreateBookOutput :one
 INSERT INTO book_outputs (
-    book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot
+    book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, kind
 ) VALUES (
-    ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?
 )
-RETURNING id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at
+RETURNING id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at, kind
 `
 
 type CreateBookOutputParams struct {
@@ -27,6 +47,7 @@ type CreateBookOutputParams struct {
 	SourceFilename      string
 	SpecSnapshot        sql.NullString
 	CorrectionsSnapshot sql.NullString
+	Kind                string
 }
 
 type CreateBookOutputRow struct {
@@ -38,6 +59,7 @@ type CreateBookOutputRow struct {
 	SpecSnapshot        sql.NullString
 	CorrectionsSnapshot sql.NullString
 	CreatedAt           time.Time
+	Kind                string
 }
 
 func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputParams) (CreateBookOutputRow, error) {
@@ -48,6 +70,7 @@ func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputPara
 		arg.SourceFilename,
 		arg.SpecSnapshot,
 		arg.CorrectionsSnapshot,
+		arg.Kind,
 	)
 	var i CreateBookOutputRow
 	err := row.Scan(
@@ -59,12 +82,13 @@ func (q *Queries) CreateBookOutput(ctx context.Context, arg CreateBookOutputPara
 		&i.SpecSnapshot,
 		&i.CorrectionsSnapshot,
 		&i.CreatedAt,
+		&i.Kind,
 	)
 	return i, err
 }
 
 const getBookOutput = `-- name: GetBookOutput :one
-SELECT id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at
+SELECT id, book_id, output_format, output_data, source_filename, spec_snapshot, corrections_snapshot, created_at, kind
 FROM book_outputs
 WHERE id = ? AND book_id = ?
 `
@@ -83,6 +107,7 @@ type GetBookOutputRow struct {
 	SpecSnapshot        sql.NullString
 	CorrectionsSnapshot sql.NullString
 	CreatedAt           time.Time
+	Kind                string
 }
 
 func (q *Queries) GetBookOutput(ctx context.Context, arg GetBookOutputParams) (GetBookOutputRow, error) {
@@ -97,12 +122,54 @@ func (q *Queries) GetBookOutput(ctx context.Context, arg GetBookOutputParams) (G
 		&i.SpecSnapshot,
 		&i.CorrectionsSnapshot,
 		&i.CreatedAt,
+		&i.Kind,
+	)
+	return i, err
+}
+
+const getLatestBookOutputByKind = `-- name: GetLatestBookOutputByKind :one
+SELECT id, book_id, output_format, output_data, source_filename, created_at, kind
+FROM book_outputs
+WHERE book_id = ? AND output_format = ? AND kind = ?
+ORDER BY created_at DESC, id DESC
+LIMIT 1
+`
+
+type GetLatestBookOutputByKindParams struct {
+	BookID       int64
+	OutputFormat string
+	Kind         string
+}
+
+type GetLatestBookOutputByKindRow struct {
+	ID             int64
+	BookID         int64
+	OutputFormat   string
+	OutputData     []byte
+	SourceFilename string
+	CreatedAt      time.Time
+	Kind           string
+}
+
+// Newest artifact of one format and kind (proof | final) for a book; backs
+// GET /api/books/{id}/download/{format}?kind=final.
+func (q *Queries) GetLatestBookOutputByKind(ctx context.Context, arg GetLatestBookOutputByKindParams) (GetLatestBookOutputByKindRow, error) {
+	row := q.db.QueryRowContext(ctx, getLatestBookOutputByKind, arg.BookID, arg.OutputFormat, arg.Kind)
+	var i GetLatestBookOutputByKindRow
+	err := row.Scan(
+		&i.ID,
+		&i.BookID,
+		&i.OutputFormat,
+		&i.OutputData,
+		&i.SourceFilename,
+		&i.CreatedAt,
+		&i.Kind,
 	)
 	return i, err
 }
 
 const listBookOutputs = `-- name: ListBookOutputs :many
-SELECT id, book_id, output_format, source_filename, length(output_data) AS size_bytes, spec_snapshot, corrections_snapshot, created_at
+SELECT id, book_id, output_format, source_filename, length(output_data) AS size_bytes, spec_snapshot, corrections_snapshot, created_at, kind
 FROM book_outputs
 WHERE book_id = ?
 ORDER BY created_at DESC, id DESC
@@ -123,6 +190,7 @@ type ListBookOutputsRow struct {
 	SpecSnapshot        sql.NullString
 	CorrectionsSnapshot sql.NullString
 	CreatedAt           time.Time
+	Kind                string
 }
 
 func (q *Queries) ListBookOutputs(ctx context.Context, arg ListBookOutputsParams) ([]ListBookOutputsRow, error) {
@@ -143,6 +211,7 @@ func (q *Queries) ListBookOutputs(ctx context.Context, arg ListBookOutputsParams
 			&i.SpecSnapshot,
 			&i.CorrectionsSnapshot,
 			&i.CreatedAt,
+			&i.Kind,
 		); err != nil {
 			return nil, err
 		}
@@ -178,5 +247,35 @@ type PruneBookOutputsParams struct {
 // Used for EPUBs, which are unlimited per pass and would otherwise pile up.
 func (q *Queries) PruneBookOutputs(ctx context.Context, arg PruneBookOutputsParams) error {
 	_, err := q.db.ExecContext(ctx, pruneBookOutputs, arg.BookID, arg.OutputFormat, arg.Limit)
+	return err
+}
+
+const pruneBookOutputsByKind = `-- name: PruneBookOutputsByKind :exec
+DELETE FROM book_outputs
+WHERE book_outputs.book_id = ?1 AND book_outputs.output_format = ?2 AND book_outputs.kind = ?3
+  AND book_outputs.id NOT IN (
+    SELECT o.id FROM book_outputs AS o
+    WHERE o.book_id = ?1 AND o.output_format = ?2 AND o.kind = ?3
+    ORDER BY o.created_at DESC, o.id DESC
+    LIMIT ?4
+  )
+`
+
+type PruneBookOutputsByKindParams struct {
+	BookID       int64
+	OutputFormat string
+	Kind         string
+	Limit        int64
+}
+
+// Keep the newest `keep` outputs of one format+kind for a book; delete the
+// rest. Used for proof PDFs, which are unlimited and would otherwise pile up.
+func (q *Queries) PruneBookOutputsByKind(ctx context.Context, arg PruneBookOutputsByKindParams) error {
+	_, err := q.db.ExecContext(ctx, pruneBookOutputsByKind,
+		arg.BookID,
+		arg.OutputFormat,
+		arg.Kind,
+		arg.Limit,
+	)
 	return err
 }

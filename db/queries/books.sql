@@ -16,6 +16,9 @@ UPDATE books SET status = ?, error_msg = ?, updated_at = CURRENT_TIMESTAMP WHERE
 -- name: UpdateBookStatusReady :exec
 UPDATE books SET status = 'ready', updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
+-- name: UpdateBookBuildKind :exec
+UPDATE books SET build_kind = ? WHERE id = ?;
+
 -- name: TouchBook :exec
 UPDATE books SET updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 
@@ -26,7 +29,7 @@ UPDATE books SET project_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
 DELETE FROM books WHERE id = ?;
 
 -- name: GetBookPDF :one
-SELECT b.id, b.title, o.output_data AS pdf_data
+SELECT b.id, b.title, o.output_data AS pdf_data, o.kind AS pdf_kind
 FROM books b
 LEFT JOIN book_outputs o ON o.book_id = b.id AND o.output_format = 'pdf'
 WHERE b.id = ?

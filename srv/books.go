@@ -268,19 +268,32 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Which deliverables to make. The default (and what the factory page
-	// asks for) is "both": one build = the EPUB and the print PDF together,
-	// and it costs one build credit. "epub" and "pdf" alone are accepted for
-	// the API and cost the same one credit — a build is a build.
+	// asks for) is "both": one build = the EPUB and the print PDF together.
+	// "pdf" alone is accepted for the API and costs the same as "both" when
+	// final; "epub" alone is always free (see below).
+	//
+	// And which kind (punch list 0.28). A "proof" is free and unlimited (one
+	// in flight, proofRateLimit per project per day): the print PDF carries a
+	// small PROOF footer on every page and a line on the copyright page. A
+	// "final" uses one of the pass's build credits and is clean. The EPUB is
+	// the same either way — it has no pages to stamp and is the checking
+	// medium. The API defaults to final so an unqualified POST still means
+	// what it meant before; the factory page always says which.
 	format := "both"
+	kind := buildKindFinal
 	callbackURL := ""
 	if r.Body != nil && r.ContentLength != 0 {
 		var body struct {
 			Format      string `json:"format"`
+			Kind        string `json:"kind"`
 			CallbackURL string `json:"callback_url"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&body); err == nil {
 			if body.Format != "" {
 				format = strings.ToLower(strings.TrimSpace(body.Format))
+			}
+			if body.Kind != "" {
+				kind = strings.ToLower(strings.TrimSpace(body.Kind))
 			}
 			callbackURL = strings.TrimSpace(body.CallbackURL)
 		}
@@ -288,6 +301,15 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	if format != "epub" && format != "pdf" && format != "both" {
 		jsonErr(w, "format must be epub, pdf or both", 400)
 		return
+	}
+	if kind != buildKindProof && kind != buildKindFinal {
+		jsonErr(w, "kind must be proof or final", 400)
+		return
+	}
+	if format == "epub" {
+		// An EPUB-only build is never stamped and never charged: it is a
+		// proof by construction.
+		kind = buildKindProof
 	}
 	if callbackURL != "" {
 		if err := validateCallbackURL(callbackURL, s.allowLocalCallbacks); err != nil {
@@ -307,14 +329,29 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return
 		}
-		if pass != nil && !isAdmin && passCreditsRemaining(*pass) <= 0 {
+		if kind == buildKindFinal && pass != nil && !isAdmin && passCreditsRemaining(*pass) <= 0 {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusPaymentRequired)
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"error":             "no builds remaining",
+				"error":             "no finals remaining",
 				"credits_remaining": 0,
 			})
 			return
+		}
+		if kind == buildKindProof && !isAdmin {
+			// Proofs are free, so a daily ceiling per project is the only
+			// brake on a runaway script.
+			n, err := q.CountProofOutputsByProjectSince(r.Context(), dbgen.CountProofOutputsByProjectSinceParams{
+				ProjectID: book.ProjectID, CreatedAt: time.Now().UTC().Add(-24 * time.Hour),
+			})
+			if err != nil {
+				jsonErr(w, err.Error(), 500)
+				return
+			}
+			if n >= proofRateLimit {
+				jsonErr(w, fmt.Sprintf("proof limit reached: %d proofs in the last 24 hours for this project; try again later", proofRateLimit), http.StatusTooManyRequests)
+				return
+			}
 		}
 		// One build in flight per project: builds are minutes of CPU and the
 		// status field is per-book, so a second concurrent run would race the
@@ -348,7 +385,14 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	// Debit before starting so a crashed or killed build can never hand out a
 	// free one; failConversion refunds. Debited for admins too when a pass
 	// exists (see the contract).
-	if pass != nil {
+	// Proofs are never debited, and books.build_kind records that so a
+	// failed proof is not refunded either (failConversionAt checks it).
+	if err := q.UpdateBookBuildKind(r.Context(), dbgen.UpdateBookBuildKindParams{BuildKind: kind, ID: bid}); err != nil {
+		jsonErr(w, "record build kind: "+err.Error(), 500)
+		return
+	}
+	book.BuildKind = kind
+	if pass != nil && kind == buildKindFinal {
 		if err := s.debitBuildCredit(r.Context(), pass.ID, bid); err != nil {
 			slog.Error("build debit failed", "pass_id", pass.ID, "book_id", bid, "err", err)
 			jsonErr(w, "could not reserve a build credit", 500)
@@ -363,12 +407,12 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 
 	if book.ProjectID.Valid {
 		left := ""
-		if pass != nil {
+		if pass != nil && kind == buildKindFinal {
 			if p := s.passForProject(r.Context(), book.ProjectID.Int64); p != nil {
-				left = fmt.Sprintf("; %d build(s) left after this", passCreditsRemaining(*p))
+				left = fmt.Sprintf("; %d final(s) left after this", passCreditsRemaining(*p))
 			}
 		}
-		s.factoryEventR(r, book.ProjectID.Int64, "build.started", fmt.Sprintf("book %d, %s%s", bid, format, left))
+		s.factoryEventR(r, book.ProjectID.Int64, "build.started", fmt.Sprintf("book %d, %s %s%s", bid, kind, format, left))
 	}
 
 	// Run conversion in background; tell the caller's machine when it lands.
@@ -380,7 +424,7 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	jsonOK(w, map[string]any{
-		"status": "converting", "format": format, "book_id": bid,
+		"status": "converting", "format": format, "kind": kind, "book_id": bid,
 		"status_url": fmt.Sprintf("/api/books/%d", bid),
 	})
 }
@@ -394,6 +438,7 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 type buildStatusOutput struct {
 	ID          int64     `json:"id"`
 	Format      string    `json:"format"`
+	Kind        string    `json:"kind"` // proof | final
 	SizeBytes   int64     `json:"size_bytes"`
 	CreatedAt   time.Time `json:"created_at"`
 	DownloadURL string    `json:"download_url"`
@@ -432,7 +477,7 @@ func (s *Server) buildStatusFor(ctx context.Context, bid int64) (*buildStatus, e
 	}
 	for _, row := range rows {
 		st.Outputs = append(st.Outputs, buildStatusOutput{
-			ID: row.ID, Format: row.OutputFormat, SizeBytes: row.SizeBytes.Int64, CreatedAt: row.CreatedAt,
+			ID: row.ID, Format: row.OutputFormat, Kind: row.Kind, SizeBytes: row.SizeBytes.Int64, CreatedAt: row.CreatedAt,
 			DownloadURL: fmt.Sprintf("/api/books/%d/outputs/%d/download", bid, row.ID),
 		})
 	}
@@ -552,6 +597,27 @@ func redactURL(raw string) string {
 // epubOutputsKept is how many EPUB outputs a book keeps; older ones are
 // pruned so repeated builds don't fill the outputs table.
 const epubOutputsKept = 10
+
+// Build kinds (punch list 0.28). A proof is free and stamped; a final costs
+// a credit and is clean. Finals are never pruned — they are what the pass
+// bought. Proof PDFs are kept to proofOutputsKept per book.
+const (
+	buildKindProof   = "proof"
+	buildKindFinal   = "final"
+	proofOutputsKept = 5
+	proofRateLimit   = 30 // proofs per project per rolling 24 h
+)
+
+// proofStampLine is the text a proof PDF carries along the foot of every
+// page and on the copyright page. Built here (not in Typst) so the clock and
+// the wording live in one place.
+func proofStampLine(title string, at time.Time) string {
+	title = strings.TrimSpace(title)
+	if title == "" {
+		title = "Untitled"
+	}
+	return fmt.Sprintf("PROOF · %s · built %s UTC · not for print", title, at.UTC().Format("2 Jan 2006 15:04"))
+}
 
 // maxConcurrentBuilds is the global build cap; see Server.buildSem.
 const maxConcurrentBuilds = 2
@@ -778,12 +844,14 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 
 	// Step 3: typst compile the generated full document.
 	pdfPath := filepath.Join(tmpDir, "output.pdf")
-	typstCmd := exec.Command("typst", "compile",
-		"--root", "/",
-		"--font-path", fontsDirPath(),
-		typPath,
-		pdfPath,
-	)
+	typstArgs := []string{"compile", "--root", "/", "--font-path", fontsDirPath()}
+	if book.BuildKind == buildKindProof {
+		// The template reads sys.inputs.proof and draws it on every page and
+		// on the copyright page (series-template.typ, PROOF STAMP).
+		typstArgs = append(typstArgs, "--input", "proof="+proofStampLine(book.Title, start))
+	}
+	typstArgs = append(typstArgs, typPath, pdfPath)
+	typstCmd := exec.Command("typst", typstArgs...)
 	typstCmd.Dir = tmpDir
 	if out, err := typstCmd.CombinedOutput(); err != nil {
 		keepDir = true
@@ -808,9 +876,13 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 		SourceFilename:      book.SourceFilename,
 		SpecSnapshot:        nullStringFrom(specSnapshot),
 		CorrectionsSnapshot: nullStringFrom(correctionsSnapshot),
+		Kind:                buildKindOf(book),
 	}); err != nil {
 		s.failConversion(bid, "store pdf: "+err.Error())
 		return
+	}
+	if book.BuildKind == buildKindProof {
+		s.pruneProofPDFs(ctx, bid)
 	}
 	// Step 4: the EPUB, when this is a "both" build. It runs inline — the
 	// book stays "converting" until every artifact exists, which is what the
@@ -883,8 +955,8 @@ func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book, 
 }
 
 // runEPUBBuild is the EPUB-only build (format "epub"): no pandoc→typst, no
-// typst compile, about a second. It costs a build credit like any other
-// build, so a failure goes through failConversion and is refunded.
+// typst compile, about a second. Since 0.28 it is always a proof (free), so
+// a failure goes through failConversion but there is nothing to refund.
 func (s *Server) runEPUBBuild(bid int64, book dbgen.Book) {
 	start := time.Now()
 	q := dbgen.New(s.DB)
@@ -907,6 +979,24 @@ func (s *Server) runEPUBBuild(bid int64, book dbgen.Book) {
 		}
 	}
 	slog.Info("epub build complete", "id", bid, "title", book.Title, "elapsed", time.Since(start))
+}
+
+// buildKindOf is the kind to stamp on an output row: the book's in-flight
+// build kind, or final for rows created outside handleConvertBook (tests,
+// hand builds).
+func buildKindOf(book dbgen.Book) string {
+	if book.BuildKind == buildKindProof {
+		return buildKindProof
+	}
+	return buildKindFinal
+}
+
+func (s *Server) pruneProofPDFs(ctx context.Context, bid int64) {
+	if err := dbgen.New(s.DB).PruneBookOutputsByKind(ctx, dbgen.PruneBookOutputsByKindParams{
+		BookID: bid, OutputFormat: "pdf", Kind: buildKindProof, Limit: proofOutputsKept,
+	}); err != nil {
+		slog.Warn("prune proof pdfs failed", "book_id", bid, "err", err)
+	}
 }
 
 func (s *Server) pruneEPUBOutputs(ctx context.Context, bid int64) {
@@ -937,11 +1027,15 @@ func (s *Server) failConversionAt(bid int64, msg, typPath string) {
 		ErrorMsg: clip(customerMsg, 2000),
 		ID:       bid,
 	})
-	ref, err := q.GetBookProjectID(ctx, bid)
+	ref, err := q.GetBook(ctx, bid)
 	if err != nil || !ref.ProjectID.Valid {
 		return
 	}
-	s.factoryEvent(ref.ProjectID.Int64, "", "build.failed", "factory", fmt.Sprintf("book %d: %s", bid, customerMsg))
+	s.factoryEvent(ref.ProjectID.Int64, "", "build.failed", "factory", fmt.Sprintf("book %d (%s): %s", bid, buildKindOf(ref), customerMsg))
+	if ref.BuildKind == buildKindProof {
+		// Nothing was debited for a proof, so there is nothing to refund.
+		return
+	}
 	pass := s.passForProject(ctx, ref.ProjectID.Int64)
 	if pass == nil {
 		return
@@ -986,6 +1080,39 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 	}
 	ts := bookMeta.UpdatedAt.UTC().Format("20060102-1504")
 
+	// ?kind=proof|final narrows to the newest of that kind (the factory page
+	// links finals and proofs separately); without it, newest of any kind.
+	if k := r.URL.Query().Get("kind"); k == buildKindProof || k == buildKindFinal {
+		if format != "pdf" && format != "epub" {
+			jsonErr(w, "format must be pdf or epub", 400)
+			return
+		}
+		row, err := q.GetLatestBookOutputByKind(r.Context(), dbgen.GetLatestBookOutputByKindParams{
+			BookID: bid, OutputFormat: format, Kind: k,
+		})
+		if err != nil {
+			jsonErr(w, fmt.Sprintf("no %s %s yet", k, strings.ToUpper(format)), 404)
+			return
+		}
+		ct, tag := "application/epub+zip", ""
+		if format == "pdf" {
+			ct = "application/pdf"
+			if k == buildKindProof {
+				tag = "-PROOF"
+			}
+		}
+		filename := fmt.Sprintf("%s-%s%s.%s", sanitizeFilename(bookMeta.Title), row.CreatedAt.UTC().Format("20060102-1504"), tag, format)
+		w.Header().Set("Content-Type", ct)
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+		w.Header().Set("Content-Length", strconv.Itoa(len(row.OutputData)))
+		w.Header().Set("Cache-Control", "no-store")
+		w.Write(row.OutputData)
+		if bookRef.ProjectID.Valid {
+			s.factoryEventR(r, bookRef.ProjectID.Int64, "download", fmt.Sprintf("%s %s, book %d", k, format, bid))
+		}
+		return
+	}
+
 	switch format {
 	case "pdf":
 		row, err := q.GetBookPDF(r.Context(), bid)
@@ -997,7 +1124,11 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 			jsonErr(w, "PDF not generated yet", 404)
 			return
 		}
-		filename := fmt.Sprintf("%s-%s.pdf", sanitizeFilename(row.Title), ts)
+		tag := ""
+		if row.PdfKind.Valid && row.PdfKind.String == buildKindProof {
+			tag = "-PROOF"
+		}
+		filename := fmt.Sprintf("%s-%s%s.pdf", sanitizeFilename(row.Title), ts, tag)
 		w.Header().Set("Content-Type", "application/pdf")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		w.Header().Set("Content-Length", strconv.Itoa(len(row.PdfData)))
@@ -1087,6 +1218,7 @@ func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
 		ID                  int64     `json:"id"`
 		BookID              int64     `json:"book_id"`
 		OutputFormat        string    `json:"output_format"`
+		Kind                string    `json:"kind"`
 		SourceFilename      string    `json:"source_filename"`
 		SizeBytes           int64     `json:"size_bytes"`
 		CreatedAt           time.Time `json:"created_at"`
@@ -1099,6 +1231,7 @@ func (s *Server) handleListBookOutputs(w http.ResponseWriter, r *http.Request) {
 			ID:             row.ID,
 			BookID:         row.BookID,
 			OutputFormat:   row.OutputFormat,
+			Kind:           row.Kind,
 			SourceFilename: row.SourceFilename,
 			SizeBytes:      row.SizeBytes.Int64, // length() of a NOT NULL blob; sqlc types it nullable
 			CreatedAt:      row.CreatedAt,
@@ -1154,7 +1287,11 @@ func (s *Server) handleDownloadBookOutput(w http.ResponseWriter, r *http.Request
 	case "epub":
 		ct = "application/epub+zip"
 	}
-	filename := fmt.Sprintf("%s-%s.%s", sanitizeFilename(bookMeta.Title), ts, ext)
+	tag := ""
+	if row.Kind == buildKindProof && row.OutputFormat == "pdf" {
+		tag = "-PROOF"
+	}
+	filename := fmt.Sprintf("%s-%s%s.%s", sanitizeFilename(bookMeta.Title), ts, tag, ext)
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	w.Header().Set("Content-Length", strconv.Itoa(len(row.OutputData)))

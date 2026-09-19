@@ -115,6 +115,23 @@
 #let config = default-config
 
 // =============================================================================
+// PROOF STAMP
+// =============================================================================
+
+// A proof build (punch list 0.28) is compiled with `--input proof="PROOF · Title
+// · built … · not for print"`. The line runs in small mono along the foot of
+// every page, below the drop folio, and again on the copyright page — so a
+// proof cannot be mistaken for a final even when one page is photographed.
+// Absent input (a final, or a hand compile) → nothing is drawn.
+#let proof-line = sys.inputs.at("proof", default: none)
+
+#let proof-stamp() = {
+  if proof-line == none or proof-line == "" { return }
+  place(bottom + center, dy: -11pt,
+    text(font: config.code-font, size: 6pt, fill: luma(45%), tracking: 0.04em, proof-line))
+}
+
+// =============================================================================
 // PAGE SETUP
 // =============================================================================
 
@@ -656,6 +673,10 @@
   }
   let printed = fm-get(fm, "printed-in")
   if printed != none { parbreak(); printed }
+  if proof-line != none and proof-line != "" {
+    parbreak()
+    text(font: config.code-font, size: 0.9em)[#proof-line]
+  }
 }
 
 // Contents — recto, after any dedication / epigraph (Chicago order). Emitted
@@ -868,6 +889,7 @@
     ),
     header: running-header(),
     footer: drop-folio-footer(),
+    background: proof-stamp(),
   )
   
   // Base typography - JUSTIFIED text (matches original)

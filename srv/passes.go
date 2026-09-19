@@ -1256,10 +1256,15 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 // runConversion once the artifact is stored. Runs on the conversion goroutine,
 // which has already outlived the request.
 //
-// format is "pdf", "epub" or "both" — the receipt names what was made, and
-// only counted (print) builds move the "builds remaining" line.
+// format is "pdf", "epub" or "both" — the receipt names what was made.
+//
+// Only finals get a receipt (punch list 0.28). Proofs are free and unlimited,
+// the factory page is live while one runs, and a mail per proof would be
+// noise — so a proof build sends nothing and is only logged as a factory
+// event. The final's links carry ?kind=final so they can never resolve to a
+// newer proof.
 func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book, format string) {
-	if pass.CustomerEmail == "" {
+	if pass.CustomerEmail == "" || book.BuildKind == buildKindProof {
 		return
 	}
 	if s.Email == nil {
@@ -1273,8 +1278,8 @@ func (s *Server) sendBuildDeliveredEmail(pass dbgen.Pass, book dbgen.Book, forma
 	}()
 
 	base := strings.TrimRight(s.BaseURL, "/")
-	pdfURL := fmt.Sprintf("%s/api/books/%d/download/pdf", base, book.ID)
-	epubURL := fmt.Sprintf("%s/api/books/%d/download/epub", base, book.ID)
+	pdfURL := fmt.Sprintf("%s/api/books/%d/download/pdf?kind=final", base, book.ID)
+	epubURL := fmt.Sprintf("%s/api/books/%d/download/epub?kind=final", base, book.ID)
 	reportURL := fmt.Sprintf("%s/api/projects/%d/preflight/report?book_id=%d", base, pass.ProjectID, book.ID)
 	credits := passCreditsRemaining(pass)
 	total := pass.BuildsIncluded + pass.BuildsExtra
@@ -1357,9 +1362,9 @@ func buildDeliveredNoun(format string) string {
 	case "epub":
 		return "EPUB ready"
 	case "pdf":
-		return "Print PDF ready"
+		return "Final print PDF ready"
 	}
-	return "Build ready"
+	return "Final files ready"
 }
 
 func buildDeliveredWhat(format string) string {
@@ -1385,7 +1390,7 @@ func buildDeliveredText(pass dbgen.Pass, book dbgen.Book, format, pdfURL, epubUR
 	if format == "both" {
 		fmt.Fprintf(&t, "Read the EPUB first: it's the quickest way to see how the machine\nunderstood your file. Then check the print PDF.\n\n")
 	}
-	fmt.Fprintf(&t, "Builds remaining: %d of %d.\n\n", credits, total)
+	fmt.Fprintf(&t, "This was a final: a clean print PDF, no proof footer.\nFinals remaining: %d of %d. Proofs are free and unlimited.\n\n", credits, total)
 	fmt.Fprintf(&t, "Sign in to your factory with the client password from your welcome email.\n\n")
 	fmt.Fprintf(&t, "The deliverable is a correctly typeset %s of the manuscript as it\n", buildDeliveredWhat(format))
 	fmt.Fprintf(&t, "conforms to your transmittal. Preflight tells you what doesn't conform.\n\n")
@@ -1410,7 +1415,7 @@ func buildDeliveredHTML(pass dbgen.Pass, book dbgen.Book, format, pdfURL, epubUR
 	if format == "both" {
 		hb.WriteString(emailP("Read the EPUB first: it&rsquo;s the quickest way to see how the machine understood your file. Then check the print PDF."))
 	}
-	hb.WriteString(emailP(fmt.Sprintf("<b>Builds remaining: %d of %d.</b>", credits, total)))
+	hb.WriteString(emailP(fmt.Sprintf("This was a final: a clean print PDF, no proof footer. <b>Finals remaining: %d of %d.</b> Proofs are free and unlimited.", credits, total)))
 	hb.WriteString(emailSmall("Sign in to your factory with the client password from your welcome email."))
 	hb.WriteString(emailSmall(fmt.Sprintf("The deliverable is a correctly typeset %s of the manuscript as it conforms to your transmittal. Preflight tells you what doesn&rsquo;t conform.", buildDeliveredWhat(format))))
 	hb.WriteString(emailSignoff())

@@ -276,6 +276,7 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 		SourceFilename:      book.SourceFilename,
 		SpecSnapshot:        nullStringFrom(specSnapshot),
 		CorrectionsSnapshot: nullStringFrom(correctionsSnapshot),
+		Kind:                buildKindOf(book),
 	}); err != nil {
 		return fmt.Errorf("store epub: %w", err)
 	}

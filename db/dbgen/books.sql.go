@@ -14,7 +14,7 @@ import (
 const createBook = `-- name: CreateBook :one
 INSERT INTO books (title, author, series, source_filename, source_data, project_id, status, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, 'uploaded', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id
+RETURNING id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id, build_kind
 `
 
 type CreateBookParams struct {
@@ -48,6 +48,7 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ProjectID,
+		&i.BuildKind,
 	)
 	return i, err
 }
@@ -62,7 +63,7 @@ func (q *Queries) DeleteBook(ctx context.Context, id int64) error {
 }
 
 const getBook = `-- name: GetBook :one
-SELECT id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id FROM books WHERE id = ?
+SELECT id, title, author, series, source_filename, source_data, status, error_msg, created_at, updated_at, project_id, build_kind FROM books WHERE id = ?
 `
 
 func (q *Queries) GetBook(ctx context.Context, id int64) (Book, error) {
@@ -80,6 +81,7 @@ func (q *Queries) GetBook(ctx context.Context, id int64) (Book, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ProjectID,
+		&i.BuildKind,
 	)
 	return i, err
 }
@@ -107,7 +109,7 @@ func (q *Queries) GetBookEPUB(ctx context.Context, id int64) (GetBookEPUBRow, er
 }
 
 const getBookPDF = `-- name: GetBookPDF :one
-SELECT b.id, b.title, o.output_data AS pdf_data
+SELECT b.id, b.title, o.output_data AS pdf_data, o.kind AS pdf_kind
 FROM books b
 LEFT JOIN book_outputs o ON o.book_id = b.id AND o.output_format = 'pdf'
 WHERE b.id = ?
@@ -119,12 +121,18 @@ type GetBookPDFRow struct {
 	ID      int64
 	Title   string
 	PdfData []byte
+	PdfKind sql.NullString
 }
 
 func (q *Queries) GetBookPDF(ctx context.Context, id int64) (GetBookPDFRow, error) {
 	row := q.db.QueryRowContext(ctx, getBookPDF, id)
 	var i GetBookPDFRow
-	err := row.Scan(&i.ID, &i.Title, &i.PdfData)
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.PdfData,
+		&i.PdfKind,
+	)
 	return i, err
 }
 
@@ -254,6 +262,20 @@ UPDATE books SET updated_at = CURRENT_TIMESTAMP WHERE id = ?
 
 func (q *Queries) TouchBook(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, touchBook, id)
+	return err
+}
+
+const updateBookBuildKind = `-- name: UpdateBookBuildKind :exec
+UPDATE books SET build_kind = ? WHERE id = ?
+`
+
+type UpdateBookBuildKindParams struct {
+	BuildKind string
+	ID        int64
+}
+
+func (q *Queries) UpdateBookBuildKind(ctx context.Context, arg UpdateBookBuildKindParams) error {
+	_, err := q.db.ExecContext(ctx, updateBookBuildKind, arg.BuildKind, arg.ID)
 	return err
 }
 

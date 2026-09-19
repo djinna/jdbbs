@@ -9,11 +9,10 @@ import (
 	dbgen "srv.exe.dev/db/dbgen"
 )
 
-// TestEPUBOnlyBuildCostsACredit: an EPUB-only build (format=epub) is a
-// build like any other — it debits one credit, is refused with 402 once the
-// pass is out of credits — and the book keeps only the newest
-// epubOutputsKept EPUB outputs.
-func TestEPUBOnlyBuildCostsACredit(t *testing.T) {
+// TestEPUBOnlyBuildIsAFreeProof: an EPUB-only build (format=epub) is a
+// proof by construction (0.28) — free, never debited — and the book keeps
+// only the newest epubOutputsKept EPUB outputs.
+func TestEPUBOnlyBuildIsAFreeProof(t *testing.T) {
 	s, ts, cleanup := testServer(t)
 	defer cleanup()
 
@@ -75,8 +74,10 @@ func TestEPUBOnlyBuildCostsACredit(t *testing.T) {
 		_, _ = s.DB.Exec(`UPDATE books SET status = 'uploaded' WHERE id = ?`, bookID)
 	}
 
-	if n := countLedger(t, s, pass.ID, "build"); n != epubOutputsKept+2 {
-		t.Fatalf("epub builds wrote %d debit rows, want %d", n, epubOutputsKept+2)
+	// Since 0.28 an EPUB-only build is a proof by construction: free, never
+	// debited. The pruning cap still applies.
+	if n := countLedger(t, s, pass.ID, "build"); n != 0 {
+		t.Fatalf("epub builds wrote %d debit rows, want 0 (epub-only builds are free proofs)", n)
 	}
 	var kept int
 	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM book_outputs WHERE book_id = ? AND output_format = 'epub'`, bookID).Scan(&kept); err != nil {
@@ -86,15 +87,26 @@ func TestEPUBOnlyBuildCostsACredit(t *testing.T) {
 		t.Fatalf("kept %d epub outputs, want %d", kept, epubOutputsKept)
 	}
 
-	// Credits are now exhausted: an EPUB-only build is a 402 like any other.
-	req, _ := http.NewRequest("POST", ts.URL+"/api/books/"+itoa(bookID)+"/convert", strings.NewReader(`{"format":"epub"}`))
-	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(cookie)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
+	// With every credit spent, an EPUB-only build still runs (it is free);
+	// a final is the thing that gets a 402.
+	if _, err := s.DB.Exec(`UPDATE passes SET builds_used = builds_included WHERE id = ?`, pass.ID); err != nil {
 		t.Fatal(err)
 	}
-	if resp.StatusCode != http.StatusPaymentRequired {
-		t.Fatalf("epub build with no credits: expected 402, got %d", resp.StatusCode)
+	post := func(body string) int {
+		req, _ := http.NewRequest("POST", ts.URL+"/api/books/"+itoa(bookID)+"/convert", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(cookie)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	if code := post(`{"format":"both","kind":"final"}`); code != http.StatusPaymentRequired {
+		t.Fatalf("final with no credits: expected 402, got %d", code)
+	}
+	if code := post(`{"format":"epub"}`); code != 200 {
+		t.Fatalf("epub build with no credits: expected 200 (free proof), got %d", code)
 	}
 }

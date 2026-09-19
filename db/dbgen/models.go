@@ -29,6 +29,7 @@ type Book struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	ProjectID      sql.NullInt64
+	BuildKind      string
 }
 
 type BookOutput struct {
@@ -40,6 +41,7 @@ type BookOutput struct {
 	CreatedAt           time.Time
 	SpecSnapshot        sql.NullString
 	CorrectionsSnapshot sql.NullString
+	Kind                string
 }
 
 type BookSpec struct {
@@ -58,6 +60,7 @@ type Client struct {
 	PasswordHash string
 	CreatedAt    time.Time
 	CohortSlug   string
+	Email        string
 }
 
 type ContentReviewItem struct {
@@ -142,6 +145,16 @@ type EventRegistration struct {
 	LastEmailedAt    sql.NullTime
 }
 
+type FactoryEvent struct {
+	ID         int64
+	CreatedAt  time.Time
+	ProjectID  sql.NullInt64
+	ClientSlug string
+	Kind       string
+	Actor      string
+	Detail     string
+}
+
 type FileLog struct {
 	ID           int64
 	ProjectID    int64
@@ -176,6 +189,17 @@ type Journal struct {
 	EntryType string
 	Content   string
 	CreatedAt time.Time
+}
+
+type LoginLink struct {
+	ID         int64
+	ClientSlug string
+	TokenHash  string
+	Email      string
+	CreatedAt  time.Time
+	ExpiresAt  time.Time
+	UsedAt     sql.NullTime
+	Ip         string
 }
 
 type ManuscriptPreflight struct {
@@ -254,6 +278,31 @@ type Project struct {
 	ClientSlug  string
 	ProjectSlug string
 	ArchivedAt  sql.NullTime
+}
+
+type ProjectStylesheet struct {
+	ProjectID int64
+	BookKind  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type ProjectStylesheetItem struct {
+	ID         int64
+	ProjectID  int64
+	HouseID    sql.NullInt64
+	SectionOrd int64
+	Section    string
+	ItemOrd    int64
+	Kind       string
+	Col1       string
+	Col2       string
+	Col3       string
+	Body       string
+	Status     string
+	Note       string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type SitePage struct {
