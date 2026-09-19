@@ -61,7 +61,11 @@ class H(http.server.BaseHTTPRequestHandler):
             page = read(os.path.join(HERE, "page.html"), None)
             self._send(200, page.replace("{{BODY}}", render()).encode(), "text/html; charset=utf-8")
         elif self.path.startswith("/fragment"):
-            self._send(200, render().encode(), "text/html; charset=utf-8")
+            self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            # Page script version: the page reloads itself when page.html changed under it.
+            self.send_header("X-Page-Version", str(int(os.stat(os.path.join(HERE, "page.html")).st_mtime)))
+            body = render().encode(); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
         elif self.path.startswith("/notes"):
             self._send(200, read(NOTES, {}))
         elif self.path.startswith("/img/"):
