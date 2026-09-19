@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 15:28 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 15:42 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -38,7 +38,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
 ## 1 · This weekend — ME (from list 2, decided)
 
-- [~] 0.17 **One-page factory (C)** — transmittal becomes section 1 of `/{client}/{project}/factory/`; step strip = in-page anchors; finish button “Continue to 2 · Upload →”; transmittal URL redirects; TRANSMITTAL leaves the top nav. Comps `comp-017-C-*`. Fresh session, plan first.
+- [x] 0.17 **One-page factory (C)** — transmittal becomes section 1 of `/{client}/{project}/factory/`; step strip = in-page anchors; finish button “Continue to 2 · Upload →”; transmittal URL redirects; TRANSMITTAL leaves the top nav. Comps `comp-017-C-*`. Fresh session, plan first.
 
   > **jenna** · 2026-09-19 14:39 UTC  
   > "CONTINUE TO THE FACTORY →" on our ms transmittal is part of what's confusing -- the transmittal is part of the factory. It's the first part of the factory flow.
@@ -64,6 +64,18 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **jenna** · 2026-09-19 14:55 UTC  
   > Good notes, I think we just bite the bullet and do C now.
+
+  > **shelley** · 2026-09-19 15:35 UTC  
+  > Landed and deployed (72c4214). The transmittal is now section 1 of the factory page: `// 1 · TRANSMITTAL [DRAFT|FINAL] · autosaves as you edit` with History · Print · Word template ↓ · Mark Final/Return to draft on the right (Duplicate and Email show for admin only). Finish block reads “Continue to 2 · Upload →” and scrolls to step 2; the step strip mirrors the status live (1 current while draft, ✓ once final). Old `/transmittal/` links 302 to `…/factory/#transmittal`, emails/portal/admin links follow, TRANSMITTAL is out of the top nav. Steps 2–5 unchanged.
+  >
+  > Checked: draft state (pinstitute/perception), Mark Final ↔ Return to draft (mcheck), Print (section 1 only), History panel, redirect landing, customer sign-in gate → mount (magic link, mcheck), 390 px mobile. Screenshots below.
+  >
+  > ![desktop](/img/017-one-factory-live.png)
+  > ![mobile](/img/017-one-factory-mobile.png)
+  >
+  > ![screenshot](img/017-one-factory-live.png)
+  >
+  > ![screenshot](img/017-one-factory-mobile.png)
 
 - [x] 0.8 **Typography sampler** (part 1 of 0.8) — 3-pairing sample PDF built straight from Typst + click-to-enlarge chips under the Typeface row; helper session building; then note + tick here. Part 2 (defaults, “Your own” break mark) is live.
 
@@ -96,13 +108,16 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 15:13 UTC  
   > 1/ Sampler live. On the transmittal, under Typeface: three small page previews (Open Classic · Studio House · Literary), same chapter set three ways; click one to enlarge, or “Download the full sampler (PDF)” — 20 pages, 6×9, built straight from Typst (typesetting/scripts/build-sampler.sh, fonts subset-embedded only). All three parts of 0.8 done → ticked.
 
-- [~] 5.20 **Typst 0.13 upgrade on the VM** — today (Jenna, 19 Sep) after 0.17: side-by-side build, swap binary keeping 0.12 for rollback, factory smoke; unlocks `par(costs:)` for 5.5
+- [x] 5.20 **Typst 0.13 upgrade on the VM** — today (Jenna, 19 Sep) after 0.17: side-by-side build, swap binary keeping 0.12 for rollback, factory smoke; unlocks `par(costs:)` for 5.5
 
   > **jenna** · 2026-09-19 15:12 UTC  
   > why post workshop? let's do it today?
 
   > **shelley** · 2026-09-19 15:13 UTC  
   > No technical reason — it was parked for the freeze (swapping the typesetting engine two days before attendees build). Just checked: the 0.13.1 binary already on the VM compiles Ghosts with no warnings, same 117 pages as 0.12. So yes, today: after 0.17 lands I'll (1) build the last pinstitute book with 0.13 side by side and diff page counts + text, (2) swap the binary keeping 0.12 as `typst-0.12` for a one-line rollback, (3) run the factory smoke. If the diff shows anything odd I'll stop and show you. Moving 5.20 to §1.
+
+  > **shelley** · 2026-09-19 15:39 UTC  
+  > Done. `/usr/local/bin/typst` is now 0.13.1; the old binary is kept as `/usr/local/bin/typst-0.12` (rollback = `sudo cp -p /usr/local/bin/typst-0.12 /usr/local/bin/typst`, no restart needed — the server calls `typst` per build). Checked: `typst fonts` lists the same 59 families; Ghosts compiles to the same 117 pages; `go test ./srv/` green (pipeline tests included); live factory rebuild of the mcheck smoke book → ready, 17 pp, PDF says Creator: Typst 0.13.1, EPUB fine. I smoked on mcheck rather than pinstitute: Obliquities has 1 of 3 builds left and a rebuild would have spent it. (mcheck is now 2 of 3.) Next: 5.5 — `par(costs:)` runt control in the series template + sampler rebuild.
 
 
 ## 2 · Your side — YOU
@@ -173,7 +188,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > Notes for Jenna
   >  - "thirty years" and "one-person" in the last paragraph are placeholders for whatever is true; cut the sentence if you'd rather not do biography here. - "thirteen named paragraph styles" is true as of today (Signature and Glossary Entry added 2026-09-18). If the count changes, this line and the colophon change with it. - "in seconds" — a full build of a 250-page book is ~9 s on the VM; true. - The page is ~490 words; at 6 × 9 it fills one recto with air. If you want it on one page in Small trim, cut paragraph 4 (Inspect) to two sentences. - Suggested placement: last page of back matter, after About the Author, so the book ends on the author and then the maker.
 
-- [~] 5.5 P3 **H&J / composition quality** in the print PDF — Typst 0.12 levers checked, nothing to change before Monday; scorer in `typesetting/scripts/compscore.py`; runts need Typst 0.13 `costs` (Wed 24+); still to do: compare against an InDesign-set page (YOU supply)
+- [~] 5.5 P3 **H&J / composition quality** in the print PDF — Typst 0.12 levers checked, nothing to change before Monday; scorer in `typesetting/scripts/compscore.py`; runts need Typst 0.13 `costs` (Wed 24+); still to do: compare against an InDesign-set page (YOU supply) — **19 Sep:** VM on Typst 0.13.1, `costs: (runt: 200%, hyphenation: 70%)` shipped in the series template, sampler rebuilt; scores on the note. Open: InDesign page comparison.
 
   > **shelley** · 2026-09-18 14:11 UTC  
   > Scorer landed: `python3 typesetting/scripts/compscore.py book.pdf --list` counts loose lines, runts, widows/orphans, hyphen runs, stacks and rivers per book. Ghosts today: 27 loose, 42 runts, 0 widows/orphans, ~90 rivers over 2395 lines.
@@ -188,6 +203,20 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **shelley** · 2026-09-19 15:17 UTC  
   > Agreed — with no real projects yet the reflow is free, so 0.13 goes in today (5.20) and 5.5 gets its lever. Plan when I get there (after 0.17): swap to 0.13.1; add the runt/widow `costs` setting to the series template (0.13-only syntax, so it lands with the swap); rebuild the sampler with 0.13 and run compscore on both versions of the sampler pages + Ghosts so you can see the before/after numbers on the same pages; sampler PNGs/PDF on the transmittal get regenerated from the 0.13 build so what customers see is what the factory now sets. I'll post the scores here.
+
+  > **shelley** · 2026-09-19 15:42 UTC  
+  > Scores are in (`compscore.py`, Ghosts 117 pp / 3,109 body lines). 0.12 → 0.13 alone changes nothing: identical counts, same 117 pages. The new `costs` knob is what moves things:
+  >
+  > | build | loose | runts | widows | hyph×3 | rivers |
+  > |---|---|---|---|---|---|
+  > | 0.12 = 0.13 default | 525 | 145 | 23 | 0 | 102 |
+  > | runt 200% | 546 | 129 | 23 | 0 | 100 |
+  > | **runt 200% + hyphenation 70%** (shipped) | 485 | 128 | 23 | 1 | 110 |
+  > | runt 200% + hyphenation 50% | 443 | 128 | 23 | 3 | 117 |
+  >
+  > So: 12% fewer single-word last lines and 8% fewer loose lines, at the price of one three-in-a-row hyphen stack in the whole book. Pushing hyphenation cheaper (50%) buys more even spacing but stacks hyphens 3× and adds rivers, so I stopped at 70%. Widows didn't move — Typst already guards them; the 23 the scorer counts are two-line paragraphs it can't help.
+  >
+  > Sampler rebuilt under 0.13.1 with the new costs: runts 20 → 14, loose 18 → 16; chips/pages/PDF regenerated and deployed (page-house looks clean — no runts on the sample page). Commit on GitHub. The knob is `costs:` in the series-template config, so it can be tuned per book if one fights it. Still open on this item: your InDesign-set page for comparison.
 
 - [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag, per `docs/reviews/TYPESAFE-REVIEW-2026-09-18.md` (agreed 2026-09-18; post-workshop)
 - [~] 5.13 Index as a factory add-on — listed as coming soon on /factory; phase 1 (Typst index piece, LLM drafting, anchoring) running in parallel on branch `index-addon` (brief `scratch/briefs/index-addon-2026-09-19.md`); phase 2 UI after 0.17 — per `docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md`

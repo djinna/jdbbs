@@ -12,7 +12,7 @@
 #   typesetting/scripts/build-sampler.sh            # from anywhere
 #   SAMPLER_MS=path/to/manuscript.typ …             # other source text
 #
-# Needs: go, typst ≥0.12, pdfunite, pdftoppm (poppler). Optional: pngquant /
+# Needs: go, typst ≥0.13, pdfunite, pdftoppm (poppler). Optional: pngquant /
 # optipng (used if present).
 #
 # Source text: one story from the Ghosts in Machines anthology as converted
