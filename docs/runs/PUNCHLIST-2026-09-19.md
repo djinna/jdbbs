@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 23:07 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 23:25 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -403,6 +403,13 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   >
   > Noted you're not frozen today. I'll start right after the compaction and post here as pieces land.
 
+  > **shelley** · 2026-09-19 23:25 UTC  
+  > Live on the factory page (mcheck smoke passed): step 4 now has **Build proof — free** (the filled button) and **Export final — uses 1 of 3** (outlined, confirm dialog); the pass line and header read "1 of 3 finals left"; step 5 lists **Final files** first, then **Latest proof**, and earlier builds are tagged Proof/Final. Proof PDFs download as `Title-…-PROOF.pdf`, carry the footer on all 17 pages + the copyright page (screenshot). Proofs: free, 30/day/project, kept 5 per book, no email; finals: debited as before, receipt says "Finals remaining". Tests green.
+  >
+  > Still to do (next session, ~1 hr): copy on /factory (What's included, Price, add-ons "+3 finals"), factory-api page + recipe script (`kind` parameter), store pack name "+3 finals", EMAIL_SYSTEM.md line, then a final export on mcheck to confirm the clean path. The index (5.13) subagent keeps running through the compaction.
+  >
+  > ![screenshot](img/028-proof-page.png)
+
 
 ## 2 · Your side — YOU
 
@@ -579,9 +586,33 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   >
   > What I need from you: read pp. 101–105 as an editor and say (a) is the *kind* of index right — conceptual, Chicago-style, with subentries and cross-refs — and (b) is it worth a SKU at all, or a studio add-on you run by hand? Nothing further this weekend either way; the branch waits post-workshop.
 
+  > **jenna** · 2026-09-19 23:16 UTC  
+  > your work on the index looks really amazing, and I don't know why we wouldn't add it on now as a $100 add-on. Let's get rid of the letters that precede each section, though, and you already noticed a couple of things that you would fix before pushing it. Note that it should be free for the workshop, which is fine, right, since we're still only using the test Stripe integration.
+
+  > **shelley** · 2026-09-19 23:17 UTC  
+  > Great — going ahead. Plan for 5.13 → live before Monday:
+  >
+  > 1. **Polish on the branch** (now, subagent): drop the A/B/C letter heads (Chicago run-in style, just a little extra space between letter groups); long code-style headings break instead of running into the gutter; prompt prunes near-duplicates and merges the reciprocal *see also* pairs.
+  > 2. **Server**: index draft stored on the book; `POST …/index/draft` (async, ~5 min), `GET/PUT …/index` for review edits; build takes `index: true` and places the markers; unmatched anchors are warnings, never failures.
+  > 3. **Store**: `Back-of-book index` SKU at **$100** (`index`, 10000¢) → entitlement on the pass, like builds. Test-mode Stripe means the workshop room "buys" it with a 4242 card and nobody pays — yes, that's fine; the only thing to remember is that when we flip to live keys the price becomes real, so I'll put a note in DEPLOY.md.
+  > 4. **Factory page**: a step between Inspect and Build — Draft (shows it takes minutes), a review list you can edit/merge/delete, and "Include the index" on the build. Simple first version; the two-pane review from the design note can follow.
+  > 5. /factory add-ons table: "Index · $100", with a sentence on what it is.
+  >
+  > Order: I'm finishing 0.28 (proof/final) on main right now; the index branch gets rebased onto that and merged tomorrow after a mcheck build with an index in it. I'll post the Ghosts sample again without the letters once step 1 lands.
+
 - [ ] 5.19 Tuned per-image grey conversion + proof sheet as a ~$100 add-on (from 5.15; post-workshop)
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
 - [ ] 5.21 Plantin MT Pro **Bold** missing on the VM (see `docs/IDEAS.md`) — YOU supply the OTF; never committed
+
+  > **jenna** · 2026-09-19 23:23 UTC  
+  > Plantin MT Pro has a number of additional weights here:
+  > https://www.myfonts.com/collections/plantin-font-monotype-imaging?tab=individualStyles&queryId=528c97356d6d7a6392092edbbe2aa71d&index=universal_search_data&objectIDs=9044565001
+  >
+  > I've wanted to keep our page design choices pretty simple to start with, but I'm also aware that it would be nice to let people choose their own typefaces. Can you look to see if MyFonts.com has an API that we could connect to and allow people to choose and purchase font licenses for themselves? This is obviously a big topic, but maybe it wouldn't be that hard. For now, just do a first scout, and let's discuss feasibility before we try to build anything. The current session is long, so add this to our work notes for after the next compaction.
+
+  > **shelley** · 2026-09-19 23:23 UTC  
+  > Noted — parked for after the next compaction, as a scout + discussion, no building. Written into the handoff (addendum 13) so it survives. Quick prior from what I already know, to be checked properly then: MyFonts (Monotype) has no public purchasing API — licences are bought through their web checkout, and the files are delivered to the buyer, so a "choose and buy from inside the factory" flow would most likely be a referral link out to MyFonts plus an upload of the purchased files back to us (with the licence type mattering: desktop vs. the server-side use our build does). Monotype Fonts (the subscription) has an API but it's for the subscriber's own apps, not resale. I'll confirm all of that and lay out the two or three realistic shapes before we discuss.
+
 
 ## 6 · Ideas log (`docs/IDEAS.md`) — BOTH decide, then queue or kill
 

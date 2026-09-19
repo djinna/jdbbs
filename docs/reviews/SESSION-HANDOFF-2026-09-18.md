@@ -299,3 +299,15 @@ Open decisions still with Jenna: 0.9A names, 0.22 follow-ups, 5.13, 5.17, 0.7, 2
 ## Addendum 13 (2026-09-20, ~00:20 UTC) — parked: 5.21 typeface choice / MyFonts
 
 Jenna (5.21): Plantin MT Pro has more weights on MyFonts (link on the item). She has kept page-design choices simple on purpose, but would like people to be able to choose their own typefaces and buy licences themselves. **Ask: first scout only — does MyFonts.com have an API we could connect to so customers choose + purchase font licences for themselves? Discuss feasibility before building anything.** Do this after the next compaction. Scope of the scout: (1) MyFonts / Monotype public APIs (purchase, catalogue, affiliate/referral), (2) licence types vs. our server-side Typst rendering (desktop vs. app/server licence — the build runs on the VM, not on the customer's machine), (3) the realistic shapes: referral-out + upload-back with a licence attestation; a curated menu of families we hold server licences for (per-book surcharge); Google-Fonts/OFL menu now as the free tier; (4) how `typesetting/fonts/licensed/README.md` and the spec's `body-font`/`heading-font` already handle a custom family. Post findings on 5.21 as a short options memo, then wait for her call.
+
+## Addendum 14 (2026-09-20, ~00:30 UTC) — compaction #4 state
+
+**0.28 Proof vs. Final — server + factory UI LANDED and live** (commits "Proof vs. Final builds (0.28), server half" and "Factory page: Build proof…"; both pushed). Smoke: mcheck book 14 proof → outputs 84/85 kind=proof, footer on every page, filename `-PROOF.pdf`, no ledger row.
+Remaining for 0.28 (do first next session):
+1. Copy: `~/jdbbs-public/factory.html` (What's included / Price / How a build works step 4 / add-ons "+3 finals"), `factory-api.html` + `scripts/factory-cli.py`/`factory-demo.sh` (`kind: proof|final`, default final, epub-only = free proof), `srv/store.go` builds-3 → "+3 finals" name/description, `srv/EMAIL_SYSTEM.md` (pathway #7: finals only), `docs/IDEAS.md`/DEPLOY if relevant. Then `git -C ~/jdbbs-public push origin main`.
+2. Final export smoke on mcheck (book 14) — confirm clean PDF, ledger debit, email text.
+3. Tick 0.28 on the punch list; export; commit docs/runs.
+
+**5.13 Index add-on — subagent `index-phase2` (conv cNVICG3) running in worktree `/home/exedev/prodcal-index`, branch `index-addon`**, brief `scratch/briefs/index-phase2-2026-09-20.md`. It will write `scratch/briefs/index-phase2-2026-09-20.REPORT.md` and edit `~/jdbbs-public/factory.html` (NOT pushed) when done. Lead's job after: review report, rebase/merge branch to main, `make build && go test ./srv/ && sudo systemctl restart prodcal`, smoke an index draft + build on mcheck, push jdbbs-public, post v2 Ghosts index images (`scratch/run/img/513-v2-*.png`) on 5.13. Jenna's asks: no letter heads, $100 SKU, free-in-test-Stripe for the workshop.
+
+**5.21 MyFonts scout** parked (addendum 13). Other open: 0.9A, 0.22, 5.17, 0.7, 2.8, 3.2/3.4, 0.10; Sunday night archive punch list 3 → 4.
