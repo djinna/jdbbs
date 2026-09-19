@@ -8,7 +8,7 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 
 FONT = "typesetting/fonts/jetbrainsmono/fonts/ttf/JetBrainsMono-%s.ttf"
-INK, ACC, PAPER, SEC, SEC_DARK = "#0E1116", "#007699", "#FFFEF6", "#5D6B76", "#8A97A1"
+INK, ACC, PAPER, SEC, SEC_DARK = "#0E1116", "#007699", "#FFFFFF", "#5D6B76", "#8A97A1"
 OUT = pathlib.Path("srv/static/brand"); OUT.mkdir(exist_ok=True)
 _fonts = {}
 def font(w):
