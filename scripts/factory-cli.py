@@ -6,7 +6,7 @@ Stdlib only; copy it into your own tooling. See docs/API-CLI-RECIPE-2026-09-19.m
   factory-cli.py --base https://jdbbs.exe.xyz --project 14 --token XXX build  ms.docx [--out dir] [--format both|pdf|epub]
   factory-cli.py --base https://jdbbs.exe.xyz --project 14 --token XXX inspect ms.docx
 
-build   = upload -> convert (one credit) -> poll until ready/error -> download outputs
+build   = upload -> convert (a proof is free; --kind final uses one credit) -> poll until ready/error -> download outputs
 inspect = upload -> preflight (free) -> print the report JSON
 """
 import argparse, json, os, sys, time, urllib.request, urllib.error, uuid
@@ -42,8 +42,9 @@ class Factory:
     def inspect(self, book_id):
         return self.call("POST", f"/api/projects/{self.project}/preflight", {"book_id": book_id})
 
-    def build(self, book_id, fmt="both", every=3):
-        self.call("POST", f"/api/books/{book_id}/convert", {"format": fmt})  # 402 = no credits, 409 = build running
+    def build(self, book_id, fmt="both", kind="proof", every=3):
+        # kind "proof": free, PROOF line on the PDF. "final": one credit, clean PDF.
+        self.call("POST", f"/api/books/{book_id}/convert", {"format": fmt, "kind": kind})  # 402 = no finals left, 409 = build running, 429 = too many proofs today
         while True:
             st = self.call("GET", f"/api/books/{book_id}")
             if st["status"] in ("ready", "error"):
@@ -68,6 +69,7 @@ def main():
     ap.add_argument("--title", help="default: file name")
     ap.add_argument("--author", default="Unknown", help="required by the API; default: Unknown")
     ap.add_argument("--format", default="both", choices=["both", "pdf", "epub"])
+    ap.add_argument("--kind", default="proof", choices=["proof", "final"], help="proof (free, stamped PDF) or final (one credit, clean PDF)")
     ap.add_argument("--out", default=".", help="where downloads go (build)")
     a = ap.parse_args()
     if not a.token:
@@ -79,7 +81,7 @@ def main():
     if a.cmd == "inspect":
         print(json.dumps(f.inspect(book), indent=2))
         return
-    st = f.build(book, a.format)
+    st = f.build(book, a.format, a.kind)
     if st["status"] != "ready":
         sys.exit(f"build failed:\n{st.get('error')}")
     print(f"build ready ({len(st['outputs'])} outputs)")

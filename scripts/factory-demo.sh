@@ -23,8 +23,8 @@ curl -s -H "$H" -X POST "$B/api/projects/$P/preflight" -H 'Content-Type: applica
 
 [[ "${2:-}" == "--build" ]] || { echo; echo "(inspect only — add --build to spend a credit)"; exit 0; }
 
-step "curl -X POST \$B/api/books/$BOOK/convert {format:both}   # one credit"
-curl -s -H "$H" -X POST "$B/api/books/$BOOK/convert" -H 'Content-Type: application/json' -d '{"format":"both"}' | jq -c .
+step "curl -X POST \$B/api/books/$BOOK/convert {format:both, kind:proof}   # free; kind:final uses one credit"
+curl -s -H "$H" -X POST "$B/api/books/$BOOK/convert" -H 'Content-Type: application/json' -d '{"format":"both","kind":"proof"}' | jq -c .
 
 step "poll \$B/api/books/$BOOK until ready"
 until curl -s -H "$H" "$B/api/books/$BOOK" | jq -e '.status=="ready" or .status=="error"' >/dev/null; do printf .; sleep 3; done; echo

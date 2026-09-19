@@ -12,7 +12,7 @@ import (
 
 const mailKindStoreAddon = "store_addon"
 
-// storeItemsSummary renders an order's items JSON as "+3 builds ×2, +6 months storage".
+// storeItemsSummary renders an order's items JSON as "+3 finals ×2, +6 months storage".
 func storeItemsSummary(itemsJSON string) string {
 	var items []struct {
 		LookupKey string `json:"lookup_key"`

@@ -37,6 +37,9 @@ func newFakeStoreStripe(t *testing.T) *fakeStoreStripe {
 			{"id": "price_s6", "lookup_key": "storage-6mo", "unit_amount": 2900, "currency": "usd", "active": true, "product": "prod_s6"},
 		}, "has_more": false})
 	})
+	mux.HandleFunc("/v1/products/", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"id": strings.TrimPrefix(r.URL.Path, "/v1/products/"), "name": "x"})
+	})
 	mux.HandleFunc("/v1/coupons/", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{"id": strings.TrimPrefix(r.URL.Path, "/v1/coupons/")})
 	})

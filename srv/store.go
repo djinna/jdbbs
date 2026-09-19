@@ -49,8 +49,8 @@ type storeItem struct {
 }
 
 var storeCatalog = []storeItem{
-	{LookupKey: "factory-pass", Name: "Factory Pass", Description: "One manuscript through the jdbb studio book factory: transmittal, generated Word template, unlimited preflight, three builds (each makes the EPUB and the print PDF), six months of storage.", Amount: 54900},
-	{LookupKey: "builds-3", Name: "+3 builds", Description: "Three more builds on the same pass, EPUB and print PDF each time.", Amount: 9900, Builds: 3},
+	{LookupKey: "factory-pass", Name: "Factory Pass", Description: "One manuscript through the jdbb studio book factory: transmittal, generated Word template, unlimited preflight and proofs, three finals (each makes the EPUB and the clean print PDF), six months of storage.", Amount: 54900},
+	{LookupKey: "builds-3", Name: "+3 finals", Description: "Three more final exports on the same pass, EPUB and clean print PDF each time. Proofs are always free.", Amount: 9900, Builds: 3},
 	{LookupKey: "storage-6mo", Name: "+6 months storage", Description: "Keeps the project rebuildable and downloadable for six more months.", Amount: 2900, Months: 6},
 }
 
@@ -147,6 +147,9 @@ func (st *store) ensureCatalog(ctx context.Context) error {
 	for _, it := range storeCatalog {
 		p, ok := found[it.LookupKey]
 		if ok && p.UnitAmount == it.Amount {
+			// Same price; keep the product's name/description in step with
+			// the code (they show on the Stripe checkout page). Best effort.
+			st.syncProductCopy(ctx, p.Product, it)
 			continue
 		}
 		// Missing, or the amount in code changed: create a new price and move
@@ -185,6 +188,32 @@ func (st *store) ensureCatalog(ctx context.Context) error {
 	st.product = found[storePassKey].Product
 	st.pricesMu.Unlock()
 	return st.ensurePromo(ctx)
+}
+
+// syncProductCopy updates a Stripe product's name/description when the
+// catalog copy in code has changed (e.g. "+3 builds" → "+3 finals", 0.28).
+// Non-fatal: a failure here only leaves stale copy on the checkout page.
+func (st *store) syncProductCopy(ctx context.Context, productID string, it storeItem) {
+	var prod struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
+	if err := st.stripe.do(ctx, http.MethodGet, "/v1/products/"+productID, nil, &prod); err != nil {
+		slog.Warn("store: read product", "lookup_key", it.LookupKey, "err", err)
+		return
+	}
+	if prod.Name == it.Name && (it.Description == "" || prod.Description == it.Description) {
+		return
+	}
+	f := stripeForm{"name": it.Name}
+	if it.Description != "" {
+		f["description"] = it.Description
+	}
+	if err := st.stripe.do(ctx, http.MethodPost, "/v1/products/"+productID, f, nil); err != nil {
+		slog.Warn("store: update product copy", "lookup_key", it.LookupKey, "err", err)
+		return
+	}
+	slog.Info("store: product copy updated", "lookup_key", it.LookupKey, "name", it.Name)
 }
 
 // ensurePromo makes sure every storePromos entry exists in Stripe: the
