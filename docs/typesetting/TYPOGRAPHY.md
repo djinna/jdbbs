@@ -389,9 +389,43 @@ Within chapters, scenes or sections divide with:
 - **Ornament**: *** or # or ˘ ˘ ˘ or fleuron. Visible at page boundaries.
 - **Number**: 2. or II. For numbered sections.
 
-**Our default**: Three breves with space: ˘ ˘ ˘
+**Our default**: white space, unless the transmittal asks for the breves
+(˘ ˘ ˘, the studio's house mark) or a fleuron (❧). See "Customer choices on
+the transmittal" below.
 
 ---
+
+## Customer choices on the transmittal
+
+Since 2026-09-19 (punch list 0.8 part 2) the transmittal's *Typography*
+section offers exactly four radio rows. Everything else — margins, running
+heads, heading sizes, leading — follows from the trim (`srv/typodefaults.go`)
+and the series design. The choices live under the transmittal's `typography`
+key, are mirrored into the book spec by `applyTypoChoices`
+(`srv/typochoices.go`) when the transmittal is pulled, and the build honours
+them in `applyTypoDefaults` / `specToTypstConfig`. Unset or older
+transmittals resolve to the first row of each.
+
+| Row | Choices (first = default) | Maps to |
+|-----|---------------------------|---------|
+| **Typeface** | Studio's choice · Open classic · Studio house · Literary | `typography.body_font` / `heading_font`: Libertinus Serif + Source Sans 3 (classic, also what "studio" resolves to) · Plantin MT Pro + Proxima Nova (house; licensed) · EB Garamond for both (literary; OFL, `typesetting/fonts/ebgaramond/`) |
+| **Text size** | Standard · Compact · Generous | multiplier ×1.0 / ×0.95 / ×1.06 on the trim-derived size, rounded to ¼ pt; leading recomputed at 1.28× from the face's cap height. On 6×9 (and 5½×8½): 10.5/13.4 · 10/12.8 · 11.25/14.4 |
+| **Section breaks** | White space · Breve · Ornament | `elements.section_break` (and `epub.section_break`): `blank` (1 em gap) · `breve` (˘ ˘ ˘) · `fleuron` (❧, from the body face or Libertinus) |
+| **Paragraphs** | Indented · Block | indented: `paragraph-indent` 1.25 em, `paragraph-spacing` = leading; block: `paragraph-indent: 0em`, `paragraph-spacing` = leading + ½ body size. First Paragraph style is unchanged either way |
+
+The transmittal shows each size's resulting pt/leading and a rough
+words-a-page figure computed from the chosen trim (chars per line × lines
+÷ 6, at 85 % line fill).
+
+Two plumbing notes from the same change: the template's module-level
+functions (running heads, title page, `#section-break`) close over the
+template module's own `config`, so the build now writes a copy of
+`series-template.typ` into the work dir with the spec's merged config bound
+at module level (`writeSpecialisedTemplate`, `srv/books.go`) — before this,
+running heads were always Proxima Nova and section breaks always breves
+whatever the spec said. And the Lua filter now unwraps Word's unmapped
+paragraph styles ("Body Text") instead of leaving them as one `#block[…]`
+per paragraph, which had suppressed every first-line indent.
 
 ## Widows, Orphans, and Breaks
 

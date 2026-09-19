@@ -10,6 +10,18 @@ This guide provides curated typography pairings for book production, inspired by
 - **Reader-First**: All choices prioritize readability and book typography best practices
 - **Genre-Aware**: Different pairings suit different types of books
 
+## What is actually offered (2026-09-19)
+
+Of the pairings below, **three** are installed on the press and offered on
+the transmittal's Typeface row (`srv/typochoices.go`); the rest are
+reference only and their fonts are not on the VM.
+
+| Transmittal label | Text | Headings | Fonts | Notes |
+|---|---|---|---|---|
+| **Open classic** (also "Studio's choice") | Libertinus Serif | Source Sans 3 | `typesetting/fonts/libertinus`, `sourcesans` (OFL) | ≈ pairing 8 below, with Source Sans in place of Libertinus Sans |
+| **Studio house** | Plantin MT Pro | Proxima Nova | `typesetting/fonts/licensed/…` (print-only licence, not in git) | the jdbb series look. Plantin **Bold** and **Bold Italic** are not on the VM: bold body text sets in Regular (Typst does not synthesise bold). Proxima has Medium/SemiBold/Bold only, which is all the headings and running heads use. |
+| **Literary** | EB Garamond | EB Garamond | `typesetting/fonts/ebgaramond/OTF` (OFL; Regular/Medium/SemiBold/Bold + italics, from octaviopardo/EBGaramond12) | pairing 6 below |
+
 ## Standard Typography Pairings
 
 ### 1. Classic Literary
@@ -129,9 +141,9 @@ Like Vellum, we present these as themed choices:
 3. **Scholarly** (Crimson/Source Sans)
 4. **Business** (Source Serif/Sans)
 5. **Technical** (Charter/Fira)
-6. **Traditional** (EB Garamond)
+6. **Traditional** (EB Garamond) — offered as *Literary*
 7. **Friendly** (Alegreya family)
-8. **Neutral** (Libertinus family)
+8. **Neutral** (Libertinus family) — offered as *Open classic* (with Source Sans 3 headings)
 
 Authors simply pick a theme rather than individual fonts.
 
