@@ -653,7 +653,7 @@ function renderForm() {
     (isPreview || state.transmittal.status === 'final') ? null : h('p', { className: 'tx-intro' },
       'The transmittal is the mise en place for your book — the handoff record of what the book is, what’s in the file, and how it should be set, prepared before any typesetting starts. Fill in what you know; leave the rest. When it’s ready, ',
       h('b', null, 'Mark Final'),
-      ': that generates your Word template from it (the ',
+      ': that generates your authoring template from it (the ',
       h('b', null, 'Word template'),
       state.embedded ? ' link appears on the section rule above' : ' button appears above',
       ') and sends it to the studio; the build follows it. You can switch it back to Draft at any time.',
@@ -805,7 +805,7 @@ function renderHandoff() {
       ),
     ),
     state.embedded
-      ? h('a', { className: 'btn-fill', href: '#upload' }, 'Continue to 2 \u00b7 Upload \u2192')
+      ? h('a', { className: 'btn-fill', href: '#upload' }, 'Continue to 2 \u00b7 Upload ', h('span', { className: 'arrow-down', 'aria-hidden': 'true' }, '\u2193'))
       : h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →'),
   );
 }
@@ -815,14 +815,14 @@ function renderFinish() {
   return h('div', { className: 'tx-finish' },
     isFinal
       ? h('p', null, h('b', null, 'This transmittal is final.'), ' Edit anything and it autosaves; return to draft mode if you want the studio to wait.')
-      : h('p', null, h('b', null, 'That’s the whole form.'), ' Mark it final and the factory generates your Word template from it; you can return to draft mode at any time.'),
+      : h('p', null, h('b', null, 'That’s the whole form.'), ' Mark it final and the factory generates your authoring template from it; you can return to draft mode at any time.'),
     h('div', { className: 'tx-finish-acts' },
       isFinal
         ? h('button', { className: 'link-action', onClick: toggleFinal }, 'Return to draft mode')
         : null,
       isFinal
         ? (state.embedded
-            ? h('a', { className: 'btn-fill', href: '#upload' }, 'Continue to 2 \u00b7 Upload \u2192')
+            ? h('a', { className: 'btn-fill', href: '#upload' }, 'Continue to 2 \u00b7 Upload ', h('span', { className: 'arrow-down', 'aria-hidden': 'true' }, '\u2193'))
             : h('a', { className: 'btn-fill', href: factoryUrl() }, 'Continue to the Factory →'))
         : h('button', { className: 'btn-fill', onClick: toggleFinal }, 'Mark Final'),
     ),

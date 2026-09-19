@@ -1052,7 +1052,8 @@ html.dark .email-warning { background: none; }
 .tx-handoff ol code { font-family: var(--mono); font-size: 12.5px; padding: 0 3px; background: rgba(127,127,127,.12); border-radius: 3px; }
 .tx-handoff .tx-fine { color: var(--text-muted); font-size: 12.5px; }
 .tx-handoff a { color: var(--accent); }
-.tx-handoff .btn-fill { font-size: 11px; padding: 10px 16px; text-decoration: none; color: var(--fill-text); }
+.tx-handoff .btn-fill, .tx-finish-acts .btn-fill { font-size: 12px; padding: 12px 20px; text-decoration: none; color: var(--fill-text); }
+.btn-fill .arrow-down { font-size: 1.45em; line-height: 0; vertical-align: -0.12em; margin-left: 4px; }
 
 .tx-finish {
   border-top: 2px solid var(--border-strong);
