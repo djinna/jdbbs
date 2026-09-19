@@ -92,6 +92,10 @@ that flow both ways.
   thread nested under its item) and rebuilds `docs/runs/README.md` (the
   scratch dir is gitignored). Jenna reads the archive at `/admin/runs/`
   (`srv/runs.go`, renders `docs/runs/*.md` from disk, read-only).
+- Screenshots: Jenna pastes them into a note box or the New-item bar; the
+  runpage uploads to `scratch/run/img/` and the chat push carries the VM path
+  (`[screenshot: /home/exedev/prodcal/scratch/run/img/…png]`) — open it with
+  `read_image`. Export copies images into `docs/runs/img/`.
 - Small independent items ("do this in parallel") go to a subagent or a quick
   fix alongside the main block; report back on the item when landed.
 
