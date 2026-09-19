@@ -896,7 +896,7 @@
     see-also: index-text(see-also),
     sort: index-text(sort),
     locator: locator,
-  )) <index-entry>]
+  ))<index-entry>]
 }
 
 // Collapse a sorted list of (folio-int, folio-str, location) into
@@ -1000,11 +1000,13 @@
     set text(size: 0.9em)
     set par(leading: 0.4em, spacing: 0.4em)
     show: it => if ncols > 1 { columns(ncols, gutter: 1.2em, it) } else { it }
+    // Letter head sticks to its first entry so it never sits alone at the
+    // foot of a column.
     let letter = none
     for k in keys {
       let l = index-letter(k)
       if l != letter {
-        block(above: if letter == none { 0em } else { 1.1em }, below: 0.45em, breakable: false,
+        block(above: if letter == none { 0em } else { 1.1em }, below: 0.45em, sticky: true,
           text(font: config.heading-font, weight: config.h2-weight, size: 1.1em, l))
         letter = l
       }
