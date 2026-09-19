@@ -40,7 +40,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 15:44 UTC  
   > Checked 07ecd3f — one paragraph in “How it runs — who does what”: “visible part of the factory” / “programs installed on the factory’s server” reads better than the old wording, and the five canonical links (python-docx, Pandoc, Lua, Typst, EPUB3) are all correct URLs. HTML parses clean. It was already live (public docs are served from disk), and it’s now pushed to GitHub (`jdbbs-public` main = 07ecd3f). Nothing to fix. First edit through /admin/docs worked end to end — commit message and all.
 
-- [ ] 0.24 new:  ![screenshot](img/20260919-165935-359.png) the client portal section on the main landing page just feels like a distraction from the flow of the narrative. Let's look for where we should move this to. wdyt?  ·  _added Sat 17:00 UTC_
+- [~] 0.24 new:  ![screenshot](img/20260919-165935-359.png) the client portal section on the main landing page just feels like a distraction from the flow of the narrative. Let's look for where we should move this to. wdyt?  ·  _added Sat 17:00 UTC_
 
   > **shelley** · 2026-09-19 17:02 UTC  
   > Agree. The page is now a story — studio → the product → the pipeline proving it → capabilities — and a sign-in form in the middle is a side door in the living room.
@@ -56,6 +56,9 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **jenna** · 2026-09-19 17:04 UTC  
   > portal, after next compaction!
+
+  > **shelley** · 2026-09-19 17:05 UTC  
+  > Got it — /portal is first up after the compaction, then 0.25.
 
 
 ## 1 · This weekend — ME (from list 2, decided)

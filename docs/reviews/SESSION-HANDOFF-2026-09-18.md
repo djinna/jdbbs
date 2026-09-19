@@ -276,7 +276,7 @@ Landed since addendum 10 (all pushed; VM = main):
 
 **Open / next, in order:**
 1. **0.25 Word-free authoring** (Jenna's question, 17:20): is Word still the only way to kick off the factory? Friday testers had no Word; Pages renamed styles on export; Word for the web felt janky. 0.6 only listed workarounds. Do an honest survey (Docs + `[[style]]` markers as first-class path — already shipped and Inspect lists "Marked styles"; Markdown/plain-text template; a Pages-export style-name fixer in the pipeline; LibreOffice template; own browser editor), costs in fidelity/support, recommendation. Deliverable: `docs/reviews/WORD-FREE-AUTHORING-2026-09-19.md` + summary note on 0.25. Think first, patch later; nothing lands in the pipeline during the freeze without Jenna's yes.
-2. **0.24 client portal off the landing page** — proposed `/portal` page on the item; build on her yes (static page in `srv/static/`, route, `site_pages` row 048, `PUBLIC_NAV` `/#portal` → `/portal`, footer link, remove `.portal` section from landing.html; portal-form JS lives at landing.html ~569).
+2. **0.24 client portal off the landing page** — Jenna said YES to `/portal` (17:30), build it first thing after compaction (static page in `srv/static/`, route, `site_pages` row 048, `PUBLIC_NAV` `/#portal` → `/portal`, footer link, remove `.portal` section from landing.html; portal-form JS lives at landing.html ~569).
 3. 0.22 follow-ups (rename "Set password"; project-path line) if she answers.
 4. Sunday night: archive punch list 3, start Punch list 4 — Workshop.
-Waiting on Jenna: 0.9 read, 0.9A names, 0.10, 5.17, 0.7, 2.8, 3.2/3.4, 5.13 verdict, 0.24 yes.
+Waiting on Jenna: 0.9 read, 0.9A names, 0.10, 5.17, 0.7, 2.8, 3.2/3.4, 5.13 verdict.
