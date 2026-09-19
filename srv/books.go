@@ -282,11 +282,13 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	format := "both"
 	kind := buildKindFinal
 	callbackURL := ""
+	withIndex := false // back-of-book index add-on (srv/index.go)
 	if r.Body != nil && r.ContentLength != 0 {
 		var body struct {
 			Format      string `json:"format"`
 			Kind        string `json:"kind"`
 			CallbackURL string `json:"callback_url"`
+			Index       bool   `json:"index"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&body); err == nil {
 			if body.Format != "" {
@@ -296,6 +298,7 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 				kind = strings.ToLower(strings.TrimSpace(body.Kind))
 			}
 			callbackURL = strings.TrimSpace(body.CallbackURL)
+			withIndex = body.Index
 		}
 	}
 	if format != "epub" && format != "pdf" && format != "both" {
@@ -327,6 +330,15 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		var isAdmin, ok bool
 		pass, isAdmin, ok = s.requirePassAccess(w, r, book.ProjectID.Int64)
 		if !ok {
+			return
+		}
+		if withIndex && !isAdmin && !passIndexIncluded(pass) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusPaymentRequired)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error": "the back-of-book index is a $100 add-on; buy it from the factory page",
+				"addon": "index",
+			})
 			return
 		}
 		if kind == buildKindFinal && pass != nil && !isAdmin && passCreditsRemaining(*pass) <= 0 {
@@ -371,6 +383,13 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "no source file", 400)
 		return
 	}
+	if withIndex && format == "epub" {
+		withIndex = false // the EPUB has no pages to index
+	}
+	if withIndex && !indexIncludable(book.IndexStatus) {
+		jsonErr(w, "index: no draft to include yet (draft and review it in the Index step first)", 400)
+		return
+	}
 
 	// A final transmittal saved since the spec was written refreshes the
 	// spec now, so the build uses what the author (or their machine) sent
@@ -412,12 +431,16 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 				left = fmt.Sprintf("; %d final(s) left after this", passCreditsRemaining(*p))
 			}
 		}
-		s.factoryEventR(r, book.ProjectID.Int64, "build.started", fmt.Sprintf("book %d, %s %s%s", bid, kind, format, left))
+		idxNote := ""
+		if withIndex {
+			idxNote = ", with index"
+		}
+		s.factoryEventR(r, book.ProjectID.Int64, "build.started", fmt.Sprintf("book %d, %s %s%s%s", bid, kind, format, left, idxNote))
 	}
 
 	// Run conversion in background; tell the caller's machine when it lands.
 	go func() {
-		s.runConversion(bid, book, format)
+		s.runConversion(bid, book, format, withIndex)
 		if callbackURL != "" {
 			s.postBuildCallback(callbackURL, bid)
 		}
@@ -636,7 +659,9 @@ func (s *Server) acquireBuildSlot(bid int64) func() {
 }
 
 // runConversion is the build. format is "pdf", "epub" or "both".
-func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
+// withIndex places the book's reviewed index markers and turns on the
+// template's index-page() (back-of-book index add-on, srv/index.go).
+func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIndex bool) {
 	defer s.acquireBuildSlot(bid)()
 	if format == "epub" {
 		s.runEPUBBuild(bid, book)
@@ -776,6 +801,9 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 	}
 
 	configOverride, specSnapshot := s.buildTypstConfig(bid, book)
+	if withIndex {
+		configOverride = indexTypstConfig(configOverride)
+	}
 	templatePath := seriesTemplatePath()
 	if configOverride != "" {
 		// The template's module-level functions (running heads, title page,
@@ -836,6 +864,12 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 	typText = strings.ReplaceAll(typText, ")#strong[", ") #strong[")
 	typText = strings.ReplaceAll(typText, ")](", ")] (")
 	typText = strings.ReplaceAll(typText, "\n/\n", "\n#poem[/]\n")
+
+	// Step 2b: back-of-book index markers (add-on). Unmatched anchors are
+	// reported as a factory event, never a failed build.
+	if withIndex {
+		typText = s.applyIndexMarkers(bid, book, typText)
+	}
 
 	if err := os.WriteFile(typPath, []byte(typText), 0644); err != nil {
 		s.failConversion(bid, "write direct typst: "+err.Error())

@@ -80,6 +80,9 @@ type Client struct {
 	Replay  string // directory of canned responses; "" = live
 	Record  string // directory to write live responses into; "" = don't
 	Log     func(format string, a ...any)
+	// Fake answers every prompt in-process (server tests); when set, no
+	// network, replay or record.
+	Fake func(system, user string) (string, error)
 }
 
 // NewClientFromEnv reads INDEXER_LLM_URL, INDEXER_LLM_MODEL, INDEXER_LLM_REPLAY,
@@ -163,6 +166,10 @@ func promptKey(model, system, user string) string {
 // (the caller must not parse half a JSON document).
 func (c *Client) Complete(ctx context.Context, system, user string) (string, Usage, error) {
 	model := c.model()
+	if c.Fake != nil {
+		text, err := c.Fake(system, user)
+		return text, Usage{Calls: 1}, err
+	}
 	key := promptKey(model, system, user)
 	// Replay is strict (offline); Record doubles as a cache so a run that
 	// failed half-way does not pay again for the chapters it already has.

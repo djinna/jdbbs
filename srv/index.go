@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -522,20 +521,4 @@ func (s *Server) applyIndexMarkers(bid int64, book dbgen.Book, typText string) s
 		s.factoryEvent(book.ProjectID.Int64, "", "index.placed", "factory", detail)
 	}
 	return marked
-}
-
-// readIndexFlag pulls "index": true out of a convert body without consuming
-// the fields handleConvertBook parses itself.
-func readIndexFlag(body []byte) bool {
-	var v struct {
-		Index bool `json:"index"`
-	}
-	_ = json.Unmarshal(body, &v)
-	return v.Index
-}
-
-// drainBody is a tiny helper so handleConvertBook can read the body once.
-func drainBody(r io.Reader, n int64) []byte {
-	b, _ := io.ReadAll(io.LimitReader(r, n))
-	return b
 }

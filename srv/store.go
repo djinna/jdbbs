@@ -46,12 +46,14 @@ type storeItem struct {
 	Amount      int64 // cents
 	Builds      int64 // credits granted per unit
 	Months      int64 // storage months granted per unit
+	Index       bool  // grants the back-of-book index entitlement (passes.index_included)
 }
 
 var storeCatalog = []storeItem{
 	{LookupKey: "factory-pass", Name: "Factory Pass", Description: "One manuscript through the jdbb studio book factory: transmittal, generated Word template, unlimited preflight and proofs, three finals (each makes the EPUB and the clean print PDF), six months of storage.", Amount: 54900},
 	{LookupKey: "builds-3", Name: "+3 finals", Description: "Three more final exports on the same pass, EPUB and clean print PDF each time. Proofs are always free.", Amount: 9900, Builds: 3},
 	{LookupKey: "storage-6mo", Name: "+6 months storage", Description: "Keeps the project rebuildable and downloadable for six more months.", Amount: 2900, Months: 6},
+	{LookupKey: "index", Name: "Back-of-book index", Description: "A drafted, reviewable index set into the print PDF — page numbers resolved by the typesetter, true after every rebuild.", Amount: 10000, Index: true},
 }
 
 const storePassKey = "factory-pass"
@@ -486,7 +488,7 @@ func (s *Server) fulfillStoreSession(ctx context.Context, sessionID string) (*st
 	// Line items → what was bought.
 	var builds, months int64
 	var items []map[string]any
-	hasPass := false
+	hasPass, index := false, false
 	if sess.LineItems != nil {
 		for _, li := range sess.LineItems.Data {
 			it := storeItemByKey(li.Price.LookupKey)
@@ -500,6 +502,9 @@ func (s *Server) fulfillStoreSession(ctx context.Context, sessionID string) (*st
 			}
 			builds += it.Builds * li.Quantity
 			months += it.Months * li.Quantity
+			if it.Index && li.Quantity > 0 {
+				index = true
+			}
 		}
 	}
 	itemsJSON, _ := json.Marshal(items)
@@ -526,7 +531,7 @@ func (s *Server) fulfillStoreSession(ctx context.Context, sessionID string) (*st
 			Name: name, Email: email, Title: title, Author: sess.customField("author"),
 			Note:            "Stripe " + sessionID,
 			StripeSessionID: sessionID, AmountPaid: sess.AmountTotal, PromoCode: promo,
-			BuildsExtra: builds, ExtraMonths: months,
+			BuildsExtra: builds, ExtraMonths: months, IndexIncluded: index,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("fulfil pass: %w", err)
@@ -551,6 +556,11 @@ func (s *Server) fulfillStoreSession(ctx context.Context, sessionID string) (*st
 			BuildsExtra: builds, Datetime: fmt.Sprintf("+%d months", months), ID: p.ID,
 		}); err != nil {
 			return nil, fmt.Errorf("add extras: %w", err)
+		}
+		if index {
+			if err := s.grantPassIndex(ctx, q, p.ID, "purchase"); err != nil {
+				return nil, fmt.Errorf("index add-on: %w", err)
+			}
 		}
 		p, _ = q.GetPass(ctx, p.ID)
 		pass = &p

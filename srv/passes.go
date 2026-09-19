@@ -227,6 +227,7 @@ type fulfillPassInput struct {
 	PromoCode       string
 	BuildsExtra     int64 // add-ons bought in the same cart
 	ExtraMonths     int64
+	IndexIncluded   bool // back-of-book index add-on in the same cart
 }
 
 type fulfillPassResult struct {
@@ -392,6 +393,12 @@ func (s *Server) fulfillPass(ctx context.Context, source string, in fulfillPassI
 			return nil, fmt.Errorf("reload pass: %w", err)
 		}
 	}
+	if in.IndexIncluded {
+		if err := s.grantPassIndex(ctx, q, pass.ID, "purchase"); err != nil {
+			return nil, fmt.Errorf("index add-on: %w", err)
+		}
+		pass.IndexIncluded = 1
+	}
 
 	// 5) Burn the redemption and, when the redeeming email matches a workshop
 	//    registration, attribute the code to it (if not already bound).
@@ -538,6 +545,7 @@ type passStatusResponse struct {
 	CreditsRemaining int64  `json:"credits_remaining"`
 	ExpiresAt        string `json:"expires_at,omitempty"`
 	CustomerName     string `json:"customer_name,omitempty"`
+	IndexIncluded    bool   `json:"index_included"` // back-of-book index add-on
 }
 
 // handleGetProjectPass: GET /api/projects/{id}/pass — the credits/expiry badge
@@ -566,6 +574,7 @@ func (s *Server) handleGetProjectPass(w http.ResponseWriter, r *http.Request) {
 		CreditsRemaining: passCreditsRemaining(*pass),
 		ExpiresAt:        pass.ExpiresAt.UTC().Format(time.RFC3339),
 		CustomerName:     pass.CustomerName,
+		IndexIncluded:    passIndexIncluded(pass),
 	})
 }
 
@@ -767,6 +776,7 @@ type passRow struct {
 	StripeSessionID  string `json:"stripe_session_id"`
 	AmountPaid       int64  `json:"amount_paid"` // cents, after discount; 0 for coupon/admin passes
 	PromoCode        string `json:"promo_code"`
+	IndexIncluded    bool   `json:"index_included"` // back-of-book index add-on
 }
 
 func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
@@ -812,6 +822,7 @@ func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
 			StripeSessionID:  p.StripeSessionID,
 			AmountPaid:       p.AmountPaid,
 			PromoCode:        p.PromoCode,
+			IndexIncluded:    p.IndexIncluded != 0,
 		})
 	}
 	jsonOK(w, out)
