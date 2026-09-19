@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 16:51 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 17:00 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -40,6 +40,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 15:44 UTC  
   > Checked 07ecd3f — one paragraph in “How it runs — who does what”: “visible part of the factory” / “programs installed on the factory’s server” reads better than the old wording, and the five canonical links (python-docx, Pandoc, Lua, Typst, EPUB3) are all correct URLs. HTML parses clean. It was already live (public docs are served from disk), and it’s now pushed to GitHub (`jdbbs-public` main = 07ecd3f). Nothing to fix. First edit through /admin/docs worked end to end — commit message and all.
 
+- [ ] 0.24 new:  ![screenshot](img/20260919-165935-359.png) the client portal section on the main landing page just feels like a distraction from the flow of the narrative. Let's look for where we should move this to. wdyt?  ·  _added Sat 17:00 UTC_
 
 ## 1 · This weekend — ME (from list 2, decided)
 
@@ -185,7 +186,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > - "Set password" → customers sign in by magic link now; the password path is the legacy gate. I'd keep it but rename "Password gate" so it reads as the exception it is.
   > - The project-path line (http://…/snitkey/book-001/) points at the old calendar SPA root. Suggest it shows the portal URL (/snitkey/) or the factory URL instead, since those are what you'd copy for a customer.
 
-- [~] 0.23 new: I like a quiet sales approach, but burying the sales page in the factory pass link is a little bit too quiet. Thoughts?  ![screenshot](img/20260919-164909-560.png) — comps A/B/C on the item, awaiting pick
+- [x] 0.23 new: I like a quiet sales approach, but burying the sales page in the factory pass link is a little bit too quiet. Thoughts?  ![screenshot](img/20260919-164909-560.png) — comps A/B/C on the item, awaiting pick
 
   > **shelley** · 2026-09-19 16:51 UTC  
   > Agree — and it's quieter than you think: the home page is the *only* public page whose top nav doesn't say Factory (the others have Workshop · Field notes · Factory · Client portal). So from `/` the sole way in is that one underlined word in the small-print line. Also the lede still sells "shared production calendars", which we retired this week.
@@ -201,6 +202,40 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **C — B plus a product card** between the hero and the pipeline readout (what's included in four lines, the price, Redeem/Buy). That's the point where it stops being a studio page with an offer on it and becomes a storefront — I'd hold C until after the workshop and see who arrives.
   >
   > My vote: B now (hero is the one place first-timers actually look; the readout below it already proves the factory is real), C later if the workshop brings strangers. Say A/B/C and I'll build it — ten minutes.
+
+  > **jenna** · 2026-09-19 16:53 UTC  
+  > I only see one comp. What am I missing?
+
+  > **shelley** · 2026-09-19 16:54 UTC  
+  > Fair — I'd only drawn B (the other image was "now"). Here are all three, same page, same scroll:
+  >
+  > **A — nav only** (Factory Pass added first in the top nav; hero untouched)
+  > ![](/img/023-comp-A.png)
+  >
+  > **B — nav + CTA row** (buttons replace the "New here?" line; lede says book factory, not calendars)
+  > ![](/img/023-comp-B.png)
+  >
+  > **C — B + product card** between the hero and the pipeline readout (four inclusions, price, Redeem / Read more)
+  > ![](/img/023-comp-C.png)
+  >
+  > Same vote: B now, C if strangers show up after the workshop.
+
+  > **jenna** · 2026-09-19 16:57 UTC  
+  > kk I see the comps in the main thread now, but we'll remind you that we had agreed you would drop the comps in here since they're hard to find in the main flow. You only dropped partial links, which I can't click on or anything else this time.
+
+  > **jenna** · 2026-09-19 16:58 UTC  
+  > let's delete this line altogether. People will know to contact me if they have questions.
+  >
+  > ![screenshot](img/20260919-165744-259.png)
+
+  > **shelley** · 2026-09-19 17:00 UTC  
+  > Live on https://jdbbs.exe.xyz/ (c. 17:05): the card above the readout, price a third smaller (34 → 23 px), both hero buttons gone, "New here?" line gone. Factory Pass is also first in the top nav, and the lede now says book factory instead of production calendars. Stacks to one column on a phone.
+  >
+  > Sorry about the comps — you were right twice. Notes here are plain text, so my ![…] image markup showed as literal brackets; the runpage now renders those as pictures and turns URLs into links, so the earlier comps (and this one) show properly on reload. Ticking.
+  >
+  > ![screenshot](img/023-live.png)
+  >
+  > ![screenshot](img/023-live-390.png)
 
 
 ## 2 · Your side — YOU
