@@ -70,15 +70,36 @@ body {
   max-width: 62ch;
 }
 .hero .subhead em { font-style: normal; color: var(--text); }
-.hero .newhere {
-  font-size: 15.5px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  max-width: 62ch;
-  margin-top: 18px;
+
+/* ---- offer card: the one product, boxed so it reads as an object ---- */
+.offer {
+  margin: 40px 0 28px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  padding: 22px 26px;
+  align-items: center;
 }
-.hero .newhere a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--border); }
-.hero .newhere a:hover { border-bottom-color: var(--accent); }
+.offer .kicker { display: block; }
+.offer h2 { font-family: var(--mono); font-size: 20px; font-weight: 600; margin: 8px 0 10px; letter-spacing: -0.01em; }
+.offer ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 26px; font-size: 14.5px; line-height: 1.5; color: var(--text-secondary); max-width: 60ch; }
+.offer li b { color: var(--text); font-weight: 600; }
+.offer-price { text-align: right; font-family: var(--mono); }
+.offer-price .amount { font-size: 23px; font-weight: 600; line-height: 1; }
+.offer-price .per { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+.offer-actions { margin-top: 14px; display: flex; gap: 10px; justify-content: flex-end; }
+.offer-actions a { font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 14px; text-decoration: none; white-space: nowrap; }
+.offer-actions .ghost { color: var(--text); border: 1px solid var(--border-strong); font-weight: 600; }
+.offer-actions .fill { color: var(--bg); background: var(--accent); font-weight: 700; }
+.offer-actions a:hover { opacity: .85; }
+@media (max-width: 700px) {
+  .offer { grid-template-columns: 1fr; gap: 18px; padding: 18px 18px; }
+  .offer ul { grid-template-columns: 1fr; }
+  .offer-price { text-align: left; }
+  .offer-actions { justify-content: flex-start; }
+}
 
 /* ---- pipeline readout: a ruled typographic table, not a box ---- */
 .readout-head {
@@ -333,6 +354,7 @@ body {
   <header class="jdbb-masthead">
     <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
     <nav>
+      <a href="/factory">Factory&nbsp;Pass</a>
       <a href="#capabilities">Capabilities</a>
       <a href="#portal">Client&nbsp;portal</a>
       <a href="mailto:j@djinna.com" data-contact-mail>Contact</a>
@@ -351,8 +373,29 @@ body {
   <section class="hero">
     <span class="kicker">Trade paperback production</span>
     <h1>Book production, end&#8209;to&#8209;end.</h1>
-    <p class="subhead">A working studio for trade-paperback <em>typesetting</em>, manuscript <em>transmittals</em>, and shared <em>production calendars</em> &mdash; for authors, editors, and small presses.</p>
-    <p class="newhere">New here? Send a few pages and a line about the book to <a href="mailto:j@djinna.com">j@djinna.com</a>, or read about the <a href="/factory">Factory Pass</a> &mdash; one manuscript through the studio&rsquo;s book factory.</p>
+    <p class="subhead">A working studio for trade-paperback <em>typesetting</em>, manuscript <em>transmittals</em>, and a <em>book factory</em> that turns one Word file into an EPUB and a print-ready PDF &mdash; for authors, editors, and small presses.</p>
+  </section>
+
+  <!-- offer card: the one product, above the readout (punch list 0.23) -->
+  <section class="offer" aria-label="Factory Pass">
+    <div class="offer-body">
+      <span class="kicker">Product &middot; Factory Pass</span>
+      <h2>One manuscript through the book factory.</h2>
+      <ul>
+        <li><b>Transmittal</b> &mdash; your spec, trim to typeface</li>
+        <li><b>Generated Word template</b> with your styles</li>
+        <li><b>Unlimited preflights</b> &mdash; checking is free</li>
+        <li><b>3 builds</b> &mdash; EPUB + print PDF each time</li>
+      </ul>
+    </div>
+    <div class="offer-price">
+      <div class="amount">$549</div>
+      <div class="per">per manuscript &middot; 6 months</div>
+      <div class="offer-actions">
+        <a class="ghost" href="/factory#redeem">Redeem</a>
+        <a class="fill" href="/factory">Read more &rarr;</a>
+      </div>
+    </div>
   </section>
 
   <!-- pipeline readout -->

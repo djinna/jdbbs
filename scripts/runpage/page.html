@@ -66,8 +66,14 @@ function decorate(){
     const b=document.createElement('button'); b.className='nbtn'; b.textContent='note'; id.after(b);
     const n=(notes[iid]||[]); if(n.length){b.textContent=`notes ${n.length}`; b.classList.add('has');}
     const wrap=document.createElement('div'); wrap.className='notes'; wrap.style.display=n.length?'block':'none';
-    n.forEach(x=>{const d=document.createElement('div'); d.className='note '+x.who; d.innerHTML=`<span class="m">${x.who} · ${x.ts}</span>`; d.append(x.text);
-      (x.images||[]).forEach(u=>{const a=document.createElement('a'); a.href=u; a.target='_blank'; const im=document.createElement('img'); im.src=u; a.append(im); d.append(a);}); wrap.append(d);});
+    n.forEach(x=>{const d=document.createElement('div'); d.className='note '+x.who; d.innerHTML=`<span class="m">${x.who} · ${x.ts}</span>`;
+      // Note text is plain, but inline ![alt](/img/x.png) becomes an image and bare URLs / site paths become links.
+      const imgs=[...(x.images||[])];
+      const txt=x.text.replace(/!\[[^\]]*\]\((\/img\/[^)\s]+)\)/g,(m,u)=>{imgs.push(u); return '';});
+      const re=/(https?:\/\/[^\s)]+|(?:^|(?<=\s))\/(?:img|admin|factory|static|[a-z0-9-]+\/[a-z0-9-]+)[^\s)]*)/g; let last=0, mm;
+      while((mm=re.exec(txt))){ d.append(txt.slice(last,mm.index)); const a=document.createElement('a'); a.href=mm[0].startsWith('http')?mm[0]:('https://jdbbs.exe.xyz'+mm[0]); a.target='_blank'; a.textContent=mm[0]; d.append(a); last=mm.index+mm[0].length; }
+      d.append(txt.slice(last));
+      imgs.forEach(u=>{const a=document.createElement('a'); a.href=u; a.target='_blank'; const im=document.createElement('img'); im.src=u; a.append(im); d.append(a);}); wrap.append(d);});
     const rp=document.createElement('div'); rp.className='reply'; rp.style.display='none';
     const ta=document.createElement('textarea'); ta.placeholder='explanation / question for Shelley… (paste a screenshot here too)';
     const sv=document.createElement('button'); sv.className='save'; sv.textContent='Save';
