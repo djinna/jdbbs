@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Index is the index.json document: the reviewed/reviewable draft that the
@@ -181,10 +183,10 @@ Return compact JSON (no indentation, no markdown fence, no commentary) in exactl
 // MergeSystemPrompt is the cross-chapter consolidation persona.
 const MergeSystemPrompt = `You are the same indexer, now reading your draft headings from every chapter together to produce one consistent index. Return JSON only.
 
-Tasks: (1) merge synonyms and variant wordings into one canonical heading ("the pass"/"Factory Pass"; "AI"/"artificial intelligence"; singular/plural; name spelled two ways) — choose the wording a reader looks up first; (2) where a merged-away wording is one a reader might also try, keep it as a "see" cross-reference; (3) add "see also" links between related headings that are both kept; (4) if the draft is over budget, drop the weakest headings — thin ones with a single anchor and no subheadings, generic ones — until it fits. Never invent headings that are not in the draft.
+Tasks: (1) merge synonyms and variant wordings into one canonical heading ("the pass"/"Factory Pass"; "AI"/"AI systems"/"artificial intelligence"; singular/plural; name spelled two ways) — choose the wording a reader looks up first; one concept gets exactly one heading, never a cluster of near-duplicates; (2) where a heading is a narrower aspect of another kept heading and the book treats it as an aspect rather than a topic of its own ("AI mediators" under "artificial intelligence"; "automated homes" under "smart home systems"), turn it into a run-in subentry with "sub" — "as" is the subheading wording, 2–5 words, lower-case, no leading "the". Use "sub" sparingly: a named technology, character, place, institution or work that a reader would look up directly stays a heading of its own, and a broad heading should not collect more than a handful of subentries; (3) where a merged-away wording is one a reader might also try, keep it as a "see" cross-reference; (4) add "see also" links between related headings that are both kept and genuinely distinct — never in both directions between two headings that are close enough to merge (merge them instead), never from a heading to itself, never to a subheading or to a heading that is not in the draft; (5) if the draft is over budget, drop the weakest headings — thin ones with a single anchor and no subheadings, generic ones — until it fits. Never invent headings that are not in the draft.
 
 Return compact JSON (no indentation, no fence, no commentary), exactly:
-{"merge":[{"from":"heading as drafted","to":"canonical heading"}],"see":[{"heading":"synonym a reader might try","to":"canonical heading"}],"see_also":[{"heading":"…","also":"…"}],"drop":["heading","…"]}`
+{"merge":[{"from":"heading as drafted","to":"canonical heading"}],"sub":[{"from":"narrower heading as drafted","to":"broader heading","as":"subheading wording"}],"see":[{"heading":"synonym a reader might try","to":"canonical heading"}],"see_also":[{"heading":"…","also":"…"}],"drop":["heading","…"]}`
 
 type chapterReply struct {
 	Entries []struct {
@@ -198,6 +200,7 @@ type chapterReply struct {
 
 type mergeReply struct {
 	Merge   []struct{ From, To string }      `json:"merge"`
+	Sub     []struct{ From, To, As string }  `json:"sub"`
 	See     []struct{ Heading, To string }   `json:"see"`
 	SeeAlso []struct{ Heading, Also string } `json:"see_also"`
 	Drop    []string                         `json:"drop"`
@@ -276,10 +279,22 @@ func Draft(ctx context.Context, c *Client, src string, opt Options) (*Index, err
 			logf("consolidation failed, keeping per-chapter draft: %v", err)
 		}
 	}
-	idx.Entries = tidy(idx.Entries)
-	sortEntries(idx.Entries)
+	idx.Entries = Tidy(idx.Entries, func(n string) { idx.Notes = append(idx.Notes, n) })
 	idx.CostUSD = idx.Usage.CostUSD(idx.Model)
 	return idx, nil
+}
+
+// Tidy is the normalisation the draft and every reviewed edit go through:
+// cross-references resolved and made proper, invariants enforced, sorted.
+// note receives one line per silent correction (may be nil).
+func Tidy(es []Entry, note func(string)) []Entry {
+	if note == nil {
+		note = func(string) {}
+	}
+	es = tidy(mergeIdentical(es))
+	es = tidy(crossRefs(es, note))
+	sortEntries(es)
+	return es
 }
 
 // tidy enforces the invariants the Typst piece and the review UI rely on:
@@ -445,15 +460,61 @@ func consolidate(ctx context.Context, c *Client, idx *Index, logf func(string, .
 	for _, d := range rep.Drop {
 		drop[Fold(cleanHeading(d))] = true
 	}
+	// Narrower headings that become run-in subentries of a broader one.
+	// A nested subheading flattens to "as, original" (one level only).
+	type subOp struct{ to, as string }
+	subs := map[string]subOp{}
+	anchorsUnder := map[string]int{}
+	for _, e := range idx.Entries {
+		anchorsUnder[Fold(e.Heading)] += len(e.Anchors)
+	}
+	for _, s := range rep.Sub {
+		from, to, as := cleanHeading(s.From), resolve(cleanHeading(s.To)), cleanHeading(s.As)
+		if from == "" || to == "" || as == "" || Fold(from) == Fold(to) || drop[Fold(to)] {
+			continue
+		}
+		if _, renamed := rename[Fold(from)]; renamed {
+			continue
+		}
+		if _, isHeading := anchorsUnder[Fold(from)]; !isHeading {
+			continue // already a subheading, or not in the draft
+		}
+		subs[Fold(from)] = subOp{to, as}
+		idx.Notes = append(idx.Notes, fmt.Sprintf("subentry %q → %q: %s", from, to, as))
+		// A narrower heading a reader might look up directly (discussed
+		// more than once) keeps a see-reference to where it went.
+		if !shareWord(from, to) && anchorsUnder[Fold(from)] > 1 {
+			autoSee = append(autoSee, [2]string{from, to})
+		}
+	}
+	// A see/see-also target that became a subentry points at its new heading.
+	resolveSub := func(h string) string {
+		h = resolve(h)
+		if op, ok := subs[Fold(h)]; ok {
+			return op.to
+		}
+		return h
+	}
 	var out []Entry
 	dropped := 0
 	for _, e := range idx.Entries {
 		e.Heading = resolve(e.Heading)
+		if op, ok := subs[Fold(e.Heading)]; ok {
+			e.Heading = op.to
+			if e.Subheading == "" || Fold(e.Subheading) == Fold(op.as) {
+				e.Subheading = op.as
+			} else {
+				e.Subheading = op.as + ", " + e.Subheading
+			}
+			// Its see-alsos were about the narrower topic; the broader
+			// heading keeps its own.
+			e.SeeAlso = nil
+		}
 		if e.See != "" {
-			e.See = resolve(e.See)
+			e.See = resolveSub(e.See)
 		}
 		for i := range e.SeeAlso {
-			e.SeeAlso[i] = resolve(e.SeeAlso[i])
+			e.SeeAlso[i] = resolveSub(e.SeeAlso[i])
 		}
 		if drop[Fold(e.Heading)] {
 			dropped++
@@ -473,7 +534,7 @@ func consolidate(ctx context.Context, c *Client, idx *Index, logf func(string, .
 		sees = append(sees, [2]string{cleanHeading(s.Heading), cleanHeading(s.To)})
 	}
 	for _, s := range sees {
-		h, to := s[0], resolve(s[1])
+		h, to := s[0], resolveSub(s[1])
 		if h == "" || to == "" || have[Fold(h)] || !have[Fold(to)] || Fold(h) == Fold(to) {
 			continue
 		}
@@ -481,7 +542,7 @@ func consolidate(ctx context.Context, c *Client, idx *Index, logf func(string, .
 		have[Fold(h)] = true
 	}
 	for _, s := range rep.SeeAlso {
-		h, also := resolve(cleanHeading(s.Heading)), resolve(cleanHeading(s.Also))
+		h, also := resolveSub(cleanHeading(s.Heading)), resolveSub(cleanHeading(s.Also))
 		if !have[Fold(h)] || !have[Fold(also)] || Fold(h) == Fold(also) {
 			continue
 		}
@@ -493,8 +554,136 @@ func consolidate(ctx context.Context, c *Client, idx *Index, logf func(string, .
 		}
 	}
 	idx.Entries = mergeIdentical(out)
-	logf("consolidated: %d merges, %d see, %d see-also, %d drops → %d entries", len(rep.Merge), len(rep.See), len(rep.SeeAlso), len(rep.Drop), len(idx.Entries))
+	logf("consolidated: %d merges, %d subentries, %d see, %d see-also, %d drops → %d entries", len(rep.Merge), len(subs), len(rep.See), len(rep.SeeAlso), len(rep.Drop), len(idx.Entries))
 	return nil
+}
+
+// crossRefs makes the cross-references proper after consolidation (or after
+// a review edit): a see/see-also target must be a heading that exists (a
+// "heading, subheading" target is trimmed to its heading; anything else is
+// dropped with a note); and a reciprocal see-also pair whose one side is
+// thin — a single anchor, no subentries, not a proper name — is folded into
+// the other side, leaving "thin. See substantial" behind.
+func crossRefs(es []Entry, note func(string)) []Entry {
+	info := map[string]*struct {
+		heading string
+		anchors int
+		subs    int
+		lines   int
+	}{}
+	for _, e := range es {
+		k := Fold(e.Heading)
+		i, ok := info[k]
+		if !ok {
+			i = &struct {
+				heading string
+				anchors int
+				subs    int
+				lines   int
+			}{heading: e.Heading}
+			info[k] = i
+		}
+		i.anchors += len(e.Anchors)
+		if e.Subheading != "" {
+			i.subs++
+		}
+		i.lines++
+	}
+	// Resolve a target to an existing heading, or "".
+	target := func(t string) string {
+		if i, ok := info[Fold(t)]; ok {
+			return i.heading
+		}
+		// "Beeman, Darius, loneliness and isolation" → longest heading prefix.
+		parts := strings.Split(t, ",")
+		for n := len(parts) - 1; n >= 1; n-- {
+			if i, ok := info[Fold(strings.Join(parts[:n], ","))]; ok {
+				return i.heading
+			}
+		}
+		return ""
+	}
+	for i := range es {
+		e := &es[i]
+		if e.See != "" {
+			if t := target(e.See); t == "" {
+				note(fmt.Sprintf("dropped see %q → %q (no such heading)", e.Heading, e.See))
+				e.See = ""
+			} else {
+				e.See = t
+			}
+		}
+		var sa []string
+		for _, s := range e.SeeAlso {
+			t := target(s)
+			if t == "" {
+				note(fmt.Sprintf("dropped see also %q → %q (no such heading)", e.Heading, s))
+				continue
+			}
+			if Fold(t) != Fold(e.Heading) {
+				sa = appendUnique(sa, t)
+			}
+		}
+		e.SeeAlso = sa
+	}
+	// Reciprocal pairs.
+	sees := map[string]map[string]bool{}
+	for _, e := range es {
+		for _, s := range e.SeeAlso {
+			if sees[Fold(e.Heading)] == nil {
+				sees[Fold(e.Heading)] = map[string]bool{}
+			}
+			sees[Fold(e.Heading)][Fold(s)] = true
+		}
+	}
+	thin := func(k string) bool {
+		i := info[k]
+		if i == nil || i.anchors > 1 || i.subs > 0 {
+			return false
+		}
+		first, _ := utf8.DecodeRuneInString(i.heading)
+		return !unicode.IsUpper(first) // a proper name stays a heading
+	}
+	fold := map[string]string{} // thin heading (folded) → target heading
+	for a, bs := range sees {
+		for b := range bs {
+			if !sees[b][a] || a >= b {
+				continue
+			}
+			switch {
+			case thin(a) && !thin(b):
+				fold[a] = info[b].heading
+			case thin(b) && !thin(a):
+				fold[b] = info[a].heading
+			}
+		}
+	}
+	if len(fold) == 0 {
+		return es
+	}
+	var out []Entry
+	for _, e := range es {
+		if to, ok := fold[Fold(e.Heading)]; ok {
+			note(fmt.Sprintf("reciprocal see also: folded %q into %q", e.Heading, to))
+			from := e.Heading
+			e.Heading = to
+			e.SeeAlso = nil
+			out = append(out, e, Entry{Heading: from, See: to, Anchors: []Anchor{}})
+			continue
+		}
+		var sa []string
+		for _, s := range e.SeeAlso {
+			if to, ok := fold[Fold(s)]; ok {
+				s = to
+			}
+			if Fold(s) != Fold(e.Heading) {
+				sa = appendUnique(sa, s)
+			}
+		}
+		e.SeeAlso = sa
+		out = append(out, e)
+	}
+	return mergeIdentical(out)
 }
 
 // mergeIdentical joins entries with the same folded heading+subheading,

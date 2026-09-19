@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -139,5 +140,63 @@ func TestDraftReplayMissing(t *testing.T) {
 	c := &Client{Model: "m", Replay: t.TempDir()}
 	if _, err := Draft(context.Background(), c, twoChapters, Options{Book: "x", Pages: 10}); err == nil {
 		t.Fatal("expected replay miss error")
+	}
+}
+
+func TestTidyCrossRefs(t *testing.T) {
+	seq := 0
+	a := func(n int) []Anchor {
+		var as []Anchor
+		for i := 0; i < n; i++ {
+			seq++
+			as = append(as, Anchor{Chapter: 1, Text: fmt.Sprintf("anchor %d", seq)})
+		}
+		return as
+	}
+	var notes []string
+	es := Tidy([]Entry{
+		// reciprocal pair, one side thin → folded into the other, see left behind
+		{Heading: "memory optimization", SeeAlso: []string{"emotions, compression of"}, Anchors: a(2)},
+		{Heading: "emotions, compression of", SeeAlso: []string{"memory optimization"}, Anchors: a(1)},
+		// reciprocal pair, both substantial → kept (legitimate Chicago)
+		{Heading: "cognitive science", SeeAlso: []string{"neuroscience"}, Anchors: a(2)},
+		{Heading: "neuroscience", SeeAlso: []string{"cognitive science"}, Anchors: a(2)},
+		// reciprocal pair, thin side is a proper name → kept
+		{Heading: "Ting Ting", SeeAlso: []string{"artificial intelligence"}, Anchors: a(1)},
+		{Heading: "artificial intelligence", SeeAlso: []string{"Ting Ting"}, Anchors: a(3)},
+		// see-also to "heading, subheading" → heading; to nothing → dropped; to self → dropped
+		{Heading: "loneliness", SeeAlso: []string{"Beeman, Darius, loneliness and isolation", "smart speakers", "Loneliness"}, Anchors: a(1)},
+		{Heading: "Beeman, Darius", Subheading: "loneliness and isolation", Anchors: a(1)},
+		// see to a missing heading → dropped
+		{Heading: "klon", See: "khlong"},
+	}, func(n string) { notes = append(notes, n) })
+	get := func(h string) *Entry {
+		for i := range es {
+			if es[i].Heading == h && es[i].Subheading == "" {
+				return &es[i]
+			}
+		}
+		return nil
+	}
+	if e := get("memory optimization"); e == nil || len(e.Anchors) != 3 || len(e.SeeAlso) != 0 {
+		t.Errorf("memory optimization should have absorbed the thin side: %+v", e)
+	}
+	if e := get("emotions, compression of"); e == nil || e.See != "memory optimization" || len(e.Anchors) != 0 {
+		t.Errorf("thin side should be a see entry: %+v", e)
+	}
+	if e := get("cognitive science"); e == nil || len(e.SeeAlso) != 1 || e.SeeAlso[0] != "neuroscience" {
+		t.Errorf("substantial reciprocal pair should be kept: %+v", e)
+	}
+	if e := get("Ting Ting"); e == nil || e.See != "" || len(e.SeeAlso) != 1 {
+		t.Errorf("proper name must not be folded: %+v", e)
+	}
+	if e := get("loneliness"); e == nil || len(e.SeeAlso) != 1 || e.SeeAlso[0] != "Beeman, Darius" {
+		t.Errorf("see-also targets: %+v", e)
+	}
+	if e := get("klon"); e == nil || e.See != "" {
+		t.Errorf("dangling see should be dropped: %+v", e)
+	}
+	if len(notes) != 3 {
+		t.Errorf("notes: %q", notes)
 	}
 }
