@@ -7,3 +7,8 @@
   *Jenna Dixon, Bookbuilder*; kept for that reason.
 - `favicon-gen.py` — regenerates the variants into `scratch/favicon/`
   (needs `fonttools`). Run from repo root.
+- `wordmark-gen.py` — generates `srv/static/brand/` (2026-09-19): `jdbb-wordmark.svg`,
+  `-paper.svg` (for ink grounds), `-short.svg` (`[jdbb]` only), and the 1200×630
+  `jdbb-social-card.svg/.jpg`. Outlines from JetBrains Mono Bold/Regular; brackets
+  accent, `jdbb` ink, `studio` secondary. Linked from `/press` (jdbbs-public). Run
+  from repo root; needs `fonttools` + ImageMagick.
