@@ -70,6 +70,21 @@ journalctl -u prodcal-store-live.service            # what it did
 Roll back: put the `PRODCAL_STRIPE_URL` line back (copy kept as
 `.env.pre-live.<stamp>`) and `sudo systemctl restart prodcal`.
 
+### Index add-on (`index`, $100) — same switch
+
+The back-of-book index is a catalog item like `builds-3` (`srv/store.go`,
+lookup key `index`, fulfilled by `passes.index_included = 1`). It follows the
+same Stripe account switch: **while the test key is in, the workshop room
+"buys" it with a `4242 4242 4242 4242` card and pays nothing** — that is the
+free-for-the-workshop path Jenna okayed (2026-09-20). When `store-go-live.sh`
+flips to the live key, `ensureCatalog` creates the live `index` price and the
+$100 becomes real. To give it away after that, grant it instead of selling it:
+`POST /api/admin/passes/{id}/index` (admin header), or the **+ index** button on
+the pass row at `/admin/store/`. Drafting costs the studio ≈ $0.45 per 100 pages at the LLM gateway
+(`INDEXER_LLM_MODEL`, default `claude-sonnet-4-5`) — a pass can re-draft as
+often as it likes, so watch `factory_events` kind `index.drafted` if that
+ever matters.
+
 ## Database: Migrations
 
 Migrations live in `db/migrations/` and follow the naming pattern `NNN-name.sql`.

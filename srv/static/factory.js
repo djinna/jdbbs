@@ -104,6 +104,12 @@ var S = {
   retry: null,         // re-run after the password gate clears
   passUnavailable: false,
   store: null,         // /api/public/store/config when the store is on
+  index: null,         // GET /api/books/{id}/index: {status, entitled, index, error} (5.13)
+  indexRows: null,     // working copy of index.entries while reviewing
+  indexDirty: false,
+  indexSaving: false,
+  indexPolling: null,
+  includeIndex: true,  // "Include the index in the next build"
 };
 
 // Books come back as Go `ListBooksRow` values with no json tags, so the keys
@@ -293,13 +299,17 @@ function confirmOrderFromURL() {
 // ─── render: step strip ────────────────────────────────────────────────────
 // Which step are you on? Cheap heuristic, deliberately generous: the point is
 // to answer "what do I do next", not to police anything.
+// Step 4 (Index) is optional, so it is only "current" while a draft is being
+// written or waits for review; otherwise the strip skips over it.
 function currentStep() {
   if (S.transmittalStatus && S.transmittalStatus !== 'final') return 1;
   if (!S.books.length) return 2;
-  if (isBuilding(S.current)) return 4;
-  if (hasDownloads()) return 5;
+  if (isBuilding(S.current)) return 5;
+  if (indexStatus() === 'drafting') return 4;
+  if (hasDownloads()) return 6;
   if (!S.preflight || S.preflight.exists === false) return 3;
-  return 4;
+  if (indexStatus() === 'draft') return 4;
+  return 5;
 }
 function hasDownloads() {
   return S.outputs.length > 0 || isBuilt(S.current);
@@ -310,10 +320,11 @@ function renderSteps() {
     1: S.transmittalStatus === 'final',
     2: S.books.length > 0,
     3: !!(S.preflight && S.preflight.exists !== false),
-    4: hasDownloads(),
-    5: false,
+    4: indexStatus() === 'reviewed',
+    5: hasDownloads(),
+    6: false,
   };
-  for (var i = 1; i <= 5; i++) {
+  for (var i = 1; i <= 6; i++) {
     var el = $('fx-step-' + i);
     if (!el) continue;
     var cls = 'fx-step';
@@ -651,10 +662,383 @@ function renderBuild() {
   } else if (!S.current && S.pass) {
     status.className = 'fx-status';
     status.textContent = 'Upload your manuscript first (step 2).';
+  } else if (indexIncludable() && S.includeIndex) {
+    status.className = 'fx-status';
+    status.textContent = 'The index (step 4) goes in at the back of the print PDF.';
   } else {
     status.className = 'fx-status';
     status.textContent = '';
   }
+}
+
+// ─── render: index (step 4, add-on 5.13) ───────────────────────────────────
+// S.index is GET /api/books/{id}/index: {status, entitled, index, error}.
+// entitled is the server's word (admin, or index_included on the pass).
+function indexStatus() { return (S.index && S.index.status) || 'off'; }
+function indexEntitled() {
+  if (S.index && S.index.entitled) return true;
+  return !!(S.pass && S.pass.index_included);
+}
+function indexIncludable() { var st = indexStatus(); return st === 'draft' || st === 'reviewed'; }
+function indexPrice() {
+  var it = S.store && S.store.items && S.store.items['index'];
+  return it ? it.display : '$100';
+}
+
+async function loadIndex() {
+  if (!S.current) { S.index = null; S.indexRows = null; return; }
+  try {
+    var was = S.index;
+    S.index = await api('/api/books/' + S.current.id + '/index');
+    // Keep unsaved edits unless the document itself changed underneath.
+    var changed = !was || !was.index || !S.index.index || was.status !== S.index.status ||
+      (was.index.generated !== S.index.index.generated);
+    if (changed || !S.indexRows) {
+      S.indexRows = S.index.index ? (S.index.index.entries || []).map(rowFromEntry) : null;
+      S.indexDirty = false;
+    }
+  } catch (e) {
+    if (e.status === 401) throw e;
+    S.index = { status: 'off', entitled: false, _error: e.message };
+    S.indexRows = null;
+  }
+}
+
+function rowFromEntry(e) {
+  return {
+    heading: e.heading || '', subheading: e.subheading || '', see: e.see || '',
+    seeAlso: (e.see_also || []).join('; '),
+    anchors: (e.anchors || []).map(function (a) { return { chapter: a.chapter || 0, text: a.text || '' }; }),
+  };
+}
+function entryFromRow(r) {
+  return {
+    heading: r.heading.trim(), subheading: r.subheading.trim(), see: r.see.trim(),
+    see_also: r.seeAlso.split(';').map(function (x) { return x.trim(); }).filter(Boolean),
+    anchors: r.anchors,
+  };
+}
+// Unmatched anchors, keyed "heading|subheading" → count (server dry-run).
+function unmatchedMap() {
+  var m = {};
+  var u = (S.index && S.index.index && S.index.index.unmatched) || [];
+  u.forEach(function (x) { var k = (x.heading || '') + '|' + (x.subheading || ''); m[k] = (m[k] || 0) + 1; });
+  return m;
+}
+
+function renderIndex() {
+  var meta = $('fx-index-meta');
+  var actions = $('fx-index-actions');
+  var status = $('fx-index-status');
+  var review = $('fx-index-review');
+  if (!meta || !actions || !status || !review) return;
+  var st = indexStatus();
+  var noPass = !S.pass || S.pass.exists === false;
+  var entitled = indexEntitled();
+  var doc = S.index && S.index.index;
+  var n = S.indexRows ? S.indexRows.length : (doc && doc.entries ? doc.entries.length : 0);
+
+  // meta
+  meta.className = 'fx-sec-meta' + (st === 'error' ? ' err' : (st === 'reviewed' ? ' ok' : ''));
+  if (noPass) setText(meta, 'Read-only');
+  else if (!entitled) setText(meta, indexPrice() + ' add-on');
+  else if (st === 'drafting') setText(meta, 'Drafting\u2026');
+  else if (st === 'draft') setText(meta, n + ' ' + plural(n, 'entry', 'entries') + ' \u00b7 draft, please review');
+  else if (st === 'reviewed') setText(meta, n + ' ' + plural(n, 'entry', 'entries') + ' \u00b7 reviewed');
+  else if (st === 'error') setText(meta, 'Draft failed');
+  else setText(meta, 'Included with your pass');
+
+  // actions
+  if (noPass) {
+    actions.innerHTML = '';
+    status.className = 'fx-status'; status.textContent = '';
+    review.innerHTML = '';
+    return;
+  }
+  if (!entitled) {
+    var canBuy = S.store && S.store.enabled && S.pass.status !== 'revoked' && S.pass.status !== 'purged';
+    actions.innerHTML = '<span class="fx-index-offer"><b>Back-of-book index</b> \u00b7 ' + esc(indexPrice()) + ' add-on</span>' +
+      (canBuy ? '<button type="button" class="btn-line" data-addon="index">Add the index \u2014 ' + esc(indexPrice()) + '</button>'
+              : '<span class="fx-fine">To add it, email <a href="mailto:' + esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.</span>');
+    status.className = 'fx-status'; status.textContent = '';
+    review.innerHTML = '';
+    return;
+  }
+
+  var busy = st === 'drafting';
+  var hasDraft = indexIncludable();
+  var canDraft = !!S.current && !busy && !isBuilding(S.current) && !S.uploading;
+  var label = hasDraft || st === 'error' ? 'Draft the index again' : 'Draft the index';
+  actions.innerHTML =
+    '<button type="button" class="btn-line" id="fx-index-btn"' + (canDraft ? '' : ' disabled') + '>' + (busy ? 'Drafting\u2026' : esc(label)) + '</button>' +
+    (hasDraft ? '<button type="button" class="link-action accent" id="fx-index-save"' + (S.indexDirty && !S.indexSaving ? '' : ' disabled') + '>' +
+      (S.indexSaving ? 'Saving\u2026' : (S.indexDirty ? 'Save the review' : (st === 'reviewed' ? 'Saved' : 'Save the review'))) + '</button>' : '');
+
+  // status
+  if (busy) {
+    status.className = 'fx-status busy';
+    status.textContent = 'Drafting \u2014 the factory is reading the book chapter by chapter. It takes a few minutes; this page keeps checking.';
+  } else if (st === 'error') {
+    status.className = 'fx-status err';
+    status.innerHTML = 'The draft didn\u2019t finish: ' + esc(shortErr((S.index && S.index.error) || 'unknown error')) +
+      '<span class="fx-status-more">Nothing was charged. Try again, or email ' + esc(S.contactEmail) + '.</span>';
+  } else if (!S.current) {
+    status.className = 'fx-status';
+    status.textContent = 'Upload your manuscript first (step 2).';
+  } else if (!hasDraft) {
+    status.className = 'fx-status';
+    status.textContent = 'Drafting reads the whole book once and takes a few minutes. You review the result here before it goes into a build.';
+  } else if (S.indexDirty) {
+    status.className = 'fx-status warn';
+    status.textContent = 'Unsaved edits \u2014 save the review before you build.';
+  } else if (st === 'draft') {
+    status.className = 'fx-status';
+    status.textContent = 'Read it as a reader would: merge near-duplicates, delete what nobody would look up, fix wording. Then save.';
+  } else {
+    status.className = 'fx-status ok';
+    status.textContent = 'Reviewed. Tick the box below and the next build sets it at the back of the print PDF.';
+  }
+
+  renderIndexReview(review, hasDraft);
+}
+
+function renderIndexReview(review, hasDraft) {
+  if (!hasDraft || !S.indexRows) { review.innerHTML = ''; return; }
+  var um = unmatchedMap();
+  var rows = S.indexRows;
+  // Sorted view: by heading, then subheading; the heading input sits on the
+  // first row of each group and renames the whole group.
+  var order = rows.map(function (_, i) { return i; }).sort(function (a, b) {
+    var ka = sortKey(rows[a].heading), kb = sortKey(rows[b].heading);
+    if (ka !== kb) return ka < kb ? -1 : 1;
+    var sa = sortKey(rows[a].subheading), sb = sortKey(rows[b].subheading);
+    return sa < sb ? -1 : (sa > sb ? 1 : 0);
+  });
+  var headings = {};
+  rows.forEach(function (r) { headings[r.heading.trim().toLowerCase()] = true; });
+  var totalUnmatched = 0;
+  Object.keys(um).forEach(function (k) { totalUnmatched += um[k]; });
+
+  var h = '<div class="fx-index-head"><span>' + rows.length + ' ' + plural(rows.length, 'line', 'lines') + ', ' +
+    Object.keys(headings).length + ' headings</span>' +
+    (totalUnmatched ? '<span class="warn">' + totalUnmatched + ' ' + plural(totalUnmatched, 'anchor', 'anchors') + ' not found in the manuscript \u2014 those page numbers will be missing</span>' : '') +
+    '</div>';
+  h += '<table class="fx-index-table"><thead><tr>' +
+    '<th>Heading</th><th>Subentry</th><th><i>See</i></th><th><i>See also</i></th><th class="num">Pages</th><th></th></tr></thead><tbody>';
+  var prev = null;
+  order.forEach(function (i) {
+    var r = rows[i];
+    var key = r.heading.trim().toLowerCase();
+    var first = key !== prev;
+    prev = key;
+    var k = r.heading + '|' + r.subheading;
+    var bad = um[k] || 0;
+    h += '<tr data-row="' + i + '"' + (first ? ' class="first"' : '') + '>';
+    h += '<td data-l="Heading">' + (first
+      ? '<input class="input-bare" data-f="heading" value="' + esc(r.heading) + '" aria-label="Heading">'
+      : '<span class="fx-index-same" title="' + esc(r.heading) + '">\u3003</span>') + '</td>';
+    h += '<td data-l="Subentry"><input class="input-bare" data-f="subheading" value="' + esc(r.subheading) + '" placeholder="\u2014" aria-label="Subentry"></td>';
+    var seeBad = r.see && !headings[r.see.trim().toLowerCase()];
+    h += '<td data-l="See"><input class="input-bare' + (seeBad ? ' bad' : '') + '" data-f="see" value="' + esc(r.see) + '" placeholder="\u2014" aria-label="See"' +
+      (seeBad ? ' title="No heading with this name \u2014 it will be dropped on save"' : '') + '></td>';
+    h += '<td data-l="See also"><input class="input-bare" data-f="seeAlso" value="' + esc(r.seeAlso) + '" placeholder="\u2014" aria-label="See also"></td>';
+    h += '<td class="num" data-l="Pages">' + (r.anchors.length || (r.see ? '\u2014' : '0')) +
+      (bad ? ' <span class="fx-index-flag" title="' + bad + ' of the anchor sentences could not be found in the manuscript">\u26a0 ' + bad + '</span>' : '') + '</td>';
+    h += '<td class="acts"><button type="button" class="fx-link" data-act="merge" title="Move this line under another heading">merge</button> ' +
+      '<button type="button" class="fx-link" data-act="delete">delete</button></td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+  h += '<p class="fx-fine fx-index-foot"><button type="button" class="fx-link" data-act="add">Add an entry</button> \u00b7 ' +
+    'Pages counts the places in the text the entry points at; the numbers themselves are set at build time. ' +
+    '<i>See also</i> takes several headings separated by semicolons.</p>';
+  h += '<p class="fx-index-include"><label><input type="checkbox" id="fx-index-include"' + (S.includeIndex ? ' checked' : '') + '> ' +
+    'Include the index in the next build</label></p>';
+  review.innerHTML = h;
+}
+
+function sortKey(s) {
+  return (s || '').toLowerCase().replace(/^(the|a|an) /, '').replace(/[^a-z0-9 ]/g, '').trim();
+}
+
+// Draft (async; the page polls) ──
+async function doIndexDraft() {
+  if (!S.current || indexStatus() === 'drafting') return;
+  if (indexIncludable() || S.indexDirty) {
+    if (!window.confirm('Draft the index again?\n\nThis replaces the current draft and any edits you have made to it.')) return;
+  }
+  var status = $('fx-index-status');
+  try {
+    await api('/api/books/' + S.current.id + '/index/draft', { method: 'POST', body: '{}' });
+    S.index = Object.assign({}, S.index || {}, { status: 'drafting', entitled: true });
+    S.indexRows = null; S.indexDirty = false;
+    renderAll();
+    startIndexPolling();
+  } catch (e) {
+    if (e.status === 401) { showAuth(function () { return refresh(); }); return; }
+    if (e.status === 403) { await handleForbidden(status); return; }
+    if (e.status === 402) { await loadIndex(); renderAll(); return; }
+    status.className = 'fx-status err';
+    status.innerHTML = (e.status === 409 ? 'Something else is running for this book \u2014 wait for it to finish, then try again.' :
+      'The draft didn\u2019t start: ' + esc(shortErr(e.message))) +
+      '<span class="fx-status-more">Nothing was charged.</span>';
+  }
+}
+
+var INDEX_POLL_MS = 5000;
+var INDEX_POLL_MAX = 240; // 20 minutes
+function startIndexPolling() {
+  if (S.indexPolling) return;
+  S.indexPollTicks = 0;
+  S.indexPolling = setInterval(indexPollTick, INDEX_POLL_MS);
+}
+function stopIndexPolling() {
+  if (S.indexPolling) clearInterval(S.indexPolling);
+  S.indexPolling = null;
+}
+async function indexPollTick() {
+  S.indexPollTicks++;
+  if (S.indexPollTicks > INDEX_POLL_MAX) {
+    stopIndexPolling();
+    var st = $('fx-index-status');
+    if (st) { st.className = 'fx-status err'; st.textContent = 'The draft is taking much longer than usual. Reload the page to check on it.'; }
+    return;
+  }
+  try { await loadIndex(); } catch (e) { stopIndexPolling(); if (e.status === 401) showAuth(function () { return refresh(); }); return; }
+  if (indexStatus() === 'drafting') return;
+  stopIndexPolling();
+  S.includeIndex = true;
+  renderAll();
+  if (indexIncludable()) {
+    var sec = $('index');
+    if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// Review edits ──
+function indexRowEdit(i, field, value) {
+  var rows = S.indexRows;
+  if (!rows || !rows[i]) return;
+  if (field === 'heading') {
+    // Renames the whole group (the input sits on the group's first line).
+    var old = rows[i].heading.trim().toLowerCase();
+    rows.forEach(function (r) { if (r.heading.trim().toLowerCase() === old) r.heading = value; });
+  } else {
+    rows[i][field] = value;
+  }
+  S.indexDirty = true;
+}
+function indexRowMerge(i) {
+  var rows = S.indexRows;
+  if (!rows || !rows[i]) return;
+  var target = window.prompt('Move \u201c' + rows[i].heading + (rows[i].subheading ? ': ' + rows[i].subheading : '') +
+    '\u201d under which heading?\n\nType an existing heading. Its pages join that heading (or keep the subentry, if it has one).', '');
+  if (target == null) return;
+  target = target.trim();
+  if (!target) return;
+  var from = rows[i].heading;
+  rows[i].heading = target;
+  // If the old heading has no other lines left, leave a see-reference behind
+  // unless the wording is trivially the same.
+  var left = rows.some(function (r) { return r.heading.trim().toLowerCase() === from.trim().toLowerCase(); });
+  if (!left && sortKey(from) !== sortKey(target)) {
+    rows.push({ heading: from, subheading: '', see: target, seeAlso: '', anchors: [] });
+  }
+  S.indexDirty = true;
+  renderIndex();
+}
+function indexRowDelete(i) {
+  if (!S.indexRows || !S.indexRows[i]) return;
+  S.indexRows.splice(i, 1);
+  S.indexDirty = true;
+  renderIndex();
+}
+function indexRowAdd() {
+  if (!S.indexRows) return;
+  var heading = window.prompt('New heading:', '');
+  if (heading == null || !heading.trim()) return;
+  var anchor = window.prompt('A short phrase (5\u201312 words) copied exactly from the manuscript where this topic is discussed. Leave empty for a see-reference.', '');
+  if (anchor == null) return;
+  var row = { heading: heading.trim(), subheading: '', see: '', seeAlso: '', anchors: [] };
+  if (anchor.trim()) row.anchors.push({ chapter: 0, text: anchor.trim() });
+  else {
+    var see = window.prompt('See which heading?', '');
+    if (see == null || !see.trim()) return;
+    row.see = see.trim();
+  }
+  S.indexRows.push(row);
+  S.indexDirty = true;
+  renderIndex();
+}
+
+async function doIndexSave() {
+  if (!S.current || !S.indexRows || S.indexSaving) return;
+  var entries = S.indexRows.map(entryFromRow).filter(function (e) { return e.heading; });
+  var status = $('fx-index-status');
+  S.indexSaving = true;
+  renderIndex();
+  try {
+    S.index = await api('/api/books/' + S.current.id + '/index', { method: 'PUT', body: JSON.stringify({ entries: entries }) });
+    S.indexRows = (S.index.index.entries || []).map(rowFromEntry);
+    S.indexDirty = false;
+    S.indexSaving = false;
+    S.includeIndex = true;
+    renderAll();
+    var notes = (S.index.index.notes || []);
+    if (notes.length && status) {
+      status.className = 'fx-status ok';
+      status.innerHTML = 'Saved. The factory tidied ' + notes.length + ' ' + plural(notes.length, 'thing', 'things') + ':' +
+        '<span class="fx-status-more">' + notes.slice(0, 6).map(esc).join('<br>') + (notes.length > 6 ? '<br>\u2026' : '') + '</span>';
+    }
+  } catch (e) {
+    S.indexSaving = false;
+    renderIndex();
+    if (e.status === 401) { showAuth(function () { return refresh(); }); return; }
+    if (status) {
+      status.className = 'fx-status err';
+      status.textContent = 'Not saved: ' + shortErr(e.message);
+    }
+  }
+}
+
+function wireIndex() {
+  var sec = $('index');
+  if (!sec) return;
+  sec.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t.closest) return;
+    if (t.closest('#fx-index-btn')) { doIndexDraft(); return; }
+    if (t.closest('#fx-index-save')) { doIndexSave(); return; }
+    var act = t.closest('[data-act]');
+    if (!act) return;
+    var tr = act.closest('tr[data-row]');
+    var i = tr ? parseInt(tr.getAttribute('data-row'), 10) : -1;
+    var a = act.getAttribute('data-act');
+    if (a === 'add') indexRowAdd();
+    else if (a === 'merge' && i >= 0) indexRowMerge(i);
+    else if (a === 'delete' && i >= 0) indexRowDelete(i);
+  });
+  sec.addEventListener('input', function (e) {
+    var t = e.target;
+    var f = t.getAttribute && t.getAttribute('data-f');
+    if (f) {
+      var tr = t.closest('tr[data-row]');
+      if (tr) indexRowEdit(parseInt(tr.getAttribute('data-row'), 10), f, t.value);
+      // Only the action buttons and the status line change while typing —
+      // re-rendering the table would steal the caret.
+      var save = $('fx-index-save');
+      if (save) { save.disabled = false; save.textContent = 'Save the review'; }
+      var st = $('fx-index-status');
+      if (st) { st.className = 'fx-status warn'; st.textContent = 'Unsaved edits \u2014 save the review before you build.'; }
+    }
+  });
+  sec.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.id === 'fx-index-include') { S.includeIndex = !!t.checked; renderBuild(); }
+    var f = t.getAttribute && t.getAttribute('data-f');
+    if (f === 'heading' || f === 'see') renderIndex(); // regroup / recheck targets on commit
+  });
+  window.addEventListener('beforeunload', stopIndexPolling);
 }
 
 // ─── render: download ──────────────────────────────────────────────────────
@@ -735,18 +1119,18 @@ function renderDownload() {
 // here" impossible to miss. Every other step's action stays an underlined link.
 function emphasize() {
   var cur = currentStep();
-  [[2, 'fx-upload-btn'], [3, 'fx-inspect-btn'], [4, 'fx-proof-btn']].forEach(function (pair) {
+  [[2, 'fx-upload-btn'], [3, 'fx-inspect-btn'], [4, 'fx-index-btn'], [5, 'fx-proof-btn']].forEach(function (pair) {
     var btn = $(pair[1]);
     if (!btn) return;
     var fill = pair[0] === cur;
-    // The proof action stays a button (outlined) when not filled; the rest
-    // fall back to text links. "Export final" is always outlined (0.28).
-    btn.className = fill ? 'btn-fill' : (pair[0] === 4 ? 'btn-line' : 'link-action accent');
+    // The proof and index actions stay buttons (outlined) when not filled;
+    // the rest fall back to text links. "Export final" is always outlined (0.28).
+    btn.className = fill ? 'btn-fill' : (pair[0] >= 4 ? 'btn-line' : 'link-action accent');
   });
-  // Step 5 has no button — its action is a download link — so when that's the
+  // Step 6 has no button — its action is a download link — so when that's the
   // current step the PDF link wears the fill instead.
   var pdf = $('fx-dl-pdf');
-  if (pdf) pdf.className = cur === 5 ? 'btn-fill' : '';
+  if (pdf) pdf.className = cur === 6 ? 'btn-fill' : '';
 }
 
 function renderCover() {
@@ -823,6 +1207,7 @@ function renderAll() {
   renderUpload();
   renderCover();
   renderInspect();
+  renderIndex();
   renderBuild();
   renderDownload();
   emphasize();
@@ -930,9 +1315,10 @@ async function loadTransmittal() {
 async function refresh() {
   await loadPass();
   await loadBooks();
-  await Promise.all([loadPreflight(), loadOutputs(), loadCover()]);
+  await Promise.all([loadPreflight(), loadOutputs(), loadCover(), loadIndex()]);
   renderAll();
   if (isBuilding(S.current)) startPolling();
+  if (indexStatus() === 'drafting') startIndexPolling();
 }
 
 // ─── sign-in gate ──────────────────────────────────────────────────────────
@@ -1205,9 +1591,10 @@ async function doBuild(kind) {
   status.textContent = kind === 'proof' ? 'Starting the proof\u2026' : 'Starting the final\u2026';
 
   try {
-    await api('/api/books/' + S.current.id + '/convert', { method: 'POST', body: JSON.stringify({ format: 'both', kind: kind }) });
+    var withIndex = indexIncludable() && S.includeIndex;
+    await api('/api/books/' + S.current.id + '/convert', { method: 'POST', body: JSON.stringify({ format: 'both', kind: kind, index: withIndex }) });
     status.className = 'fx-status busy';
-    status.textContent = buildingText(kind);
+    status.textContent = buildingText(kind) + (withIndex ? ' The index goes in at the back.' : '');
     await loadPass();
     renderHeader();
     startPolling();
@@ -1215,6 +1602,13 @@ async function doBuild(kind) {
     S.building = false;
     if (e.status === 401) { showAuth(function () { return refresh(); }); return; }
     if (e.status === 403) { await handleForbidden(status); return; }
+    if (e.status === 402 && e.data && e.data.addon === 'index') {
+      status.className = 'fx-status err';
+      status.innerHTML = 'The index is a $100 add-on this pass doesn\u2019t have yet \u2014 buy it in step 4, or untick \u201cInclude the index\u201d and build without it.';
+      await loadIndex();
+      renderAll();
+      return;
+    }
     if (e.status === 402) {
       status.className = 'fx-status err';
       status.innerHTML = 'No finals left on this pass \u2014 proofs still work.' +
@@ -1309,10 +1703,10 @@ async function pollTick() {
     if (b && b.errorMsg) {
       done.className = 'fx-status warn';
       done.innerHTML = 'Build warning: ' + esc(shortErr(b.errorMsg)) +
-        '<span class="fx-status-more">Your print PDF is ready in step 5 below.</span>';
+        '<span class="fx-status-more">Your print PDF is ready in step 6 below.</span>';
     } else {
       done.className = 'fx-status ok';
-      done.textContent = (kind === 'proof' ? 'Proof finished.' : 'Final exported.') + ' Your files are in step 5 below.';
+      done.textContent = (kind === 'proof' ? 'Proof finished.' : 'Final exported.') + ' Your files are in step 6 below.';
     }
   }
   var sec = $('download');
@@ -1376,6 +1770,7 @@ function wire() {
   if (bld) bld.addEventListener('click', function () { doBuild('final'); });
   var prf = $('fx-proof-btn');
   if (prf) prf.addEventListener('click', function () { doBuild('proof'); });
+  wireIndex();
 
   var authBtn = $('fx-auth-btn');
   if (authBtn) authBtn.addEventListener('click', doUnlock);
@@ -1392,7 +1787,7 @@ function wire() {
   });
 
   // Step links scroll (0.17 C: the transmittal is section 1 of this page).
-  [1, 2, 3, 4, 5].forEach(function (n) {
+  [1, 2, 3, 4, 5, 6].forEach(function (n) {
     var el = $('fx-step-' + n);
     if (!el) return;
     el.addEventListener('click', function (e) {
@@ -1491,7 +1886,7 @@ document.addEventListener('click', function (e) {
 // the strip gets .here, so the reader can see where they are as well as where
 // the work is (.current, set by state).
 (function () {
-  var ids = ['transmittal', 'upload', 'inspect', 'build', 'download'];
+  var ids = ['transmittal', 'upload', 'inspect', 'index', 'build', 'download'];
   var ticking = false;
   function update() {
     ticking = false;

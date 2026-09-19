@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="style.css?v=20260705a">
 <link rel="stylesheet" href="transmittal.css?v=20260919q">
-<link rel="stylesheet" href="factory.css?v=20260920a">
+<link rel="stylesheet" href="factory.css?v=20260920b">
 </head>
 <body>
 <div id="app" class="jdbb-shell">
@@ -99,12 +99,16 @@
         <span class="fx-step-n">3</span>
         <span class="fx-step-name">Inspect</span>
       </a>
-      <a class="fx-step" id="fx-step-4" href="#build">
+      <a class="fx-step" id="fx-step-4" href="#index">
         <span class="fx-step-n">4</span>
+        <span class="fx-step-name">Index</span>
+      </a>
+      <a class="fx-step" id="fx-step-5" href="#build">
+        <span class="fx-step-n">5</span>
         <span class="fx-step-name">Build</span>
       </a>
-      <a class="fx-step" id="fx-step-5" href="#download">
-        <span class="fx-step-n">5</span>
+      <a class="fx-step" id="fx-step-6" href="#download">
+        <span class="fx-step-n">6</span>
         <span class="fx-step-name">Download</span>
       </a>
       <a class="fx-step fx-step-how" href="/factory#how-it-runs" target="_blank" rel="noopener" title="Who does what: Author, Studio, Machine, Out">How it runs &rarr;</a>
@@ -203,10 +207,29 @@
 
     <hr class="rule">
 
-    <!-- ── 4. Build ───────────────────────────────────────────── -->
+    <!-- ── 4. Index (add-on, punch list 5.13) ─────────────────── -->
+    <section class="fx-sec" id="index">
+      <div class="fx-sec-head">
+        <span class="kicker">4 &middot; Index</span>
+        <span class="fx-sec-meta" id="fx-index-meta"></span>
+      </div>
+      <p class="fx-body" id="fx-index-intro">
+        A back-of-book index &mdash; the kind an indexer writes, not a word list. The factory reads your
+        manuscript once and drafts the entries: headings, run-in subentries, <i>see</i> and <i>see also</i>.
+        You review the draft here; the page numbers are set by the typesetter at build time, so they
+        stay true through every rebuild. <b>Optional</b> &mdash; skip this step if your book doesn&rsquo;t want one.
+      </p>
+      <p class="fx-actions" id="fx-index-actions"></p>
+      <p class="fx-status" id="fx-index-status"></p>
+      <div class="fx-index-review" id="fx-index-review"></div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ── 5. Build ───────────────────────────────────────────── -->
     <section class="fx-sec" id="build">
       <div class="fx-sec-head">
-        <span class="kicker">4 &middot; Build</span>
+        <span class="kicker">5 &middot; Build</span>
         <span class="fx-sec-meta" id="fx-build-meta"></span>
       </div>
       <p class="fx-body">
@@ -227,10 +250,10 @@
 
     <hr class="rule">
 
-    <!-- ── 5. Download ────────────────────────────────────────── -->
+    <!-- ── 6. Download ────────────────────────────────────────── -->
     <section class="fx-sec" id="download">
       <div class="fx-sec-head">
-        <span class="kicker">5 &middot; Download</span>
+        <span class="kicker">6 &middot; Download</span>
         <span class="fx-sec-meta" id="fx-download-meta"></span>
       </div>
       <div class="fx-latest" id="fx-latest">
@@ -277,6 +300,6 @@
 </div>
 <script src="/static/theme.js"></script>
 <script src="transmittal.js?v=20260919r"></script>
-<script src="factory.js?v=20260920a"></script>
+<script src="factory.js?v=20260920b"></script>
 </body>
 </html>
