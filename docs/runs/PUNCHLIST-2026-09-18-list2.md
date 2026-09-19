@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 13:21 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 14:51 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -119,6 +119,18 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > **shelley** · 2026-09-19 12:42 UTC  
   > Done and live: --bg is #FFFEF6 everywhere (theme.css is the single source, so admin, portals, factory, public pages all follow). Hairlines and progress tracks nudged a step lighter to match (#E4E2D8 / #F3F1E8); the press page colour note and the social card now say #FFFEF6 too. Hard refresh to see it.
 
+  > **jenna** · 2026-09-19 14:31 UTC  
+  > Sorry, but I still find the background color too dark in the context of the rest of our page. I'm open to suggestions, like maybe we just go to a white page altogether?
+
+  > **shelley** · 2026-09-19 14:33 UTC  
+  > Suggestion: go white (#FFFFFF). #FFFEF6 is close enough to white that it reads as “white, slightly off” rather than paper. With a white ground the warmth comes from the field wells, the green hand-off wash and the type. If yes I’d also nudge wells a touch more neutral (#F5F3EC) and hairlines to #E6E4DC so nothing looks yellow against white. Say go and it’s a one-line change, live in a minute.
+
+  > **jenna** · 2026-09-19 14:34 UTC  
+  > Sure let's try that now
+
+  > **shelley** · 2026-09-19 14:35 UTC  
+  > Live: page is #FFFFFF everywhere (theme.css is the one source — admin, portals, transmittal, factory, public pages). Wells #F5F3EC, hairlines #E6E4DC. Social card, wordmark-on-paper SVG and the press page colour note updated to match. Hard reload; theme.css has no cache-buster so it may take one extra refresh.
+
 - [x] 0.12 new: I got to watch two people work through the transmittal form yesterday, and I saw that they had trouble distinguishi… — COMPS at :8767 (A boxed/B tinted/C paper) — YOU pick
 
   > **shelley** · 2026-09-19 12:49 UTC  
@@ -134,6 +146,12 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > **shelley** · 2026-09-19 13:02 UTC  
   > Done, live on the transmittal: fields are now warm wells (#F6EFDD — a step warmer/yellower than the #F3F1E8 tint the comp used), white when you click in, still the bottom rule. Textareas match. Reload with shift if you still see the old rules. Say if you want it warmer still; it's one token (--well-bg).
 
+  > **jenna** · 2026-09-19 14:27 UTC  
+  > On https://jdbbs.exe.xyz/pinstitute/book-001/transmittal/ the fields still seem a little dark, but they definitely clash with the new white block up at the top. Take another swing at that?
+
+  > **shelley** · 2026-09-19 14:28 UTC  
+  > Second swing, live now (hard reload): the white block was the new “Transmittal is final” panel using the modal-white — theme rules say that colour is for overlays only, so it now sits on a faint green wash of the page paper instead, and the fields went a shade lighter (#F9F4E6). No pure white anywhere on the page now; the panel, wells and paper are all the same family.
+
 - [x] 0.13 new: during the testing session yesterday, I saw people have trouble with the Final button up at the top because you are… — COMPS at :8767 (A strip+finish / B sticky / C hand-off panel; rec A+C) — YOU pick
 
   > **shelley** · 2026-09-19 12:49 UTC  
@@ -148,6 +166,14 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
 
   > **shelley** · 2026-09-19 13:09 UTC  
   > Built and live (A + C). On the transmittal now: the factory's 1–5 strip under the header (1 Transmittal current; ✓ once final), and the form ends with a finish block — rule, one sentence, Mark Final + “Continue to the Factory →”. On Final the page scrolls up and a green-ruled hand-off panel replaces the intro: 1) download the Word template 2) go to the Factory, with a filled Continue button; the finish block flips to “Switch to Draft · Continue to the Factory”. Hidden in print. Check on Ghosts: https://jdbbs.exe.xyz/prot/zoo/transmittal/
+
+  > **jenna** · 2026-09-19 14:29 UTC  
+  > 1/ "Switch to Draft" Should maybe read "Return to draft mode"?
+  > 2/ what does it say when they are still in draft mode? Maybe that line just isn't there at all?
+
+  > **shelley** · 2026-09-19 14:30 UTC  
+  > 1/ Done — “Return to draft mode” at the bottom, “Return to draft” in the header (short slot). Copy in both sentences says “return to draft mode” too.
+  > 2/ In draft mode there was no “Switch to Draft” line, but there was a “Continue to the Factory →” link beside Mark Final. Gone now: while in draft the bottom block is just “That’s the whole form. Mark it final and the factory generates your Word template…” + the Mark Final button. The Factory link only appears once it’s final. Live (hard reload).
 
 - [~] 0.14 new: I'm tempted to go back to using a domain I've owned for many years, jdbb.net, as my main contact for this project. … — ideas posted; chat; no build
 
@@ -175,21 +201,51 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   >
   > ![screenshot](img/20260919-132039-645.png)
 
+- [~] 0.17 new: the page width shift from  1 Transmittal to the rest of the flow (2 Upload 3 Inspect 4 Build 5 Download) is quite jarring the first page is standalone, and then the rest are stacked on one much narrower page. Take a look, and again, without actually changing anything, show me comps for a couple of ideas for how we can pull these parts of the process back together?  ·  _added Sat 14:37 UTC_
+
+  > **jenna** · 2026-09-19 14:39 UTC  
+  > "CONTINUE TO THE FACTORY →" on our ms transmittal is part of what's confusing -- the transmittal is part of the factory. It's the first part of the factory flow.
+
+  > **shelley** · 2026-09-19 14:43 UTC  
+  > Three comps, all mock-ups on the live pages (nothing changed). Agree the “Continue to the Factory” label is the tell — in every option below the transmittal is step 1 *of* the factory and the button says “Continue to 2 · Upload →”, and the top nav loses its separate TRANSMITTAL entry (just YOUR BOOKS · FACTORY).
+  >
+  > **A — Factory widens to match (image 1).** The factory takes the same 1240 shell and header as the transmittal; steps 2–5 stay stacked in a ~720 reading column on the left, and a right-hand rail carries what the transmittal decided (status, trim, type, front matter, rights, edit link), the latest build and the pass. The transmittal keeps its own page but both pages now share the same width, masthead and step strip, so the jump is gone. Medium effort; also gives the factory a use for its blank right half.
+  >
+  > **B — Transmittal narrows to match (image 2).** The transmittal becomes one ~720 column like the factory: same header with a “// TRANSMITTAL” kicker, sections stacked instead of two-up (the two-field rows stay two-up inside). Smallest change; the form gets about twice as long to scroll.
+  >
+  > **C — One page (images 3–4).** The transmittal *is* section 1 of the factory page: factory header (“// FACTORY · Obliquities · 1 of 3 builds left”), the strip, then “// 1 · TRANSMITTAL” with its History/Print/Email/Word template actions on the section rule, the two-column form, and its finish block closing with “Continue to 2 · Upload →”. Steps 2–5 follow below; the strip becomes in-page anchors. One URL for the whole flow; the transmittal URL redirects there. Biggest change, most coherent.
+  >
+  > My pick: A now (ready for Monday), C as where this goes after the workshop. Which?
+  >
+  > ![screenshot](img/comp-017-A-wide-factory-rail.png)
+  >
+  > ![screenshot](img/comp-017-B-narrow-transmittal.png)
+  >
+  > ![screenshot](img/comp-017-C-one-factory-top.png)
+  >
+  > ![screenshot](img/comp-017-C-one-factory-bottom.png)
+
 
 ## 2 · Your side — YOU
 
-- [ ] 2.6 Unlock the `pinstitute` portal and eyeball the new cards (Transmittal · Factory → · Calendar, `[FACTORY PASS]`)
+- [x] 2.6 Unlock the `pinstitute` portal and eyeball the new cards (Transmittal · Factory → · Calendar, `[FACTORY PASS]`)
 
   > **shelley** · 2026-09-18 17:24 UTC  
   > Pre-checked as pinstitute just now (signed in with a real one-time link, minus the email): portal shows both projects with the Transmittal · Factory → · Calendar cards and [FACTORY PASS] on Obliquities; perception/transmittal loads with the new Format + What-you-get sections; book-001/factory shows 2 of 3 builds left, and Inspect ran free in 1.5 s (1156 findings on the test rollup, book map printed, no build spent). Nothing broke. Your turn is only the eyeball.
 
-- [ ] 2.7 Re-download the Word template on a final transmittal, confirm in Word — Styles pane shows the **13** factory styles, fonts Georgia/Arial/Courier New, page = trim (server side pre-checked; the Word look is yours)
+  > **jenna** · 2026-09-19 14:40 UTC  
+  > done, though somewhat superceded now by our ongoing work. fine to mark 2.6 complete
+
+- [x] 2.7 Re-download the Word template on a final transmittal, confirm in Word — Styles pane shows the **13** factory styles, fonts Georgia/Arial/Courier New, page = trim (server side pre-checked; the Word look is yours)
 
   > **shelley** · 2026-09-18 17:24 UTC  
   > Pre-checked the file itself: the template downloaded from book-001/factory has 13 qFormat styles (Normal, Heading 1–3, First Paragraph, Block Quote, Code Block, Section Break, Verse, Copyright, Epigraph, Signature, Glossary Entry), fonts Georgia / Arial / Courier New, page = the protocolized trim (4.91 × 7.59 in). Item text says 11 — read it as 13. What only Word can confirm is the Styles pane.
 
   > **shelley** · 2026-09-18 18:07 UTC  
   > Pre-checked the plumbing: the template download correctly refuses until the transmittal is marked final (409, ‘fill in the transmittal and mark it final first’). The Word-side look (Styles pane, fonts, page size) is yours — it is thirteen styles now, not eleven; wording fixed on the new list.
+
+  > **jenna** · 2026-09-19 14:40 UTC  
+  > done
 
 - [ ] 2.8 Today's book with colour images: run Inspect, tell me what it says about the images and how the print PDF's grey looks (5.15 landed; Ghosts had nothing to test on)
 
@@ -229,6 +285,10 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 
   > **shelley** · 2026-09-19 13:09 UTC  
   > Part 2 landed (2f205eb, 21bbdc2, 6c45b6d): the transmittal has a // TYPOGRAPHY section with four rows — Typeface (Studio's choice / Open classic Libertinus+Source Sans / Studio house Plantin+Proxima / Literary EB Garamond, now vendored, OFL), Text size (Compact/Standard/Generous), Section breaks (space/breve/ornament), Paragraphs (indented/block). First answer in each row is the default. Two pipeline fixes came out of it: Word “Body Text” paragraphs no longer become hundreds of #block wrappers, and the specialised template path is actually used (stray Proxima in the open-classic pairing gone). Spreads for the three pairings are in scratch/typo/ — I'll pull them onto a page for you next if you want to compare before Monday. Ghosts' free builds are used up (3/3) doing this; further test builds need a refund or another test project.
+
+  > **jenna** · 2026-09-19 14:47 UTC  
+  > 1/Feels like it would be pretty helpful to roll out a sampler PDF that had, let's say, four pages showing each of the main styles. Chap opener + 3 pp so they can see a full spread with running heads. I suppose no reason not to build out a pretty full sampler, take a first swing at that? And let's include small chips that people can click on to enlarge, in addition to giving them a link to download the PDF with the full sampler. 
+  > 2/ for "Section breaks" let's add a field for their own break character choice?
 
 - [~] 0.9 new: I'd like to at least start building out how someone else can hit the book factory from their own factory via our API. I have, today, three customers, and i… — plan on the item: A) three passes on this VM (15 min, need names); B) bearer token + CLI/Python recipe, fresh session
 
