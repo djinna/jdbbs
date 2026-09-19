@@ -72,7 +72,7 @@ class H(http.server.BaseHTTPRequestHandler):
             name = os.path.basename(self.path[5:].split("?")[0])
             fp = os.path.join(IMG, name)
             ext = os.path.splitext(name)[1].lower()
-            ctype = {v: k for k, v in IMG_TYPES.items()}.get(ext)
+            ctype = {v: k for k, v in IMG_TYPES.items()}.get(ext) or ({".pdf": "application/pdf"}.get(ext))  # PDFs the agent drops in for review
             if not ctype or not os.path.isfile(fp): return self._send(404, {"error": "not found"})
             with open(fp, "rb") as f: data = f.read()
             self.send_response(200); self.send_header("Content-Type", ctype)
