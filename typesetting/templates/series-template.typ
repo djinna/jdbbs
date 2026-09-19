@@ -844,7 +844,7 @@
 //
 // index-page() — called by book() when config.index is true — queries the
 // markers, sorts case- and diacritic-insensitively with a leading article
-// dropped, groups under letter heads, collapses runs of consecutive folios
+// dropped, spaces letter groups apart (no letter heads), collapses runs of folios
 // into ranges (12–14), and sets the whole in config.index-columns columns.
 
 // Content → plain string, so #index[Rice] and #index("Rice") agree.
@@ -874,7 +874,19 @@
   k
 }
 
-// Letter head for a sort key: A–Z, or a shared head for anything else.
+// Code-like headings (AmaStore_L47_HeartVariant1.0, a/b/c, example.com)
+// have no natural break points and would run into the gutter. Give them
+// zero-width break opportunities after _ / . - so the column can wrap them;
+// ordinary prose headings (spaces, no such punctuation) are returned as-is.
+#let index-breakable(s) = {
+  if s == none { return none }
+  if s.match(regex("[_/.-]")) == none { return s }
+  s.replace(regex("([_/.-])"), m => m.text + "\u{200B}")
+}
+
+// Letter group for a sort key: a–z, or a shared group for anything else.
+// Used only to put a little extra space between groups (Chicago run-in
+// style has no letter heads).
 #let index-letter(key) = {
   if key.len() == 0 { "#" }
   else {
@@ -959,24 +971,27 @@
 // canals." A heading with subentries but no locators of its own takes a
 // colon straight after the heading.
 #let index-entry(e) = {
-  let head = e.heading
+  let head = index-breakable(e.heading)
+  let see = e.see.map(index-breakable).join("; ")
+  let see-also = e.see-also.map(index-breakable).join("; ")
   if e.see.len() > 0 and e.locs.len() == 0 and e.subs.len() == 0 {
     // Pure cross-reference: "Typesetting. See Typst"
     return par(hanging-indent: 1.2em, first-line-indent: 0em, justify: false,
-      [#head. #emph[See] #e.see.join("; ")])
+      [#head. #emph[See] #see])
   }
   let out = [#head]
   if e.locs.len() > 0 { out += [, #index-locators(e.locs)] }
   let subs = e.subs.keys().sorted().map(sk => {
     let s = e.subs.at(sk)
-    if s.locs.len() > 0 { [#s.sub, #index-locators(s.locs)] } else { [#s.sub] }
+    let sub = index-breakable(s.sub)
+    if s.locs.len() > 0 { [#sub, #index-locators(s.locs)] } else { [#sub] }
   })
   if subs.len() > 0 {
     out += [: ] + subs.join([; ])
   }
   let xrefs = ()
-  if e.see.len() > 0 { xrefs.push([#emph[See] #e.see.join("; ")]) }
-  if e.see-also.len() > 0 { xrefs.push([#emph[See also] #e.see-also.join("; ")]) }
+  if e.see.len() > 0 { xrefs.push([#emph[See] #see]) }
+  if e.see-also.len() > 0 { xrefs.push([#emph[See also] #see-also]) }
   if xrefs.len() > 0 { out += [. ] + xrefs.join([. ]) }
   par(hanging-indent: 1.2em, first-line-indent: 0em, justify: false, out)
 }
@@ -1000,16 +1015,13 @@
     set text(size: 0.9em)
     set par(leading: 0.4em, spacing: 0.4em)
     show: it => if ncols > 1 { columns(ncols, gutter: 1.2em, it) } else { it }
-    // Letter head sticks to its first entry so it never sits alone at the
-    // foot of a column.
+    // Chicago run-in style: no letter heads; entries flow continuously with
+    // a little extra space where the initial letter changes.
     let letter = none
     for k in keys {
       let l = index-letter(k)
-      if l != letter {
-        block(above: if letter == none { 0em } else { 1.1em }, below: 0.45em, sticky: true,
-          text(font: config.heading-font, weight: config.h2-weight, size: 1.1em, l))
-        letter = l
-      }
+      if letter != none and l != letter { v(1em, weak: true) }
+      letter = l
       index-entry(entries.at(k))
     }
   }

@@ -15,7 +15,7 @@ to the paddies.#index("Khlongs", "as irrigation") An artificial ghost, or
 #emph[beaing], haunts the machine.#index("Beaings", see-also: "ghosts, artificial")
 Typesetting is done in Typst.#index("Typesetting", see: "Typst", locator: false)#index[Typst]
 The Éminence grise sorts under E.#index[Éminence grise] A leading article is
-ignored.#index[The Factory Pass] Numbers go under the shared head.#index[3D printing]
+ignored.#index[The Factory Pass] Numbers go under the shared head.#index[3D printing] A code-like heading wraps.#index[AmaStore_L47_HeartVariant1.0_ExtendedEditionBuild/release-candidate]
 ]
 #block[
 Second paragraph, same page, mentions rice again.#index[Rice]
