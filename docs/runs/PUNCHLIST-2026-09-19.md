@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 17:25 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 22:11 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -290,6 +290,57 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > Monday (freeze on): say "you need a .docx in the template's styles, not Word"; order = Word/Word online → LibreOffice → Docs + markers; say avoid Pages for now. The /factory and /workshop pages are public docs, so the "No Word? Three ways in" box from 0.6 is copy, not code — your yes and it's twenty minutes.
   > Next month: document Docs+markers as first-class (S) and run markers before the book map in Inspect (one-line nit); get one Pages file and add the normaliser (S); Markdown→template script for the CLI crowd (S).
   > Decisions for you: 1) Monday framing + the three-ways box, go? 2) advertise Docs+markers, or keep as workaround? 3) Pages: chase the tester's file, or drop Pages? 4) Markdown: CLI only, or accept .md on the factory page? 5) confirm no browser editor this year.
+
+  > **jenna** · 2026-09-19 17:53 UTC  
+  > Good notes, but watching the two folks work through the factory yesterday afternoon made clear that applying our Word template that is exported (applying the styles in the template that we export onto their document) is non-trivial. The additional factor is that Google Docs doesn't allow any custom styles, so there's no way to grab those.
+  >
+  > I think if they have an existing document, we need to be more proactive with coaching on a good round trip: either importing the factory styles into their current document or bringing their text over safely into our template. Both ways seem more fragile than I'm comfortable with. Think some more about that.
+  >
+  > Actually, now that you mention LibreOffice Writer, maybe we offer more export choices and stop doubling down on Word. I'll stop thinking aloud now. Let's discuss this a little bit more before we do anything else.
+
+  > **shelley** · 2026-09-19 17:54 UTC  
+  > Agree with the diagnosis, and I think it points somewhere cleaner than "more export formats."
+  >
+  > **The fragile thing is moving style *definitions* between documents.** Both round trips you describe do that: importing our 13 styles into their file (Word's Organizer is hostile, LibreOffice's Load Styles is one dialog but still a step, Docs simply can't), or pasting their text into our template (either loses italics or drags their formatting along). Every editor makes this hard because it's genuinely a cross-document operation. No amount of coaching makes it not fragile.
+  >
+  > **What the pipeline actually needs is much smaller than "our template."** I checked the test file from this afternoon: a document with *only* Word built-ins — Normal, Heading 1/2/3 — plus `[[quote]]` / `[[verse]]` / `[[epigraph]]` markers where needed builds byte-identical Typst to the templated Word file, and Inspect on the zoo project came back clean. So for an existing manuscript the whole contract is:
+  > 1. chapter titles → Heading 1 (every editor has it: Word, Docs, Pages, LibreOffice)
+  > 2. sub-heads → Heading 2
+  > 3. the handful of special blocks → type `[[quote]]` (or verse, code, epigraph, dedication, caption…) at the start of the paragraph
+  > 4. export .docx → Inspect (free, no credit) tells you what it found.
+  >
+  > Markers move *intent as text*. They survive copy-paste, email, Docs, Pages, Word online — anything. Nothing has to be imported anywhere. That's the robust primitive, and it's already live.
+  >
+  > **So the reframe:** the template stops being *the* way in and becomes a convenience for people starting fresh (it shows the styles; nice in Word or LibreOffice). For everyone with an existing document: "Heading 1 for chapters, a marker for anything special, export, Inspect." One page, one slide. Pages becomes usable with the 30-line normaliser (its "Heading" → Heading 1, "Body" → Normal) — post-freeze, once we have a real export.
+  >
+  > **On offering more export choices:** cheap and I'd do it — .docx and .odt of the template (LibreOffice headless converts it; the .ott styles carry over, verified today), and a Docs "make a copy" starter with the markers demonstrated in place since Docs can't hold the styles. But I'd frame them as three starters, not three ways to move styles. Not "stop doubling down on Word" so much as "stop making the template the gate."
+  >
+  > **Honest costs:** markers are visible in the manuscript until the build removes them (authors may find that odd — it's a one-sentence explanation). No inline character styles by marker (italics/bold pass through as-is, which is fine; small caps would need the template). And Inspect should run the markers pass *before* the book map so its report matches the build — one-line fix, post-freeze.
+  >
+  > **Monday, copy only (freeze):** a "Bring your manuscript" checklist — the four steps above — on /factory and the workshop page, with the marker list; template offered as .docx (+ .odt if you like) under "starting from blank." I can draft the copy tonight for your read; nothing publishes till you say.
+  >
+  > Where I'd like your steer: (a) does the "template is optional, Heading 1 + markers is the contract" framing sit right with you for the room Monday? (b) .odt export of the template — yes? (c) want the draft checklist tonight?
+
+  > **jenna** · 2026-09-19 22:06 UTC  
+  > this is pretty great news 
+  > > 1. chapter titles → Heading 1 (every editor has it: Word, Docs, Pages, LibreOffice)
+  > 2. sub-heads → Heading 2
+  > 3. the handful of special blocks → type `[[quote]]` (or verse, code, epigraph, dedication, caption…) at the start of the paragraph
+  > 4. export .docx → Inspect (free, no credit) tells you what it found.
+  > Go ahead and take a swing at A, and maybe in small type we can offer B, the ODT export, for folks who really do want to use Word. It's interesting to think of a small, one-book-at-a-time kind of place versus a larger small publishing company that might want to push a book a week through the pipeline. I'd like to be able to accommodate both.
+
+  > **shelley** · 2026-09-19 22:11 UTC  
+  > A + B are live:
+  > - /factory#bring — "Bring your manuscript — from any editor": the four steps, the marker list (only names the pre-pass actually resolves: quote, verse, epigraph, code, break, signature, [[/quote]] to close a run), export instructions per editor, then small type: template as .docx or .odt for people starting blank; Docs can't hold styles so use markers; Pages honest note ("run Inspect and tell us"). Last paragraph is the book-a-week case: markers are plain text, so a press's house style guide can say "[[quote]] before every extract" and any author in any editor produces a file the factory reads; API link for scripted intake.
+  > - /workshop#bring — "What to bring — and what you don't need", same four steps, short, linking to the factory page.
+  > - The transmittal handoff card (after Mark Final) now leads with "Already have a draft? Heading 1 / Heading 2 / [[quote]]… No template needed." and offers the template second: .docx · .odt (small).
+  > - .odt is real: /api/projects/{id}/word-template?format=odt converts the generated template with the LibreOffice already on the VM (tested on mcheck: 46 KB, all 13 styles present). One small pipeline addition on a freeze day, additive only, tests green.
+  > Not changed: "How a build works" step 2 now says "from any editor that saves Word files" instead of "Write in Word, in your template". Factory app's drop zone still says "Drop your Word file here" — that's the file type, fine.
+  > On one-book vs book-a-week: the contract is the same for both; what differs is who applies it. For the solo author, the page. For a press, a one-paragraph house rule + the API. If you want, a short "For presses" page later (post-freeze) could give them the style guide paragraph verbatim to paste into their author guidelines.
+  >
+  > ![screenshot](img/025-bring.png)
+  >
+  > ![screenshot](img/025-handoff.png)
 
 
 ## 2 · Your side — YOU
