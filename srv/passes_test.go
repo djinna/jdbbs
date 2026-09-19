@@ -1258,12 +1258,17 @@ func TestCustomerBuildErrorClassification(t *testing.T) {
 		{
 			name: "pandoc reader failure",
 			raw:  "pandoc typst: exit status 63\nCould not parse docx package",
-			want: "We couldn't read this Word file. Re-save it as .docx from Word and try again.",
+			want: "We couldn't read this Word file. Re-save it as .docx from Word (File → Save As, Word Document) and try again. If it came from Pages or a converter, open and re-save it in Word or LibreOffice first.",
 		},
 		{
 			name: "other pipeline failure",
 			raw:  "read pdf: unexpected EOF /srv/private/path",
-			want: "We couldn't build this file. Run Inspect for clues, then email j@djinna.com if it keeps happening.",
+			want: "We couldn't build this file. Failed builds aren't counted. Run Inspect for clues, and email us the message below if it keeps happening.",
+		},
+		{
+			name: "label reference from an @ in prose",
+			raw:  "typst: exit status 1\nerror: label `<protocol-institute.orgto>` does not exist in the document\n  ┌─ book.typ:5166:10",
+			want: "An @ sign in your text was read as a cross-reference by the typesetter. This is our bug, not yours — email us and we'll fix the build; as a workaround, put the address in a plain Body paragraph.",
 		},
 	}
 	for _, tt := range tests {
@@ -1272,6 +1277,22 @@ func TestCustomerBuildErrorClassification(t *testing.T) {
 				t.Fatalf("customerBuildError() = %q\nwant %q", got, tt.want)
 			}
 		})
+	}
+	// With the generated .typ at hand, the message quotes the offending text
+	// and keeps the technical line under a fold.
+	typ := filepath.Join(t.TempDir(), "book.typ")
+	if err := os.WriteFile(typ, []byte("= Chapter\n\n#blockquote[\nproduction@example.org to draft \\\n]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f := diagnoseBuildFailure("typst: exit status 1\nerror: label `<example.orgto>` does not exist in the document\n  ┌─ book.typ:4:10", typ)
+	if f.Near != "production@example.org to draft" {
+		t.Fatalf("Near = %q", f.Near)
+	}
+	if f.Detail != "label `<example.orgto>` does not exist in the document" {
+		t.Fatalf("Detail = %q", f.Detail)
+	}
+	if !strings.HasPrefix(f.String(), f.Message+"\nNear: “production@example.org to draft”\nTechnical detail: ") {
+		t.Fatalf("String() = %q", f.String())
 	}
 }
 

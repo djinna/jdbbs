@@ -400,7 +400,20 @@ function renderUpload() {
 // the rest live in the log; a wall of stderr helps nobody in a workshop.
 function shortErr(msg) {
   var first = String(msg || '').split('\n').filter(function (l) { return l.trim(); })[0] || '';
-  return first.length > 220 ? first.slice(0, 217) + '\u2026' : first;
+  return first.length > 300 ? first.slice(0, 297) + '\u2026' : first;
+}
+
+// Build failures are stored as up to three lines: explanation, "Near: “…”"
+// (text quoted from the document so the author can find it in Word), and
+// "Technical detail: …". Render the first as the message and the rest folded.
+function errDetailHTML(msg) {
+  var lines = String(msg || '').split('\n').filter(function (l) { return l.trim(); }).slice(1);
+  if (!lines.length) return '';
+  var near = lines.filter(function (l) { return l.indexOf('Near:') === 0; })
+    .map(function (l) { return '<div class="fx-err-near">' + esc(l.replace(/^Near:\s*/, 'Near: ')) + ' <span class="muted">(search for this in your Word file)</span></div>'; }).join('');
+  var tech = lines.filter(function (l) { return l.indexOf('Technical detail:') === 0; })
+    .map(function (l) { return '<details class="fx-err-detail"><summary>Technical detail</summary><code>' + esc(l.replace(/^Technical detail:\s*/, '')) + '</code></details>'; }).join('');
+  return near + tech;
 }
 
 // ─── render: inspect ───────────────────────────────────────────────────────
@@ -620,8 +633,9 @@ function renderBuild() {
   } else if (isFailed(S.current)) {
     status.className = 'fx-status err';
     status.innerHTML = 'That build failed: ' + esc(shortErr(S.current.errorMsg || 'unknown error')) +
+      errDetailHTML(S.current.errorMsg) +
       '<span class="fx-status-more">Failed builds are not counted \u2014 you still have ' + left + ' ' +
-      plural(left, 'build', 'builds') + '. Try inspecting the file, or email ' + esc(S.contactEmail) + ' with the message above.</span>';
+      plural(left, 'build', 'builds') + '. Stuck? Email ' + esc(S.contactEmail) + ' with the message above.</span>';
   } else if (isBuilt(S.current) && S.current.errorMsg) {
     status.className = 'fx-status warn';
     status.innerHTML = 'Build warning: ' + esc(shortErr(S.current.errorMsg)) +
@@ -1228,7 +1242,8 @@ async function pollTick() {
     if (el) {
       el.className = 'fx-status err';
       el.innerHTML = 'That build failed: ' + esc(shortErr(b.errorMsg || 'unknown error')) +
-        '<span class="fx-status-more">Failed builds are not counted \u2014 your credit came back. Inspect the file for clues, or email ' +
+        errDetailHTML(b.errorMsg) +
+        '<span class="fx-status-more">Failed builds are not counted \u2014 your credit came back. Stuck? Email ' +
         esc(S.contactEmail) + ' with the message above.</span>';
     }
     return;

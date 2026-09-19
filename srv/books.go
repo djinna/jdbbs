@@ -771,7 +771,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string) {
 	typstCmd.Dir = tmpDir
 	if out, err := typstCmd.CombinedOutput(); err != nil {
 		keepDir = true
-		s.failConversion(bid, fmt.Sprintf("typst: %s\n%s", err, string(out)))
+		s.failConversionAt(bid, fmt.Sprintf("typst: %s\n%s", err, string(out)), typPath)
 		return
 	}
 
@@ -901,25 +901,18 @@ func (s *Server) pruneEPUBOutputs(ctx context.Context, bid int64) {
 	}
 }
 
-var unknownTypstVariableRE = regexp.MustCompile(`(?mi)unknown variable:\s*([A-Za-z0-9_-]+)`)
-
-// customerBuildError turns pipeline stderr into a stable message suitable for
-// a workshop customer. The raw trace remains in structured server logs only.
-func customerBuildError(raw string) string {
-	if match := unknownTypstVariableRE.FindStringSubmatch(raw); len(match) == 2 {
-		return fmt.Sprintf("Your file uses a Word style (%s) that isn't in your template. Inspect lists styles not in your transmittal — remove or remap it, or ask us to add it.", match[1])
-	}
-	if strings.Contains(strings.ToLower(raw), "pandoc") {
-		return "We couldn't read this Word file. Re-save it as .docx from Word and try again."
-	}
-	return "We couldn't build this file. Run Inspect for clues, then email j@djinna.com if it keeps happening."
-}
-
 // failConversion marks a build as failed and, when the project holds a Factory
 // Pass, refunds the credit debited at request time — a build the customer
 // can't download was never a build (+1 build_failed_refund in the ledger).
 func (s *Server) failConversion(bid int64, msg string) {
-	customerMsg := customerBuildError(msg)
+	s.failConversionAt(bid, msg, "")
+}
+
+// failConversionAt is failConversion with the generated book.typ available, so
+// the customer message can quote the text near the failure.
+func (s *Server) failConversionAt(bid int64, msg, typPath string) {
+	diag := diagnoseBuildFailure(msg, typPath)
+	customerMsg := diag.String()
 	slog.Error("book conversion failed", "id", bid, "raw_error", msg, "customer_message", customerMsg)
 	q := dbgen.New(s.DB)
 	ctx := context.Background()

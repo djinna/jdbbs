@@ -153,6 +153,10 @@ body { font-family: var(--body); background: var(--bg); }
 .fx-status.err { color: var(--red); }
 .fx-status.busy { color: var(--accent); }
 .fx-status .fx-status-more { display: block; color: var(--text-muted); margin-top: 4px; }
+.fx-status .fx-err-near { color: var(--text-secondary); margin-top: 4px; }
+.fx-status .fx-err-detail { margin-top: 4px; color: var(--text-muted); }
+.fx-status .fx-err-detail summary { cursor: pointer; }
+.fx-status .fx-err-detail code { display: block; margin-top: 2px; white-space: pre-wrap; }
 
 /* ── Upload: drop target. A dashed hairline is the one "box" here; it has to
       read as a target, so it keeps a 1px dashed border and no fill. ── */
