@@ -189,3 +189,19 @@ Gotcha: Ghosts (project 14) transmittal got flipped to draft by a concurrent aut
 
 Waiting on Jenna: 0.9A names/emails/titles → three passes; 0.10 four placeholders; 5.17 A/A′/B; 0.6 box, 0.7 email; §2.6–2.8; §3.2/3.4; §6.1–6.5.
 Next agent work: 3.5 (push deck, link in handoff), 6.6 once §6 decided, workshop watch §4 Mon/Tue; review 0.8 spreads with Jenna (pull PNGs onto a page if she wants to compare).
+
+## Addendum 7 (2026-09-19, ~15:10 UTC) — before compaction
+
+Landed since addendum 6 (all pushed):
+- **0.11** page is white: `--bg #FFFFFF`, `--well-bg #F5F3EC`, `--border #E6E4DC`; brand SVGs, wordmark-gen.py, press.html colour note follow.
+- **0.12** follow-up: `.tx-handoff` background is a green wash (`color-mix(var(--green) 7%, var(--bg))`), not `--surface`.
+- **0.13** follow-up: "Return to draft mode" (header: "Return to draft"); draft state shows only Mark Final, no Factory link.
+- **0.8 part 2b** (87819e4): section break "Your own" — `typography.section_break=custom` + `section_break_text` (≤24 chars) flows to spec `elements/epub.section_break_text`, Typst `section-break-text` + `"custom"` style, EPUB `hr::after` (cssStringEscape), Word template Section Break sample, email summary. transmittal.js v20260919f, css v20260919e.
+- **runpage**: `/fragment` sends `X-Page-Version` (page.html mtime); page reloads itself when it changes. Punch list exported (0.17 comps with images).
+- 2.6, 2.7 ticked by Jenna.
+
+In flight:
+- **Subagent `sampler` (conv cJR7BZO)** working from `scratch/briefs/sampler-2026-09-19.md`: typography sampler PDF (3 pairings × chapter opener + 3 pp, Typst direct, no credits) + click-to-enlarge chips under the Typeface row + download link, outputs under `srv/static/samples/`, script `typesetting/scripts/build-sampler.sh`. Its untracked files so far: `srv/samplerconfig.go`, `cmd/typoconfig/`. It will commit/push and report; check `git log` / ask it for status before touching transmittal.js. Then note on 0.8 and tick.
+- **0.17 — Jenna chose C**: one page. The transmittal becomes section 1 of the factory page (`/{client}/{project}/factory/`): factory header ("// FACTORY · Title · builds left"), step strip as in-page anchors, "// 1 · TRANSMITTAL" section with History/Print/Email/Word template/Return to draft actions on the section rule, the two-column form, finish block "Continue to 2 · Upload →"; steps 2–5 below. Transmittal URL redirects to the factory page (`#transmittal`). Top nav drops the separate TRANSMITTAL entry (`clientNav()` in theme.js; check `srv/nav_convergence_test.go`). Comps: `scratch/run/img/comp-017-C-*.png`. Files: factory.html/js/css, transmittal.js (1575 lines; renderForm ~l.557, renderStepStrip/renderHandoff/renderFinish after it), transmittal.css, server.go routing ~l.445–475, theme.js. Not started — do this in a fresh session; plan first (transmittal.js mounts into `#app`; factory.js is vanilla with `renderAll()`), probably load transmittal.js inside factory.html and mount it into a `#fx-transmittal` section, with factory's own step-1 stub removed.
+
+Waiting on Jenna: 0.9A names, 0.10 placeholders, 5.17, 0.6, 0.7, 2.8, 3.2/3.4, §6.

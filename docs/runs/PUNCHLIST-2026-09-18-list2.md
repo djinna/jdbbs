@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 14:51 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 14:58 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -225,6 +225,9 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   >
   > ![screenshot](img/comp-017-C-one-factory-bottom.png)
 
+  > **jenna** · 2026-09-19 14:55 UTC  
+  > Good notes, I think we just bite the bullet and do C now.
+
 
 ## 2 · Your side — YOU
 
@@ -289,6 +292,10 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
   > **jenna** · 2026-09-19 14:47 UTC  
   > 1/Feels like it would be pretty helpful to roll out a sampler PDF that had, let's say, four pages showing each of the main styles. Chap opener + 3 pp so they can see a full spread with running heads. I suppose no reason not to build out a pretty full sampler, take a first swing at that? And let's include small chips that people can click on to enlarge, in addition to giving them a link to download the PDF with the full sampler. 
   > 2/ for "Section breaks" let's add a field for their own break character choice?
+
+  > **shelley** · 2026-09-19 14:55 UTC  
+  > 2/ Done, live: Section breaks has a fourth choice, “Your own”, which opens a small centred field (up to 24 characters, placeholder * * *). Goes through everywhere — print PDF, EPUB, the Word template’s Section Break sample, the transmittal email summary. Empty falls back to the breve.
+  > 1/ Sampler PDF + click-to-enlarge chips under the Typeface row: in progress with a helper (built straight from Typst, no credits used). Will report here when it lands.
 
 - [~] 0.9 new: I'd like to at least start building out how someone else can hit the book factory from their own factory via our API. I have, today, three customers, and i… — plan on the item: A) three passes on this VM (15 min, need names); B) bearer token + CLI/Python recipe, fresh session
 
