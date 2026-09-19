@@ -172,3 +172,20 @@ Landed:
 In flight: subagent **typo-choices** (conv cDXESK6) — 0.8 part 2 transmittal typography rows (pairing/size/section break/paragraphs), vendoring EB Garamond, new `srv/typochoices.go`; edits bookspecs.go, typodefaults.go, epub.go, transmittal.js. If it hasn't reported when the next session starts: `git status`, read its report via previous-conversations skill, review its spreads in scratch/typo/, and post on 0.8.
 
 Next: Jenna's picks (0.12, 0.13, 0.6 box, 0.7 email, 5.17, 5.22, 0.9A names) → build 0.13 A+C and 0.12 → review 0.8 part 2 → workshop watch.
+
+## Addendum 6 (2026-09-19, afternoon) — before compaction
+
+Landed (all pushed to djinna/jdbbs main, VM rebuilt/restarted):
+- **0.12** transmittal fields are warm wells: theme token `--well-bg #F6EFDD` (dark `#1C1A16`), white on focus (7a4dec1).
+- **0.13 A+C** (b549648): `.fx-steps/.fx-step` moved factory.css → theme.css; transmittal.js gained `toggleFinal()`, `renderStepStrip()`, `renderHandoff()`, `renderFinish()`; intro hides once final; strip/handoff/finish hidden in print. Cache busters transmittal.css 20260919c, transmittal.js 20260919d, factory.css 20260919a.
+- **0.2** factory.html Inspect line: "Python script … no LLM reads your manuscript".
+- **0.8 part 2** landed by subagent typo-choices (2f205eb, 21bbdc2, 6c45b6d): `srv/typochoices.go`, EB Garamond vendored under `typesetting/fonts/ebgaramond/OTF/`, transmittal `// TYPOGRAPHY` section; docx-to-typst-enhanced.lua no longer wraps "Body Text" in `#block`; books.go uses the specialised template path. Spreads in `scratch/typo/`. Pass 12 (Ghosts) granted +11 builds via `POST /api/admin/passes/12/grant`; 6 remain for testing.
+- **5.22** Rights (50187d3): `srv/rights.go` (`rightsOptions`, `rightsLine`, `rightsShort`) + test; transmittal `page_iv.rights` → spec `metadata.rights`; Typst `rights-line` field (series-template.typ copyright-page-generated); generate-word-template.py `rights_line()` mirror; epub.go `spec.Rights` → pandoc `--metadata=rights`. Keep the three wordings in step.
+- **0.15** jdbbs-public/factory.html `.price .amount` clamp(16px,3vw,22px).
+- **0.16** punch-list screenshots (c80ecde): runpage `POST /upload`, `GET /img/<name>`, notes `images[]`, paste handlers in page.html; export copies to `docs/runs/img/`; `/admin/runs/{kind}/{name}` (kind=img) serves them. Runpage restarted in tmux `runpage` with `RUNPAGE_CHAT_CONV=cMMJF5J` — **set the new conversation id when a fresh session starts**. AGENTS.md notes the `[screenshot: path]` convention (open with read_image).
+- 0.14 domain ideas posted (no build). Comps still served on :8767 (tmux `comps`); can be killed once 0.12/0.13 are accepted.
+
+Gotcha: Ghosts (project 14) transmittal got flipped to draft by a concurrent autosave during testing; set back to final via sqlite (`update transmittals set status='final' where project_id=14`).
+
+Waiting on Jenna: 0.9A names/emails/titles → three passes; 0.10 four placeholders; 5.17 A/A′/B; 0.6 box, 0.7 email; §2.6–2.8; §3.2/3.4; §6.1–6.5.
+Next agent work: 3.5 (push deck, link in handoff), 6.6 once §6 decided, workshop watch §4 Mon/Tue; review 0.8 spreads with Jenna (pull PNGs onto a page if she wants to compare).
