@@ -1,32 +1,56 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Punch list</title>
 <style>
-body{max-width:46rem;margin:2rem auto;padding:0 1rem 6rem;font:16px/1.5 system-ui;background:#111;color:#ddd}
-a{color:#8ab4f8} strong{color:#fff} code{background:#222;color:#e8e8e8;padding:0 .25em}
-h2{margin-top:2rem;border-top:1px solid #333;padding-top:1rem}
+:root{color-scheme:light dark;
+  --bg:#fafafa;--fg:#222;--fg-strong:#000;--muted:#666;--link:#1a5fb4;--rule:#ddd;
+  --code-bg:#eee;--code-fg:#222;--field-bg:#fff;--field-bd:#bbb;--bar-bg:#f0f0f0;--img-bd:#ccc;
+  --ok:#2a8a2a;--warn:#c76b00;--danger:#c33}
+:root[data-theme=dark]{color-scheme:dark;
+  --bg:#111;--fg:#ddd;--fg-strong:#fff;--muted:#888;--link:#8ab4f8;--rule:#333;
+  --code-bg:#222;--code-fg:#e8e8e8;--field-bg:#1a1a1a;--field-bd:#444;--bar-bg:#181818;--img-bd:#333;
+  --ok:#5c5;--warn:#fa5;--danger:#f66}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
+  --bg:#111;--fg:#ddd;--fg-strong:#fff;--muted:#888;--link:#8ab4f8;--rule:#333;
+  --code-bg:#222;--code-fg:#e8e8e8;--field-bg:#1a1a1a;--field-bd:#444;--bar-bg:#181818;--img-bd:#333;
+  --ok:#5c5;--warn:#fa5;--danger:#f66}}
+body{max-width:46rem;margin:2rem auto;padding:0 1rem 6rem;font:16px/1.5 system-ui;background:var(--bg);color:var(--fg)}
+a{color:var(--link)} strong{color:var(--fg-strong)} code{background:var(--code-bg);color:var(--code-fg);padding:0 .25em}
+h2{margin-top:2rem;border-top:1px solid var(--rule);padding-top:1rem}
 li{margin:.35rem 0;list-style:none;position:relative} ul{padding-left:1.2rem}
-.box{cursor:pointer;user-select:none;font-size:1.1em} .st-x{color:#5c5} .st-\~{color:#fa5}
-.id{color:#aaa;font-weight:600}
-.nbtn{margin-left:.5rem;font-size:.75em;color:#8ab4f8;cursor:pointer;background:none;border:1px solid #345;padding:0 .4em;border-radius:3px}
-.nbtn.has{border-color:#fa5;color:#fa5}
+.box{cursor:pointer;user-select:none;font-size:1.1em} .st-x{color:var(--ok)} .st-\~{color:var(--warn)}
+.id{color:var(--muted);font-weight:600}
+.nbtn{margin-left:.5rem;font-size:.75em;color:var(--link);cursor:pointer;background:none;border:1px solid var(--field-bd);padding:0 .4em;border-radius:3px}
+.nbtn.has{border-color:var(--warn);color:var(--warn)}
 .notes{margin:.3rem 0 .5rem 1.6rem;font-size:.9em}
-.note{border-left:3px solid #fa5;padding:.1rem .6rem;margin:.25rem 0;white-space:pre-wrap}
-.note.shelley{border-color:#5c5}
-.note .m{color:#888;font-size:.8em;display:block}
-.note img,#body img{display:block;max-width:100%;max-height:22rem;margin:.4rem 0;border:1px solid #333;cursor:zoom-in}
-.pend{display:flex;gap:.4rem;flex-wrap:wrap;margin:.2rem 0 0 1.6rem} .pend img{height:3.5rem;border:1px solid #555} .pend .x{color:#f66;cursor:pointer;font-size:.8em}
+.note{border-left:3px solid var(--warn);padding:.1rem .6rem;margin:.25rem 0;white-space:pre-wrap}
+.note.shelley{border-color:var(--ok)}
+.note .m{color:var(--muted);font-size:.8em;display:block}
+.note img,#body img{display:block;max-width:100%;max-height:22rem;margin:.4rem 0;border:1px solid var(--img-bd);cursor:zoom-in}
+.pend{display:flex;gap:.4rem;flex-wrap:wrap;margin:.2rem 0 0 1.6rem} .pend img{height:3.5rem;border:1px solid var(--field-bd)} .pend .x{color:var(--danger);cursor:pointer;font-size:.8em}
 .reply{flex-wrap:wrap}
 .reply{display:flex;gap:.4rem;margin:.3rem 0 .6rem 1.6rem}
-textarea{flex:1;min-height:2.4em;background:#1a1a1a;color:#ddd;border:1px solid #444;font:14px/1.4 system-ui;padding:.4em .6em;resize:vertical}
-button.save{background:#8ab4f8;color:#111;border:0;font-weight:600;padding:0 .9em;cursor:pointer}
-.bar{position:fixed;bottom:0;left:0;right:0;background:#181818;border-top:1px solid #333;padding:.6rem 1rem;display:flex;gap:.5rem;align-items:center;font-size:.9em}
-.bar input{flex:1;background:#1a1a1a;color:#ddd;border:1px solid #444;padding:.4em .6em;font:14px system-ui}
-.bar .hint{color:#888}
-</style></head><body>
+textarea{flex:1;min-height:2.4em;background:var(--field-bg);color:var(--fg);border:1px solid var(--field-bd);font:14px/1.4 system-ui;padding:.4em .6em;resize:vertical}
+button.save{background:var(--link);color:var(--bg);border:0;font-weight:600;padding:0 .9em;cursor:pointer}
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--bar-bg);border-top:1px solid var(--rule);padding:.6rem 1rem;display:flex;gap:.5rem;align-items:center;font-size:.9em}
+.bar input{flex:1;background:var(--field-bg);color:var(--fg);border:1px solid var(--field-bd);padding:.4em .6em;font:14px system-ui}
+.bar .hint{color:var(--muted)}
+.theme{position:fixed;top:.5rem;right:.6rem;font-size:.75em;display:flex;gap:.15rem;opacity:.7}
+.theme:hover{opacity:1}
+.theme button{background:none;border:1px solid var(--field-bd);color:var(--muted);padding:0 .45em;border-radius:3px;cursor:pointer;font:inherit}
+.theme button.on{color:var(--fg-strong);border-color:var(--fg-strong)}
+</style>
+<script>(function(){var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;})();</script></head><body>
+<div class="theme" title="Theme"><button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
 <div id="body">{{BODY}}</div>
 <div class="bar"><span class="hint">New item →</span><input id="add" placeholder="type a to-do (paste a screenshot if useful), Enter to add to Inbox (Shelley triages)"><span class="hint" id="status"></span><span class="hint" id="upd"></span></div>
 <script>
 const NEXT={o:'x',x:'~','~':'o'}, ST={o:' ',x:'x','~':'~'};
+(function(){const cur=()=>localStorage.getItem('theme')||'auto';
+  const mark=()=>document.querySelectorAll('.theme button').forEach(b=>b.classList.toggle('on',b.dataset.t===cur()));
+  document.querySelectorAll('.theme button').forEach(b=>b.onclick=()=>{const t=b.dataset.t;
+    if(t==='auto'){localStorage.removeItem('theme');delete document.documentElement.dataset.theme;}
+    else{localStorage.setItem('theme',t);document.documentElement.dataset.theme=t;} mark();});
+  mark();})();
 let notes={};
 // Hold the refresh only while there is unsaved typing. (An empty, still-focused
 // "New item" box used to count as busy, so the page stopped updating after every add.)
