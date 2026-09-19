@@ -576,6 +576,7 @@ func getSizePtOrEm(m map[string]any, key string, baseSizePt float64) (string, bo
 
 // specToTypstConfig converts a spec JSON map into Typst config override code.
 func specToTypstConfig(data map[string]any) string {
+	applyTypoDefaults(data)
 	var lines []string
 	lines = append(lines, "\n// Project-specific config overrides (from spec)")
 	lines = append(lines, "#let config = merge-config((")
