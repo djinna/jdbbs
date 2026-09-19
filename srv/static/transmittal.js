@@ -887,7 +887,29 @@ function renderChecklistSection() {
     render();
   }
 
+  // 0.20 (Jenna, 2026-09-19): one tick per status instead of a dropdown per
+  // row — a 20-row list is 20 clicks, not 40, and you can run down a column.
+  // Radios give the one-of-three behaviour and keyboard access for free; the
+  // CSS draws them as small ticked boxes.
+  let tickRow = null; // set per row below so the radio group name is unique
+  function tick(value, current, title) {
+    const { collectionName, collection, i } = tickRow;
+    return h('td', { className: 'tx-tick' },
+      h('label', { title },
+        h('input', {
+          type: 'radio',
+          name: 'ck-' + collectionName + '-' + i,
+          value,
+          checked: current === value ? 'checked' : undefined,
+          onChange: () => updateChecklistRow(collectionName, collection, i, value),
+        }),
+        h('span', { className: 'tx-tick-box', 'aria-hidden': 'true' }),
+      ),
+    );
+  }
+
   function checklistRow(item, i, collectionName, collection, options = {}) {
+    tickRow = { collectionName, collection, i };
     const status = getChecklistItemStatus(item);
     // Generated pages: the factory makes them from this transmittal, so the
     // only question is include or leave out. Blank (and a stale "Coming
@@ -896,20 +918,9 @@ function renderChecklistSection() {
       const val = status === 'not_in_book' ? 'not_in_book' : 'included';
       return h('tr', { className: 'generated-row' },
         h('td', { className: 'component-name' }, options.label || item.component),
-        h('td', { style: 'width:190px' },
-          h('select', {
-            onChange: (e) => updateChecklistRow(collectionName, collection, i, e.target.value)
-          },
-            ...[
-              ['included', 'Included \u2014 generated'],
-              ['not_in_book', 'Leave out'],
-            ].map(([value, label]) => {
-              const opt = h('option', { value }, label);
-              if (val === value) opt.selected = true;
-              return opt;
-            })
-          )
-        ),
+        tick('included', val, 'Included \u2014 made by the factory'),
+        h('td', { className: 'tx-tick tx-muted' }, '\u2014'),
+        tick('not_in_book', val, 'Leave out'),
         h('td', { style: 'width:140px', className: 'tx-muted' }, '\u2014'),
       );
     }
@@ -918,22 +929,9 @@ function renderChecklistSection() {
       h('td', { className: options.indent ? 'component-indent' : 'component-name' },
         options.label || item.component
       ),
-      h('td', { style: 'width:190px' },
-        h('select', {
-          onChange: (e) => updateChecklistRow(collectionName, collection, i, e.target.value)
-        },
-          ...[
-            ['', '— Select —'],
-            ['included', 'In ms now'],
-            ['later', 'Coming later'],
-            ['not_in_book', 'Not included'],
-          ].map(([value, label]) => {
-            const opt = h('option', { value }, label);
-            if (status === value) opt.selected = true;
-            return opt;
-          })
-        )
-      ),
+      tick('included', status, 'In the manuscript now'),
+      tick('later', status, 'Coming later'),
+      tick('not_in_book', status, 'Not in this book'),
       h('td', { style: 'width:140px' },
         h('input', {
           type: 'date',
@@ -959,7 +957,7 @@ function renderChecklistSection() {
   const GENERATED = ['Half title pg', 'Title pg', 'Copyright pg', 'Contents'];
   const HIDDEN = ['CIP'];
   const groupRow = (label) => h('tr', { className: 'group-row' },
-    h('td', { colspan: '3', className: 'tx-group-label' }, label));
+    h('td', { colspan: '5', className: 'tx-group-label' }, label));
   const generatedRows = [];
   const typedRows = [];
   checklist.forEach((item, i) => {
@@ -991,7 +989,9 @@ function renderChecklistSection() {
     h('table', { className: 'tx-checklist' },
       h('thead', null, h('tr', null,
         h('th', null, 'Component'),
-        h('th', null, 'Status'),
+        h('th', { className: 'tx-tick' }, 'In ms'),
+        h('th', { className: 'tx-tick' }, 'Later'),
+        h('th', { className: 'tx-tick' }, 'Not in'),
         h('th', null, 'Expected date'),
       )),
       h('tbody', null,
@@ -1001,7 +1001,7 @@ function renderChecklistSection() {
         // Old checklist_stats.chapters / words_chars / ms_pp / est_book_pp
         // keys stay in the JSON, just not shown.
         h('tr', { className: 'stats-row' },
-          h('td', { colspan: '3' },
+          h('td', { colspan: '5' },
             h('div', { className: 'tx-row-3 tx-stats-grid' },
               textField('Parts', 'checklist_stats.parts', {
                 placeholder: 'none',
@@ -1013,7 +1013,7 @@ function renderChecklistSection() {
           ),
         ),
         // Back matter header
-        h('tr', null, h('td', { colspan: '3', className: 'tx-checklist-subhead' }, 'Back Matter')),
+        h('tr', null, h('td', { colspan: '5', className: 'tx-checklist-subhead' }, 'Back Matter')),
         ...bmRows,
       ),
     ),

@@ -1280,8 +1280,11 @@ function renderProjects(projects, filtered) {
     const updated = p.updated_at ? localDateStr(new Date(p.updated_at)) : 'N/A';
 
     const projectURL = absoluteURL(p.path);
+    // Calendar-era Snapshot / Activity emails and the separate Transmittal
+    // link are gone (0.22, 2026-09-19): the transmittal is section 1 of the
+    // factory page, and the emails digest schedule + journal nobody uses.
     const factoryURL = absoluteURL(p.path + 'factory/');
-    const transmittalURL = absoluteURL(p.path + 'factory/#transmittal');
+    const stylesheetURL = absoluteURL(p.path + 'stylesheet/');
 
     return `
       <div class="project">
@@ -1298,9 +1301,7 @@ function renderProjects(projects, filtered) {
         <div class="project-meta">Created: ${created} &nbsp; Start: ${start} &nbsp; Updated: ${updated}</div>
         <div class="links">
           <a href="${esc(factoryURL)}" target="_blank">Factory</a>
-          <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
-          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
-          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
+          <a href="${esc(stylesheetURL)}" target="_blank">Style sheet</a>
           ${p.has_auth ? `<!-- Remove password --> <button class="email-btn" style="color:var(--red)" onclick="removeProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Remove password</button>` : `<!-- Set password --> <button class="email-btn" style="color:var(--green)" onclick="setProjectPassword(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Set password</button>`}
           <button class="email-btn" onclick="openRenameSlugModal(${p.id})">Rename URL</button>
           <button class="email-btn" style="color:var(--yellow)" onclick="archiveProject(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Archive</button>
@@ -1319,8 +1320,11 @@ function renderArchivedProjects(projects) {
   }
   $archivedProjects.innerHTML = projects.map(p => {
     const projectURL = absoluteURL(p.path);
+    // Calendar-era Snapshot / Activity emails and the separate Transmittal
+    // link are gone (0.22, 2026-09-19): the transmittal is section 1 of the
+    // factory page, and the emails digest schedule + journal nobody uses.
     const factoryURL = absoluteURL(p.path + 'factory/');
-    const transmittalURL = absoluteURL(p.path + 'factory/#transmittal');
+    const stylesheetURL = absoluteURL(p.path + 'stylesheet/');
     const archived = p.archived_at ? p.archived_at.split('T')[0].split(' ')[0] : '—';
     return `
       <div class="project">
@@ -1334,9 +1338,7 @@ function renderArchivedProjects(projects) {
         <div class="project-meta">Created: ${esc(p.created_at || '—')} &nbsp; Start: ${esc(p.start_date || '—')} &nbsp; Updated: ${esc(p.updated_at || '—')}</div>
         <div class="links">
           <a href="${esc(factoryURL)}" target="_blank">Factory</a>
-          <a href="${esc(transmittalURL)}" target="_blank">Transmittal</a>
-          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'snapshot')">Snapshot</button>
-          <button class="email-btn" onclick="openEmailModal(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}', 'activity')">Activity</button>
+          <a href="${esc(stylesheetURL)}" target="_blank">Style sheet</a>
           <button class="email-btn" style="color:var(--green)" onclick="restoreProject(${p.id}, '${esc(p.name).replace(/'/g, "\\'")}')">Restore</button>
         </div>
       </div>

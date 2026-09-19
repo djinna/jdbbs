@@ -1015,6 +1015,23 @@ html.dark .email-warning { background: none; }
 }
 .tx-checklist td.tx-muted { color: var(--text-muted); text-align: center; }
 
+/* 0.20: tick grid for the checklist status (one radio per status, drawn as a box) */
+.tx-checklist th.tx-tick, .tx-checklist td.tx-tick { width: 52px; text-align: center; padding-left: 2px; padding-right: 2px; }
+.tx-checklist td.tx-tick label { display: block; cursor: pointer; margin: 0; padding: 4px 0; line-height: 0; }
+.tx-checklist td.tx-tick input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
+.tx-tick-box {
+  display: inline-block; width: 15px; height: 15px; box-sizing: border-box;
+  border: 1px solid var(--border-strong); background: var(--bg);
+  vertical-align: middle; position: relative;
+}
+.tx-checklist td.tx-tick label:hover .tx-tick-box { border-color: var(--accent); }
+.tx-checklist td.tx-tick input:focus-visible + .tx-tick-box { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tx-checklist td.tx-tick input:checked + .tx-tick-box { background: var(--accent); border-color: var(--accent); }
+.tx-checklist td.tx-tick input:checked + .tx-tick-box::after {
+  content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid var(--bg); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+
 /* ─── 0.13: step strip, hand-off panel on Final, finish block ─── */
 .tx-steps { padding: 10px 0 0; margin-bottom: 6px; }
 .tx-steps .fx-step.done { pointer-events: none; }

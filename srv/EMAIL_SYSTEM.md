@@ -39,8 +39,8 @@ First recipient = To, rest = CC.
 | # | Trigger | Endpoint | File | Description |
 |---|---------|----------|------|-------------|
 | 1 | **Email button** on transmittal form | `POST /api/projects/{id}/transmittal/email` | `srv/email.go` | Full transmittal summary (book info, production dates, checklist, design, etc.) |
-| 2 | **Email Snapshot button** on calendar toolbar | `POST /api/projects/{id}/snapshot/email` | `srv/snapshot_email.go` | Comprehensive project snapshot (schedule, budget, transmittal status, recent files, recent journal) |
-| 3 | **Email button** on Files/Journal tabs | `POST /api/projects/{id}/activity/email` | `srv/activity_email.go` | Activity digest — file transfers + journal entries from last N days (default 7, `?days=N`) |
+| 2 | **Email Snapshot button** on calendar toolbar (admin-console buttons removed 2026-09-19, punch list 0.22 — calendar-era digest) | `POST /api/projects/{id}/snapshot/email` | `srv/snapshot_email.go` | Comprehensive project snapshot (schedule, budget, transmittal status, recent files, recent journal) |
+| 3 | **Email button** on Files/Journal tabs (admin-console button removed 2026-09-19, 0.22) | `POST /api/projects/{id}/activity/email` | `srv/activity_email.go` | Activity digest — file transfers + journal entries from last N days (default 7, `?days=N`) |
 | 4 | **Weekly Digest button** on client portal | `POST /api/clients/{client}/digest/email` | `srv/client_digest_email.go` | Aggregated digest across ALL projects for a client — last 7 days of files + journal |
 | 5 | **Send announcement** on workshop cohort tracker | `POST /api/admin/registrations/announce` | `srv/registration.go` | Personalized one-to-one announcement to opted-in, non-declined registrants; logs each batch |
 
