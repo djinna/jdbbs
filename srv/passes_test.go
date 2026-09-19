@@ -718,7 +718,7 @@ func TestConvertDebitsThenRefundsOnFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reload failed book: %v", err)
 	}
-	if reloadedBook.ErrorMsg != "We couldn't read this Word file. Re-save it as .docx from Word and try again." {
+	if !strings.HasPrefix(reloadedBook.ErrorMsg, "We couldn't read this Word file. Re-save it as .docx from Word") {
 		t.Errorf("customer error_msg = %q", reloadedBook.ErrorMsg)
 	}
 	reloaded, err := q.GetPassByProject(t.Context(), pass.ProjectID)

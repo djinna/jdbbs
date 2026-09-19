@@ -13,9 +13,11 @@
 
 :root {
   /* Process palette — light */
-  --bg: #FCFDFD;               /* lightened 2026-09-11 from #F7F9FA */
+  --bg: #FBFAF4;               /* warm paper, 2026-09-18 (was cool #FCFDFD). Deliberately
+                                  lighter than the Anthropic-default cream (#F0EEE6 / #FAF9F5):
+                                  a hint of warmth, not a tint. Neutrals below follow it. */
   --surface: #FFFFFF;          /* modals + overlays only, not section cards */
-  --border: #DCE3E8;
+  --border: #E2E0D7;           /* was #DCE3E8 — same value, warm axis */
   --border-strong: #0E1116;    /* 1px strong section rules */
   --text: #0E1116;
   --text-secondary: #5D6B76;
@@ -37,9 +39,9 @@
   --badge-green-bg: transparent;
   --badge-red-bg: transparent;
   --badge-yellow-bg: transparent;
-  --badge-dim-bg: #EDF1F4;     /* progress tracks etc. */
-  --progress-bg: #EDF1F4;
-  --toggle-bg: #EDF1F4;
+  --badge-dim-bg: #F0EEE6;     /* progress tracks etc. (warm, was #EDF1F4) */
+  --progress-bg: #F0EEE6;
+  --toggle-bg: #F0EEE6;
   --hover-tint: rgba(0, 150, 199, 0.05);
   --modal-backdrop: rgba(14, 17, 22, 0.35);
   --theme-bg: var(--bg);

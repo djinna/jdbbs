@@ -363,6 +363,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /factory", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "factory.html")
 	})
+	// Press page: what the studio is, facts, brand assets, contact (0.10).
+	mux.HandleFunc("GET /press", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "press.html")
+	})
 	// Plain-English terms (C11): linked from the offer page's Storage &
 	// privacy section and from the transmittal's rights attestation.
 	mux.HandleFunc("GET /factory/terms", func(w http.ResponseWriter, r *http.Request) {
