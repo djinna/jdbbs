@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 15:57 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 16:19 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -123,6 +123,38 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **shelley** · 2026-09-19 15:39 UTC  
   > Done. `/usr/local/bin/typst` is now 0.13.1; the old binary is kept as `/usr/local/bin/typst-0.12` (rollback = `sudo cp -p /usr/local/bin/typst-0.12 /usr/local/bin/typst`, no restart needed — the server calls `typst` per build). Checked: `typst fonts` lists the same 59 families; Ghosts compiles to the same 117 pages; `go test ./srv/` green (pipeline tests included); live factory rebuild of the mcheck smoke book → ready, 17 pp, PDF says Creator: Typst 0.13.1, EPUB fine. I smoked on mcheck rather than pinstitute: Obliquities has 1 of 3 builds left and a rebuild would have spent it. (mcheck is now 2 of 3.) Next: 5.5 — `par(costs:)` runt control in the series template + sampler rebuild.
+
+- [x] 0.19 new: on /factory let's move rights and copyright to the bottom of the left column so that they balance better. At least it looks to me like those are the ones to move. Also feels like format and typography should be closer together. Maybe format should even move to the top of the right column. wdyt?  ·  _added Sat 16:08 UTC_
+
+  > **shelley** · 2026-09-19 16:12 UTC  
+  > Measured at 1280 (mcheck/book-001): left column 2660 px, right 4425 px — right is 1.7× taller, so your eye is right.
+  > Sections: Book Info 531 · Checklist 1018 · Illustrations 625 · Cover 377 | Typography 1841 · Rights 202 · Copyright page 1227 · Format 713 · What you get 298.
+  >
+  > Moving only Rights + Copyright page left over-corrects (left 4089 / right 2996). What balances *and* reads as two ideas:
+  >
+  > LEFT — the book and who owns it: Book Information → Manuscript Checklist → Illustrations → Rights → Copyright page   (3712)
+  > RIGHT — how it looks and what comes out: Format → Typography → Cover → What you get   (3373)
+  >
+  > So: your two moves, Format to the top of the right column as you suggested, plus Cover crosses to the right (it's a design item; it was only on the left for height). On phones the columns stack in that order, which reads well too. Doing it now unless you'd rather keep Cover left — it's one line to change back.
+
+  > **shelley** · 2026-09-19 16:19 UTC  
+  > Live (1799e24). Columns now 3747 / 3338 px. Left: Book Information → Manuscript Checklist → Illustrations → Rights → Copyright page. Right: Format → Typography → Cover → What you get. ![](/img/019-columns.png)
+
+- [ ] 0.20 new: on ms transmittal, "Manuscript Checklist" Batch editing would be really helpful. Can we add simple tick boxes? To be clear, a select-all box would not be useful, I don't think. Let me know what you think before building this out?  ·  _added Sat 16:10 UTC_
+
+  > **shelley** · 2026-09-19 16:12 UTC  
+  > Agree it's worth doing before Monday; it's the one table people will sit and click through. Two ways to read "tick boxes":
+  >
+  > A · Tick grid (my pick). Replace the Status dropdown with three tick cells per row — In ms · Later · Not in — one click sets the row (radio behaviour, so it can't be two things). Every row is one click instead of open-menu-then-choose, and you can run down a column ticking. No select-all. Date box still appears only when Later is ticked.
+  >
+  > B · Select + apply. A tick box at the left of each row plus a little bar: "Set ticked rows to: In ms · Later · Not in". Two-step, and the ticks are a second state to manage.
+  >
+  > A is faster for a 20-row list and has nothing new to learn; B only wins if you'd often set the *same* status on scattered rows, which the tick grid also handles in the same number of clicks. Say A, B, or something else and I'll build it Sunday morning (it's transmittal JS/CSS only — no build/pass/store/email code, inside the freeze rules).
+
+- [x] 0.21 small clean up: https://jdbbs.exe.xyz/admin/ still shows calendars  ·  _added Sat 16:12 UTC_
+
+  > **shelley** · 2026-09-19 16:19 UTC  
+  > Live (1799e24). /admin/: the Calendar link per project is now Factory (Transmittal → factory/#transmittal); the task-count stats (Total tasks / Completed / In progress) and the per-project "0/0 tasks done · 0%" bar are gone — stats are Projects · Transmittals · Final · Draft · Open access; Status filter offers Has transmittal / final / draft / none; "Least complete" sort dropped; New Project subtitle no longer says calendar. Ticked. ![](/img/021-admin-clean.png)
 
 
 ## 2 · Your side — YOU
@@ -264,7 +296,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
 ## 6 · Ideas log (`docs/IDEAS.md`) — BOTH decide, then queue or kill
 
-- [ ] 6.1 Per-client interactive stylesheet instances (accept/reject seeded from the universal fiction/nonfiction stylesheet)
+- [x] 6.1 Per-client interactive stylesheet instances (accept/reject seeded from the universal fiction/nonfiction stylesheet)
 
   > **jenna** · 2026-09-18 00:19 UTC  
   > Seems like this shouldn't be too bad to do since we trimmed down our universal fiction/non-fiction style sheets. Do you agree?
@@ -300,6 +332,9 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > 4. Tests → build → restart → smoke on mcheck; nothing touches builds or the store, so the worst case is the new page being wrong, not the factory.
   > I’ll post screenshots here as it comes together.
 
+  > **shelley** · 2026-09-19 16:19 UTC  
+  > B is live: /mcheck/book-001/stylesheet/ (linked from the portal card "Style sheet", the client top nav, and the admin project view). Seeds from the house sheet on first open (28 'both' rules; picking Fiction/Nonfiction adds theirs → 48/42), every rule Accepted by default; per rule Reject / Edit / Add note / Restore; Add your own; Accept all; Download as Markdown (only accepted+edited+added, for the copyeditor). Public /stylesheet/ got a line pointing customers to their own copy. 5 tests, full suite green, migration 046. mcheck currently has demo state (1 edit, 1 reject, 2 added) — say if you want it cleared before the talk. ![](/img/61-stylesheet-1280.png)
+
 - [x] 6.2 Reusable "review table" pattern from the sitemap-review tool (JSON table + per-row reply box)
 
   > **jenna** · 2026-09-18 00:19 UTC  
@@ -327,7 +362,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 15:57 UTC  
   > Good — that split view is exactly the loop: you type on the right, the fix lands on the left, the tick comes back on the right. Worth showing. Punch list 4 (Workshop) goes up Sunday night at this URL; I’ll leave list 3 readable at /admin/runs/. One thought for the demo: the punch list is the *shape* of the pattern (items, notes both ways, ticks), not a product — the same shape works with any agent that can read a file and POST a note.
 
-- [ ] 6.3 Client-visible on-disk documents (`pi-client/{slug}/` + `serveClientDoc`) — trigger: first real client doc
+- [x] 6.3 Client-visible on-disk documents (`pi-client/{slug}/` + `serveClientDoc`) — trigger: first real client doc
 
   > **jenna** · 2026-09-18 00:20 UTC  
   > I don't know enough about what you mean for this one.
@@ -346,6 +381,12 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   >
   > 6.3 is narrower: it’s for the day you want to *hand-write* a one-off HTML page for one specific client — a bespoke design memo, a custom brief — and have it show only to them behind their login, the way `/exedeck` shows to everyone. That day hasn’t come; when it does it’s an hour of work (mirror `servePublicDoc` with a login check). Until then an email or the transmittal Notes covers a one-off. So: nothing needed before the workshop; keep parked.
 
+  > **jenna** · 2026-09-19 16:05 UTC  
+  > Got it, this becomes a good add to our ideas list.
+
+  > **shelley** · 2026-09-19 16:09 UTC  
+  > Parked, noted in docs/IDEAS.md with the trigger (first real client doc). Ticked as decided.
+
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
 
   > **jenna** · 2026-09-18 00:22 UTC  
@@ -354,7 +395,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-18 00:33 UTC  
   > Added to docs/IDEAS.md with Bookmobile + Accutrack named. Stays on the ideas list.
 
-- [~] 6.6 Strike the done rows (Admin doc editor) and move the kept ones to §5 with a date — ME, once 6.1–6.5 are decided
+- [x] 6.6 Strike the done rows (Admin doc editor) and move the kept ones to §5 with a date — ME, once 6.1–6.5 are decided
 
   > **jenna** · 2026-09-18 00:22 UTC  
   > I don't understand what this one means.
@@ -388,4 +429,10 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > - **6.5** cover/spine — you said keep on ideas with Bookmobile + Accutrack; already in IDEAS. Done unless you want it queued.
   >
   > So: **you** — answer 6.1 (A/B) and nod on 6.3. **Me** — then 15 minutes to tidy IDEAS.md and tick 6.6.
+
+  > **jenna** · 2026-09-19 16:05 UTC  
+  > ok I think I've responded to your 6.1 and 6.3. Let me know if I've missed something for knocking this one off
+
+  > **shelley** · 2026-09-19 16:09 UTC  
+  > Nothing missed — 6.1 (B, building), 6.3 (park), 6.5 (park) were all I needed. IDEAS.md tidied: 6.1 moved to Done dated today, 6.3/6.5 rows annotated as re-parked. Ticked.
 
