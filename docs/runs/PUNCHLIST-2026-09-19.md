@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 17:05 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 17:25 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 3 · Sat 19 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -40,7 +40,7 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   > **shelley** · 2026-09-19 15:44 UTC  
   > Checked 07ecd3f — one paragraph in “How it runs — who does what”: “visible part of the factory” / “programs installed on the factory’s server” reads better than the old wording, and the five canonical links (python-docx, Pandoc, Lua, Typst, EPUB3) are all correct URLs. HTML parses clean. It was already live (public docs are served from disk), and it’s now pushed to GitHub (`jdbbs-public` main = 07ecd3f). Nothing to fix. First edit through /admin/docs worked end to end — commit message and all.
 
-- [~] 0.24 new:  ![screenshot](img/20260919-165935-359.png) the client portal section on the main landing page just feels like a distraction from the flow of the narrative. Let's look for where we should move this to. wdyt?  ·  _added Sat 17:00 UTC_
+- [x] 0.24 new:  ![screenshot](img/20260919-165935-359.png) the client portal section on the main landing page just feels like a distraction from the flow of the narrative. Let's look for where we should move this to. wdyt?  ·  _added Sat 17:00 UTC_
 
   > **shelley** · 2026-09-19 17:02 UTC  
   > Agree. The page is now a story — studio → the product → the pipeline proving it → capabilities — and a sign-in form in the middle is a side door in the living room.
@@ -59,6 +59,13 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
 
   > **shelley** · 2026-09-19 17:05 UTC  
   > Got it — /portal is first up after the compaction, then 0.25.
+
+  > **shelley** · 2026-09-19 17:16 UTC  
+  > Live: /portal — same masthead and footer, the shared public nav (Client portal is now underlined as the current page), one field, Open → /{client}/. The landing page section is gone; / now runs hero → Factory Pass card → readout → capabilities. Client portal is linked from every public page's nav and every footer. Registered in Pages. Ticking.
+  >
+  > ![screenshot](img/024-portal.png)
+  >
+  > ![screenshot](img/024-portal-390.png)
 
 
 ## 1 · This weekend — ME (from list 2, decided)
@@ -261,10 +268,28 @@ Previous lists archived at `/admin/runs/` (list 2: 35 of 55 ticked → `PUNCHLIS
   >
   > ![screenshot](img/023-tight.png)
 
-- [ ] 0.25 **Word-free authoring — is Word still the only way to kick off the factory?** Friday test: neither tester had Word; Pages renamed styles on export, Word for the web felt janky. 0.6 only listed workarounds (Word online / LibreOffice / Docs + `[[style]]` markers). Today: honest survey of alternatives as of Sep 2026 (Docs with markers as a first-class path? Markdown/plain-text template? Pages export fixer? LibreOffice template? a browser editor of our own?), what each costs in fidelity and support, and a recommendation. Deliverable: short decision note + posted summary. (Jenna 2026-09-19 17:20)
+- [~] 0.25 **Word-free authoring — is Word still the only way to kick off the factory?** Friday test: neither tester had Word; Pages renamed styles on export, Word for the web felt janky. 0.6 only listed workarounds (Word online / LibreOffice / Docs + `[[style]]` markers). Today: honest survey of alternatives as of Sep 2026 (Docs with markers as a first-class path? Markdown/plain-text template? Pages export fixer? LibreOffice template? a browser editor of our own?), what each costs in fidelity and support, and a recommendation. Deliverable: short decision note + posted summary. (Jenna 2026-09-19 17:20)
 
   > **shelley** · 2026-09-19 17:05 UTC  
   > Found it: it was 0.6 (Thu 20:13) — but that only listed workarounds (Word for the web, LibreOffice, Docs + [[style]] markers, a 365 trial), it never asked your real question: does the factory still need Word at all? Logged here as its own item; I'll take it on after the compaction and post a decision note rather than a patch.
+
+  > **jenna** · 2026-09-19 17:05 UTC  
+  > nice, good plan
+
+  > **jenna** · 2026-09-19 17:12 UTC  
+  > can you tackle 0.25 in parallel with 0.24?
+
+  > **shelley** · 2026-09-19 17:25 UTC  
+  > Decision note: docs/reviews/WORD-FREE-AUTHORING-2026-09-19.md (on GitHub; full evidence in scratch/wordfree/). Short answer: the factory does not need Word. It needs a .docx whose paragraphs carry the template's 13 style names — Inspect (python-docx), the book map (styles.xml), the [[style]] pre-pass and pandoc's docx+styles reader all key on the style *name*, nothing else. Tested today on the VM, no builds, no credits:
+  > - Google Docs + [[style]] markers: byte-identical Typst to the Word baseline; live Inspect on the zoo project came back 0 high, markers listed, book map right. Already works; only documentation is missing. Caveat: no inline (character) styles, and authors never see the styles before the proof.
+  > - LibreOffice Writer: opens the template .docx with all 13 styles intact; round trip through ODT and back gave byte-identical Typst. Free, offline, all platforms. Documentation only.
+  > - Word for the web: Friday's upload (book 21) kept every template style name — the file was fine, the editor was the janky part.
+  > - Apple Pages: renaming Heading 1→Heading alone loses every chapter and trips two high Inspect findings. A 30-line normaliser fixes it in simulation, but I couldn't get a real Pages export (not in the DB) — need one file from the tester before building it.
+  > - Markdown: pandoc's fenced divs feed the same Lua filter, and md → template .docx → normal pipeline was byte-identical. S for a CLI script; M to accept .md at upload. Right for the API audience, not for workshop authors.
+  > - Our own browser editor: L, recommend against — it would only exist to emit the same 13-style .docx the tools above already produce.
+  > Monday (freeze on): say "you need a .docx in the template's styles, not Word"; order = Word/Word online → LibreOffice → Docs + markers; say avoid Pages for now. The /factory and /workshop pages are public docs, so the "No Word? Three ways in" box from 0.6 is copy, not code — your yes and it's twenty minutes.
+  > Next month: document Docs+markers as first-class (S) and run markers before the book map in Inspect (one-line nit); get one Pages file and add the normaliser (S); Markdown→template script for the CLI crowd (S).
+  > Decisions for you: 1) Monday framing + the three-ways box, go? 2) advertise Docs+markers, or keep as workaround? 3) Pages: chase the tester's file, or drop Pages? 4) Markdown: CLI only, or accept .md on the factory page? 5) confirm no browser editor this year.
 
 
 ## 2 · Your side — YOU
