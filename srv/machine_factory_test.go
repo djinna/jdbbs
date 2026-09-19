@@ -218,3 +218,48 @@ func TestCallbackURLRejectsLocalTargets(t *testing.T) {
 		}
 	}
 }
+
+// TestBearerTokenAuth: "Authorization: Bearer <token>" is a third spelling
+// of the project token, equivalent to the cookie and X-Auth-Token — so a
+// caller's stock HTTP tooling (which usually has a bearer option and no
+// custom-header option) works unchanged. Wrong scheme or wrong token stays out.
+func TestBearerTokenAuth(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, _, _, _ := grantedPass(t, s, ts, "Bearer Author", "Bearer Book")
+	pid := itoa(pass.ProjectID)
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects/"+pid+"/auth", map[string]string{"password": "bearer-secret"})
+	if resp.StatusCode != 200 {
+		t.Fatalf("mint token: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	get := func(auth string) int {
+		req, _ := http.NewRequest("GET", ts.URL+"/api/projects/"+pid+"/transmittal", nil)
+		if auth != "" {
+			req.Header.Set("Authorization", auth)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	if got := get("Bearer bearer-secret"); got != 200 {
+		t.Errorf("Bearer with the project token: expected 200, got %d", got)
+	}
+	if got := get("bearer bearer-secret"); got != 200 {
+		t.Errorf("scheme is case-insensitive: expected 200, got %d", got)
+	}
+	if got := get("Bearer wrong"); got != 401 {
+		t.Errorf("Bearer with a wrong token: expected 401, got %d", got)
+	}
+	if got := get("Basic bearer-secret"); got != 401 {
+		t.Errorf("non-Bearer scheme must not be read as a token: expected 401, got %d", got)
+	}
+	if got := get(""); got != 401 {
+		t.Errorf("no auth: expected 401, got %d", got)
+	}
+}

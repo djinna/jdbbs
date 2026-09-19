@@ -12,7 +12,7 @@ ProdCal has three authentication levels:
 | Level | Mechanism | Grants access to |
 |-------|-----------|------------------|
 | **Admin** | exe.dev proxy sets `X-ExeDev-UserID` header | All endpoints |
-| **Project** | Cookie `prodcal_auth_{id}` or `X-Auth-Token` header | Project-scoped data |
+| **Project** | Cookie `prodcal_auth_{id}`, `X-Auth-Token` header, or `Authorization: Bearer <token>` | Project-scoped data |
 | **Client** | Cookie `prodcal_client_{slug}` | Client's projects & data |
 
 Endpoints with no auth configured on the resource are open-access.
@@ -109,7 +109,10 @@ Endpoints with no auth configured on the resource are open-access.
 The whole pass is callable without a browser — this is the "your factory
 calls my factory" path. You need a **project token**: the studio mints one
 (`POST /api/projects/{id}/auth {"password": …}`, once) and you send it as
-`X-Auth-Token` on every call. The project must hold a live Factory Pass.
+`X-Auth-Token` or `Authorization: Bearer <token>` on every call (equivalent).
+The project must hold a live Factory Pass. Terminal-only recipe with verified
+output shapes and a stdlib Python client: `docs/API-CLI-RECIPE-2026-09-19.md`,
+`scripts/factory-cli.py`.
 
 ```sh
 H='X-Auth-Token: <token>'; B=https://jdbbs.exe.xyz; P=<project id>
@@ -131,7 +134,7 @@ BOOK=$(curl -s -H "$H" -F file=@ms.docx -F title='…' -F author='…' -F projec
 # 4. Inspect — what the factory found and what to fix (JSON; HTML at …/preflight/report).
 curl -s -H "$H" -X POST $B/api/projects/$P/preflight -H 'Content-Type: application/json' \
      -d "{\"book_id\":$BOOK}"
-curl -s -H "$H" $B/api/projects/$P/preflight | jq .
+curl -s -H "$H" "$B/api/projects/$P/preflight?book_id=$BOOK" | jq .
 
 # 5. Build, then wait for the completion signal (or give a callback_url and be told).
 curl -s -H "$H" -X POST $B/api/books/$BOOK/convert -H 'Content-Type: application/json' \

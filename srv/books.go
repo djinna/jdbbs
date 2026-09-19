@@ -179,6 +179,9 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 			fmt.Sprintf("%s (%s) → book %d", header.Filename, formatBytesIEC(int64(len(data))), book.ID))
 	}
 
+	// Content-Type must be set before WriteHeader or Go sniffs text/plain,
+	// which trips programmatic callers that branch on the JSON media type.
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	jsonOK(w, map[string]any{
 		"id":     book.ID,

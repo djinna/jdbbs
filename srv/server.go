@@ -702,7 +702,8 @@ func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 		return false
 	}
 
-	// 1) Project-level token via cookie or X-Auth-Token header.
+	// 1) Project-level token via cookie, X-Auth-Token header, or
+	//    Authorization: Bearer — three spellings of the same value.
 	if len(tokens) > 0 {
 		raw := ""
 		if c, err := r.Cookie(fmt.Sprintf("prodcal_auth_%d", projectID)); err == nil {
@@ -710,6 +711,9 @@ func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 		}
 		if raw == "" {
 			raw = r.Header.Get("X-Auth-Token")
+		}
+		if raw == "" {
+			raw = bearerToken(r)
 		}
 		if raw != "" {
 			for _, tok := range tokens {
@@ -730,6 +734,16 @@ func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 	// 3) Genuinely open only when there is no gate at all: no project tokens
 	//    AND the client has no password.
 	return len(tokens) == 0 && !clientProtected
+}
+
+// bearerToken returns the token from an "Authorization: Bearer <token>"
+// header, or "" if the header is absent or uses another scheme.
+func bearerToken(r *http.Request) string {
+	h := r.Header.Get("Authorization")
+	if len(h) > 7 && strings.EqualFold(h[:7], "Bearer ") {
+		return strings.TrimSpace(h[7:])
+	}
+	return ""
 }
 
 func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request, projectID int64) bool {
