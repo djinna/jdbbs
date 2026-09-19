@@ -1,4 +1,4 @@
-<!-- exported 2026-09-19 12:49 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-19 13:09 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 2 · Fri 18 Sep → workshop (Mon 21 / Tue 22) → talk (Wed 23)
 
@@ -19,6 +19,12 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
 
   > **shelley** · 2026-09-18 18:23 UTC  
   > Trivial — in fact zero. Inspect does not call a language model at all. It is a Python script (typesetting/scripts/detect-edge-cases.py, python-docx + ImageMagick) that reads the .docx and pattern-matches: styles used vs the template, images and their print sizes, chapter starts, special characters, odd formatting. Ghosts (24,000 words, 159 findings) takes 3.3 s and about 36 MB of RAM on the VM; the cost is a few CPU-seconds. Same for the build itself: pandoc → Typst, no model in the loop. The only things in the factory that touch a model are the ones I run by hand in a session (a review, the Obliquities read-through) and the two parked ideas that would add one — the Jev heading-classification pilot (5.12) and the LLM-drafted index (5.13). If either of those ships, a per-manuscript token cost appears for the first time; for a 24k-word book that would be roughly 35k input tokens per pass, i.e. cents, not dollars. Worth stating on the factory page, so I’ll add a line to Inspect’s blurb: “Inspect is a rules-based read of your file; no AI reads your manuscript.”
+
+  > **jenna** · 2026-09-19 13:06 UTC  
+  > 1/ For “Inspect is a rules-based read of your file; no AI reads your manuscript.” prefer “Inspect is a rules-based read of your file; no LLM reads your manuscript.” 2/ do we use the abbreviation AI anywhere else? I have a strong preference for LLM, so I guess let's go catch that if it shows up somewhere else. 3/ And let's consider actually saying "Python script" since it's a factory. Showing the working bits is kind of what we're doing. wdyt?
+
+  > **shelley** · 2026-09-19 13:09 UTC  
+  > Done, live: “It is a Python script checking the file against a list of rules; no LLM reads your manuscript.” 2/ Searched everything customers see (factory, transmittal, terms, /factory, /press, /workshop, emails): that was the only “AI”. The public field-guide page says “AI coding agent” about Shelley on the VM — that's about the agent, not the product; left it, say if you want LLM there too. 3/ Agree on “Python script” — it's literally true (typesetting/scripts/detect-edge-cases.py, 1,600 lines of rules), and naming the working bit is the whole pitch. Same move is available elsewhere if you like it: “Typst” and “pandoc” are already named on the Factory page.
 
 - [x] 0.3 Google Docs authors have no custom paragraph styles — adopt `[[style name]]` … `[[/style name]]` markers (Jenna trialled `[[style:computer text]]` in the Obliquities rollup); Inspect: “Marked styles” section + one row per unusual font with meaning (Cardo paste flag was noise, not an error)  ·  _from chat Fri 18:40 UTC_
 
@@ -113,7 +119,7 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > **shelley** · 2026-09-19 12:42 UTC  
   > Done and live: --bg is #FFFEF6 everywhere (theme.css is the single source, so admin, portals, factory, public pages all follow). Hairlines and progress tracks nudged a step lighter to match (#E4E2D8 / #F3F1E8); the press page colour note and the social card now say #FFFEF6 too. Hard refresh to see it.
 
-- [~] 0.12 new: I got to watch two people work through the transmittal form yesterday, and I saw that they had trouble distinguishi… — COMPS at :8767 (A boxed/B tinted/C paper) — YOU pick
+- [x] 0.12 new: I got to watch two people work through the transmittal form yesterday, and I saw that they had trouble distinguishi… — COMPS at :8767 (A boxed/B tinted/C paper) — YOU pick
 
   > **shelley** · 2026-09-19 12:49 UTC  
   > Comps are up (live markup, you can type in them): https://jdbbs.exe.xyz:8767/ — top half. What I think the trouble is: a field today is a bottom rule with mono text on it, in the same mono at nearly the same size as the label above and the help below, so nothing says “type here” and filled values read as printed text. Three directions beside the current one:
@@ -122,7 +128,13 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > C · Form-on-paper — heavier grey rule, dashed when empty (like a paper form), values in the sans, labels a shade darker.
   > My lean: B if smallest change, A if the goal is nobody hesitates again. Each is ~10 lines of CSS once you point.
 
-- [~] 0.13 new: during the testing session yesterday, I saw people have trouble with the Final button up at the top because you are… — COMPS at :8767 (A strip+finish / B sticky / C hand-off panel; rec A+C) — YOU pick
+  > **jenna** · 2026-09-19 13:00 UTC  
+  > B - but let's make the tint a little warmer than the current tint?
+
+  > **shelley** · 2026-09-19 13:02 UTC  
+  > Done, live on the transmittal: fields are now warm wells (#F6EFDD — a step warmer/yellower than the #F3F1E8 tint the comp used), white when you click in, still the bottom rule. Textareas match. Reload with shift if you still see the old rules. Say if you want it warmer still; it's one token (--well-bg).
+
+- [x] 0.13 new: during the testing session yesterday, I saw people have trouble with the Final button up at the top because you are… — COMPS at :8767 (A strip+finish / B sticky / C hand-off panel; rec A+C) — YOU pick
 
   > **shelley** · 2026-09-19 12:49 UTC  
   > Same comps page, bottom half: https://jdbbs.exe.xyz:8767/ . Two problems, three directions that combine:
@@ -130,6 +142,12 @@ Previous list (35 of 55 ticked, incl. 5.14 front matter, 5.15 images, 5.16 `@`) 
   > B · Sticky status bar — a one-line bar pinned to the bottom of the window (status · saved · Mark Final), which after Final becomes “✓ Final · Word template ↓ · Next: upload your manuscript →”. Always in reach; costs ~40 px.
   > C · Hand-off panel on Final — clicking Final scrolls to the top and shows a green-ruled panel: what just happened, then 1) download the template 2) go to the Factory. Fixes the “now what?” but not the tall page on its own.
   > Recommendation: A + C. No pinned chrome, and the transmittal reads as step one of five, which is what it is. Building A+C is maybe an hour; B another hour. Say which.
+
+  > **jenna** · 2026-09-19 13:02 UTC  
+  > Agree. A + C
+
+  > **shelley** · 2026-09-19 13:09 UTC  
+  > Built and live (A + C). On the transmittal now: the factory's 1–5 strip under the header (1 Transmittal current; ✓ once final), and the form ends with a finish block — rule, one sentence, Mark Final + “Continue to the Factory →”. On Final the page scrolls up and a green-ruled hand-off panel replaces the intro: 1) download the Word template 2) go to the Factory, with a filled Continue button; the finish block flips to “Switch to Draft · Continue to the Factory”. Hidden in print. Check on Ghosts: https://jdbbs.exe.xyz/prot/zoo/transmittal/
 
 - [~] 0.14 new: I'm tempted to go back to using a domain I've owned for many years, jdbb.net, as my main contact for this project. … — ideas posted; chat; no build
 
@@ -180,7 +198,7 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 
 ## 5 · Queued — ME unless marked
 
-- [~] 0.8 New: the default typography for our print PDF is pretty bad. Can you review our typography.md and perhaps look at the Bringhurst references and go ahead and bui… — part 1 (trim-derived defaults) LIVE d187fa5; part 2 = transmittal typography choices (typeface pairing · text size · section break · paragraph style), IN PROGRESS (subagent typo-choices, conv cDXESK6)
+- [x] 0.8 New: the default typography for our print PDF is pretty bad. Can you review our typography.md and perhaps look at the Bringhurst references and go ahead and bui… — part 1 (trim-derived defaults) LIVE d187fa5; part 2 = transmittal typography choices (typeface pairing · text size · section break · paragraph style), IN PROGRESS (subagent typo-choices, conv cDXESK6)
 
   > **shelley** · 2026-09-19 12:25 UTC  
   > Part 1 done and live — the defaults. Diagnosis from your Obliquities PDF: every book was getting the same margins (¾″ all round, whatever the trim) and a stored leading of 2pt, which on a 6×9 gave an 85-character line set 10 on 8.6 — tighter than solid. That’s the “pretty bad”. Bringhurst: 45–75 characters, 66 ideal; leading ~120–135 %; bottom margin deeper than top, inner narrower than outer.
@@ -196,6 +214,9 @@ Source: https://protocolized.summerofprotocols.com/p/have-your-factory-call-my-f
 
   > **shelley** · 2026-09-19 12:42 UTC  
   > Part 2 is now in progress (a subagent is building it while I keep the list moving): four radio rows on the transmittal — Typeface (Open classic = Libertinus/Source Sans · Studio house = Plantin/Proxima · Literary = EB Garamond · studio’s choice), Text size (Compact/Standard/Generous), Section breaks (space/breve/ornament), Paragraphs (indented/block). Report here when it lands; I’ll want your eye on the three sample spreads.
+
+  > **shelley** · 2026-09-19 13:09 UTC  
+  > Part 2 landed (2f205eb, 21bbdc2, 6c45b6d): the transmittal has a // TYPOGRAPHY section with four rows — Typeface (Studio's choice / Open classic Libertinus+Source Sans / Studio house Plantin+Proxima / Literary EB Garamond, now vendored, OFL), Text size (Compact/Standard/Generous), Section breaks (space/breve/ornament), Paragraphs (indented/block). First answer in each row is the default. Two pipeline fixes came out of it: Word “Body Text” paragraphs no longer become hundreds of #block wrappers, and the specialised template path is actually used (stray Proxima in the open-classic pairing gone). Spreads for the three pairings are in scratch/typo/ — I'll pull them onto a page for you next if you want to compare before Monday. Ghosts' free builds are used up (3/3) doing this; further test builds need a refund or another test project.
 
 - [~] 0.9 new: I'd like to at least start building out how someone else can hit the book factory from their own factory via our API. I have, today, three customers, and i… — plan on the item: A) three passes on this VM (15 min, need names); B) bearer token + CLI/Python recipe, fresh session
 
