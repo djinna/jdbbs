@@ -251,3 +251,17 @@ Landed since addendum 8 (all pushed; VM = main = 7f196b3):
 Waiting on Jenna: 0.9 (yes/no on page + the three customer names for passes), 0.10, 5.17, 0.6, 0.7, 2.8, 3.2/3.4, 5.5 InDesign page, 6.3 nod.
 
 Metrics: ~55 % context at handoff; files read in full (guard bypass): 0.
+
+## Addendum 10 (2026-09-19, ~16:45 UTC) — before compaction #2
+
+Landed since addendum 9 (all pushed; VM = main = 980090a + export commit):
+- **6.1 B live** (subagent `stylesheet-61`, done): `/{client}/{project}/stylesheet/`, migration 046, `srv/project_stylesheet.go`, static `project-stylesheet.*`, 5 tests. Report `scratch/briefs/stylesheet-6.1-2026-09-19.REPORT.md`. mcheck/book-001 carries demo state (1 edit, 1 reject, 2 added).
+- **5.13 index add-on** (subagent `index-addon`, done): branch `index-addon` pushed, 5 commits, **not merged**. Ghosts sample PDF posted on the punch list (`scratch/run/img/513-*`), design note `docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md` on the branch. Awaiting Jenna's verdict (kind of index right? SKU or hand-run?). Post-workshop either way.
+- **0.19** transmittal columns rebalanced; **0.20 A** tick grid for the checklist; **0.21/0.22** admin console de-calendared (stats, filters, row links → Factory · Style sheet · Set password · Rename URL · Archive). **6.3/6.6** IDEAS.md tidied.
+- Runpage: light/dark theme + toggle; serves `.pdf` from `/img/`; restarted in tmux `runpage` with `RUNPAGE_CHAT_CONV=cF3VYRP` (it had died — check `tmux ls` at session start and restart with the current conv id).
+
+**Next, in order:**
+1. **0.9 — Jenna said yes, go now**: (a) short "Have your own factory? It's an API" section at the foot of `~/jdbbs-public/factory.html` (above "Redeem a pass"), (b) public page `/factory/api` — new HTML in jdbbs-public rendering `docs/API-CLI-RECIPE-2026-09-19.md` content (+ link to `scripts/factory-cli.py`), route added next to the other `servePublicDoc` routes in `srv/server.go` + `site_pages` migration row (047) + nav convergence test, (c) a 6-line terminal demo script for the workshop. Build/restart needed only for the route. Post screenshots on 0.9.
+2. 0.22 follow-ups if Jenna answers (rename "Set password" → "Password gate"; project-path line → portal URL).
+3. Sunday night: archive punch list 3, start Punch list 4 — Workshop.
+Waiting on Jenna: 0.9A names, 0.10, 5.17, 0.6, 0.7, 2.8, 3.2/3.4, 5.5 InDesign page, 5.13 verdict, 0.22 follow-ups.
