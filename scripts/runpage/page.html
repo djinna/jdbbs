@@ -38,6 +38,19 @@ button.save{background:var(--link);color:var(--bg);border:0;font-weight:600;padd
 .theme:hover{opacity:1}
 .theme button{background:none;border:1px solid var(--field-bd);color:var(--muted);padding:0 .45em;border-radius:3px;cursor:pointer;font:inherit}
 .theme button.on{color:var(--fg-strong);border-color:var(--fg-strong)}
+/* structure: TOC + collapsible sections + folded done items + folded note threads */
+.toc{margin:1rem 0 0;padding:.6rem .9rem;border:1px solid var(--rule);border-radius:4px;font-size:.9em;background:var(--bar-bg)}
+.toc a{text-decoration:none;display:flex;gap:.5rem;align-items:baseline;padding:.1rem 0}
+.toc a .t{flex:1} .toc .c{color:var(--muted);font-size:.85em;white-space:nowrap}
+.toc .c b{font-weight:600} .toc .c .o{color:var(--fg-strong)} .toc .c .p{color:var(--warn)} .toc .c .d{color:var(--ok)}
+.toc .all{display:flex;gap:1rem;justify-content:flex-end;margin-top:.3rem} .toc .all button{background:none;border:0;color:var(--link);cursor:pointer;font:inherit;font-size:.85em;padding:0}
+section>h2{cursor:pointer;user-select:none;display:flex;gap:.5rem;align-items:baseline}
+section>h2 .tg{color:var(--muted);font-size:.7em;width:1em;display:inline-block;transition:transform .15s} section.closed>h2 .tg{transform:rotate(-90deg)}
+section>h2 .c{margin-left:auto;font:.6em/1 system-ui;color:var(--muted);font-weight:400;white-space:nowrap}
+section.closed>*:not(h2){display:none}
+details.done{margin:.3rem 0 0 1.2rem;font-size:.95em} details.done>summary{cursor:pointer;color:var(--muted);font-size:.85em;list-style:none} details.done>summary::before{content:'▸ ';} details.done[open]>summary::before{content:'▾ ';}
+details.done li{opacity:.75}
+.earlier{background:none;border:0;color:var(--link);cursor:pointer;font:inherit;font-size:.8em;padding:0;margin:.1rem 0 .2rem}
 </style>
 <script>(function(){var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;})();</script></head><body>
 <div class="theme" title="Theme"><button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
@@ -56,6 +69,36 @@ let notes={};
 // "New item" box used to count as busy, so the page stopped updating after every add.)
 function busy(){return [...document.querySelectorAll('textarea')].some(t=>t.value.trim()||(document.activeElement===t&&t.value))||document.querySelectorAll('.pend img').length>0||document.getElementById('add').value.trim()!=='';}
 async function upload(file){if(!file)return null; const r=await fetch('/upload',{method:'POST',headers:{'Content-Type':file.type},body:file}); if(!r.ok){alert('upload failed: '+(await r.text()));return null;} return (await r.json()).url;}
+const openThreads=new Set(), openDone=new Set();
+function structure(){
+  const body=document.getElementById('body'); const kids=[...body.children]; let sec=null; const secs=[];
+  kids.forEach(el=>{ if(el.tagName==='H2'){ const n=(el.textContent.match(/^\s*(\d+)/)||[])[1]||secs.length; sec=document.createElement('section'); sec.id='sec-'+n; sec.dataset.n=n; body.insertBefore(sec,el); sec.append(el); secs.push(sec);} else if(sec) sec.append(el); });
+  const tot={o:0,p:0,d:0};
+  secs.forEach(sec=>{
+    const h2=sec.querySelector(':scope>h2'); const title=h2.textContent.trim();
+    // fold done items (top-level only) into a details at the end of the section
+    const top=sec.querySelector(':scope>ul'); let done=[];
+    if(top) done=[...top.children].filter(li=>li.querySelector(':scope>.box.st-x'));
+    const cnt={o:0,p:0,d:done.length};
+    if(top)[...top.children].forEach(li=>{const b=li.querySelector(':scope>.box'); if(!b)return; if(b.classList.contains('st-~'))cnt.p++; else if(b.classList.contains('st-o'))cnt.o++;});
+    if(done.length){ const d=document.createElement('details'); d.className='done'; if(openDone.has(sec.id))d.open=true; d.ontoggle=()=>{d.open?openDone.add(sec.id):openDone.delete(sec.id);};
+      const sm=document.createElement('summary'); sm.textContent=done.length+' done'; const ul=document.createElement('ul'); done.forEach(li=>ul.append(li)); d.append(sm,ul); sec.append(d);
+      if(!top.children.length) top.remove(); }
+    tot.o+=cnt.o; tot.p+=cnt.p; tot.d+=cnt.d;
+    const badge=`<span class="o">${cnt.o} open</span> · <span class="p">${cnt.p} in&nbsp;progress</span> · <span class="d">${cnt.d} done</span>`;
+    h2.innerHTML=`<span class="tg">▾</span><span class="t">${h2.innerHTML}</span><span class="c">${badge}</span>`;
+    if(localStorage.getItem('closed:'+sec.id)==='1')sec.classList.add('closed');
+    h2.onclick=e=>{ if(e.target.closest('a'))return; sec.classList.toggle('closed'); localStorage.setItem('closed:'+sec.id,sec.classList.contains('closed')?'1':'0'); };
+    sec.dataset.badge=badge; sec.dataset.title=title;
+  });
+  if(!secs.length)return;
+  const toc=document.createElement('nav'); toc.className='toc';
+  toc.innerHTML=secs.map(s=>`<a href="#${s.id}" data-sec="${s.id}"><span class="t">${s.dataset.title}</span><span class="c">${s.dataset.badge}</span></a>`).join('')+
+    `<div class="all"><span class="c">${tot.o} open · ${tot.p} in progress · ${tot.d} done</span><button data-all="open">expand all</button><button data-all="close">collapse all</button></div>`;
+  toc.querySelectorAll('a[data-sec]').forEach(a=>a.onclick=()=>{const s=document.getElementById(a.dataset.sec); s.classList.remove('closed'); localStorage.setItem('closed:'+s.id,'0');});
+  toc.querySelectorAll('button[data-all]').forEach(b=>b.onclick=()=>{const c=b.dataset.all==='close'; secs.forEach(s=>{s.classList.toggle('closed',c); localStorage.setItem('closed:'+s.id,c?'1':'0');});});
+  body.insertBefore(toc, secs[0]);
+}
 function decorate(){
   document.querySelectorAll('#body li').forEach(li=>{
     const id=li.querySelector(':scope > .id'); if(!id||li.dataset.done)return; li.dataset.done=1;
@@ -66,7 +109,8 @@ function decorate(){
     const b=document.createElement('button'); b.className='nbtn'; b.textContent='note'; id.after(b);
     const n=(notes[iid]||[]); if(n.length){b.textContent=`notes ${n.length}`; b.classList.add('has');}
     const wrap=document.createElement('div'); wrap.className='notes'; wrap.style.display=n.length?'block':'none';
-    n.forEach(x=>{const d=document.createElement('div'); d.className='note '+x.who; d.innerHTML=`<span class="m">${x.who} · ${x.ts}</span>`;
+    if(n.length>1&&!openThreads.has(iid)){const eb=document.createElement('button'); eb.className='earlier'; eb.textContent=`▸ ${n.length-1} earlier note${n.length>2?'s':''}`; eb.onclick=()=>{openThreads.add(iid); refresh(true);}; wrap.append(eb);}
+    n.forEach((x,ix)=>{if(n.length>1&&!openThreads.has(iid)&&ix<n.length-1)return; const d=document.createElement('div'); d.className='note '+x.who; d.innerHTML=`<span class="m">${x.who} · ${x.ts}</span>`;
       // Note text is plain, but inline ![alt](/img/x.png) becomes an image and bare URLs / site paths become links.
       const imgs=[...(x.images||[])];
       const txt=x.text.replace(/!\[[^\]]*\]\((\/img\/[^)\s]+)\)/g,(m,u)=>{imgs.push(u); return '';});
@@ -93,13 +137,13 @@ async function refresh(force){
   if(!force&&busy())return;
   const [fr,n]=await Promise.all([fetch('/fragment'),fetch('/notes').then(r=>r.json())]);
   const pv=fr.headers.get('X-Page-Version'); if(pv&&window.__pv&&pv!==window.__pv&&!busy()){location.reload();return;} window.__pv=pv;
-  const h=await fr.text(); notes=n; document.getElementById('body').innerHTML=h; decorate();
+  const h=await fr.text(); notes=n; document.getElementById('body').innerHTML=h; structure(); decorate();
   document.getElementById('upd').textContent='updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 document.getElementById('add').onpaste=async e=>{const its=[...(e.clipboardData||{}).items||[]].filter(i=>i.type.startsWith('image/')); if(!its.length)return; e.preventDefault();
   const inp=e.target; for(const it of its){const u=await upload(it.getAsFile()); if(u)inp.value=(inp.value+' ![screenshot]('+u+')').trim();}};
 document.getElementById('add').onkeydown=async e=>{if(e.key!=='Enter')return; const v=e.target.value.trim(); if(!v)return;
   await fetch('/add',{method:'POST',body:JSON.stringify({text:v})}); e.target.value=''; document.getElementById('status').textContent='added'; setTimeout(()=>document.getElementById('status').textContent='',1500); refresh(true);};
-fetch('/notes').then(r=>r.json()).then(n=>{notes=n;decorate();});
+structure(); fetch('/notes').then(r=>r.json()).then(n=>{notes=n;decorate();});
 setInterval(()=>refresh(false),15000);
 </script></body></html>
