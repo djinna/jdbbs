@@ -76,9 +76,9 @@ func diagnoseBuildFailure(raw, typPath string) buildFailure {
 		font := strings.TrimSpace(typstFontRE.FindStringSubmatch(raw)[1])
 		f.Message = fmt.Sprintf("Your template asks for a font (%s) that isn't installed on our press. Pick another typeface on the transmittal, or email us the font licence.", font)
 	case typstFileRE.MatchString(raw):
-		f.Message = "An image in your file couldn't be read. Re-insert it in Word (Insert → Pictures, not a linked or pasted preview) and rebuild."
+		f.Message = "An image in your file couldn't be read. Re-insert it in your editor (Insert → Picture from a file, not a linked or pasted preview), export .docx again and rebuild."
 	case strings.Contains(lower, "pandoc"):
-		f.Message = "We couldn't read this Word file. Re-save it as .docx from Word (File → Save As, Word Document) and try again. If it came from Pages or a converter, open and re-save it in Word or LibreOffice first."
+		f.Message = "We couldn't read this .docx. Export it again from your editor (Word: File → Save As → Word Document; Google Docs: File → Download → Microsoft Word; LibreOffice: Save As → Word 2007–365) and try again. If it came from Pages or a converter, open and re-save it in Word or LibreOffice first."
 	case strings.Contains(lower, "epub:"):
 		f.Message = "The print PDF built but the EPUB didn't. Your PDF is still ready; email us and we'll sort the EPUB."
 	case strings.Contains(lower, "typst"):

@@ -247,7 +247,7 @@
   var PUBLIC_NAV = [
     ['/workshop', 'Workshop', 'Protocolize Your Book — the workshop'],
     ['/field-notes', 'Field notes', 'Notes from the studio'],
-    ['/factory', 'Factory', 'Factory Pass: Word manuscript → EPUB + print PDF'],
+    ['/factory', 'Factory', 'Factory Pass: manuscript (.docx) → EPUB + print PDF'],
     ['/portal', 'Client portal', 'Sign in to your books']
   ];
   function fillNav(nav, items, attr) {

@@ -654,7 +654,7 @@ function renderForm() {
       'The transmittal is the mise en place for your book — the handoff record of what the book is, what’s in the file, and how it should be set, prepared before any typesetting starts. Fill in what you know; leave the rest. When it’s ready, ',
       h('b', null, 'Mark Final'),
       ': that generates your authoring template from it (the ',
-      h('b', null, 'Word template'),
+      h('b', null, 'Authoring template'),
       state.embedded ? ' link appears beside Mark Final, above' : ' button appears above',
       ') and sends it to the studio; the build follows it. You can switch it back to Draft at any time.',
     ),
@@ -738,15 +738,15 @@ function headerActions(cls, isPreview) {
     clientMode() ? null : h('button', { className: cls, onClick: () => { state.showEmail = true; render(); } }, 'Email'),
     isFinal && !isPreview
       ? h('a', { className: cls + ' accent', href: '/api/projects/' + state.projectId + '/word-template', download: '',
-          title: 'Downloads the Word template generated from this transmittal. Write your manuscript in it.' },
-          'Word template \u2193')
+          title: 'Downloads the authoring template (.docx) generated from this transmittal — optional; any editor\u2019s Heading 1/2 plus [[markers]] works too.' },
+          'Template (.docx) \u2193')
       : null,
     h('button', { className: cls + (isFinal ? '' : ' accent'),
       title: isFinal
         ? 'Switches the transmittal back to Draft so you can keep editing.'
         : clientMode()
-          ? 'Marks the transmittal final: generates your Word template and emails you the link. You can switch it back to Draft.'
-          : 'Marks the transmittal final: generates your Word template and opens the email to the studio. You can switch it back to Draft.',
+          ? 'Marks the transmittal final: generates your authoring template and emails you the link. You can switch it back to Draft.'
+          : 'Marks the transmittal final: generates your authoring template and opens the email to the studio. You can switch it back to Draft.',
       onClick: toggleFinal,
     }, isFinal ? 'Return to draft' : 'Mark Final'),
   ];
@@ -976,7 +976,7 @@ function renderChecklistSection() {
   const checklistRows = [
     groupRow('Made by the factory from this transmittal \u2014 do not type these'),
     ...generatedRows,
-    groupRow('In your Word file'),
+    groupRow('In your manuscript file'),
     ...typedRows,
   ];
 
@@ -1071,7 +1071,7 @@ function renderIllustrationsSection() {
   return h('div', { className: 'tx-section' },
     h('div', { className: 'tx-section-header' }, 'Illustrations'),
     h('div', { className: 'tx-help tx-illus-guide' },
-      'Put every figure or photo in the Word file itself, where it belongs. The factory carries it into the print PDF and the EPUB; Inspect will tell you how many it found and how big each will print.'),
+      'Put every figure or photo in the manuscript file itself, where it belongs. The factory carries it into the print PDF and the EPUB; Inspect will tell you how many it found and how big each will print.'),
     h('ul', { className: 'tx-illus-rules' },
       rule('One image per paragraph, inline \u2014 not floating or text-wrapped.'),
       rule('Caption in the paragraph right after the image.'),
@@ -1295,7 +1295,7 @@ function renderEditingSection() {
       helpText: 'Inline symbols, or displayed equations? Word\u2019s equation editor, or typed?',
     }),
     h('div', { className: 'tx-section-header', style: 'margin-top:16px' }, 'Custom Styles'),
-    h('div', { className: 'tx-help' }, 'Add any project-specific Word styles needed for this manuscript. These will be copied into the book spec and used for Word template generation.'),
+    h('div', { className: 'tx-help' }, 'Add any project-specific paragraph styles needed for this manuscript. They go into the book spec, the generated template, and the [[marker]] list Inspect accepts.'),
     ...styles.map((style, i) =>
       h('div', { className: 'tx-custom-style' },
         h('div', { className: 'tx-row-3' },
@@ -1550,7 +1550,7 @@ function renderFilesSection() {
     h('ul', { className: 'tx-illus-rules' },
       rule(h('strong', null, 'Print-interior PDF'), ' at your trim size — an RGB PDF; your printer converts to their colour profile.'),
       rule(h('strong', null, 'EPUB'), ' with your front cover embedded — the file Kindle, Apple Books and Kobo want.'),
-      rule(h('strong', null, 'Word template'), ' generated from this transmittal, with the factory styles and your copyright page in place.'),
+      rule(h('strong', null, 'Authoring template'), ' (.docx / .odt) generated from this transmittal, with the factory styles and your copyright page in place.'),
       rule(h('strong', null, 'Inspect report'), ' — what the factory found in your manuscript and what to fix.'),
     ),
     h('div', { className: 'tx-help tx-illus-guide' },

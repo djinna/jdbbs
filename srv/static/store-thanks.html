@@ -63,7 +63,7 @@ JdbbTheme.mount(document.getElementById('theme-bar'));
         card.innerHTML=`<p>Thank you. We've set up a factory for <b>${esc(j.title)}</b> and emailed your sign-in details to <b>${esc(j.email)}</b>. The password is only in that email — if it hasn't arrived in a few minutes, check spam, then reply to any of our messages and we'll sort it out.</p>
         <dl class="kv"><dt>Your factory</dt><dd><a href="${esc(j.portal_url)}">${esc(j.portal_url)}</a></dd><dt>Builds included</dt><dd>${esc(j.credits_remaining)}</dd><dt>Pass live until</dt><dd>${esc(fmtDate(j.expires_at||''))}</dd><dt>Paid</dt><dd>${fmtUSD(j.amount)}${j.promo_code?` <span class="mono">(code ${esc(j.promo_code)})</span>`:''}</dd></dl>
         <p><a class="btn" href="${esc(j.portal_url)}">Open your factory &rarr;</a></p>
-        <p class="small">First step inside: the transmittal — a short form about your book that generates your Word template. Stripe sends the card receipt separately. Full refund any time before your first build.</p>`;
+        <p class="small">First step inside: the transmittal — a short form about your book that generates your authoring template (.docx / .odt) &mdash; optional if you already have a draft. Stripe sends the card receipt separately. Full refund any time before your first build.</p>`;
       }
       return;
     }

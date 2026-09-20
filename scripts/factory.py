@@ -78,7 +78,7 @@ class Factory:
     def upload(self, path, title, author):
         """multipart/form-data, built by hand: fields file, title, author, project_id."""
         if not path.lower().endswith(".docx"):
-            raise FactoryError(f"{path}: the factory takes Word files (.docx). Save As → Word Document, or export .docx from Pages / Google Docs / LibreOffice.")
+            raise FactoryError(f"{path}: the factory takes .docx files. Word: Save As → Word Document; or export .docx from Pages / Google Docs / LibreOffice.")
         try:
             data = open(path, "rb").read()
         except OSError as e:

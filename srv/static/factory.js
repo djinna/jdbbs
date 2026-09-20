@@ -349,7 +349,7 @@ function renderUpload() {
         ? 'Uploading is turned off for this project.'
         : 'Checking\u2026';
     } else if (main && st.ok && !S.pendingFile && main.dataset.picked !== 'true') {
-      main.innerHTML = 'Drop your Word file here, or <span class="fx-drop-link">choose a file</span>';
+      main.innerHTML = 'Drop your .docx here, or <span class="fx-drop-link">choose a file</span>';
     }
   }
 
@@ -399,13 +399,13 @@ function shortErr(msg) {
 }
 
 // Build failures are stored as up to three lines: explanation, "Near: “…”"
-// (text quoted from the document so the author can find it in Word), and
+// (text quoted from the document so the author can find it in their editor), and
 // "Technical detail: …". Render the first as the message and the rest folded.
 function errDetailHTML(msg) {
   var lines = String(msg || '').split('\n').filter(function (l) { return l.trim(); }).slice(1);
   if (!lines.length) return '';
   var near = lines.filter(function (l) { return l.indexOf('Near:') === 0; })
-    .map(function (l) { return '<div class="fx-err-near">' + esc(l.replace(/^Near:\s*/, 'Near: ')) + ' <span class="muted">(search for this in your Word file)</span></div>'; }).join('');
+    .map(function (l) { return '<div class="fx-err-near">' + esc(l.replace(/^Near:\s*/, 'Near: ')) + ' <span class="muted">(search for this in your manuscript)</span></div>'; }).join('');
   var tech = lines.filter(function (l) { return l.indexOf('Technical detail:') === 0; })
     .map(function (l) { return '<details class="fx-err-detail"><summary>Technical detail</summary><code>' + esc(l.replace(/^Technical detail:\s*/, '')) + '</code></details>'; }).join('');
   return near + tech;
@@ -413,7 +413,7 @@ function errDetailHTML(msg) {
 
 // ─── render: inspect ───────────────────────────────────────────────────────
 var TYPE_LABELS = {
-  undeclared_custom_style: 'Word styles not in your transmittal',
+  undeclared_custom_style: 'Custom styles not in your transmittal',
   declared_custom_style_used: 'Declared styles found in the file',
   observed_style: 'Styles seen in the file',
   heading_lookalike: 'Headings without a Heading style',
@@ -529,7 +529,7 @@ function renderInspect() {
   if (pf.status === 'error') {
     box.innerHTML = '<p class="fx-status err">The inspection couldn\u2019t read that file: ' +
       esc(shortErr(pf.error || 'unknown error')) +
-      '</p><p class="fx-fine">Re-save it from Word as .docx and upload again. Nothing was charged.</p>';
+      '</p><p class="fx-fine">Re-export it as .docx from your editor and upload again. Nothing was charged.</p>';
     return;
   }
 
@@ -568,7 +568,7 @@ function renderInspect() {
   if (total === 0) {
     html += '<p class="fx-fine">Nothing flagged. Go ahead and build.</p>';
   } else if (Number(sum.high || 0) > 0) {
-    html += '<p class="fx-fine">You can build anyway \u2014 nothing here blocks it. But the report explains each item, and fixing the \u201cworth fixing\u201d ones in Word before you export a final usually saves you one. Proofs are free, so build one and read it.</p>';
+    html += '<p class="fx-fine">You can build anyway \u2014 nothing here blocks it. But the report explains each item, and fixing the \u201cworth fixing\u201d ones in your manuscript before you export a final usually saves you one. Proofs are free, so build one and read it.</p>';
   } else {
     html += '<p class="fx-fine">Nothing serious. The report has the detail if you\u2019re curious.</p>';
   }
@@ -577,7 +577,7 @@ function renderInspect() {
     var nColour = pf.images.filter(function (im) { return im.colour === true; }).length;
     html += '<p class="fx-fine">' + pf.images.length + ' ' + plural(pf.images.length, 'image', 'images') +
       ' found \u2014 the report lists each one\u2019s size in print.' +
-      (nColour ? ' ' + nColour + ' ' + (nColour === 1 ? 'is' : 'are') + ' colour: kept in the EPUB, converted to grey for the print PDF. Already-grey images are left alone; place your own grey version in Word to override.' : '') +
+      (nColour ? ' ' + nColour + ' ' + (nColour === 1 ? 'is' : 'are') + ' colour: kept in the EPUB, converted to grey for the print PDF. Already-grey images are left alone; place your own grey version in the manuscript to override.' : '') +
       '</p>';
   }
 
@@ -1451,7 +1451,7 @@ function pickFile(file) {
   if (!file) return;
   if (!/\.docx$/i.test(file.name)) {
     status.className = 'fx-status err';
-    status.textContent = 'That\u2019s not a .docx file. In Word: File \u2192 Save As \u2192 Word Document (.docx).';
+    status.textContent = 'That\u2019s not a .docx file. Export one from your editor: Word \u2192 Save As \u2192 Word Document; Google Docs \u2192 Download \u2192 Microsoft Word; Pages \u2192 Export To \u2192 Word; LibreOffice \u2192 Save As \u2192 Word 2007\u2013365.';
     return;
   }
   S.pendingFile = file;
@@ -1484,7 +1484,7 @@ function resetUpload() {
   if (f) f.value = '';
   var main = $('fx-drop-main');
   if (main) {
-    main.innerHTML = 'Drop your Word file here, or <span class="fx-drop-link">choose a file</span>';
+    main.innerHTML = 'Drop your .docx here, or <span class="fx-drop-link">choose a file</span>';
     main.dataset.picked = 'false';
   }
   show($('fx-upload-form'), false);

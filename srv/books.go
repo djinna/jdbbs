@@ -969,7 +969,7 @@ func (s *Server) finalizeBuild(ctx context.Context, bid int64, book dbgen.Book, 
 	if epubErr := s.getEPUBRunner()(bid, book); epubErr != nil {
 		slog.Error("build: epub stage failed but pdf succeeded; delivering pdf-only build",
 			"id", bid, "title", book.Title, "raw_error", epubErr)
-		note := "Your print PDF is ready, but we couldn't generate the EPUB. Re-save the Word file as .docx and try another build, or email j@djinna.com."
+		note := "Your print PDF is ready, but we couldn't generate the EPUB. Re-export the manuscript as .docx from your editor and try another build, or email j@djinna.com."
 		if err := q.UpdateBookStatus(ctx, dbgen.UpdateBookStatusParams{
 			Status: "ready", ErrorMsg: note, ID: bid,
 		}); err != nil {

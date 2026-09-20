@@ -1300,8 +1300,8 @@ func passFulfillmentText(res fulfillPassResult) string {
 	}
 	b.WriteString("\n")
 	fmt.Fprintf(&b, "First steps\n")
-	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
-	fmt.Fprintf(&b, "  2. Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).\n")
+	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from. Mark it final; if you are starting from a blank page, download the authoring template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
+	fmt.Fprintf(&b, "  2. Upload your manuscript as .docx — from any editor, using Heading 1/2 and [[quote]]-style markers, or written in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).\n")
 	fmt.Fprintf(&b, "  3. Run a preflight (free, as often as you like) and fix what it flags.\n")
 	fmt.Fprintf(&b, "  4. Build. EPUBs are free and unlimited; print PDFs count. Failed builds don't count against your %d.\n\n", inc.Builds)
 	fmt.Fprintf(&b, "Support\n")
@@ -1343,8 +1343,8 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	b.WriteString(emailList(included, false))
 	b.WriteString(emailH2("First steps"))
 	b.WriteString(emailList([]string{
-		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from. Mark it final and download the Word template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
-		"Upload your Word manuscript, in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).",
+		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from. Mark it final; if you are starting from a blank page, download the authoring template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
+		"Upload your manuscript as .docx — from any editor, using Heading 1/2 and [[quote]]-style markers, or written in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).",
 		"Run a <b>preflight</b> (free, as often as you like) and fix what it flags.",
 		fmt.Sprintf("<b>Build.</b> EPUBs are free and unlimited; print PDFs count. Failed builds don&rsquo;t count against your %d.", inc.Builds),
 	}, true))
@@ -1431,7 +1431,7 @@ func (s *Server) sendTemplateReadyEmail(pass dbgen.Pass, title string) {
 	if title == "" {
 		title = "your book"
 	}
-	subject := fmt.Sprintf("Your Word template is ready: %s", title)
+	subject := fmt.Sprintf("Your template is ready: %s", title)
 	textBody := templateReadyText(pass, title, factoryURL, templateURL)
 	htmlBody := templateReadyHTML(pass, title, factoryURL, templateURL)
 	if err := s.mail(mailMeta{Kind: mailKindTemplateReady, RefType: "pass", RefID: mailRef(pass.ID), TriggeredBy: "client"}, []string{pass.CustomerEmail}, nil, subject, textBody, htmlBody); err != nil {
@@ -1441,10 +1441,10 @@ func (s *Server) sendTemplateReadyEmail(pass dbgen.Pass, title string) {
 
 func templateReadyText(pass dbgen.Pass, title, factoryURL, templateURL string) string {
 	var t strings.Builder
-	fmt.Fprintf(&t, "Hi %s,\n\nYou marked the transmittal for %q final, so your Word template has been generated from it.\n\n", firstName(pass.CustomerName), title)
+	fmt.Fprintf(&t, "Hi %s,\n\nYou marked the transmittal for %q final, so your authoring template (.docx) has been generated from it.\n\n", firstName(pass.CustomerName), title)
 	fmt.Fprintf(&t, "Download it from step 1 of your factory:\n%s\n\n", factoryURL)
 	fmt.Fprintf(&t, "Direct link (works once you're signed in):\n%s\n\n", templateURL)
-	fmt.Fprintf(&t, "The template carries every paragraph style your transmittal asked for, including your custom styles, and nothing else. Move your text into it style by style, or import its styles into your working document (Word: Manage Styles > Import/Export). Then upload the finished .docx to the factory and run Inspect.\n\n")
+	fmt.Fprintf(&t, "You do not have to use it. If you already have a draft, keep it in your own editor: Heading 1 for chapter titles, Heading 2 for sub-heads, and a marker such as [[quote]] or [[verse]] at the start of any special paragraph, then export .docx and run Inspect (free). The template is for starting from a blank page: it carries every paragraph style your transmittal asked for, including your custom styles, and nothing else (also available as .odt for LibreOffice Writer). Either way, upload the finished .docx to the factory and run Inspect.\n\n")
 	fmt.Fprintf(&t, "If you change the transmittal later, mark it final again and a fresh template is generated.\n\n")
 	fmt.Fprintf(&t, "%s\n", emailSignoffText())
 	return t.String()
@@ -1453,15 +1453,15 @@ func templateReadyText(pass dbgen.Pass, title, factoryURL, templateURL string) s
 func templateReadyHTML(pass dbgen.Pass, title, factoryURL, templateURL string) string {
 	var hb strings.Builder
 	hb.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(pass.CustomerName)))))
-	hb.WriteString(emailP(fmt.Sprintf("You marked the transmittal for <b>%s</b> final, so your Word template has been generated from it.", html.EscapeString(title))))
+	hb.WriteString(emailP(fmt.Sprintf("You marked the transmittal for <b>%s</b> final, so your authoring template (.docx) has been generated from it.", html.EscapeString(title))))
 	hb.WriteString(emailList([]string{
 		emailLink(factoryURL, "Your factory") + " &mdash; the download is in step 1",
 		emailLink(templateURL, "Direct download") + " &mdash; works once you&rsquo;re signed in",
 	}, false))
-	hb.WriteString(emailP("The template carries every paragraph style your transmittal asked for, including your custom styles, and nothing else. Move your text into it style by style, or import its styles into your working document (Word: Manage Styles &rsaquo; Import/Export). Then upload the finished .docx to the factory and run Inspect."))
+	hb.WriteString(emailP("You do not have to use it. If you already have a draft, keep it in your own editor: <b>Heading 1</b> for chapter titles, <b>Heading 2</b> for sub-heads, and a marker such as <code>[[quote]]</code> or <code>[[verse]]</code> at the start of any special paragraph &mdash; then export .docx and run Inspect (free). The template is for starting from a blank page: it carries every paragraph style your transmittal asked for, including your custom styles, and nothing else (also available as .odt for LibreOffice Writer). Either way, upload the finished .docx to the factory and run Inspect."))
 	hb.WriteString(emailSmall("If you change the transmittal later, mark it final again and a fresh template is generated."))
 	hb.WriteString(emailSignoff())
-	return emailShell(hb.String(), emailShellOpts{Kicker: "Word template ready", Title: title})
+	return emailShell(hb.String(), emailShellOpts{Kicker: "Template ready", Title: title})
 }
 
 // buildDeliveredText is the plain-text part of the build-ready receipt.

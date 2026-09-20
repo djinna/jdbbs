@@ -37,7 +37,7 @@ func bookMapFindings(m *BookMap) []map[string]any {
 			"severity":   "medium",
 			"text":       w,
 			"location":   "book map",
-			"suggestion": "Fix in Word and upload again, or leave it: the build applies the map as shown.",
+			"suggestion": "Fix it in your editor and upload again, or leave it: the build applies the map as shown.",
 		})
 	}
 	for _, n := range m.Notes {

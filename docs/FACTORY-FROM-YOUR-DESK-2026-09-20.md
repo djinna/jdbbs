@@ -4,7 +4,7 @@
 
 This is for a press or an author who has a **Factory Pass** and would rather work
 from a folder on their own computer than from the factory web page. It takes a
-Word file and gives you back a typeset print PDF and an EPUB. There is nothing
+`.docx` from any editor and gives you back a typeset print PDF and an EPUB. There is nothing
 to install.
 
 ---
@@ -33,7 +33,7 @@ download your book. If it leaks, email j@djinna.com and it will be replaced.
 
 The factory typesets what you send; it does not edit. It needs:
 
-- **One Word file (`.docx`).** From Word, Pages (*File → Export To → Word*), Google
+- **One `.docx`.** From Word, Pages (*File → Export To → Word*), Google
   Docs (*File → Download → Microsoft Word*) or LibreOffice.
 - **Chapter titles as Heading 1, sub-heads as Heading 2.** That is the whole
   contract. The factory finds your front matter, chapters and back matter by
@@ -93,7 +93,7 @@ Uploads the file and reads it the way the build will. You get a one-line count
 (*worth fixing / worth a look / just noting*), a map of how the book is read —
 which headings are front matter, where page 1 starts, what was dropped — and
 the full report opens in your browser and is saved in `out/`. Fix what it
-flags in Word, save, run it again. The first time it asks for the book's title
+flags in your editor, export `.docx` again, run it again. The first time it asks for the book's title
 and author; it remembers them.
 
 ### Proof — free

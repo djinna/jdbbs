@@ -718,7 +718,7 @@ func TestConvertDebitsThenRefundsOnFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reload failed book: %v", err)
 	}
-	if !strings.HasPrefix(reloadedBook.ErrorMsg, "We couldn't read this Word file. Re-save it as .docx from Word") {
+	if !strings.HasPrefix(reloadedBook.ErrorMsg, "We couldn't read this .docx. Export it again from your editor") {
 		t.Errorf("customer error_msg = %q", reloadedBook.ErrorMsg)
 	}
 	reloaded, err := q.GetPassByProject(t.Context(), pass.ProjectID)
@@ -1258,7 +1258,7 @@ func TestCustomerBuildErrorClassification(t *testing.T) {
 		{
 			name: "pandoc reader failure",
 			raw:  "pandoc typst: exit status 63\nCould not parse docx package",
-			want: "We couldn't read this Word file. Re-save it as .docx from Word (File → Save As, Word Document) and try again. If it came from Pages or a converter, open and re-save it in Word or LibreOffice first.",
+			want: "We couldn't read this .docx. Export it again from your editor (Word: File → Save As → Word Document; Google Docs: File → Download → Microsoft Word; LibreOffice: Save As → Word 2007–365) and try again. If it came from Pages or a converter, open and re-save it in Word or LibreOffice first.",
 		},
 		{
 			name: "other pipeline failure",
@@ -1477,7 +1477,7 @@ func TestTemplateReadyEmailBodies(t *testing.T) {
 	factory := "https://example.test/ada-lovelace/notes/factory/"
 	direct := "https://example.test/api/projects/7/word-template"
 	for _, body := range []string{templateReadyText(pass, "Notes", factory, direct), templateReadyHTML(pass, "Notes", factory, direct)} {
-		for _, want := range []string{"Hi Ada", "Notes", factory, direct, "Import/Export", "mark it final again"} {
+		for _, want := range []string{"Hi Ada", "Notes", factory, direct, "[[quote]]", "mark it final again"} {
 			if !strings.Contains(body, want) {
 				t.Errorf("template-ready email is missing %q:\n%s", want, body)
 			}

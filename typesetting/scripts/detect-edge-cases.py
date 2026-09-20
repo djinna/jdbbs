@@ -241,7 +241,7 @@ class EdgeCaseDetector:
                 suggestion = (
                     f"Monospace, {n_paras} {'paragraph' if n_paras == 1 else 'paragraphs'} ({para_range}). "
                     "Computer text? Put [[code block]] at the start of the first paragraph and [[/code block]] "
-                    "at the end of the last, or use the Code Block style in Word. Otherwise ignore: the factory "
+                    "at the end of the last, or type [[code]] at the start of the block (or use the Code Block style). Otherwise ignore: the factory "
                     "sets everything in the book face."
                 )
             elif n_runs <= 2:
@@ -542,7 +542,7 @@ class EdgeCaseDetector:
                 'height_in': height_in,
                 'severity': 'low',
                 'suggestion': ('Colour: kept in the EPUB, converted to grey for the print PDF (auto-level, gentle S-curve). '
-                               'Place your own grey version in Word if this one needs a careful hand.'
+                               'Place your own grey version in the manuscript if this one needs a careful hand.'
                                if colour else 'Review caption / alt text / placement for this image')
             }
             if colour is not None:
@@ -863,7 +863,7 @@ class EdgeCaseReviewer:
         'heading_lookalike': ('Headings Without Heading Styles', 'Paragraphs that look like chapter or section headings (bold, larger, "Chapter N") but carry a body style — the factory cannot find them'),
         'language_script': ('Language / Script', 'Non-Latin script content requiring special font or language handling'),
         'special_typography': ('Special Typography', 'Spacing-sensitive or preformatted content (ASCII art, code blocks)'),
-        'observed_style': ('Observed Styles', 'Non-built-in Word styles found in the manuscript'),
+        'observed_style': ('Observed Styles', 'Custom paragraph styles found in the manuscript'),
         'declared_custom_style_used': ('Declared Custom Styles', 'Declared custom styles confirmed present in the manuscript'),
         'font_treatment': ('Font Treatment', 'Emoji or special font usage detected'),
         'manual_formatting': ('Manual Formatting', 'Bold, italic, or underline applied directly to runs rather than via character styles'),
@@ -1478,7 +1478,7 @@ details[open] > .section-summary .section-chevron::after {{ top: 1px; transform:
     <section class="overview">
       <div class="overview-label">Overview</div>
       <h2>Preflight summary</h2>
-      <p class="overview-copy">Review findings, make fixes in Word if needed, then rerun inspection.</p>
+      <p class="overview-copy">Review findings, fix them in your editor if needed, export .docx again, then rerun inspection.</p>
       <div class="summary-grid">
         <span class="badge">{len(self.edge_cases)} total</span>
         <span class="badge">{len(actionable)} actionable</span>
