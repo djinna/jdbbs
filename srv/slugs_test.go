@@ -100,6 +100,12 @@ func TestRenameClientAndProjectKeepsOldURLs(t *testing.T) {
 	if _, err := s.DB.Exec(`INSERT INTO projects (id, name, client_slug, project_slug) VALUES (18, 'Building', 'mike-casey', 'building-in-the-wrong-ma')`); err != nil {
 		t.Fatal(err)
 	}
+	// A sign-in link references clients.slug by FOREIGN KEY; the rename must
+	// carry it along (regression: 2026-09-20, renaming snitkey → monstrous
+	// failed with "FOREIGN KEY constraint failed").
+	if _, err := s.DB.Exec(`INSERT INTO login_links (client_slug, token_hash, email, expires_at) VALUES ('mike-casey', 'h1', 'm@x.io', '2030-01-01')`); err != nil {
+		t.Fatal(err)
+	}
 
 	// Suggestion endpoint.
 	var sug map[string]string
@@ -119,6 +125,10 @@ func TestRenameClientAndProjectKeepsOldURLs(t *testing.T) {
 		t.Fatalf("rename client: %d %v", code, out)
 	}
 	var cs, ps string
+	var ll string
+	if err := s.DB.QueryRow(`SELECT client_slug FROM login_links WHERE token_hash = 'h1'`).Scan(&ll); err != nil || ll != "mcasey" {
+		t.Fatalf("login_links not carried along: %q %v", ll, err)
+	}
 	if err := s.DB.QueryRow(`SELECT client_slug, project_slug FROM projects WHERE id = 18`).Scan(&cs, &ps); err != nil || cs != "mcasey" || ps != "book-001" {
 		t.Fatalf("project row = %s/%s, %v", cs, ps, err)
 	}

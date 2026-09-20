@@ -312,8 +312,13 @@ func (s *Server) handleAdminRenameClient(w http.ResponseWriter, r *http.Request)
 		q    string
 		args []any
 	}{
+		// login_links has a FOREIGN KEY on clients.slug; defer checks so the
+		// parent row can change slug before its children are re-pointed.
+		{`PRAGMA defer_foreign_keys = ON`, nil},
 		{`UPDATE clients SET slug = ? WHERE slug = ?`, []any{newSlug, oldSlug}},
 		{`UPDATE projects SET client_slug = ? WHERE client_slug = ?`, []any{newSlug, oldSlug}},
+		{`UPDATE login_links SET client_slug = ? WHERE client_slug = ?`, []any{newSlug, oldSlug}},
+		{`UPDATE factory_events SET client_slug = ? WHERE client_slug = ?`, []any{newSlug, oldSlug}},
 		// Keep earlier aliases pointing at the live slug, and free the new
 		// slug from any alias that used to claim it.
 		{`UPDATE slug_aliases SET new_client_slug = ? WHERE new_client_slug = ?`, []any{newSlug, oldSlug}},
