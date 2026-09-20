@@ -1,29 +1,37 @@
-<!-- exported 2026-09-19 23:39 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-20 00:01 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
 Legend: **YOU** = Jenna's turn · **ME** = Shelley's turn · **BOTH** = look together.
 Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **note** opens a reply box under any item (⌘↵ saves; paste screenshots straight in) — I read those back. Bottom bar adds a new item to the Inbox (top). Refreshes every 15 s (pauses while you type).
 
-Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page factory, 0.28 proof vs. final, admin tidy → `PUNCHLIST-2026-09-19-list3.md`). Item numbers carry over so note threads stay attached; new items continue from 0.29 / 5.22.
+Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUNCHLIST-2026-09-19-list3) (Sat 19 Sep — one-page factory, proof vs. final, admin tidy) and earlier at [/admin/runs/](/admin/runs/), with every note thread. Item numbers carry over so threads stay attached; new items continue from 0.30 / 5.23.
 
 **Freeze:** Mon 21 – Wed 23 **hotfix-only** — triage every new item **Hotfix-now** (breaks an attendee) vs **After-workshop** (→ §5). Hotfix path: fix → `go test ./srv/` → `make build && sudo systemctl restart prodcal` → one factory smoke on `mcheck/book-001`. Store flips to live Stripe by timer **Wed 23 Sep 00:00 HKT**.
 
 ## 0 · Inbox — new items, untriaged (Shelley moves them into a section)
+- [ ] 0.29 **Head spacing: above must be > below** (screenshot on the notes). Template-only fix via Typst `sticky` blocks; diagnosis on the item. After-workshop unless you say hotfix
+
+  > **shelley** · 2026-09-20 00:00 UTC  
+  > Triaged → renumbered 0.29 (the page auto-numbered it 0.26, which collided with the old item). Diagnosis so far: TYPOGRAPHY.md says heads should sit closer to what follows, and the template config agrees (h2 above 1em / below 0.25em) — but the sub-head code adds an invisible 1em anchor box + an empty paragraph under every head to keep it with the next line, so measured on a test page the gap *below* is actually ~1.5× the gap above. Fix is to use Typst 0.13's `sticky` blocks instead (we upgraded Fri), then re-tune above/below once for H2/H3 and check the chapter opener + first-line indent after heads. Template-only change, affects every book; I'll do it in the next session with before/after PNGs here. After-workshop unless you want it in Monday's builds — say the word.
+
+  > **shelley** · 2026-09-20 00:01 UTC  
+  > Agreed — that image was my first experiment, not a proposal: heads too tight both sides, no space after. It's already reverted; nothing changed in the live template. Next session I'll tune it properly (above clearly > below, head size checked against the spec, chapter opener too) and post before/after crops here before touching the build.
+
 
 ## 1 · Workshop watch (Mon 21 / Tue 22) — BOTH
 
 - [ ] 4.1 `/admin/factory/` (Floor) on a second screen; Shelley session open with `factory-tail`
-- [ ] 4.2 Attendees free via hand-granted passes (New pass form) — no coupons, no $0 checkouts (form + attendee login verified Fri, 2.5)
+- [ ] 4.2 Attendees free via hand-granted passes (New pass form) — no coupons, no $0 checkouts
 - [ ] 4.3 Watch for `build failed`, `401` bursts (password confusion), builds "queued" (> 2 at once)
-- [ ] 4.4 Tue night: confirm `systemctl list-timers prodcal-store-live.timer` still armed; Wed 00:00 HKT check the go-live email arrived and `/api/public/store/config` says live
-- [ ] 4.5 ME — Sunday: merge `index-addon` (5.13) once the subagent reports; smoke an index draft + build on mcheck; push jdbbs-public; post the v2 Ghosts index pages here
-- [ ] 4.6 ME — Sunday: final pre-workshop pass — attendee login, upload, Inspect, Build proof, Export final on mcheck; `/admin/factory/` shows it all; checkpoint tag `checkpoint-2026-09-20-pre-workshop-v3`
+- [ ] 4.4 Tue night: `prodcal-store-live.timer` still armed; Wed 00:00 HKT go-live email + `/api/public/store/config` says live
+- [ ] 4.5 ME — Sunday: merge `index-addon` (5.13), smoke index draft + build on mcheck, push jdbbs-public, post Ghosts index v2 pages
+- [ ] 4.6 ME — Sunday: pre-workshop pass (attendee login → upload → Inspect → proof → final on mcheck; Floor shows it); tag `checkpoint-2026-09-20-pre-workshop-v3`
 
 ## 2 · Your side — YOU
 
-- [ ] 2.8 Today's book with colour images: run Inspect, tell me what it says about the images and how the print PDF's grey looks (5.15 landed; Ghosts had nothing to test on)
-- [~] 0.10 new: https://desertant.com/press/ -- using this page as a model, can you draft a similar page for me in the factory? I also really like the… — DRAFT LIVE at /press (1cbe387); warm bg #FBFAF4 live app-wide; YOU fill the [bracketed] bits (bio, entity, founded, city); assets done
+- [ ] 2.8 Your colour-image book: run Inspect; tell me what it says about the images + how the PDF grey looks
+- [~] 0.10 **/press page** (model: desertant.com/press) — DRAFT LIVE at /press; YOU fill the [bracketed] bits (bio, entity, founded, city). [thread](/admin/runs/PUNCHLIST-2026-09-19-list3)
 
   > **shelley** · 2026-09-19 12:37 UTC  
   > Draft is up: https://jdbbs.exe.xyz/press — same skeleton as Desert Ant’s (lede · About · Facts · Products · Brand assets · The studio), in our chrome. Everything on it is true today except the orange [bracketed] bits, which are yours to fill: one sentence of biography if you want it, legal entity (or delete the line), founded year, city. Their “Independent research” block I left out — we don’t have third-party numbers yet; if you have a quote or two (Bringhurst, a press stat), that’s where they’d go. Wordmark SVG and a 1200×630 social card are the missing assets; I can generate both from the favicon outlines when you want them.
@@ -33,7 +41,7 @@ Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page 
   > **shelley** · 2026-09-19 12:40 UTC  
   > Brand assets are no longer “to follow”: wordmark SVG (paper and ink versions, plus [jdbb] alone) and a 1200×630 social card are generated from the JetBrains Mono outlines and linked on the page; the page also carries the og:image so a pasted link shows the card. Left for you: the four orange placeholders.
 
-- [~] 0.14 new: I'm tempted to go back to using a domain I've owned for many years, jdbb.net, as my main contact for this project. … — ideas posted; chat; no build
+- [~] 0.14 **jdbb.net as main contact domain** — ideas posted, discuss in chat; no build. [thread](/admin/runs/PUNCHLIST-2026-09-19-list3)
 
   > **shelley** · 2026-09-19 12:49 UTC  
   > Ideas only, as asked. Two separate things: where mail goes OUT from (the factory’s automated sends) and where people write TO you (contact address). They don’t have to be the same domain, and today they aren’t: sends go from factory@mail.jdbb.studio (Resend, set up yesterday, with SPF/DKIM so they land), and Reply-To on every one of them is j@djinna.com.
@@ -47,7 +55,7 @@ Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page 
   >
   > My pick: 1 now (after the workshop, as you say), and decide on 2 after you’ve seen a few weeks of real mail. Happy to chat whenever; nothing is built.
 
-- [ ] 5.17 **About the Book Factory** text (was 0.8) — YOU pick A / A′ / B and edit the placeholders (drafts are on this item's notes); then ME: transmittal checkbox → colophon on the copyright page and/or back-matter page, off by default
+- [ ] 5.17 **About the Book Factory** text — YOU pick A / A′ / B (drafts on the notes) + edit placeholders; then ME: colophon checkbox on the transmittal. [thread](/admin/runs/PUNCHLIST-2026-09-19-list3)
 
   > **shelley** · 2026-09-18 17:19 UTC  
   > Drafts are ready for your read (not ticking until you have): docs/brand/ABOUT-THE-BOOK-FACTORY-2026-09-18.md — also in the repo on GitHub. Three lengths: A colophon for the copyright page (78 w), A′ one line after the typesetting credit (26 w), B a back-matter page headed “About the Book Factory” (~490 w). Voice: plain third person, says what happened to the book, no adjectives; the URL is the only sell. Once you pick and mark up the wording I wire it as a transmittal checkbox (off by default): copyright-page colophon, or back-matter page, or both. The one-liner, so you can judge the voice here: “Set from the author's Word file by the jdbb studio book factory, print and EPUB from one source, no hand-composed pages. jdbbs.exe.xyz/factory”
@@ -75,7 +83,7 @@ Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page 
   > Notes for Jenna
   >  - "thirty years" and "one-person" in the last paragraph are placeholders for whatever is true; cut the sentence if you'd rather not do biography here. - "thirteen named paragraph styles" is true as of today (Signature and Glossary Entry added 2026-09-18). If the count changes, this line and the colophon change with it. - "in seconds" — a full build of a 250-page book is ~9 s on the VM; true. - The page is ~490 words; at 6 × 9 it fills one recto with air. If you want it on one page in Small trim, cut paragraph 4 (Inspect) to two sentences. - Suggested placement: last page of back matter, after About the Author, so the book ends on the author and then the maker.
 
-- [ ] 5.21 Plantin MT Pro **Bold** missing on the VM (see `docs/IDEAS.md`) — YOU supply the OTF; never committed
+- [ ] 5.21 Plantin MT Pro **Bold** OTF — YOU supply; never committed (`docs/IDEAS.md`)
 
   > **jenna** · 2026-09-19 23:23 UTC  
   > Plantin MT Pro has a number of additional weights here:
@@ -95,7 +103,7 @@ Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page 
 
 ## 4 · In flight — ME
 
-- [~] 0.25 **Word-free authoring — is Word still the only way to kick off the factory?** Friday test: neither tester had Word; Pages renamed styles on export, Word for the web felt janky. 0.6 only listed workarounds (Word online / LibreOffice / Docs + `[[style]]` markers). Today: honest survey of alternatives as of Sep 2026 (Docs with markers as a first-class path? Markdown/plain-text template? Pages export fixer? LibreOffice template? a browser editor of our own?), what each costs in fidelity and support, and a recommendation. Deliverable: short decision note + posted summary. (Jenna 2026-09-19 17:20)
+- [~] 0.25 **Word-free authoring** — survey of alternatives to Word for kicking off the factory (Docs + markers, Markdown, Pages fixer, LibreOffice, own editor) → short decision note + summary here. [brief](/admin/runs/PUNCHLIST-2026-09-19-list3)
 
   > **shelley** · 2026-09-19 17:05 UTC  
   > Found it: it was 0.6 (Thu 20:13) — but that only listed workarounds (Word for the web, LibreOffice, Docs + [[style]] markers, a 365 trial), it never asked your real question: does the factory still need Word at all? Logged here as its own item; I'll take it on after the compaction and post a decision note rather than a patch.
@@ -169,7 +177,7 @@ Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page 
   >
   > ![screenshot](img/025-handoff.png)
 
-- [~] 0.9 new: I'd like to at least start building out how someone else can hit the book factory from their own factory via our API. I have, today, three customers, and i… — plan on the item: A) three passes on this VM (15 min, need names); B) bearer token + CLI/Python recipe, fresh session
+- [~] 0.9 **Factory-to-factory API for your 3 customers** — A) three passes on this VM (need names from YOU); B) bearer token + CLI/Python recipe. [plan](/admin/runs/PUNCHLIST-2026-09-19-list3) · [API page](/factory/api)
 
   > **shelley** · 2026-09-19 12:25 UTC  
   > First think, in plain terms. Two very different things are hiding in this item, and I’d separate them:
@@ -220,7 +228,7 @@ Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page 
   >
   > Left as [~] until you've read the page; then 0.9A (three passes) still needs the customer names from you.
 
-- [~] 5.13 Index as a factory add-on — listed as coming soon on /factory; phase 1 (Typst index piece, LLM drafting, anchoring) running in parallel on branch `index-addon` (brief `scratch/briefs/index-addon-2026-09-19.md`); phase 2 UI after 0.17 — per `docs/reviews/INDEX-ADDON-FEASIBILITY-2026-09-18.md`
+- [~] 5.13 **Index add-on, $100** — phase 2 built on branch `index-addon` (subagent report in); merge + smoke = 4.5. Design: [INDEX-ADDON-DESIGN](https://github.com/djinna/jdbbs/blob/main/docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md) · [thread](/admin/runs/PUNCHLIST-2026-09-19-list3)
 
   > **jenna** · 2026-09-19 15:13 UTC  
   > 1/ add Index as a coming-soon add-on 2/ let's start it today: can you draft a prompt I can pass to it's own session or you give to a subagent so that it can proceed in parallel safely?
@@ -270,10 +278,10 @@ Previous lists archived at `/admin/runs/` (list 3: Sat 19 Sep — 0.17 one-page 
 
 ## 5 · After the workshop — ME unless marked
 
-- [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag, per `docs/reviews/TYPESAFE-REVIEW-2026-09-18.md` (agreed 2026-09-18; post-workshop)
+- [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag; post-workshop. [review](https://github.com/djinna/jdbbs/blob/main/docs/reviews/TYPESAFE-REVIEW-2026-09-18.md)
 - [ ] 5.19 Tuned per-image grey conversion + proof sheet as a ~$100 add-on (from 5.15; post-workshop)
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
-- [ ] 5.22 **Typeface choice / MyFonts scout** (from 5.21, Jenna 20 Sep): does MyFonts / Monotype have an API so customers choose + buy their own font licences? First scout only — licence types vs. our server-side rendering, realistic shapes (referral-out + upload-back; curated licensed menu with surcharge; OFL menu as free tier). Options memo on this item, then discuss before building
+- [ ] 5.22 **Typeface choice / MyFonts scout** — does MyFonts/Monotype have an API for customers to buy their own licences? Scout only → options memo here, then discuss (licence types vs. server-side rendering; referral-out / curated menu / OFL tier)
 
   > **shelley** · 2026-09-18 18:59 UTC  
   > Queued as 5.22. Today the copyright page hard-codes “All rights reserved” (series-template.typ l.604); the fix is a Rights choice on the transmittal’s copyright section (All rights reserved · the six CC licences · CC0) that swaps in the proper CC notice on the generated page and sets the EPUB’s dc:rights to match. Half a day. Post-workshop unless a CC book turns up first — say if the Obliquities rollup is one.
