@@ -624,7 +624,7 @@ function renderBuild() {
     } else if (busy) {
       btn.textContent = (S.buildingKind || (S.current && S.current.buildKind)) === 'final' ? 'Exporting final\u2026' : 'Export final';
       btn.disabled = true;
-    } else if (left <= 0) {
+    } else if (left <= 0 && S.pass && S.pass.finals_gate !== 'off') {
       btn.textContent = 'No finals left';
       btn.disabled = true;
     } else {
@@ -654,7 +654,7 @@ function renderBuild() {
     status.innerHTML = 'Build warning: ' + esc(shortErr(S.current.errorMsg)) +
       '<span class="fx-status-more">Your print PDF is still ready below.' +
       (kind === 'final' ? ' This final is counted because a deliverable was produced.' : '') + '</span>';
-  } else if (left <= 0 && S.pass && S.pass.exists !== false) {
+  } else if (left <= 0 && S.pass && S.pass.exists !== false && S.pass.finals_gate !== 'off') {
     status.className = 'fx-status';
     status.innerHTML = 'You\u2019ve used all ' + total + ' ' + plural(total, 'final', 'finals') + ' on this pass. Proofs still work.' +
       '<span class="fx-status-more">Need more finals? Add +3 above, or email <a href="mailto:' + esc(S.contactEmail) + '">' +

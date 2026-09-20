@@ -34,6 +34,18 @@ var settingDefs = []settingDef{
 		Help:    "Small print under the closing hairline when a template does not supply its own (announcements and digests do). Plain text; a bare URL becomes a link.",
 		Default: "https://jdbbs.exe.xyz/ · Reply to this email to reach Jenna.",
 	},
+	{
+		Key:     "finals_gate",
+		Label:   "Finals gate",
+		Help:    "\"on\" (default): a final build is refused with 402 when the pass has no finals left. \"off\": finals always run — every build is still debited and counted in the ledger, so builds_used may exceed the pass. Workshop week 2026-09-20..22 runs with it off; the store-live timer turns it back on.",
+		Default: "on",
+	},
+}
+
+// finalsGateOff reports whether the "no finals remaining" refusal is switched
+// off (studio setting finals_gate = off). Counting is unaffected.
+func finalsGateOff() bool {
+	return strings.EqualFold(strings.TrimSpace(setting("finals_gate")), "off")
 }
 
 var settingsCache = struct {

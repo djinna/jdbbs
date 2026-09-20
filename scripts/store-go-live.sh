@@ -31,6 +31,15 @@ if ! grep -q '^PRODCAL_STRIPE_URL=' "$ENV_FILE"; then
   exit 0
 fi
 
+# Workshop week ran with the "no finals left" refusal waived (studio setting
+# finals_gate=off, 2026-09-20). Billing on = gate back on; deleting the row
+# restores the compiled default ("on"). Picked up by the restart below.
+if [ $DRY = 0 ]; then
+  sqlite3 "$REPO/db.sqlite3" "DELETE FROM studio_settings WHERE key='finals_gate'" && log "finals_gate: back to default (on)"
+else
+  log "DRY RUN — would delete studio_settings.finals_gate (gate back on)"
+fi
+
 cp "$ENV_FILE" "$ENV_FILE.pre-live.$(date -u +%Y%m%dT%H%M%SZ)"
 sed -i '/^PRODCAL_STRIPE_URL=/d' "$ENV_FILE"
 log "removed PRODCAL_STRIPE_URL (backup beside .env)"

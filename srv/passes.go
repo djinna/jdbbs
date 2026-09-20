@@ -545,7 +545,8 @@ type passStatusResponse struct {
 	CreditsRemaining int64  `json:"credits_remaining"`
 	ExpiresAt        string `json:"expires_at,omitempty"`
 	CustomerName     string `json:"customer_name,omitempty"`
-	IndexIncluded    bool   `json:"index_included"` // back-of-book index add-on
+	IndexIncluded    bool   `json:"index_included"`        // back-of-book index add-on
+	FinalsGate       string `json:"finals_gate,omitempty"` // "off" while the studio waives the no-finals refusal
 }
 
 // handleGetProjectPass: GET /api/projects/{id}/pass — the credits/expiry badge
@@ -575,6 +576,7 @@ func (s *Server) handleGetProjectPass(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt:        pass.ExpiresAt.UTC().Format(time.RFC3339),
 		CustomerName:     pass.CustomerName,
 		IndexIncluded:    passIndexIncluded(pass),
+		FinalsGate:       map[bool]string{true: "off", false: ""}[finalsGateOff()],
 	})
 }
 
@@ -776,7 +778,8 @@ type passRow struct {
 	StripeSessionID  string `json:"stripe_session_id"`
 	AmountPaid       int64  `json:"amount_paid"` // cents, after discount; 0 for coupon/admin passes
 	PromoCode        string `json:"promo_code"`
-	IndexIncluded    bool   `json:"index_included"` // back-of-book index add-on
+	IndexIncluded    bool   `json:"index_included"`        // back-of-book index add-on
+	FinalsGate       string `json:"finals_gate,omitempty"` // "off" while the studio waives the no-finals refusal
 }
 
 func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
