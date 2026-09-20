@@ -139,6 +139,25 @@ This creates a harmonious vertical rhythm when you hold the page to light — al
 
 **Practical compromise**: Strict baseline grids are hard in complex books. At minimum, maintain consistent leading within text types.
 
+### Space Around Subheads
+
+**The rule**: a subhead belongs to the text that follows it, so the space **above** it must be clearly larger than the space **below** — never equal, never inverted. The reader should see the head as the first line of the new section, not as a caption to the previous one. (Bringhurst 2.3 on "the head and its text as one unit"; Chicago 1.55; Butterick, "Headings".)
+
+**Working proportions** (in units of the body leading, so the rhythm holds):
+
+| Level | Above | Below | Whole block |
+|-------|-------|-------|-------------|
+| A-head (H2, the section head) | 1½–2 lines | ½ line | head + above + below = a whole number of lines (3 at 10/14) |
+| B-head (H3, run-in or shoulder) | 1 line | ¼–½ line | 2 lines |
+| Chapter title (opener page) | sink from the top of the type page; below: 2–4 lines | | fixed on the opener grid |
+
+- Ratio above : below ≈ **2 : 1 or more**. If in doubt, take space away from below, not above.
+- Measure from baseline to baseline, not from the ink. Keep-with-next (see *Widows & Orphans*) must not add invisible space under the head.
+- The first paragraph after a head is set flush (no first-line indent), which is part of why the below-space can be small.
+- Consecutive heads (A-head directly followed by B-head): the gap between them is the B-head's above-space, reduced by half.
+
+**Check**: hold a page with a head against a page without; the body baselines should coincide. If the head pushes the lines off the grid, adjust the above-space, not the leading.
+
 ### Paragraph Spacing
 
 **The rule**: Use indentation OR vertical space, never both.
