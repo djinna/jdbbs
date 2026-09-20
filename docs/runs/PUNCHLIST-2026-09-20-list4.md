@@ -1,11 +1,11 @@
-<!-- exported 2026-09-20 12:11 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-20 13:18 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
 Legend: **YOU** = Jenna's turn · **ME** = Shelley's turn · **BOTH** = look together.
-Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **note** opens a reply box under any item (⌘↵ saves; paste screenshots straight in) — I read those back. Bottom bar adds a new item to the Inbox (top). Refreshes every 15 s (pauses while you type).
+Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **note** opens a reply box under any item (⌘↵ saves; paste screenshots straight in) — I read those back. Bottom bar adds a new item to the Inbox (top). Refreshes every 15 s (pauses while you type). **Contents box** at the top jumps to a section; click a section heading to fold it (remembered on this device); done items sit folded under "n done"; long note threads show the latest note with "n earlier" above it.
 
-Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUNCHLIST-2026-09-19-list3) (Sat 19 Sep — one-page factory, proof vs. final, admin tidy) and earlier at [/admin/runs/](/admin/runs/), with every note thread. Item numbers carry over so threads stay attached; new items continue from 0.30 / 5.23.
+Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUNCHLIST-2026-09-19-list3) (Sat 19 Sep — one-page factory, proof vs. final, admin tidy) and earlier at [/admin/runs/](/admin/runs/), with every note thread. Item numbers carry over so threads stay attached (so a "0.x" item may live in any section — the contents box lists open item numbers per section); new items continue from 0.30 / 5.23.
 
 **Freeze:** Mon 21 – Wed 23 **hotfix-only** — triage every new item **Hotfix-now** (breaks an attendee) vs **After-workshop** (→ §5). Hotfix path: fix → `go test ./srv/` → `make build && sudo systemctl restart prodcal` → one factory smoke on `mcheck/book-001`. Store flips to live Stripe by timer **Wed 23 Sep 00:00 HKT**.
 
@@ -238,7 +238,7 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > **shelley** · 2026-09-20 00:36 UTC  
   > Closing this one: §5 “Outcome” added to the decision note (what shipped: /factory#bring, /workshop#bring, handoff card, .odt template; your decisions from §4 recorded). The only thread left is Pages — I still want one real Pages-exported .docx from a tester before writing the style normaliser; if you get one, drop it on a new inbox item.
 
-- [~] 0.9 **Factory-to-factory API for your 3 customers** — A) three passes on this VM (need names from YOU); B) bearer token + CLI/Python recipe. [plan](/admin/runs/PUNCHLIST-2026-09-19-list3) · [API page](/factory/api)
+- [~] 0.9 **Factory-to-factory API for your 3 customers** — A) pinstitute ✓ (token on 22), vgr ✓ (pass 13 + token on Twitter Years), monstrous ✓ (snitkey renamed; token on 28; rename FK bug hotfixed); B) bearer token + CLI/Python recipe. [plan](/admin/runs/PUNCHLIST-2026-09-19-list3) · [API page](/factory/api)
 
   > **shelley** · 2026-09-19 12:25 UTC  
   > First think, in plain terms. Two very different things are hiding in this item, and I’d separate them:
@@ -288,6 +288,34 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > 3/ **Terminal demo for the room**: `scripts/factory-demo.sh` — prints each command in colour before it runs, so people read along. `TOKEN=… P=14 scripts/factory-demo.sh ms.docx` does pass → upload → inspect (free, ~5 s). Add `--build` to spend a credit and watch it poll and download both files (~15 s for the sample chapter). I ran it against prot/zoo (id 14, the CLI test project — 6 credits left, token in scratch/zoo-token.txt) — never against pinstitute. The Python script is also downloadable at /factory/api/factory-cli.py.
   >
   > Left as [~] until you've read the page; then 0.9A (three passes) still needs the customer names from you.
+
+  > **jenna** · 2026-09-20 12:30 UTC  
+  > > A) three passes on this VM (need names from YOU)
+  > pinstitute
+  > monstrous
+  > vgr
+
+  > **shelley** · 2026-09-20 12:33 UTC  
+  > Two of three done, no builds spent:
+  >
+  > • pinstitute — already had a pass (Obliquities, project 22; 1 credit left of 3). Minted its API token. Browser login is unchanged (token is an extra door, not a replacement).
+  > • vgr — Venkatesh already exists as a client with one project, The Twitter Years (project 7, from Feb). Attached a fresh admin pass to it (pass 13, 3 builds, expires Mar 2027) and minted a token. Portal: https://jdbbs.exe.xyz/vgr/twitter-years/factory/ — if his factory should point at a different book, say so and I’ll make a second project instead. No email on record for him.
+  > • monstrous — nobody by that name here yet. A new client needs three things from you: customer name, email, working title (plus author name if different from the customer). One line on this item and it’s two minutes.
+  >
+  > Both tokens verified from outside (no admin header): no token → 401, Bearer → 200 on /pass and /transmittal. They are on the VM at scratch/customer-tokens/project-{22,7}.token (not in git). Handing over = you send the customer their project id + token + https://jdbbs.exe.xyz/factory/api (or tell me to email it and to whom). Never a build on pinstitute from me.
+
+  > **shelley** · 2026-09-20 12:46 UTC  
+  > Got it — snitkey → monstrous, done.
+  >
+  > • Renamed the client: portal is now https://jdbbs.exe.xyz/monstrous/book-001/factory/ ; the old /snitkey/… address 301-redirects, so his bookmark and Friday's email still work. Pass 11 (1 of 3 builds used) and his book came along. API token minted for project 28 (scratch/customer-tokens/, not in git); verified from outside.
+  > • Uncovered + fixed a real bug on the way: client rename had been failing with a FOREIGN KEY error since the sign-in-link table arrived (it references clients.slug). Now carried along, regression test added, deployed as a hotfix (2180f97). Any rename before today would have failed the same way.
+  > • Display name is still “Sachin”. Want it “Monstrous” (the imprint) or leave the person's name? One word.
+  > • Mouse type added under “Your name” on the /factory redeem form: one pass sets up one account and one book inside it; the account is named after the author (or you) and holds every later book; an imprint should say so in the title field and we'll name the account after it. Live now (public doc, no build). The same holds for the Stripe checkout on Wed, but there the fields are Stripe's — I can only put that sentence on the /factory Buy section, which I'd do after you've read this one.
+  >
+  > So all three factories exist: pinstitute (22), vgr (7), monstrous (28) — each with a token. Left on 0.9A: your word on the display name, and whether I send the three of them their id + token + /factory/api or you do.
+
+  > **jenna** · 2026-09-20 13:17 UTC  
+  > z I don't want to send any of them their information. I'm planning to set up three test profiles locally and run their books through myself. They're all part of the same group that I'm working with, and this will let me explore what it will take to get the factory to work before I ask them to do a bunch of clicking around on something while that isn't built out and tested yet. Can you start an instruction doc, maybe just as a GitHub page for now, for what we would hand people, and I'll work through it today to try it out? Tidy up for a compaction first, or, in fact, maybe we should get you to give me a prompt that I can take to a new conversation, since this one's getting long. wdyt?
 
 - [x] 5.13 **Index add-on, $100** — phase 2 built on branch `index-addon` (subagent report in); merge + smoke = 4.5. Design: [INDEX-ADDON-DESIGN](https://github.com/djinna/jdbbs/blob/main/docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md) · [thread](/admin/runs/PUNCHLIST-2026-09-19-list3)
 
@@ -375,6 +403,38 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > Four shapes: (1) OFL/Google menu = free tier, today. (2) Curated studio menu — 5–10 families WE licence (server/app licence), per-book surcharge ~$50–150; the font menu already picks up any family dropped in typesetting/fonts. (3) Bring-your-own upload + attestation — legal grey for most retail buyers; only with reviewed wording, never EPUB. (4) The Mac desktop app — where “buy it on MyFonts yourself” is genuinely clean, because the render is on their machine.
   >
   > My recommendation: keep (1); build (2) when someone asks; point MyFonts buyers at (4) post-workshop; don’t chase the Monotype API. Your call — discuss when you like.
+
+  > **jenna** · 2026-09-20 12:38 UTC  
+  > good research! Feels like maybe we could reasonably easily add a pull-down selector for the Google font list. Those faces would be free, but instead of showing the whole damn list, we would high-grade the typefaces that are, may I say, book-grade and pass some threshold of known quality, since it's got a long tail of wild and woolly fonts.
+  >
+  > Secondly, some version of your second idea, which is, by request, we could offer to go purchase a typeface from MyFonts.com and charge for that to recoup the costs, and each time we do that, we would add it to our own library. Again, instead of offering the whole dang MyFonts.com list, could we high-grade with maybe just 4 to 8 suggested really strong book interior typefaces that are obviously suitable for long texts? What do you think of all that?
+
+  > **shelley** · 2026-09-20 12:39 UTC  
+  > Yes to both, and the plumbing is already the right shape. The customer never sees a raw font list today: the transmittal’s Typeface row offers three *pairings* (Open classic = Libertinus + Source Sans; Studio house = Plantin + Proxima; Literary = EB Garamond) with the sampler chips. So “a high-graded Google list” is not a new selector — it is more rows in that same table (`typoPairings` in srv/typochoices.go), each family dropped into typesetting/fonts/, sampler rebuilt by the existing script. Small job, after the workshop.
+  >
+  > 1/ Book-grade OFL shortlist (free tier). My threshold: designed for continuous text; real italic (not sloped roman); small caps + old-style figures; ≥4 weights; a designer/foundry with a track record; and it survives the 10/12 sampler at arm’s length. From Google’s ~1,800 that leaves roughly a dozen; I’d offer 6–8, one per flavour so the choice stays simple:
+  > • EB Garamond (have) — the Garamond
+  > • Libertinus Serif (have) — the transitional
+  > • Crimson Pro — warm, Minion-adjacent
+  > • Literata — designed for long reading (Google Play Books), the modern
+  > • Spectral — the crisp Didone-ish one
+  > • Source Serif 4 — Adobe’s, very even
+  > • Libre Caslon Text — the Caslon
+  > • Alegreya — the lively humanist, good for literary fiction
+  > Explicitly excluded and why: Cormorant (too light for text), Merriweather/Lora (screen faces, wide), Playfair (display), Cardo (thin italic), Gentium (fine but no bold italic in some cuts). I’d write the criteria down in TYPOGRAPHY.md so the list is defensible, not taste.
+  >
+  > 2/ By-request purchases (paid tier). Also yes — that is how the Plantin ended up here, and the second buyer of a face gets it at library price because we already hold it. Shortlist of 6 proven book interior faces that are actually on MyFonts (Adobe’s Minion/Garamond Premier/Arno are not — they are Adobe Fonts subscription):
+  > • Sabon Next (Tschichold; the Garamond that never fails)
+  > • Bembo Book MT (the Aldine)
+  > • Dante MT (Mardersteig; literary)
+  > • Janson Text (Dutch; darker, for smaller sizes)
+  > • Miller Text (Font Bureau; Scotch roman, good for non-fiction)
+  > • Swift 2.0 or FF Scala (the modern, sturdy one)
+  > Plus the two we hold: Plantin MT Pro, Proxima Nova. Pricing shape: a family of 4 styles runs ~US$150–400 on MyFonts; charge the requester a flat “typeface fee” of ~$150 (covers most of it), then it joins the Studio library at, say, +$50 per book. Two things to state plainly on the page: lead time (a day or two — someone buys and installs it), and EPUB never carries a licensed face (falls back to the OFL one; already enforced in code).
+  >
+  > Licence stance, same as Plantin: the studio buys the desktop licence, the studio’s machine renders. That is the precedent we already run on; I’d just read the Monotype desktop EULA’s wording on automated/server rendering once before the first new purchase, so we know where we stand rather than assume.
+  >
+  > UI: one row, three groups — Included (free, 6–8 pairings) · Studio library (+$50) · By request (+$150, the 6 above). If you’re happy with this I’ll turn it into a §6 of the memo and queue the OFL drop-in for after the workshop; the by-request list goes on /factory as text only until the first ask.
 
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
 
