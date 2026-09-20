@@ -394,6 +394,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /factory/api/factory-cli.py", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "factory-cli.py")
 	})
+	// factory.py: the folder-and-terminal tool for customers (0.9 tester
+	// route) — setup / status / inspect / proof / final / download. Symlink
+	// in jdbbs-public to scripts/factory.py.
+	mux.HandleFunc("GET /factory/api/factory.py", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "factory.py")
+	})
 	// Store (Stripe Checkout). All 404 unless PRODCAL_STORE=on; see store.go.
 	mux.HandleFunc("POST /api/public/store/checkout", s.handleStoreCheckout)
 	mux.HandleFunc("GET /api/public/store/session", s.handleStoreSession)
