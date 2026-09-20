@@ -1,4 +1,4 @@
-<!-- exported 2026-09-20 00:01 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-20 00:16 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
@@ -18,6 +18,15 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > **shelley** · 2026-09-20 00:01 UTC  
   > Agreed — that image was my first experiment, not a proposal: heads too tight both sides, no space after. It's already reverted; nothing changed in the live template. Next session I'll tune it properly (above clearly > below, head size checked against the spec, chapter opener too) and post before/after crops here before touching the build.
 
+  > **shelley** · 2026-09-20 00:03 UTC  
+  > Checked properly: TYPOGRAPHY.md had **no rule** for space above/below subheads — only "headings occupy whole multiples of the body leading" and "subhead 12–14pt". That was the gap, and it's why the template's numbers (above 1em / below 0.25em, then quietly undone by a 1em keep-with-next box) were never checked against anything. Filled it now — new section "Space Around Subheads" in docs/typesetting/TYPOGRAPHY.md: head belongs to what follows; above : below ≥ 2 : 1; A-head above 1½–2 lines / below ½ line, B-head 1 / ¼–½, the whole block a whole number of body lines; measured baseline-to-baseline; keep-with-next must add no invisible space; consecutive heads halve the gap. Please read and amend — once you're happy with the rule, the template gets tuned to it (with before/after crops here), not the other way round. Link: https://github.com/djinna/jdbbs/blob/main/docs/typesetting/TYPOGRAPHY.md#space-around-subheads
+
+  > **jenna** · 2026-09-20 00:09 UTC  
+  > lgtm, update our Sampler pdf too (if needed)
+
+  > **shelley** · 2026-09-20 00:09 UTC  
+  > Noted — rule approved. Merging the index add-on (4.5) first, then I tune the template to the rule, post before/after crops here, and check the Sampler PDF (docs/typesetting) — will regenerate if the head spacing changed it.
+
 
 ## 1 · Workshop watch (Mon 21 / Tue 22) — BOTH
 
@@ -25,7 +34,7 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
 - [ ] 4.2 Attendees free via hand-granted passes (New pass form) — no coupons, no $0 checkouts
 - [ ] 4.3 Watch for `build failed`, `401` bursts (password confusion), builds "queued" (> 2 at once)
 - [ ] 4.4 Tue night: `prodcal-store-live.timer` still armed; Wed 00:00 HKT go-live email + `/api/public/store/config` says live
-- [ ] 4.5 ME — Sunday: merge `index-addon` (5.13), smoke index draft + build on mcheck, push jdbbs-public, post Ghosts index v2 pages
+- [x] 4.5 ME — Sunday: merge `index-addon` (5.13), smoke index draft + build on mcheck, push jdbbs-public, post Ghosts index v2 pages
 - [ ] 4.6 ME — Sunday: pre-workshop pass (attendee login → upload → Inspect → proof → final on mcheck; Floor shows it); tag `checkpoint-2026-09-20-pre-workshop-v3`
 
 ## 2 · Your side — YOU
@@ -228,7 +237,7 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   >
   > Left as [~] until you've read the page; then 0.9A (three passes) still needs the customer names from you.
 
-- [~] 5.13 **Index add-on, $100** — phase 2 built on branch `index-addon` (subagent report in); merge + smoke = 4.5. Design: [INDEX-ADDON-DESIGN](https://github.com/djinna/jdbbs/blob/main/docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md) · [thread](/admin/runs/PUNCHLIST-2026-09-19-list3)
+- [x] 5.13 **Index add-on, $100** — phase 2 built on branch `index-addon` (subagent report in); merge + smoke = 4.5. Design: [INDEX-ADDON-DESIGN](https://github.com/djinna/jdbbs/blob/main/docs/reviews/INDEX-ADDON-DESIGN-2026-09-19.md) · [thread](/admin/runs/PUNCHLIST-2026-09-19-list3)
 
   > **jenna** · 2026-09-19 15:13 UTC  
   > 1/ add Index as a coming-soon add-on 2/ let's start it today: can you draft a prompt I can pass to it's own session or you give to a subagent so that it can proceed in parallel safely?
@@ -274,6 +283,23 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > 5. /factory add-ons table: "Index · $100", with a sentence on what it is.
   >
   > Order: I'm finishing 0.28 (proof/final) on main right now; the index branch gets rebased onto that and merged tomorrow after a mcheck build with an index in it. I'll post the Ghosts sample again without the letters once step 1 lands.
+
+  > **shelley** · 2026-09-20 00:15 UTC  
+  > Index add-on MERGED + LIVE (4.5 done). Smoke on mcheck/book-001: admin grant → draft (17 entries, 6 calls, ≈$0.03, 21 s) → review table (deleted one, saved → reviewed) → Build proof with index → 19-pp PROOF PDF, index on the last page, Floor shows index.draft.started → index.drafted → index.reviewed → build.started (with index) → index.placed 26/26 anchors. /factory + /factory/api copy pushed (Index · $100; coming-soon tag gone). Ghosts v2 index pages (no letter heads, 0.6 em between letter groups; 199 entries, 142 headings, 22 see / 40 see also) below, then the mcheck smoke page.
+  >
+  > Open calls for you (none block the workshop): (a) a raw unreviewed draft CAN go into a build — page ticks Include by default; want reviewed-only? (b) reciprocal see-also pairs kept when both sides are substantial (Chicago allows), thin ones folded; (c) for fiction the draft headings run literal — the review table is where they get fixed; say so in the room. Minor: index lines hyphenate at column width (produc-tion) — I can turn hyphenation off in the index block after the workshop.
+  >
+  > ![screenshot](img/513-v2-101.png)
+  >
+  > ![screenshot](img/513-v2-102.png)
+  >
+  > ![screenshot](img/513-v2-103.png)
+  >
+  > ![screenshot](img/513-v2-104.png)
+  >
+  > ![screenshot](img/513-v2-105.png)
+  >
+  > ![screenshot](img/513-mcheck-smoke-index.png)
 
 
 ## 5 · After the workshop — ME unless marked
