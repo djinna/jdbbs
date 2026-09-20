@@ -331,3 +331,16 @@ Done + pushed: **4.5/5.13** index add-on merged (ff), migration 050 live, smoke 
 **Browser gotcha:** the factory's Export-final `window.confirm` wedges the headless tab (CDP says "no dialog"); fix = `kill` the renderer pid, then navigate again, and stub `window.confirm=()=>true` before clicking. Admin proxy for the browser is `http://127.0.0.1:8799` (tmux `adminproxy`); `:8000` direct = attendee view.
 
 Next: 5.22 MyFonts scout memo → 0.25 Word-free note.
+
+## Addendum 17 (2026-09-20, ~00:55 UTC) — compaction #6 state (conv cRARHD4)
+
+All four Sunday items worked; everything committed + pushed (push via `git push git@github.com:djinna/jdbbs.git main` — `origin` https has no creds on the VM). Runpage is on conv `cRARHD4` (restart with `tmux new-session -d -s runpage -c /home/exedev/prodcal "RUNPAGE_CHAT_CONV=<id> scripts/run-page.sh"` when the conversation changes — the script runs foreground).
+
+State:
+- **4.5/5.13 index add-on, 4.6 pre-workshop pass, 0.25 Word-free** — ticked, exported (`docs/runs/PUNCHLIST-2026-09-20-list4.md`). Tag `checkpoint-2026-09-20-pre-workshop-v3` live.
+- **0.29 — WAITING on Jenna: A or B** (crops on the item; see addendum 16 for the patch + numbers). On her pick: `git apply docs/typesetting/patches/029-subhead-spacing-A-2026-09-20.patch` (B = then set `h2-above: 24pt`, `h2-below: 16.5pt`), `go test ./srv/`, one mcheck proof, `typesetting/scripts/build-sampler.sh` (needs `scratch/typo/ghosts2.typ`, present) → commit `srv/static/samples/*`, post a real-page crop, tick. Template is read from disk — an applied patch is live immediately; no restart needed.
+- **5.22 — WAITING on Jenna** to discuss the memo (`docs/reviews/TYPEFACE-CHOICE-MYFONTS-SCOUT-2026-09-20.md`); recommendation: OFL tier + curated studio menu w/ surcharge; MyFonts buyers → desktop app.
+- Open on her side: 0.9A names, 0.10 press bits, 0.14, 5.17 A/A′/B, 5.21 Plantin Bold, 2.8, 3.2/3.4 deck.
+- 5.13 follow-ups (after workshop): reviewed-only builds? (one line in `indexIncludable()`), hyphenation off in the index block, A→B consecutive-head half-gap.
+
+**Mon 21 – Wed 23 = hotfix-only.** Triage every inbox item Hotfix-now vs After-workshop; hotfix path in CHECKLIST.md header; smoke only on mcheck (17), never pinstitute (22). Watch `/admin/factory/` + `factory-tail`. Store flips live Wed 00:00 HKT by timer (4.4).
