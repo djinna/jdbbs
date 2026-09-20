@@ -143,18 +143,30 @@ This creates a harmonious vertical rhythm when you hold the page to light — al
 
 **The rule**: a subhead belongs to the text that follows it, so the space **above** it must be clearly larger than the space **below** — never equal, never inverted. The reader should see the head as the first line of the new section, not as a caption to the previous one. (Bringhurst 2.3 on "the head and its text as one unit"; Chicago 1.55; Butterick, "Headings".)
 
-**Working proportions** (in units of the body leading, so the rhythm holds):
+**Working proportions** (in units of the body *line* — baseline to baseline
+of ordinary text, 11.625 pt at our 10-pt Plantin + 4.8 pt leading — so the
+rhythm holds and lines still align across a spread; the head's own x-height,
+cap-height or leading do not enter into it, they only shape the look inside
+the slot):
 
 | Level | Above | Below | Whole block |
 |-------|-------|-------|-------------|
-| A-head (H2, the section head) | 1½–2 lines | ½ line | head + above + below = a whole number of lines (3 at 10/14) |
-| B-head (H3, run-in or shoulder) | 1 line | ¼–½ line | 2 lines |
+| A-head (Heading 2 — the section head; Heading 1 is the chapter title) | 2 lines (3 baseline-to-baseline) | 1 line (2 baseline-to-baseline) | head + above + below = 5 line-gaps, i.e. the head displaces 4 body lines |
+| B-head (Heading 3) | ¾ line | ¼ line | 3 line-gaps, displaces 2 body lines |
 | Chapter title (opener page) | sink from the top of the type page; below: 2–4 lines | | fixed on the opener grid |
+
+*Landed 2026-09-20 (punch list 0.29, "B" variant, Jenna's pick):*
+`series-template.typ` config `h2-above: 24pt, h2-below: 16.625pt,
+h3-above: 14pt, h3-below: 7.25pt`, sticky blocks with no hidden box or empty
+paragraph. Measured with `scratch/proof/baselines.py`: A-head 34.75 pt above /
+23.25 pt below the head baseline (3 L / 2 L); B-head ≈ 21 / 14 (1¾ / 1¼).
+Both slots round to whole body lines, so the last baseline on a page with a
+head equals the last baseline on a page without (441.25 pt in the comp).
 
 - Ratio above : below ≈ **2 : 1 or more**. If in doubt, take space away from below, not above.
 - Measure from baseline to baseline, not from the ink. Keep-with-next (see *Widows & Orphans*) must not add invisible space under the head.
 - The first paragraph after a head is set flush (no first-line indent), which is part of why the below-space can be small.
-- Consecutive heads (A-head directly followed by B-head): the gap between them is the B-head's above-space, reduced by half.
+- **Guideline: no consecutive heads.** There should always be at least a paragraph of text between an A-head and a B-head. When the rule is broken anyway, the template keeps the two heads together (sticky) and the B-head gets its full above-space; the intended half-gap for that case is not implemented yet (needs Typst context to detect adjacency).
 
 **Check**: hold a page with a head against a page without; the body baselines should coincide. If the head pushes the lines off the grid, adjust the above-space, not the leading.
 

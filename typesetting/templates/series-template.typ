@@ -75,10 +75,14 @@
   // Spacing before/after headings
   h1-above: 0em,      // H1 gets pagebreak, so above-space is rarely needed
   h1-below: 0.5em,
-  h2-above: 1em,
-  h2-below: 0.25em,
-  h3-above: 0.75em,
-  h3-below: 0.25em,
+  // Sub-heads (TYPOGRAPHY.md, Space Around Subheads): block gaps in pt on
+  // the 10/12 grid. A-head: 1½ lines above, ½ line below → head sits in a
+  // 3-line slot. B-head: ¾ line above, ¼ line below → 2-line slot. Tuned by
+  // measuring baselines (scratch/proof/h.typ), not by eye.
+  h2-above: 24pt,
+  h2-below: 16.625pt,
+  h3-above: 14pt,
+  h3-below: 7.25pt,
 
   // Running heads — matched to the golden PDF's RENDERED output (reference/GHOSTS.pdf),
   // not the .indd nominal. The .indd panel reads Proxima Nova Semibold 10pt / 9pt folio,
@@ -1149,28 +1153,27 @@
     v(config.h1-below)
     par(first-line-indent: 0em)[]
   }
+  // Sub-heads follow TYPOGRAPHY.md "Space Around Subheads": a head belongs
+  // to the text under it, so above > below (about 3:1 in extra space) and
+  // head + above + below fills whole lines of the body grid — A-head 3 lines,
+  // B-head 2 lines at 10/12. `sticky` keeps the head with the paragraph that
+  // follows (no invisible box or empty paragraph, which used to add ~2 lines
+  // under the head and indent the first paragraph). The paragraph after a
+  // head is flush by Typst's default (first-line-indent applies only between
+  // consecutive paragraphs).
   let sub-head(it) = {
-    v(config.h2-above)
-    block(breakable: false, below: 0em)[
+    block(sticky: true, breakable: false, above: config.h2-above, below: config.h2-below)[
       #set text(font: config.heading-font, size: config.h2-size, weight: config.h2-weight)
-      #set par(first-line-indent: 0em, justify: false)
+      #set par(first-line-indent: 0em, justify: false, leading: 0.4em)
       #aligned(it.body)
-      #v(config.h2-below)
-      // Invisible anchor keeps heading with following content
-      #box(height: 1em)
     ]
-    par(first-line-indent: 0em)[]
   }
   let sub-sub-head(it) = {
-    v(config.h3-above)
-    block(breakable: false, below: 0em)[
+    block(sticky: true, breakable: false, above: config.h3-above, below: config.h3-below)[
       #set text(font: config.heading-font, size: config.h3-size, weight: config.h3-weight)
-      #set par(first-line-indent: 0em, justify: false)
+      #set par(first-line-indent: 0em, justify: false, leading: 0.4em)
       #aligned(it.body)
-      #v(config.h3-below)
-      #box(height: 1em)
     ]
-    par(first-line-indent: 0em)[]
   }
   // Part opener: own recto, title centred on the page, no head or folio,
   // verso left blank so the first chapter starts recto.
