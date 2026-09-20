@@ -272,8 +272,9 @@ func (s *Server) sendRegistrationEmails(in registrationInput, rowID int64) {
 
 	// 2) Applicant auto-reply.
 	applicantSubj := "We got your Protocolize Your Book registration"
-	txt := applicantAutoReplyText(in.Name)
-	htmlReply := applicantAutoReplyHTML(in.Name)
+	workshop := workshopLive()
+	txt := applicantAutoReplyText(in.Name, workshop)
+	htmlReply := applicantAutoReplyHTML(in.Name, workshop)
 	if err := s.mail(mailMeta{Kind: mailKindRegistrationConfirm, RefType: "registration", RefID: mailRef(rowID), TriggeredBy: "public"}, []string{in.Email}, nil, applicantSubj, txt, htmlReply); err != nil {
 		slog.Error("registration applicant email failed", "err", err, "email", in.Email)
 	}
@@ -286,18 +287,35 @@ func firstNonEmpty(a, b string) string {
 	return b
 }
 
-func applicantAutoReplyText(name string) string {
+func applicantAutoReplyText(name string, workshop bool) string {
 	first := firstName(name)
+	if !workshop {
+		return fmt.Sprintf(`Hi %s,
+
+Thanks — your request for the "Protocolize Your Book" workshop is in.
+
+The Sep 21–22 cohort at Protocol Symposium 2026 has now run, so this round's
+live sessions are done. You're on the list: we'll email you about the session
+recordings and you get first word when the next cohort opens.
+
+In the meantime the factory itself is open year-round — a Factory Pass takes
+one manuscript all the way through the protocol, self-serve. Details at
+https://jdbbs.exe.xyz/store/.
+
+See you in the factory,
+Jenna Dixon · [jdbb] studio`, first)
+	}
 	return fmt.Sprintf(`Hi %s,
 
 Thanks — your request for the "Protocolize Your Book" workshop at Protocol
 Symposium 2026 is in.
 
 This is a small hands-on lab (8 seats), so we curate for a mix of source
-material and backgrounds. We'll email within a few days to confirm your spot,
-with the Discord invite, calendar invites for all four sessions, and a short note on
-prepping your manuscript. If the cohort fills, we'll offer you the session
-recordings and a spot in the next round.
+material and backgrounds. The workshop is imminent, so watch your inbox: we'll
+email before session 1 to confirm your spot, with the Discord invite, calendar
+invites for all four sessions, and a short note on prepping your manuscript. If
+the cohort fills, we'll offer you the session recordings and a spot in the
+next round.
 
 The four sessions (all times UTC, cumulative — please plan to attend all four):
   1. Handshake         Mon Sept 21   15:00–16:30 UTC
@@ -313,12 +331,20 @@ See you in the factory,
 Jenna Dixon · [jdbb] studio`, first)
 }
 
-func applicantAutoReplyHTML(name string) string {
+func applicantAutoReplyHTML(name string, workshop bool) string {
 	first := html.EscapeString(firstName(name))
 	var b strings.Builder
 	b.WriteString(emailP(fmt.Sprintf("Hi %s,", first)))
+	if !workshop {
+		b.WriteString(emailP("Thanks &mdash; your request for the <b>Protocolize Your Book</b> workshop is in."))
+		b.WriteString(emailP("The Sep 21&ndash;22 cohort at Protocol Symposium 2026 has now run, so this round&rsquo;s live sessions are done. You&rsquo;re on the list: we&rsquo;ll email you about the session recordings, and you get first word when the next cohort opens."))
+		b.WriteString(emailP(`In the meantime the factory itself is open year-round &mdash; a <b>Factory Pass</b> takes one manuscript all the way through the protocol, self-serve. Details at <a href="https://jdbbs.exe.xyz/store/" style="color:` + emailAccent + `;text-decoration:underline">jdbbs.exe.xyz/store</a>.`))
+		b.WriteString(emailP("See you in the factory,"))
+		b.WriteString(emailSignoff())
+		return emailShell(b.String(), emailShellOpts{Kicker: "Protocolize Your Book", Title: "Your registration is in"})
+	}
 	b.WriteString(emailP("Thanks &mdash; your request for the <b>Protocolize Your Book</b> workshop at Protocol Symposium 2026 is in."))
-	b.WriteString(emailP("This is a small hands-on lab (<b>8 seats</b>), so we curate for a mix of source material and backgrounds. We&rsquo;ll email within a few days to confirm your spot, with the Discord invite, calendar invites for all four sessions, and a short note on prepping your manuscript. If the cohort fills, we&rsquo;ll offer you the session recordings and a spot in the next round."))
+	b.WriteString(emailP("This is a small hands-on lab (<b>8 seats</b>), so we curate for a mix of source material and backgrounds. The workshop is imminent, so watch your inbox: we&rsquo;ll email before session 1 to confirm your spot, with the Discord invite, calendar invites for all four sessions, and a short note on prepping your manuscript. If the cohort fills, we&rsquo;ll offer you the session recordings and a spot in the next round."))
 	b.WriteString(emailH2("The four sessions"))
 	b.WriteString(emailSmall("All times UTC, cumulative &mdash; please plan to attend all four."))
 	b.WriteString(emailTable([]string{"#", "Session", "Day", "Time (UTC)"}, [][]string{

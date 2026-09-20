@@ -1208,12 +1208,30 @@ func (s *Server) handleAdminGrantPassBuilds(w http.ResponseWriter, r *http.Reque
 
 // ─── emails (EMAIL_SYSTEM.md pathway #6) ───
 
+// workshopEndsAt is the switchover instant for the Sep 21–22 workshop copy:
+// end of day Tuesday in Hong Kong, the same reading WORKSHOP49 uses
+// (store.go). After this instant the workshop sentences drop out of the pass
+// emails, the registration auto-reply, and the factory page automatically —
+// nothing to hand-edit on Tuesday night.
+var workshopEndsAt = time.Date(2026, 9, 22, 23, 59, 59, 0, hkt)
+
+func workshopLive() bool { return time.Now().Before(workshopEndsAt) }
+
 // passSupportEdges is the shared copy for what is and isn't included. The
-// page and both emails say the same thing on purpose.
-var passSupportEdges = []string{
-	"Live help during the workshop sessions (Sep 21–22) is included.",
-	"Outside that, email support is not included — the preflight report and the docs are the self-serve path.",
-	"Live help is available at USD 100/hr, booked in advance, one-hour minimum.",
+// page (factory.html, gated the same way in factory.js) and both emails say
+// the same thing on purpose. workshop=true is the Sep 21–22 window.
+func passSupportEdges(workshop bool) []string {
+	if workshop {
+		return []string{
+			"Live help during the workshop sessions (Sep 21–22) is included.",
+			"Outside that, email support is not included — the preflight report and the docs are the self-serve path.",
+			"Live help is available at USD 100/hr, booked in advance, one-hour minimum.",
+		}
+	}
+	return []string{
+		"Email support is not included — the preflight report and the docs are the self-serve path.",
+		"Live help is available at USD 100/hr, booked in advance, one-hour minimum.",
+	}
 }
 
 // deliverPassFulfillmentEmail performs the actual send (Resend, or AgentMail fallback). Redemption
@@ -1228,8 +1246,9 @@ func (s *Server) deliverPassFulfillmentEmail(res fulfillPassResult, meta mailMet
 	}
 	meta.RefType, meta.RefID = "pass", mailRef(res.Pass.ID)
 	subject := fmt.Sprintf("Your Factory Pass: %s", res.Title)
+	workshop := workshopLive()
 	return s.mail(meta, []string{res.Pass.CustomerEmail}, nil, subject,
-		passFulfillmentText(res), passFulfillmentHTML(res))
+		passFulfillmentText(res, workshop), passFulfillmentHTML(res, workshop))
 }
 
 // sendPassFulfillmentEmail mails the customer their portal URL, client
@@ -1280,11 +1299,15 @@ func passIncluded(p dbgen.Pass) passIncludedSummary {
 	return inc
 }
 
-func passFulfillmentText(res fulfillPassResult) string {
+func passFulfillmentText(res fulfillPassResult, workshop bool) string {
 	expires := res.Pass.ExpiresAt.UTC().Format("2 January 2006")
 	var b strings.Builder
 	fmt.Fprintf(&b, "Hi %s,\n\n", firstName(res.Pass.CustomerName))
-	fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you'll use in the sessions; Discord and calendar invites arrive separately.\n\n")
+	if workshop {
+		fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you'll use in the sessions; Discord and calendar invites arrive separately.\n\n")
+	} else {
+		fmt.Fprintf(&b, "Your Factory Pass is live: one manuscript, all the way through the protocol.\n\n")
+	}
 	fmt.Fprintf(&b, "Manuscript:     %s\n", res.Title)
 	fmt.Fprintf(&b, "Your factory:   %s\n", res.PortalURL)
 	fmt.Fprintf(&b, "Sign-in name:   %s\n\n", res.ClientSlug)
@@ -1300,27 +1323,36 @@ func passFulfillmentText(res fulfillPassResult) string {
 	}
 	b.WriteString("\n")
 	fmt.Fprintf(&b, "First steps\n")
-	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from. Mark it final; if you are starting from a blank page, download the authoring template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).\n")
-	fmt.Fprintf(&b, "  2. Upload your manuscript as .docx — from any editor, using Heading 1/2 and [[quote]]-style markers, or written in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).\n")
+	step1, step2 := "", ""
+	if workshop {
+		step1 = " Workshop attendees fill it live in session 1 (Mon Sep 21)."
+		step2 = " Workshop attendees: be ready to do this in session 2 (Mon Sep 21)."
+	}
+	fmt.Fprintf(&b, "  1. Fill the transmittal: it is the spec your book is built from. Mark it final; if you are starting from a blank page, download the authoring template generated from it.%s\n", step1)
+	fmt.Fprintf(&b, "  2. Upload your manuscript as .docx — from any editor, using Heading 1/2 and [[quote]]-style markers, or written in that template.%s\n", step2)
 	fmt.Fprintf(&b, "  3. Run a preflight (free, as often as you like) and fix what it flags.\n")
 	fmt.Fprintf(&b, "  4. Build. EPUBs are free and unlimited; print PDFs count. Failed builds don't count against your %d.\n\n", inc.Builds)
 	fmt.Fprintf(&b, "Support\n")
-	for _, edge := range passSupportEdges {
+	for _, edge := range passSupportEdges(workshop) {
 		fmt.Fprintf(&b, "  - %s\n", edge)
 	}
 	fmt.Fprintf(&b, "\nSee you in the factory,\nJenna Dixon · [jdbb] studio\n")
 	return b.String()
 }
 
-func passFulfillmentHTML(res fulfillPassResult) string {
+func passFulfillmentHTML(res fulfillPassResult, workshop bool) string {
 	expires := res.Pass.ExpiresAt.UTC().Format("2 January 2006")
 	var edges []string
-	for _, edge := range passSupportEdges {
+	for _, edge := range passSupportEdges(workshop) {
 		edges = append(edges, html.EscapeString(edge))
 	}
 	var b strings.Builder
 	b.WriteString(emailP(fmt.Sprintf("Hi %s,", html.EscapeString(firstName(res.Pass.CustomerName)))))
-	b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you&rsquo;ll use in the sessions; Discord and calendar invites arrive separately."))
+	if workshop {
+		b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol. If you redeemed a workshop code, this is the account you&rsquo;ll use in the sessions; Discord and calendar invites arrive separately."))
+	} else {
+		b.WriteString(emailP("Your <b>Factory Pass</b> is live &mdash; one manuscript, all the way through the protocol."))
+	}
 	b.WriteString(emailKV([][2]string{
 		{"Manuscript", "<b>" + html.EscapeString(res.Title) + "</b>"},
 		{"Your factory", fmt.Sprintf(`<a href="%s" style="color:%s;text-decoration:underline">%s</a>`, html.EscapeString(res.PortalURL), emailAccent, emailCode(res.PortalURL))},
@@ -1341,10 +1373,15 @@ func passFulfillmentHTML(res fulfillPassResult) string {
 	}
 	b.WriteString(emailH2("What's included"))
 	b.WriteString(emailList(included, false))
+	step1, step2 := "", ""
+	if workshop {
+		step1 = " Workshop attendees fill it live in session 1 (Mon Sep 21)."
+		step2 = " Workshop attendees: be ready to do this in session 2 (Mon Sep 21)."
+	}
 	b.WriteString(emailH2("First steps"))
 	b.WriteString(emailList([]string{
-		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from. Mark it final; if you are starting from a blank page, download the authoring template generated from it. Workshop attendees fill it live in session 1 (Mon Sep 21).",
-		"Upload your manuscript as .docx — from any editor, using Heading 1/2 and [[quote]]-style markers, or written in that template. Workshop attendees: be ready to do this in session 2 (Mon Sep 21).",
+		"Fill the <b>transmittal</b> &mdash; it is the spec your book is built from. Mark it final; if you are starting from a blank page, download the authoring template generated from it." + step1,
+		"Upload your manuscript as .docx — from any editor, using Heading 1/2 and [[quote]]-style markers, or written in that template." + step2,
 		"Run a <b>preflight</b> (free, as often as you like) and fix what it flags.",
 		fmt.Sprintf("<b>Build.</b> EPUBs are free and unlimited; print PDFs count. Failed builds don&rsquo;t count against your %d.", inc.Builds),
 	}, true))

@@ -45,7 +45,7 @@ func emailPreviewFixtures(base string) []emailPreview {
 	tx.ChecklistStats.WordsChars = "61,000"
 	tx.Editing.CopyeditingLevel = "light"
 
-	pass := dbgen.Pass{ID: 3, ProjectID: 18, CustomerEmail: "mike@example.com", CustomerName: "Mike Casey", BuildsIncluded: 3, BuildsUsed: 1, ExpiresAt: now.AddDate(0, 6, 0)}
+	pass := dbgen.Pass{ID: 3, ProjectID: 18, CustomerEmail: "mike@example.com", CustomerName: "Mike Casey", BuildsIncluded: 3, BuildsUsed: 1, FulfilledAt: now, ExpiresAt: now.AddDate(0, 6, 0)}
 	book := dbgen.Book{ID: 41, Title: "Building in the Wrong Market"}
 	res := fulfillPassResult{Pass: pass, Title: book.Title, ClientSlug: "mike-casey", ProjectSlug: "casey-001", Password: "otter-lantern-42", PortalURL: base + "/mike-casey/casey-001/factory/"}
 
@@ -73,9 +73,11 @@ func emailPreviewFixtures(base string) []emailPreview {
 	announceBody := "Session 1 is Monday 15:00 UTC on Discord. Before then, redeem your Factory Pass code and fill in the transmittal — even a rough one.\n\nYour code: PYB-XXXX-XXXX"
 
 	return []emailPreview{
-		{Kind: "registration_confirm", Subject: "We got your Protocolize Your Book registration", Text: applicantAutoReplyText("Mike Casey"), HTML: applicantAutoReplyHTML("Mike Casey")},
+		{Kind: "registration_confirm", Subject: "We got your Protocolize Your Book registration", Text: applicantAutoReplyText("Mike Casey", workshopLive()), HTML: applicantAutoReplyHTML("Mike Casey", workshopLive())},
+		{Kind: "registration_confirm_after_switchover", Subject: "We got your registration (after Tue-night switchover)", Text: applicantAutoReplyText("Mike Casey", false), HTML: applicantAutoReplyHTML("Mike Casey", false)},
 		{Kind: "announcement", Subject: "Protocolize Your Book — redeem your Factory Pass before session 1", Text: announcementText("Mike Casey", announceBody), HTML: announcementHTML("Mike Casey", announceBody)},
-		{Kind: "factory_pass", Subject: "Your Factory Pass: " + res.Title, Text: passFulfillmentText(res), HTML: passFulfillmentHTML(res)},
+		{Kind: "factory_pass", Subject: "Your Factory Pass: " + res.Title, Text: passFulfillmentText(res, workshopLive()), HTML: passFulfillmentHTML(res, workshopLive())},
+		{Kind: "factory_pass_after_switchover", Subject: "Your Factory Pass (after Tue-night switchover): " + res.Title, Text: passFulfillmentText(res, false), HTML: passFulfillmentHTML(res, false)},
 		{Kind: mailKindLoginLink, Subject: "Your sign-in link for Mike Casey", Text: loginLinkText("Mike Casey", base+"/auth/link?t=EXAMPLE-TOKEN-not-valid"), HTML: loginLinkHTML("Mike Casey", base+"/auth/link?t=EXAMPLE-TOKEN-not-valid")},
 		{Kind: "template_ready", Subject: "Your template is ready: " + book.Title, Text: templateReadyText(pass, book.Title, res.PortalURL, base+"/api/projects/18/word-template"), HTML: templateReadyHTML(pass, book.Title, res.PortalURL, base+"/api/projects/18/word-template")},
 		{Kind: "build_delivered", Subject: "Build ready: " + book.Title, Text: buildDeliveredText(pass, book, "both", pdfURL, epubURL, reportURL, credits, total), HTML: buildDeliveredHTML(pass, book, "both", pdfURL, epubURL, reportURL, credits, total)},

@@ -1909,6 +1909,13 @@ document.addEventListener('click', function (e) {
 })();
 
 mountTheme();
+// Workshop copy switchover: after end of day Tue Sep 22 (23:59:59 HKT =
+// 15:59:59 UTC), drop the Sep 21–22 workshop sentences from the support
+// footer. Mirrors workshopEndsAt in srv/passes.go — keep the two in step.
+if (Date.now() > Date.parse('2026-09-22T15:59:59Z')) {
+  document.querySelectorAll('[data-workshop]').forEach((el) => el.remove());
+  document.querySelectorAll('[data-post-workshop]').forEach((el) => { el.hidden = false; });
+}
 wire();
 renderAll();
 boot().then(confirmOrderFromURL).catch(handleFatal);

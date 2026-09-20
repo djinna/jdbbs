@@ -1230,10 +1230,25 @@ func TestPassEmailBodiesCarryTheEssentials(t *testing.T) {
 		Password:    "Xy7mQ2rKp4Ln",
 		PortalURL:   "https://example.test/ada-lovelace/notes/factory/",
 	}
-	for _, body := range []string{passFulfillmentText(res), passFulfillmentHTML(res)} {
+	for _, body := range []string{passFulfillmentText(res, true), passFulfillmentHTML(res, true)} {
 		for _, want := range []string{res.PortalURL, res.ClientSlug, res.Password, "3 March 2027", "100/hr"} {
 			if !strings.Contains(body, want) {
 				t.Errorf("fulfillment email is missing %q:\n%s", want, body)
+			}
+		}
+	}
+
+	// After the Tuesday-night switchover the workshop sentences must be gone
+	// (and nothing else): no session dates, no dangling "Outside that".
+	for _, body := range []string{passFulfillmentText(res, false), passFulfillmentHTML(res, false)} {
+		for _, gone := range []string{"Sep 21", "workshop", "Outside that"} {
+			if strings.Contains(body, gone) {
+				t.Errorf("post-workshop fulfillment email still contains %q:\n%s", gone, body)
+			}
+		}
+		for _, want := range []string{res.PortalURL, res.Password, "100/hr"} {
+			if !strings.Contains(body, want) {
+				t.Errorf("post-workshop fulfillment email is missing %q:\n%s", want, body)
 			}
 		}
 	}

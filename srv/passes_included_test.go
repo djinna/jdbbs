@@ -21,7 +21,7 @@ func TestPassIncludedFoldsAddOns(t *testing.T) {
 	if len(inc.AddOns) != 2 || inc.AddOns[0] != "+3 builds" || inc.AddOns[1] != "+6 months storage" {
 		t.Fatalf("add-ons: %v", inc.AddOns)
 	}
-	txt := passFulfillmentText(fulfillPassResult{Pass: bundle, Title: "T", ClientSlug: "c", Password: "p", PortalURL: "u"})
+	txt := passFulfillmentText(fulfillPassResult{Pass: bundle, Title: "T", ClientSlug: "c", Password: "p", PortalURL: "u"}, true)
 	for _, want := range []string{"6 builds", "(12 months)", "Add-on: +3 builds", "Add-on: +6 months storage", "against your 6"} {
 		if !contains(txt, want) {
 			t.Errorf("email text missing %q", want)
