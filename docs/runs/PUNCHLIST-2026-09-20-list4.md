@@ -1,4 +1,4 @@
-<!-- exported 2026-09-20 00:16 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-20 00:28 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
@@ -35,7 +35,13 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
 - [ ] 4.3 Watch for `build failed`, `401` bursts (password confusion), builds "queued" (> 2 at once)
 - [ ] 4.4 Tue night: `prodcal-store-live.timer` still armed; Wed 00:00 HKT go-live email + `/api/public/store/config` says live
 - [x] 4.5 ME — Sunday: merge `index-addon` (5.13), smoke index draft + build on mcheck, push jdbbs-public, post Ghosts index v2 pages
-- [ ] 4.6 ME — Sunday: pre-workshop pass (attendee login → upload → Inspect → proof → final on mcheck; Floor shows it); tag `checkpoint-2026-09-20-pre-workshop-v3`
+- [x] 4.6 ME — Sunday: pre-workshop pass (attendee login → upload → Inspect → proof → final on mcheck; Floor shows it); tag `checkpoint-2026-09-20-pre-workshop-v3`
+
+  > **shelley** · 2026-09-20 00:28 UTC  
+  > Pre-workshop pass done on mcheck/book-001 as the attendee (no admin header): sign-in → upload mcheck-book2-clean.docx (book 39) → Inspect (0 high / 3 med / 8 low) → Build proof (PROOF footer) → Export final (clean 47-pp PDF, ledger 4/6, “Final files ready” email to bookiq) — Floor row updated live (screenshot). Also fired one real sign-in-link email for mcheck to bookiq@gmail.com at 00:17 UTC — that is the attendee path; click it when you see it and tell me if it lands you on the factory page. Tagged checkpoint-2026-09-20-pre-workshop-v3 (pushed). Note: the mcheck client password was reset for this test (new one in my scratch); the sign-in link path is unaffected.
+  >
+  > ![screenshot](img/46-floor-after-smoke.png)
+
 
 ## 2 · Your side — YOU
 

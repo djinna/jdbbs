@@ -90,3 +90,12 @@ git checkout -b recovery/<name> checkpoint-YYYY-MM-DD-<scope>
   - verified: `go test ./srv/` green, free Ghosts build 61 pp, three-image
     test book through the real pipeline, smoke on /factory, /admin/*,
     /pinstitute/*/factory + transmittal
+
+- `checkpoint-2026-09-20-pre-workshop-v3` (supersedes `…-v2`)
+  - Sunday before the 21–22 Sep workshop; freeze (hotfix-only) starts Mon
+  - proof vs. final builds (0.28); one-page factory; `/portal`; Index add-on
+    $100 merged from `index-addon` (5.13: draft → review table → placed at
+    build; migration 050); ODT template; +3 finals SKU
+  - verified: `go test ./srv/ ./srv/indexer/` green; attendee path on mcheck
+    (password sign-in → upload → Inspect → Build proof → Export final, ledger
+    debit + delivery email, Floor row updates); index draft+build on mcheck
