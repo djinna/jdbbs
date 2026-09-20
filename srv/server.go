@@ -378,6 +378,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /factory", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "factory.html")
 	})
+	// Field note: how the factory stopped needing Word — the 0.25 thread as
+	// a public case study in protocol thinking (template optional, Heading
+	// 1/2 + [[marker]] is the contract).
+	mux.HandleFunc("GET /word-free", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "word-free.html")
+	})
 	// Press page: what the studio is, facts, brand assets, contact (0.10).
 	mux.HandleFunc("GET /press", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "press.html")
