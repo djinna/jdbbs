@@ -42,7 +42,7 @@ button.save{background:var(--link);color:var(--bg);border:0;font-weight:600;padd
 .toc{margin:1rem 0 0;padding:.6rem .9rem;border:1px solid var(--rule);border-radius:4px;font-size:.9em;background:var(--bar-bg)}
 .toc a{text-decoration:none;display:flex;gap:.5rem;align-items:baseline;padding:.1rem 0}
 .toc a .t{flex:1} .toc .c{color:var(--muted);font-size:.85em;white-space:nowrap}
-.toc .c b{font-weight:600} .toc .c .o{color:var(--fg-strong)} .toc .c .p{color:var(--warn)} .toc .c .d{color:var(--ok)}
+.toc .c b{font-weight:600} .toc .ids{display:block;color:var(--muted);font-size:.8em;font-weight:600;letter-spacing:.02em} .toc .c .o{color:var(--fg-strong)} .toc .c .p{color:var(--warn)} .toc .c .d{color:var(--ok)}
 .toc .all{display:flex;gap:1rem;justify-content:flex-end;margin-top:.3rem} .toc .all button{background:none;border:0;color:var(--link);cursor:pointer;font:inherit;font-size:.85em;padding:0}
 section>h2{cursor:pointer;user-select:none;display:flex;gap:.5rem;align-items:baseline}
 section>h2 .tg{color:var(--muted);font-size:.7em;width:1em;display:inline-block;transition:transform .15s} section.closed>h2 .tg{transform:rotate(-90deg)}
@@ -80,7 +80,8 @@ function structure(){
     const top=sec.querySelector(':scope>ul'); let done=[];
     if(top) done=[...top.children].filter(li=>li.querySelector(':scope>.box.st-x'));
     const cnt={o:0,p:0,d:done.length};
-    if(top)[...top.children].forEach(li=>{const b=li.querySelector(':scope>.box'); if(!b)return; if(b.classList.contains('st-~'))cnt.p++; else if(b.classList.contains('st-o'))cnt.o++;});
+    const ids=[]; if(top)[...top.children].forEach(li=>{const b=li.querySelector(':scope>.box'); if(!b)return; const id=(li.querySelector(':scope>.id')||{}).textContent||''; if(b.classList.contains('st-~')){cnt.p++; ids.push(id+'◐');} else if(b.classList.contains('st-o')){cnt.o++; ids.push(id);}});
+    sec.dataset.ids=ids.join(' ');
     if(done.length){ const d=document.createElement('details'); d.className='done'; if(openDone.has(sec.id))d.open=true; d.ontoggle=()=>{d.open?openDone.add(sec.id):openDone.delete(sec.id);};
       const sm=document.createElement('summary'); sm.textContent=done.length+' done'; const ul=document.createElement('ul'); done.forEach(li=>ul.append(li)); d.append(sm,ul); sec.append(d);
       if(!top.children.length) top.remove(); }
@@ -93,7 +94,7 @@ function structure(){
   });
   if(!secs.length)return;
   const toc=document.createElement('nav'); toc.className='toc';
-  toc.innerHTML=secs.map(s=>`<a href="#${s.id}" data-sec="${s.id}"><span class="t">${s.dataset.title}</span><span class="c">${s.dataset.badge}</span></a>`).join('')+
+  toc.innerHTML=secs.map(s=>`<a href="#${s.id}" data-sec="${s.id}"><span class="t">${s.dataset.title}<span class="ids">${s.dataset.ids}</span></span><span class="c">${s.dataset.badge}</span></a>`).join('')+
     `<div class="all"><span class="c">${tot.o} open · ${tot.p} in progress · ${tot.d} done</span><button data-all="open">expand all</button><button data-all="close">collapse all</button></div>`;
   toc.querySelectorAll('a[data-sec]').forEach(a=>a.onclick=()=>{const s=document.getElementById(a.dataset.sec); s.classList.remove('closed'); localStorage.setItem('closed:'+s.id,'0');});
   toc.querySelectorAll('button[data-all]').forEach(b=>b.onclick=()=>{const c=b.dataset.all==='close'; secs.forEach(s=>{s.classList.toggle('closed',c); localStorage.setItem('closed:'+s.id,c?'1':'0');});});
