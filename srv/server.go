@@ -201,6 +201,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/passes/{id}/grant", s.handleAdminGrantPassBuilds)
 	mux.HandleFunc("POST /api/admin/passes/{id}/status", s.handleAdminPassStatus)
 	mux.HandleFunc("POST /api/admin/passes/{id}/index", s.handleAdminGrantPassIndex)
+	mux.HandleFunc("POST /api/admin/projects/{id}/token", s.handleAdminMintToken)
 	mux.HandleFunc("GET /api/admin/store/orders", s.handleAdminStoreOrders)
 	// Factory floor: live activity board + feed for workshop sessions (monitoring L2)
 	mux.HandleFunc("GET /api/admin/factory/events", s.handleAdminFactoryEvents)

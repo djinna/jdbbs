@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -778,8 +779,8 @@ type passRow struct {
 	StripeSessionID  string `json:"stripe_session_id"`
 	AmountPaid       int64  `json:"amount_paid"` // cents, after discount; 0 for coupon/admin passes
 	PromoCode        string `json:"promo_code"`
-	IndexIncluded    bool   `json:"index_included"`        // back-of-book index add-on
-	FinalsGate       string `json:"finals_gate,omitempty"` // "off" while the studio waives the no-finals refusal
+	IndexIncluded    bool   `json:"index_included"` // back-of-book index add-on
+	HasToken         bool   `json:"has_token"`      // project has an API token (factory.py / bearer)
 }
 
 func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
@@ -792,6 +793,7 @@ func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	tokened := s.projectsWithTokens(r.Context())
 	out := make([]passRow, 0, len(rows))
 	for _, p := range rows {
 		// Reuse the credits/live helpers by rehydrating the fields they read.
@@ -803,6 +805,7 @@ func (s *Server) handleAdminListPasses(w http.ResponseWriter, r *http.Request) {
 			Status:         p.Status,
 		}
 		out = append(out, passRow{
+			HasToken:         tokened[p.ProjectID],
 			ID:               p.ID,
 			ProjectID:        p.ProjectID,
 			ProjectName:      p.ProjectName,
@@ -846,13 +849,14 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 		Note      string `json:"note"`
 		SendEmail *bool  `json:"send_email"`
 		ProjectID int64  `json:"project_id"` // attach to an existing project (second book for an existing client)
+		APIToken  bool   `json:"api_token"`  // also mint a project token (factory.py / bearer); returned once as "token"
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32*1024)).Decode(&in); err != nil {
 		jsonErr(w, "invalid pass request", http.StatusBadRequest)
 		return
 	}
 	if in.ProjectID > 0 {
-		s.attachPassToProject(w, r, in.ProjectID, in.Email, in.Name, in.Note)
+		s.attachPassToProject(w, r, in.ProjectID, in.Email, in.Name, in.Note, in.APIToken)
 		return
 	}
 	res, err := s.fulfillPass(r.Context(), "admin", fulfillPassInput{
@@ -870,6 +874,12 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 	if in.SendEmail == nil || *in.SendEmail {
 		s.sendPassFulfillmentEmail(*res, triggeredBy(r, "admin"))
 	}
+	token := ""
+	if in.APIToken {
+		if token, err = s.mintProjectToken(r.Context(), res.Pass.ProjectID, triggeredBy(r, "admin")); err != nil {
+			slog.Error("mint token after pass", "project", res.Pass.ProjectID, "err", err)
+		}
+	}
 	w.WriteHeader(http.StatusCreated)
 	jsonOK(w, map[string]any{
 		"ok":           true,
@@ -879,6 +889,7 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 		"client_slug":  res.ClientSlug,
 		"project_slug": res.ProjectSlug,
 		"password":     res.Password,
+		"token":        token,
 	})
 }
 
@@ -888,7 +899,7 @@ func (s *Server) handleAdminCreatePass(w http.ResponseWriter, r *http.Request) {
 // fresh pass here; customer name/email default to the client's existing pass
 // (or the client row) so the build-ready / template-ready emails keep flowing.
 // No new client, no new password, no fulfillment email.
-func (s *Server) attachPassToProject(w http.ResponseWriter, r *http.Request, projectID int64, email, name, note string) {
+func (s *Server) attachPassToProject(w http.ResponseWriter, r *http.Request, projectID int64, email, name, note string, apiToken bool) {
 	ctx := r.Context()
 	q := dbgen.New(s.DB)
 	project, err := q.GetProject(ctx, projectID)
@@ -941,6 +952,12 @@ func (s *Server) attachPassToProject(w http.ResponseWriter, r *http.Request, pro
 	}
 	slog.Info("factory pass attached to existing project", "pass_id", pass.ID,
 		"project", project.ClientSlug+"/"+project.ProjectSlug, "email", email, "by", triggeredBy(r, "admin"))
+	token := ""
+	if apiToken {
+		if token, err = s.mintProjectToken(r.Context(), projectID, triggeredBy(r, "admin")); err != nil {
+			slog.Error("mint token after pass", "project", projectID, "err", err)
+		}
+	}
 	w.WriteHeader(http.StatusCreated)
 	jsonOK(w, map[string]any{
 		"ok":           true,
@@ -950,6 +967,84 @@ func (s *Server) attachPassToProject(w http.ResponseWriter, r *http.Request, pro
 		"client_slug":  project.ClientSlug,
 		"project_slug": project.ProjectSlug,
 		"attached":     true,
+		"token":        token,
+	})
+}
+
+// ─── API access: project tokens minted by the studio ───
+//
+// A project token is what factory.py / a bearer caller sends. It is stored
+// hashed like any password, so it can be shown exactly once — at mint time —
+// and afterwards only rolled. Minting replaces every existing token on the
+// project (there is one customer per project; "roll" == "mint").
+
+func (s *Server) projectsWithTokens(ctx context.Context) map[int64]bool {
+	m := map[int64]bool{}
+	rows, err := s.DB.QueryContext(ctx, `SELECT DISTINCT project_id FROM auth_tokens`)
+	if err != nil {
+		return m
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		if rows.Scan(&id) == nil {
+			m[id] = true
+		}
+	}
+	return m
+}
+
+func (s *Server) mintProjectToken(ctx context.Context, projectID int64, by string) (string, error) {
+	raw := make([]byte, 24)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	token := "fk_" + base64.RawURLEncoding.EncodeToString(raw)
+	hash, err := hashPassword(token)
+	if err != nil {
+		return "", err
+	}
+	q := dbgen.New(s.DB)
+	if err := q.DeleteAuthTokensByProject(ctx, projectID); err != nil {
+		return "", err
+	}
+	if err := q.CreateAuthToken(ctx, dbgen.CreateAuthTokenParams{ProjectID: projectID, TokenHash: hash, Label: "api"}); err != nil {
+		return "", err
+	}
+	slog.Info("project token minted", "project", projectID, "by", by)
+	return token, nil
+}
+
+// handleAdminMintToken — POST /api/admin/projects/{id}/token. Mints (or rolls)
+// the project's API token and returns it once, with the paste-ready lines the
+// studio hands the customer.
+func (s *Server) handleAdminMintToken(w http.ResponseWriter, r *http.Request) {
+	if !s.requireExeDevAdminAPI(w, r) {
+		return
+	}
+	pid, err := s.projectIDFromPath(r)
+	if err != nil {
+		jsonErr(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	q := dbgen.New(s.DB)
+	project, err := q.GetProject(r.Context(), pid)
+	if err != nil {
+		jsonErr(w, "project not found", http.StatusNotFound)
+		return
+	}
+	token, err := s.mintProjectToken(r.Context(), pid, triggeredBy(r, "admin"))
+	if err != nil {
+		jsonErr(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]any{
+		"ok":           true,
+		"project_id":   pid,
+		"token":        token,
+		"client_slug":  project.ClientSlug,
+		"project_slug": project.ProjectSlug,
+		"factory_url":  s.portalURL(project.ClientSlug, project.ProjectSlug),
 	})
 }
 
