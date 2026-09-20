@@ -1,4 +1,4 @@
-<!-- exported 2026-09-20 00:36 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-20 12:11 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
@@ -10,7 +10,7 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
 **Freeze:** Mon 21 – Wed 23 **hotfix-only** — triage every new item **Hotfix-now** (breaks an attendee) vs **After-workshop** (→ §5). Hotfix path: fix → `go test ./srv/` → `make build && sudo systemctl restart prodcal` → one factory smoke on `mcheck/book-001`. Store flips to live Stripe by timer **Wed 23 Sep 00:00 HKT**.
 
 ## 0 · Inbox — new items, untriaged (Shelley moves them into a section)
-- [~] 0.29 **Head spacing: above must be > below** — rule approved; A (rule-exact) vs B (2:1, roomier) crops on the item, YOU pick; parked as a patch, not deployed (template is read from disk)
+- [x] 0.29 **Head spacing: above must be > below** — B landed (4bdea44): A-head 2 lines above / 1 below, B-head ¾ / ¼, slots round to whole body lines so spreads align; sampler rebuilt; TYPOGRAPHY.md updated + "no consecutive heads" guideline. After workshop: half-gap for consecutive heads; "Heading 2 (A-head)" naming pass
 
   > **shelley** · 2026-09-20 00:00 UTC  
   > Triaged → renumbered 0.29 (the page auto-numbered it 0.26, which collided with the old item). Diagnosis so far: TYPOGRAPHY.md says heads should sit closer to what follows, and the template config agrees (h2 above 1em / below 0.25em) — but the sub-head code adds an invisible 1em anchor box + an empty paragraph under every head to keep it with the next line, so measured on a test page the gap *below* is actually ~1.5× the gap above. Fix is to use Typst 0.13's `sticky` blocks instead (we upgraded Fri), then re-tune above/below once for H2/H3 and check the chapter opener + first-line indent after heads. Template-only change, affects every book; I'll do it in the next session with before/after PNGs here. After-workshop unless you want it in Monday's builds — say the word.
@@ -45,6 +45,30 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > ![screenshot](img/029-after-B.png)
   >
   > ![screenshot](img/029-after-A-h3.png)
+
+  > **jenna** · 2026-09-20 12:05 UTC  
+  > B -- note that when you say "lines," it's not clear exactly what you mean, but I think you mean the baseline height lines for normal text. What we maybe should be using is the x-height, the cap height, or the leading of the head itself.
+  > The other thing we haven't talked about is the nicety of having text lines align across a spread, in which case maybe that is why you were using the text lines as your multiple. Can you show me a quick comp of:
+  > - a spread that has an A head on, let's say, the left and no head on the right
+  > - a spread that shows an A head on the left and a B head on the right
+  > Of course, I mean heading 1 and heading 2, although I think for us, heading 1 is the chapter title, so it's really heading 2 and heading 3. That is ongoingly confusing. By the way, I wish there were a better way to name our styles so that we're not fighting with that all the time. And yes, I think we want a guideline that we don't have consecutive heads. There should always be a paragraph of text between them, but since people will break that rule, I'm glad that you've shown a look for that.
+
+  > **shelley** · 2026-09-20 12:11 UTC  
+  > B is LIVE (commit 4bdea44; template is read at build time, so every proof from now on has it). go test green; typography sampler rebuilt; one real proof on mcheck built clean; TYPOGRAPHY.md updated with the numbers.
+  >
+  > “Lines” — yes, exactly what you guessed: one body line = baseline-to-baseline of ordinary text, 11.625 pt here (10-pt Plantin + 4.8 pt leading). That is the unit precisely because of the spread question: if a head displaces a whole number of body lines, the baselines on the head page fall back onto the same grid as the facing page. The head’s own x-height / cap-height / leading don’t enter into the arithmetic — they only shape how the head sits inside its slot (Geist Semibold 13 pt reads as sitting a touch low in a 2-line slot, hence the 2:1 rather than 3:1). I nudged the below-values by a fraction of a point so both slots round exactly: A-head displaces 4 body lines, B-head 2. Measured: the last baseline on all four comp pages is the same (441.25 pt).
+  >
+  > Comps (red rules = the body baseline grid taken from the plain page, drawn straight across both pages):
+  > 1. A-head (Heading 2) on the left, no head on the right — the lines after the head sit on the rules.
+  > 2. A-head left, B-head (Heading 3) right — the B-head itself floats between two rules (heads needn’t sit on the grid), but its text lands back on them.
+  >
+  > Naming: agreed it’s a nuisance. Word only has Heading 1/2/3 and the no-template path depends on those names, so the Word side can’t change; what I can do is say “Heading 2 (A-head)” / “Heading 3 (B-head)” everywhere in our docs and UI — one convention, both names side by side. I’ll do that pass after the workshop unless you want it now.
+  >
+  > Guideline added to TYPOGRAPHY.md: no consecutive heads — always a paragraph of text between an A-head and a B-head; when someone does it anyway they stay together (sticky) and the B-head keeps its full above-space. Half-gap for that case: after the workshop.
+  >
+  > ![screenshot](img/029-spread-1-A-head-left.png)
+  >
+  > ![screenshot](img/029-spread-2-A-left-B-right.png)
 
 
 ## 1 · Workshop watch (Mon 21 / Tue 22) — BOTH
