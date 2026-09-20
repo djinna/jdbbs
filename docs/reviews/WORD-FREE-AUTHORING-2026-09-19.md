@@ -193,3 +193,32 @@ Evidence: `scratch/wordfree/` — `ms-word.docx` (13-style baseline),
 `ms-pages-sim.docx`/`ms-pages-fixed.docx`, `lo/rt/ms-lo.docx`,
 `ms.md`/`ms-from-md.docx`, `ms-docs-markers.docx`/`markers.json`,
 `api-inspect-docs.json` (zoo book 38), `styles_of.py`, `normalize_styles.py`.
+
+---
+
+## 5. Outcome (2026-09-20) — what shipped, what is left
+
+Jenna's answers (punch list 0.25 thread, 19 Sep): the fragile step is moving
+*style definitions* between documents, not the editor. So the advertised
+contract shrank to what the pipeline actually needs and what every editor
+has: **Heading 1** for chapter titles, **Heading 2** for sub-heads, a plain-text
+`[[quote]]` / `[[verse]]` / `[[epigraph]]` / `[[code]]` / `[[break]]` /
+`[[signature]]` marker at the start of a special paragraph (`[[/quote]]` to
+close a run), then export `.docx` and run Inspect (free). A built-ins-only
+file with markers builds byte-identical Typst to the templated file.
+
+Shipped (all live, in `jdbbs-public` + server):
+- `/factory#bring` — "Bring your manuscript — from any editor": the four
+  steps, the marker list (only names the pre-pass resolves), export
+  instructions per editor, small type for template `.docx`/`.odt`, the
+  book-a-week case (house style guide + API intake).
+- `/workshop#bring` — "What to bring — and what you don't need".
+- Transmittal handoff card leads with "Already have a draft? Heading 1 /
+  Heading 2 / [[quote]]… No template needed."; template offered second.
+- `GET /api/projects/{id}/word-template?format=odt` (LibreOffice headless on
+  the VM, `docxToODT` in `srv/bookspecs.go`).
+
+Decisions from §4: (1) yes — ".docx with our style names", not "Word";
+(2) Docs + markers is the advertised path; (4) Markdown stays CLI/API-only;
+(5) no browser editor. Still open: (3) Pages — waiting on a real export from a
+tester before writing the style normaliser. Next-month items in §3(ii) stand.

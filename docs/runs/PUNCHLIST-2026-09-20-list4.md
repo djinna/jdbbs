@@ -1,4 +1,4 @@
-<!-- exported 2026-09-20 00:28 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-20 00:36 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
@@ -10,7 +10,7 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
 **Freeze:** Mon 21 – Wed 23 **hotfix-only** — triage every new item **Hotfix-now** (breaks an attendee) vs **After-workshop** (→ §5). Hotfix path: fix → `go test ./srv/` → `make build && sudo systemctl restart prodcal` → one factory smoke on `mcheck/book-001`. Store flips to live Stripe by timer **Wed 23 Sep 00:00 HKT**.
 
 ## 0 · Inbox — new items, untriaged (Shelley moves them into a section)
-- [ ] 0.29 **Head spacing: above must be > below** (screenshot on the notes). Template-only fix via Typst `sticky` blocks; diagnosis on the item. After-workshop unless you say hotfix
+- [~] 0.29 **Head spacing: above must be > below** — rule approved; A (rule-exact) vs B (2:1, roomier) crops on the item, YOU pick; parked as a patch, not deployed (template is read from disk)
 
   > **shelley** · 2026-09-20 00:00 UTC  
   > Triaged → renumbered 0.29 (the page auto-numbered it 0.26, which collided with the old item). Diagnosis so far: TYPOGRAPHY.md says heads should sit closer to what follows, and the template config agrees (h2 above 1em / below 0.25em) — but the sub-head code adds an invisible 1em anchor box + an empty paragraph under every head to keep it with the next line, so measured on a test page the gap *below* is actually ~1.5× the gap above. Fix is to use Typst 0.13's `sticky` blocks instead (we upgraded Fri), then re-tune above/below once for H2/H3 and check the chapter opener + first-line indent after heads. Template-only change, affects every book; I'll do it in the next session with before/after PNGs here. After-workshop unless you want it in Monday's builds — say the word.
@@ -26,6 +26,25 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
 
   > **shelley** · 2026-09-20 00:09 UTC  
   > Noted — rule approved. Merging the index add-on (4.5) first, then I tune the template to the rule, post before/after crops here, and check the Sampler PDF (docs/typesetting) — will regenerate if the head spacing changed it.
+
+  > **shelley** · 2026-09-20 00:34 UTC  
+  > Before/after crops, same scale (10/12 body, Plantin, Geist heads). Measured baseline-to-baseline, not by eye.
+  >
+  > BEFORE (live today): above 3.2 lines, below 3.1 lines — equal, and the head+gaps ate 6.3 lines; the first paragraph under a head was also indented (an empty paragraph hidden under the head did both).
+  >
+  > A — rule-exact (TYPOGRAPHY.md table): 1½ lines above, ½ below, 3-line slot; first paragraph flush; sticky keep-with-next, no hidden box. B-head (H3): ¾ above / ¼ below, 2-line slot (4th image).
+  >
+  > B — roomier, still 2:1: 2 lines above, 1 below, 4-line slot. Same H3 as A.
+  >
+  > My read: A is correct but the ½ line under a 13-pt head is tight (you rejected a tight one before); B reads like a book page and keeps the grid. I’d take B. Your call — A or B, or a number. NOT deployed: the template is read from disk at build time, so I have the change parked as a patch and the live template is unchanged. Once you pick: apply → go test → build → rebuild the typography sampler (its story has 22 sub-heads, so yes, it needs regenerating) → one Ghosts proof for a real-page check. Known gap left: an A-head directly followed by a B-head gets the B-head’s full above-space (1¾ lines) rather than the rule’s half; needs Typst context to detect adjacency — after the workshop.
+  >
+  > ![screenshot](img/029-before.png)
+  >
+  > ![screenshot](img/029-after-A.png)
+  >
+  > ![screenshot](img/029-after-B.png)
+  >
+  > ![screenshot](img/029-after-A-h3.png)
 
 
 ## 1 · Workshop watch (Mon 21 / Tue 22) — BOTH
@@ -118,7 +137,7 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
 
 ## 4 · In flight — ME
 
-- [~] 0.25 **Word-free authoring** — survey of alternatives to Word for kicking off the factory (Docs + markers, Markdown, Pages fixer, LibreOffice, own editor) → short decision note + summary here. [brief](/admin/runs/PUNCHLIST-2026-09-19-list3)
+- [x] 0.25 **Word-free authoring** — done: contract = Heading 1/2 + `[[marker]]`, no template needed; /factory#bring, /workshop#bring, handoff card, .odt template live; outcome §5 in the [note](https://github.com/djinna/jdbbs/blob/main/docs/reviews/WORD-FREE-AUTHORING-2026-09-19.md). Open: a real Pages export (2.x)
 
   > **shelley** · 2026-09-19 17:05 UTC  
   > Found it: it was 0.6 (Thu 20:13) — but that only listed workarounds (Word for the web, LibreOffice, Docs + [[style]] markers, a 365 trial), it never asked your real question: does the factory still need Word at all? Logged here as its own item; I'll take it on after the compaction and post a decision note rather than a patch.
@@ -191,6 +210,9 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > ![screenshot](img/025-bring.png)
   >
   > ![screenshot](img/025-handoff.png)
+
+  > **shelley** · 2026-09-20 00:36 UTC  
+  > Closing this one: §5 “Outcome” added to the decision note (what shipped: /factory#bring, /workshop#bring, handoff card, .odt template; your decisions from §4 recorded). The only thread left is Pages — I still want one real Pages-exported .docx from a tester before writing the style normaliser; if you get one, drop it on a new inbox item.
 
 - [~] 0.9 **Factory-to-factory API for your 3 customers** — A) three passes on this VM (need names from YOU); B) bearer token + CLI/Python recipe. [plan](/admin/runs/PUNCHLIST-2026-09-19-list3) · [API page](/factory/api)
 
@@ -313,13 +335,22 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
 - [ ] 5.12 Jev (typesafe.ai) pilot — heading classification behind a flag; post-workshop. [review](https://github.com/djinna/jdbbs/blob/main/docs/reviews/TYPESAFE-REVIEW-2026-09-18.md)
 - [ ] 5.19 Tuned per-image grey conversion + proof sheet as a ~$100 add-on (from 5.15; post-workshop)
 - [ ] 5.9 4 vCPU bump — only if the workshop shows build queueing (load test: CPU-bound)
-- [ ] 5.22 **Typeface choice / MyFonts scout** — does MyFonts/Monotype have an API for customers to buy their own licences? Scout only → options memo here, then discuss (licence types vs. server-side rendering; referral-out / curated menu / OFL tier)
+- [~] 5.22 **Typeface choice / MyFonts scout** — memo posted (no storefront API; licence type is the snag; 4 shapes, rec: curated studio menu + desktop app). YOU: discuss / pick. [memo](https://github.com/djinna/jdbbs/blob/main/docs/reviews/TYPEFACE-CHOICE-MYFONTS-SCOUT-2026-09-20.md)
 
   > **shelley** · 2026-09-18 18:59 UTC  
   > Queued as 5.22. Today the copyright page hard-codes “All rights reserved” (series-template.typ l.604); the fix is a Rights choice on the transmittal’s copyright section (All rights reserved · the six CC licences · CC0) that swaps in the proper CC notice on the generated page and sets the EPUB’s dc:rights to match. Half a day. Post-workshop unless a CC book turns up first — say if the Obliquities rollup is one.
 
   > **shelley** · 2026-09-19 13:21 UTC  
   > Built (50187d3), ahead of schedule because it was cheap once I was in the copyright page: a “Rights” select in the transmittal's Copyright page section — All rights reserved (default) · CC BY · BY-SA · BY-NC · BY-NC-SA · BY-ND · BY-NC-ND · CC0. The © line becomes e.g. “Copyright © 2026 Name. This work is licensed under a Creative Commons Attribution 4.0 International License. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/” (CC's recommended wording), CC0 gets the dedication sentence. Print PDF, Word template and the EPUB's dc:rights all take it from one place (srv/rights.go). Preview updates live. Existing transmittals keep All rights reserved.
+
+  > **shelley** · 2026-09-20 00:36 UTC  
+  > Scout done — memo: https://github.com/djinna/jdbbs/blob/main/docs/reviews/TYPEFACE-CHOICE-MYFONTS-SCOUT-2026-09-20.md
+  >
+  > Short version: MyFonts has NO storefront API we can use (its old SOAP/dev API is legacy from before Monotype folded it in). What Monotype sells now is an enterprise-subscription Fonts API for search/inventory — it solves discovery, not licensing. And the real snag is the licence type, not the API: a MyFonts purchase is a DESKTOP licence; Monotype's own guidance says that does not cover uploading the font to a cloud service — and our Typst build runs on the VM. Our own Plantin/Proxima work because the studio is the licensee and runs the build.
+  >
+  > Four shapes: (1) OFL/Google menu = free tier, today. (2) Curated studio menu — 5–10 families WE licence (server/app licence), per-book surcharge ~$50–150; the font menu already picks up any family dropped in typesetting/fonts. (3) Bring-your-own upload + attestation — legal grey for most retail buyers; only with reviewed wording, never EPUB. (4) The Mac desktop app — where “buy it on MyFonts yourself” is genuinely clean, because the render is on their machine.
+  >
+  > My recommendation: keep (1); build (2) when someone asks; point MyFonts buyers at (4) post-workshop; don’t chase the Monotype API. Your call — discuss when you like.
 
 - [ ] 6.5 Print cover / spine calc — separate product question (cover is EPUB-only today)
 
