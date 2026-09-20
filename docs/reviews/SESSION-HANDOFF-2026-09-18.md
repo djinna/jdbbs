@@ -358,3 +358,27 @@ Since addendum 17 (all pushed):
 - **0.9 open on her side**: monstrous display name.
 
 Hotfix-only Mon 21 – Wed 23. Smoke only on mcheck (17). Push via `git push git@github.com:djinna/jdbbs.git main`. Runpage restart: `tmux kill-session -t runpage; tmux new-session -d -s runpage -c /home/exedev/prodcal "RUNPAGE_CHAT_CONV=<new conv id> scripts/run-page.sh"`.
+
+## Addendum 19 (2026-09-20, ~15:30 UTC) — close of conv cO7HTX2; next conversation starts here
+
+Sunday block 2 — 0.9 became "tool + hand-out + admin API access". All pushed (`git push git@github.com:djinna/jdbbs.git main`; jdbbs-public pushed too).
+
+- **Decisions from Jenna (0.9):** she plays all three customers herself today, in the browser on her Mac (separate profiles), signing in with the **project token** in the factory page's Password box, and from a Terminal folder with `factory.py`. No email to any customer. Wants to feel "factory to factory" with the web app out of the picture; the three become testers before going broad. Human-in-the-loop for tokens: **never put the token in an email** (explicit).
+- **`finals_gate` studio setting** (`7d447c6`): `off` → the 402 "no finals remaining" refusal is skipped for everyone; every build still debited/counted. Set to `off` in `studio_settings` now. Proof cap 30/day **kept** (her call). `scripts/store-go-live.sh` deletes the row (gate back on) when the store flips Wed 00:00 HKT. `GET /api/projects/{id}/pass` carries `finals_gate:"off"`; factory.js keeps the Export final button live when off.
+- **`scripts/factory.py`** (`3e1edc3`) — customer tool, stdlib only, served at `/factory/api/factory.py` (route in server.go + symlink `~/jdbbs-public/factory.py`). `setup` (asks id+token once → `factory.json` 0600) · `status` · `inspect ms.docx` (report → `out/`, opens browser) · `proof ms.docx` · `final ms.docx` (confirms; honours finals_gate) · `download`. Plain-English errors for 401/402/403/409/429/offline. Tested end-to-end on mcheck (17) in `scratch/factory-py-test/`. `scripts/factory-cli.py` (older recipe script) still exists and is still linked from /factory/api.
+- **Hand-out draft 1:** `docs/FACTORY-FROM-YOUR-DESK-2026-09-20.md` — external wording; §1 what you were given, §2 manuscript rules (transmittal is the one browser step), §3 folder setup, §4 inspect→proof→final, §5 errors, §6 "if you'd rather click" table, §7 six calls for presses with own systems, §8 ground rules. Linked on 0.9. Her feedback as she works through it → edit + push. Not yet a public HTML page — GitHub only, by her request.
+- **Admin API access** (`0842452`): `POST /api/admin/projects/{id}/token` mints/rolls (random `fk_…`, replaces all tokens on the project, label `api`, returns token once + factory_url). `POST /api/admin/passes` accepts `api_token:true` (new and attach paths) → `token` in the response. Pass list rows carry `project_id` + `has_token`. Store admin UI: tick on New pass, one-time token block with Copy, `api` tag + "API token"/"Roll token" per row. mcheck's token was rolled during testing — `scratch/customer-tokens/project-17.token` updated.
+- **Names:** client `monstrous` → **Monstrous Times**; pass 11 customer_name too (direct SQL; author on the book stays Sachin).
+- **Private note on 0.9** has the ids table (22/7/28), token file paths, factory URLs, per-client folder one-liner.
+- **Tokens:** `scratch/customer-tokens/project-{17,22,7,28}.token` (gitignored).
+
+Open / next:
+- **Jenna's snags** from the three-customer run-through arrive as notes on 0.9 — fix wording in the hand-out or the tool as they come; small fixes to factory.py are live on `/factory/api/factory.py` immediately (read from disk), but she must re-download the file.
+- **5.22** — still awaiting her yes → write §6 of `docs/reviews/TYPEFACE-CHOICE-MYFONTS-SCOUT-2026-09-20.md`.
+- **/factory Buy section** mouse-type (account/imprint wording) — after she's read the redeem-form version.
+- Later (after workshop): automate token hand-over safely (not email); public HTML version of the hand-out; pinstitute's pass has 1 final (gate off so fine this week).
+- Freeze Mon 21 – Wed 23: hotfix-only, triage inbox Hotfix-now vs After-workshop, smoke only on mcheck (17), never pinstitute (22). Store flips by timer Wed 00:00 HKT (also re-arms finals_gate).
+
+Runpage restart for a new conversation: `tmux kill-session -t runpage; tmux new-session -d -s runpage -c /home/exedev/prodcal "RUNPAGE_CHAT_CONV=<new conv id> scripts/run-page.sh"`.
+
+Metrics: ~55 % context at handoff; 0 files read in full via guard bypass (factory-cli.py, recipe doc, settings.go under threshold).
