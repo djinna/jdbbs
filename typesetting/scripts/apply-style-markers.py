@@ -68,6 +68,10 @@ ALIASES = {
     "h1": "Heading 1", "h2": "Heading 2", "h3": "Heading 3", "chapter": "Heading 1",
 }
 
+# Text for a Section Break paragraph left empty by a bare [[break]] marker
+# (matches SECTION_BREAK_CHARS["breve"] in generate-word-template.py).
+SECTION_BREAK_PLACEHOLDER = "\u02D8"
+
 # Author-facing list for the "not a factory style" message.
 SUGGESTED_NAMES = "code block, block quote, epigraph, verse, first paragraph, section break"
 
@@ -268,6 +272,16 @@ def apply_markers(doc, resolver: StyleResolver) -> List[Dict]:
     for e in found:
         if e["resolved"]:
             strip_from_start(paragraphs[e["start"]], e["open_len"])
+    # A bare "[[break]]" paragraph is empty once the marker is gone, and pandoc
+    # drops empty paragraphs — so the section/stanza break vanished from the
+    # book (Devotion, 2026-09-21). Give it the same ornament text the Word
+    # template's Section Break paragraphs carry; the Typst filter ignores the
+    # content of a section break anyway.
+    for e in found:
+        if e["resolved"] == "Section Break":
+            for i in range(e["start"], e["end"] + 1):
+                if not paragraphs[i].text.strip():
+                    paragraphs[i].add_run(SECTION_BREAK_PLACEHOLDER)
     return found
 
 

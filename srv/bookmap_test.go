@@ -58,6 +58,8 @@ func writeBookMapDOCX(t *testing.T, paras []tp) string {
 		`<w:style w:type="paragraph" w:styleId="Copyright"><w:name w:val="Copyright"/></w:style>` +
 		`<w:style w:type="paragraph" w:styleId="Dedication"><w:name w:val="Dedication"/></w:style>` +
 		`<w:style w:type="paragraph" w:styleId="Epigraph"><w:name w:val="Epigraph"/></w:style>` +
+		`<w:style w:type="paragraph" w:styleId="Verse"><w:name w:val="Verse"/></w:style>` +
+		`<w:style w:type="paragraph" w:styleId="SectionBreak"><w:name w:val="Section Break"/></w:style>` +
 		`<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/></w:style>` +
 		`<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/></w:style>` +
 		`<w:style w:type="paragraph" w:styleId="Kapitel"><w:name w:val="Heading 1"/></w:style>` +

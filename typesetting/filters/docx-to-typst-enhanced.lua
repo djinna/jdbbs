@@ -357,8 +357,10 @@ local para_style_map = {
 }
 
 -- Merge runs of same-style Divs for styles that are one block in the book but
--- several paragraphs in Word (a signature's name / title / place lines).
-local coalesce_styles = { signature = true }
+-- several paragraphs in Word (a signature's name / title / place lines; a
+-- poem's lines — one Word paragraph each, or one [[verse]] marker per line —
+-- so #poem's padding lands once per stanza, not once per line; book 53).
+local coalesce_styles = { signature = true, poem = true }
 
 function Blocks(blocks)
   local out = pandoc.List()

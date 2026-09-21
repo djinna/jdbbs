@@ -375,7 +375,10 @@
 
 #let poem(content) = {
   set text(font: config.body-font, size: config.poem-size, style: "italic")
-  set par(first-line-indent: 0em, leading: 0.8em, justify: false)
+  // One Word paragraph per line: consecutive Verse paragraphs are merged
+  // into one block by the Lua filter, so spacing = leading stacks the lines
+  // and the padding lands once per stanza, not once per line.
+  set par(first-line-indent: 0em, leading: 0.8em, spacing: 0.8em, justify: false)
   align(center, pad(top: 0.5em, bottom: 0.5em, content))
 }
 

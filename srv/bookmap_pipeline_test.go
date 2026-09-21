@@ -139,6 +139,39 @@ func TestLuaFilterTitleSubtitleDroppedKeepsPiecesAligned(t *testing.T) {
 	}
 }
 
+// Devotion (book 53, 2026-09-21): a poetry collection with one Verse
+// paragraph per line came out with #poem's padding between every line.
+// Consecutive Verse paragraphs now merge into one #poem[] per stanza; a
+// Section Break between stanzas splits them.
+func TestLuaFilterVerseLinesCoalesce(t *testing.T) {
+	docx := writeBookMapDOCX(t, []tp{
+		{style: "Heading1", text: "One Season"},
+		{style: "Verse", text: "line one"},
+		{style: "Verse", text: "line two"},
+		{style: "Verse", text: "line three"},
+		{style: "SectionBreak", text: "˘"},
+		{style: "Verse", text: "line four"},
+		{style: "Verse", text: "line five"},
+		{text: "prose after"},
+	})
+	m, err := bookMapFromDOCX(docx, nil, "Devotion", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	typ := runBookMapPandoc(t, docx, m, false, nil)
+	if n := strings.Count(typ, "#poem["); n != 2 {
+		t.Errorf("want 2 #poem blocks (one per stanza), got %d:\n%s", n, typ)
+	}
+	if !strings.Contains(typ, "#section-break") {
+		t.Errorf("stanza break missing:\n%s", typ)
+	}
+	// All three lines of the first stanza sit inside the first block.
+	i, j, k := strings.Index(typ, "#poem["), strings.Index(typ, "line three"), strings.Index(typ, "#section-break")
+	if !(i >= 0 && i < j && j < k) {
+		t.Errorf("first stanza not one block:\n%s", typ)
+	}
+}
+
 func TestLuaFilterAnthologyStoryInfoStaysWithHeading(t *testing.T) {
 	docx := writeBookMapDOCX(t, []tp{
 		{style: "Heading1", text: "Story One"}, {text: "a"},

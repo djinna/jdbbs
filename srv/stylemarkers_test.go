@@ -40,7 +40,7 @@ func TestApplyStyleMarkersScript(t *testing.T) {
 	mk := `
 from docx import Document
 d = Document()
-for l in ["Intro.", "[[code block]]one", "two", "three", "four [[/code block]]", "[[caption]] stays"]:
+for l in ["Intro.", "[[code block]]one", "two", "three", "four [[/code block]]", "[[caption]] stays", "[[break]]", "[[verse]]a line"]:
     d.add_paragraph(l)
 d.save(%q)
 `
@@ -51,8 +51,11 @@ d.save(%q)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(report) != 2 {
-		t.Fatalf("want 2 markers, got %+v", report)
+	if len(report) != 4 {
+		t.Fatalf("want 4 markers, got %+v", report)
+	}
+	if r := report[2]; r.Resolved != "Section Break" || r.Start != 7 {
+		t.Errorf("break marker: %+v", r)
 	}
 	if r := report[0]; r.Resolved != "Code Block" || r.Start != 2 || r.End != 5 || r.Paragraphs != 4 || r.Via != "factory" {
 		t.Errorf("code block marker: %+v", r)
@@ -67,6 +70,9 @@ ps = d.paragraphs
 assert [p.style.name for p in ps[1:5]] == ["Code Block"]*4, [p.style.name for p in ps]
 assert ps[1].text == "one" and ps[4].text == "four", [p.text for p in ps]
 assert ps[5].text.startswith("[[caption]]")
+# a bare [[break]] must not leave an empty paragraph (pandoc would drop it)
+assert ps[6].style.name == "Section Break" and ps[6].text.strip() != "", (ps[6].style.name, ps[6].text)
+assert ps[7].style.name == "Verse" and ps[7].text == "a line"
 `
 	if out, err := exec.Command("python3", "-c", strings.ReplaceAll(check, "%q", `"`+docx+`"`)).CombinedOutput(); err != nil {
 		t.Fatalf("verify docx: %v\n%s", err, out)
