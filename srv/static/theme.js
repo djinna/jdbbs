@@ -194,7 +194,8 @@
     ['/admin/runs/', 'Runs', 'Archive of punch lists and run logs, read-only'],
     ['/admin/#pages', 'Pages', 'Every route we have spun up, and what we mean to do with it'],
     ['/2026-pi-symposium', 'Roster', 'Cohort roster (what attendees see)'],
-    ['/2026-pi-symposium/map', 'Map', 'Factory map: who acts at each stage, and where']
+    ['/2026-pi-symposium/map', 'Map', 'Factory map: who acts at each stage, and where'],
+    ['/2026-pi-symposium/og-protocols', 'Talk', 'Books are OG protocols — the Wed 23 deck (N notes, W notes window, T clock)']
   ];
   function adminNav() {
     var nav = document.querySelector('.jdbb-masthead nav[data-admin-nav]');

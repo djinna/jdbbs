@@ -1,0 +1,3 @@
+-- Wed 23 Sep talk deck (Jenna's Mac/Claude draft, stitched 20 Sep); linked from ADMIN_NAV as "Talk".
+INSERT OR IGNORE INTO site_pages (route, title, owner, source, visibility, listed, page_type, status, note) VALUES
+ ('/2026-pi-symposium/og-protocols', 'Books are OG protocols (talk deck)', 'jdbbs-public', '2026-pi-symposium/og-protocols.html', 'public', 'unlisted', 'deck', 'live', '26 screens, self-contained ~11 MB (images/video inlined). Own keyboard: arrows, N notes, W notes window (self-contained, ‹ ›), T clock, Z zoom, X next pair (5), V video. Supersedes /2026-pi-symposium/talk for the Wed 23 talk.');
