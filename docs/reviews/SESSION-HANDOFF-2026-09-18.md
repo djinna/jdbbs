@@ -382,3 +382,55 @@ Open / next:
 Runpage restart for a new conversation: `tmux kill-session -t runpage; tmux new-session -d -s runpage -c /home/exedev/prodcal "RUNPAGE_CHAT_CONV=<new conv id> scripts/run-page.sh"`.
 
 Metrics: ~55 % context at handoff; 0 files read in full via guard bypass (factory-cli.py, recipe doc, settings.go under threshold).
+
+## Addendum 20 (2026-09-20, ~21:10 UTC) — close of conv c62XQ2M; next conversation starts here
+
+Sunday block 3. All pushed (prodcal → GitHub; jdbbs-public → GitHub). A parallel
+session also landed `0f023e3` (time-gate the Sep 21–22 workshop copy in emails +
+factory page) — already on GitHub, nothing to do.
+
+- **`/word-free`** — public field note "The template was never the protocol"
+  (`jdbbs-public/word-free.html`, route + `051-word-free-page.sql`). The 0.25
+  thread as a case study in protocol thinking. Jenna asked for it; awaiting her
+  tone read (note on 0.25).
+- **Word-naming copy pass** (`3b3af96`): factory page (intake, drop zone, wrong-file
+  hint, Inspect blurb), Inspect report chrome, build errors (`builderr.go`,
+  `books.go`, `bookmap_inspect.go`), pass-welcome + **template-ready email** (no
+  longer recommends the style Import/Export round trip; says Heading 1/2 +
+  markers, template optional, `.odt`), transmittal labels ("Authoring template"),
+  landing, Stripe product description (`store.go` — syncs on next product sync),
+  public-nav title, `/factory/api`, `/factory/terms`, `factory.py` error,
+  hand-out. Kept: literal menu paths and the admin side's "Word Template".
+- **Talk deck** — `jdbbs-public/2026-pi-symposium/og-protocols.html`
+  (https://jdbbs.exe.xyz/2026-pi-symposium/og-protocols), Jenna's Mac/Claude
+  draft "Books are OG protocols", 26 screens, ~11 MB self-contained (images +
+  videos as data URIs). Edits so far, each its own commit: Google-fonts css2
+  inlined (was a local `_files/` link); **keyboard fix** — served over https the
+  pre-roll injects an autoplaying YouTube iframe (skipped on `file://`) which
+  takes focus, so N/arrows/Z/X died; a `window` blur handler pulls focus back
+  (`document.body.tabIndex=-1`); captions "[jdbb] studio"; slide 5 pairs now
+  text↔text / opener↔opener (`pairs=[[4,7],[0,2],[3,6],[1,5]]`, note rewritten);
+  **Mise en place moved 23 → 18** (before "One manuscript through the factory"),
+  `data-t` slots shifted (10:00 → 14:45 across the six factory screens), caption
+  forward-references Inspect. Old deck `/2026-pi-symposium/talk` still up.
+  Slide numbers = `main .screen:not(.preroll)` order; the HTML comments
+  (`<!-- 13 … -->`) are the author's ids, not the folio numbers.
+- **Brand**: `docs/brand/README.md` → "Writing the name": `[jdbb] studio`.
+
+Open / next:
+- Deck edits as Jenna sends them (chat or 3.2). Edit the file in place, one
+  commit per change, `git push origin main` in jdbbs-public; publishes on save.
+  Verify in the browser at 1280×720 by dispatching `keydown` on `document`
+  (arrow keys, `x`, `n`); if she reports keys still dead on slide 1, replace
+  the blur handler with removing the iframe's focusability (e.g. reinject it
+  inside a `sandbox`-less wrapper with `inert`, or drop autoplay to a poster).
+- 0.9: Jenna's three-customer run-through — snags arrive as notes; fix tool /
+  hand-out; tokens never emailed.
+- 5.22 — on her yes, §6 of `docs/reviews/TYPEFACE-CHOICE-MYFONTS-SCOUT-2026-09-20.md`.
+- /factory Buy section mouse-type after she reads the redeem-form version.
+- Freeze Mon 21 – Wed 23: hotfix-only; smoke only on mcheck (17), never
+  pinstitute (22). Store flips Wed 00:00 HKT (re-arms finals_gate).
+
+Runpage restart for a new conversation: `tmux kill-session -t runpage; tmux new-session -d -s runpage -c /home/exedev/prodcal "RUNPAGE_CHAT_CONV=<new conv id> scripts/run-page.sh"`.
+
+Metrics: ~45 % context at handoff; 1 file read in full via guard bypass (WORD-FREE-AUTHORING note, 224 lines).
