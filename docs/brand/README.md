@@ -12,3 +12,12 @@
   `jdbb-social-card.svg/.jpg`. Outlines from JetBrains Mono Bold/Regular; brackets
   accent, `jdbb` ink, `studio` secondary. Linked from `/press` (jdbbs-public). Run
   from repo root; needs `fonttools` + ImageMagick.
+
+## Writing the name
+
+- In running text and captions the studio is **`[jdbb] studio`** — square brackets
+  always, lowercase, a space before *studio* (Jenna, 2026-09-20, talk-deck nit).
+  Not "jdbb studio", not "JDBB". The brackets are part of the name, not decoration;
+  the wordmark markup (`.jdbb-wordmark`, PAGE-DESIGN §3) is the same thing set in type.
+- Short form where space is tight: `[jdbb]`.
+- Bylines: `Jenna Dixon, [jdbb] studio`.
