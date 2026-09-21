@@ -105,6 +105,7 @@ First recipient = To, rest = CC.
 - Fixed recipient: `j@djinna.com` (hardcoded as `txNotifyRecipient` const)
 - Subject: `📋 Transmittal Updated: Book Title (client-slug)`
 - Lightweight email — just project/book/author/status + link
+- The "View transmittal" link is wrapped in the exe.dev proxy's login redirect (`/__exe.dev/login?redirect=/{client}/{project}/factory/%23transmittal`, see `adminLoginURL`), so it opens with the admin header set and never shows the Factory Pass sign-in gate — the recipient is always the studio admin. Customer-facing mail (pathway 5's manual transmittal send) keeps plain URLs.
 
 ### 7. Factory Pass Mail (`srv/passes.go`)
 - **Automatic/server-initiated**, transactional (the customer bought this; no consent flag applies)

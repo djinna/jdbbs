@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"log/slog"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -83,7 +84,11 @@ func (n *transmittalNotifier) send(s *Server, projectID int64) {
 	}
 	_ = json.Unmarshal([]byte(dataStr), &txData)
 
-	projectURL := fmt.Sprintf("%s/%s/%s/factory/#transmittal", s.BaseURL, clientSlug, projectSlug)
+	// The recipient is always the studio admin, so the link goes through the
+	// exe.dev proxy's login redirect (adminLoginURL): it lands on the factory
+	// page with the admin header set instead of the Factory Pass sign-in gate
+	// (Jenna, 2026-09-21 — opened on a phone that wasn't signed in).
+	projectURL := adminLoginURL(s.BaseURL, fmt.Sprintf("/%s/%s/factory/#transmittal", clientSlug, projectSlug))
 
 	bookTitle := txData.Book.Title
 	if bookTitle == "" {
@@ -147,4 +152,14 @@ func buildTxNotifyHTML(projName, clientSlug, bookTitle, author, status, url stri
 		Title:  bookTitle,
 		Footer: "This is an automated notification from jdbb studio. You receive this when a client updates a manuscript transmittal form.",
 	})
+}
+
+// adminLoginURL wraps a site path in the exe.dev proxy's login redirect
+// (https://exe.dev/docs/login-with-exe): the visitor authenticates with
+// exe.dev — a near-instant redirect when already signed in on the device —
+// and arrives with X-ExeDev-UserID set, so the app's admin bypass applies
+// and no client password gate appears. Only for links mailed to the studio
+// admin; customer-facing mail keeps plain URLs.
+func adminLoginURL(base, path string) string {
+	return strings.TrimRight(base, "/") + "/__exe.dev/login?redirect=" + url.QueryEscape(path)
 }
