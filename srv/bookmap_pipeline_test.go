@@ -90,6 +90,55 @@ func TestLuaFilterAppliesBookMap(t *testing.T) {
 	}
 }
 
+// Book 45 (2026-09-21): Half Title / Title / Subtitle / Copyright ×3 /
+// Dedication / Epigraph before the first H1. Pandoc lifts Title into metadata
+// only when it is the first paragraph, so here Title + Subtitle reached the
+// filter as Divs; the book map had already dropped them, so every piece
+// boundary shifted and a #copyright-page[] landed inside #front-piece[] —
+// "pagebreaks are not allowed inside of containers". The filter now drops
+// Title/Subtitle like the map does.
+func TestLuaFilterTitleSubtitleDroppedKeepsPiecesAligned(t *testing.T) {
+	docx := writeBookMapDOCX(t, []tp{
+		{style: "HalfTitle", text: "My Book"},
+		{style: "Title", text: "My Book"},
+		{style: "Subtitle", text: "A stress test"},
+		{style: "Subtitle", text: "Prepared for the workshop"},
+		{style: "Copyright", text: "© 2026 the compiler."},
+		{style: "Copyright", text: "All translations are the compiler's own."},
+		{style: "Copyright", text: "Library of Congress mock CIP."},
+		{style: "Dedication", text: "For the residue."},
+		{style: "Epigraph", text: "The One is all things."},
+		{style: "Heading1", text: "Chapter 1"}, {text: "body"},
+	})
+	m, err := bookMapFromDOCX(docx, nil, "My Book", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	typ := runBookMapPandoc(t, docx, m, false, nil)
+	got := strings.Join(hookLines(typ), "\n")
+	want := strings.Join([]string{
+		`#front-piece(kind: "untitled front-matter page 1")[`, `]`,
+		`#front-piece(kind: "dedication")[`, `]`,
+		`#front-piece(kind: "epigraph")[`, `]`, `]`, // inner `]` closes the #epigraph[ wrapper
+		`#start-body()`, `= Chapter 1`,
+	}, "\n")
+	if got != want {
+		t.Errorf("hooks\n got:\n%s\nwant:\n%s\n--- typst ---\n%s", got, want, typ)
+	}
+	for _, s := range []string{"#copyright-page[", "© 2026", "A stress test", "Prepared for the workshop"} {
+		if strings.Contains(typ, s) {
+			t.Errorf("%q should be dropped (generated from the transmittal):\n%s", s, typ)
+		}
+	}
+	if !strings.Contains(typ, "For the residue.") || !strings.Contains(typ, "The One is all things.") {
+		t.Errorf("dedication/epigraph text missing:\n%s", typ)
+	}
+	// The dedication must hold the dedication, not a shifted copyright line.
+	if i, j := strings.Index(typ, `kind: "dedication"`), strings.Index(typ, "For the residue."); i < 0 || j < i {
+		t.Errorf("dedication text not inside the dedication piece:\n%s", typ)
+	}
+}
+
 func TestLuaFilterAnthologyStoryInfoStaysWithHeading(t *testing.T) {
 	docx := writeBookMapDOCX(t, []tp{
 		{style: "Heading1", text: "Story One"}, {text: "a"},

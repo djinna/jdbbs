@@ -390,6 +390,18 @@ function Div(el)
   if not style then return nil end
   
   local normalized = normalize_style(style)
+
+  -- Title / Subtitle paragraphs: the title page is generated from the
+  -- transmittal, and the book map (srv/bookmap.go buildBookMapInner) drops
+  -- them before counting the untitled front-matter pieces. Drop them here too,
+  -- or every piece boundary after them shifts by one paragraph — a manuscript
+  -- with Half Title / Title / Subtitle / Copyright / Dedication / Epigraph put
+  -- the Copyright paragraphs inside #front-piece[…], where #copyright-page's
+  -- pagebreak is illegal ("pagebreaks are not allowed inside of containers",
+  -- book 45, 2026-09-21). Pandoc only lifts Title into metadata when it is the
+  -- very first paragraph, so this must not rely on that.
+  if normalized == "title" or normalized == "subtitle" then return {} end
+
   local typst_func = para_style_map[normalized] or declared_para_styles[normalized]
   
   if typst_func == "section-break" then
