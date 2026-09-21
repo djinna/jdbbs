@@ -195,6 +195,8 @@ html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
 .jdbb-footer a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 .jdbb-footer a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .jdbb-footer .copy { white-space: nowrap; }
+/* Phones: long © lines (e.g. /field-guide) wrap instead of widening the page (2026-09-21). */
+@media (max-width: 640px) { .jdbb-footer .copy { white-space: normal; } }
 @media print { .jdbb-footer, .theme-bar, .jdbb-statusline { display: none !important; } }
 
 /* Status strip under the masthead */
@@ -291,6 +293,15 @@ html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
   font-size: 14px; color: var(--text-secondary); cursor: pointer;
 }
 .dark-btn:hover { color: var(--text); }
+
+/* On phones the theme bar wraps to its own masthead row and aligns left like
+   the nav links; the desktop .font-name is right-aligned in a fixed 146px
+   slot, which left a strange floating indent (Jenna, 2026-09-21). The open
+   font list hugs the left edge and never exceeds the viewport. */
+@media (max-width: 640px) {
+  .theme-bar .font-name { width: auto; min-width: 0; text-align: left; }
+  .theme-bar .font-options { left: 0; right: auto; width: min(330px, calc(100vw - 2 * var(--shell-gutter))); }
+}
 
 /* ---- Ledger primitives ---- */
 .kicker {
