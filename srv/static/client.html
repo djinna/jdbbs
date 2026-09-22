@@ -267,7 +267,7 @@ JdbbTheme.mount(document.getElementById('theme-bar'));
 document.getElementById('status-date').textContent = new Date().toISOString().slice(0, 10);
 
 const clientSlug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0];
-let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: null, showNewProject: false, projectCreate: { name: '', start_date: '', project_slug: '', error: '', saving: false } };
+let state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'factory', factoryLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: null, showNewProject: false, projectCreate: { name: '', start_date: '', project_slug: '', error: '', saving: false } };
 
 function slugifyProject(value) {
   return (value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -474,7 +474,7 @@ function render() {
       <div class="section-head">
         <span class="kicker">Recent activity</span>
         <span class="activity-tabs">
-          <button class="activity-tab ${state.activityTab === 'files' ? 'active' : ''}" data-tab="files">Files</button>
+          <button class="activity-tab ${state.activityTab === 'factory' ? 'active' : ''}" data-tab="factory">Factory</button>
           <button class="activity-tab ${state.activityTab === 'journal' ? 'active' : ''}" data-tab="journal">Journal</button>
         </span>
       </div>
@@ -613,23 +613,50 @@ async function createProjectFromPortal() {
   }
 }
 
+// The factory feed (0.35): the same rows the studio's Floor shows, scoped to
+// this client, without sign-in noise. Each row links to the step of the
+// factory page it came from. Replaces the hand-kept file-transfer log, which
+// factory customers never saw filled.
+const FACTORY_KINDS = {
+  'manuscript.uploaded': ['Manuscript uploaded', '#upload'],
+  'inspect':             ['Inspected', '#inspect'],
+  'build.started':       ['Build started', '#build'],
+  'build.done':          ['Build finished', '#download'],
+  'build.failed':        ['Build failed', '#build', 'warn'],
+  'download':            ['Downloaded', '#download'],
+  'template.downloaded': ['Template downloaded', '#transmittal'],
+  'transmittal.final':   ['Transmittal marked final', '#transmittal', 'ok'],
+  'transmittal.draft':   ['Transmittal back to draft', '#transmittal'],
+  'pass.fulfilled':      ['Factory pass activated', '', 'ok'],
+  'cover.uploaded':      ['Cover uploaded', '#build'],
+  'cover.removed':       ['Cover removed', '#build'],
+  'index.draft.started': ['Index draft started', '#index'],
+  'index.drafted':       ['Index drafted', '#index'],
+  'index.draft.failed':  ['Index draft failed', '#index', 'warn'],
+  'index.reviewed':      ['Index reviewed', '#index'],
+  'index.placed':        ['Index placed', '#index'],
+};
+
 function renderActivityContent(container) {
-  if (state.activityTab === 'files') {
-    if (state.fileLog.length === 0) {
-      container.innerHTML = '<div class="empty">&gt; No file transfers logged yet.</div>';
+  if (state.activityTab === 'factory') {
+    if (state.factoryLog.length === 0) {
+      container.innerHTML = '<div class="empty">&gt; Nothing yet &mdash; uploads, inspections, builds and downloads show up here.</div>';
     } else {
-      container.innerHTML = state.fileLog.map(e => {
-        const dirLabel = e.direction === 'outbound' ? '[OUT]' : '[IN]';
+      container.innerHTML = state.factoryLog.map(e => {
+        const k = FACTORY_KINDS[e.kind] || [e.kind.replace(/[._]/g, ' '), ''];
+        const dt = new Date(e.at);
+        const when = isNaN(dt) ? esc(e.at || '') : dt.toISOString().slice(0, 10) + ' <span class="fine">' + dt.toISOString().slice(11, 16) + '</span>';
+        const href = e.project_slug ? '/' + clientSlug + '/' + e.project_slug + '/factory/' + k[1] : '';
+        const label = href ? '<a class="link-action" href="' + esc(href) + '">' + esc(k[0]) + '</a>' : esc(k[0]);
+        const actor = (e.actor || '').toUpperCase();
         return `
           <div class="activity-row">
-            <div class="activity-time">${esc(e.transfer_date || '')}</div>
+            <div class="activity-time">${when}</div>
             <div class="activity-event">
-              <span class="proj">${esc(e.project_name)}</span> &middot; ${esc(e.filename || '—')}
-              ${e.file_type ? '<span class="fine">(' + esc(e.file_type) + ')</span>' : ''}
-              ${e.notes ? '<div class="note">' + esc(e.notes) + '</div>' : ''}
-              <div class="fine-line">${esc(e.sent_by || '?')} &rarr; ${esc(e.received_by || '?')}</div>
+              <span class="proj">${esc(e.project_name || e.project_slug || '')}</span> &middot; ${label}
+              ${e.detail ? '<div class="fine-line">' + esc(e.detail) + '</div>' : ''}
             </div>
-            <div class="activity-tag tag">${dirLabel}</div>
+            <div class="activity-tag tag ${k[2] || ''}">[${esc(actor)}]</div>
           </div>
         `;
       }).join('');
@@ -931,7 +958,7 @@ function renderDigestModal(parent) {
 }
 
 async function boot() {
-  state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'files', fileLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: state.emailConfigured };
+  state = { view: 'loading', client: null, projects: [], error: '', activityTab: 'factory', factoryLog: [], journal: [], showDigestEmail: false, digestSending: false, digestResult: null, emailConfigured: state.emailConfigured };
   render();
   try {
     const info = await api('/api/clients/' + clientSlug);
@@ -947,7 +974,7 @@ async function boot() {
     document.title = (info.name || clientSlug) + ' — Projects';
     render();
     // Load activity data in background
-    try { state.fileLog = await api('/api/clients/' + clientSlug + '/file-log'); } catch(e) { state.fileLog = []; }
+    try { state.factoryLog = await api('/api/clients/' + clientSlug + '/factory-log'); } catch(e) { state.factoryLog = []; }
     try { state.journal = await api('/api/clients/' + clientSlug + '/journal'); } catch(e) { state.journal = []; }
     render();
   } catch(e) {

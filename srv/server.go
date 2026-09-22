@@ -354,6 +354,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/clients/{client}/projects", s.handleClientCreateProject)
 	mux.HandleFunc("GET /api/clients/{client}/file-log", s.handleClientFileLog)
 	mux.HandleFunc("GET /api/clients/{client}/journal", s.handleClientJournal)
+	mux.HandleFunc("GET /api/clients/{client}/factory-log", s.handleClientFactoryLog)
 	mux.HandleFunc("POST /api/clients/{client}/digest/email", s.handleSendClientDigest)
 
 	// Static files (CSS, JS) at known paths

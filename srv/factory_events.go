@@ -250,3 +250,60 @@ func (s *Server) handleAdminFactoryBoard(w http.ResponseWriter, r *http.Request)
 	}
 	jsonOK(w, out)
 }
+
+// handleClientFactoryLog — GET /api/clients/{client}/factory-log?limit=N
+// The customer's own view of the factory feed (portal "Recent activity",
+// 0.35): what happened to their books, newest first. Same rows the admin
+// Floor shows, scoped to one client and without the sign-in noise
+// (login.*), so admin and customer read the same trail. Actor collapses to
+// you / studio / factory — the customer does not need our email addresses.
+func (s *Server) handleClientFactoryLog(w http.ResponseWriter, r *http.Request) {
+	clientSlug := r.PathValue("client")
+	if !s.checkClientAuthOrProjectAuth(w, r, clientSlug) {
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 || limit > 200 {
+		limit = 40
+	}
+	rows, err := s.DB.QueryContext(r.Context(), `
+		SELECT e.id, e.created_at, COALESCE(e.project_id, 0), e.client_slug,
+		       COALESCE(p.project_slug, ''), COALESCE(p.name, ''), e.kind, e.actor, e.detail
+		FROM factory_events e
+		LEFT JOIN projects p ON p.id = e.project_id
+		WHERE e.client_slug = ? AND e.kind NOT LIKE 'login.%' AND e.kind <> 'login'
+		ORDER BY e.id DESC LIMIT ?`, clientSlug, limit)
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+	out := []factoryEventRow{}
+	for rows.Next() {
+		var e factoryEventRow
+		var at time.Time
+		if err := rows.Scan(&e.ID, &at, &e.ProjectID, &e.ClientSlug, &e.ProjectSlug, &e.ProjectName, &e.Kind, &e.Actor, &e.Detail); err != nil {
+			jsonErr(w, err.Error(), 500)
+			return
+		}
+		e.At = at.UTC().Format(time.RFC3339)
+		e.Actor = customerActorLabel(e.Actor)
+		out = append(out, e)
+	}
+	jsonOK(w, out)
+}
+
+// customerActorLabel folds requestActor strings ("client:vgr",
+// "admin:j@…", "token:…", "factory", "anon") into the three parties the
+// customer knows: you, studio, factory.
+func customerActorLabel(actor string) string {
+	switch {
+	case actor == "factory":
+		return "factory"
+	case actor == "admin", strings.HasPrefix(actor, "admin:"):
+		return "studio"
+	case strings.HasPrefix(actor, "client:"), strings.HasPrefix(actor, "token:"), strings.HasPrefix(actor, "project:"):
+		return "you"
+	}
+	return actor
+}
