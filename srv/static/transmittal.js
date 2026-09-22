@@ -732,6 +732,13 @@ function printTransmittal() {
 function headerActions(cls, isPreview) {
   const isFinal = state.transmittal.status === 'final';
   return [
+    // The book's editorial style sheet (how it reads) sits beside the
+    // transmittal (how it looks): the two declaration documents, one rule.
+    state.pathClient && state.pathProject
+      ? h('a', { className: cls, href: '/' + state.pathClient + '/' + state.pathProject + '/stylesheet/',
+          title: 'Your book\u2019s editorial style sheet \u2014 spelling, hyphenation, capitalisation. Seeded from the studio house sheet; accept, edit or add rules.' },
+          'Style sheet')
+      : null,
     h('button', { className: cls, onClick: () => {
       state.showVersions = !state.showVersions;
       if (state.showVersions) { state.versions = null; loadVersions(); }
