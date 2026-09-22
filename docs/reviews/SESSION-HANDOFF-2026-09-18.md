@@ -457,3 +457,15 @@ Still design, not bug (5.23, after workshop): Verse = centred italic 0.75 em, bu
 Next action for the new session: restart the runpage on the new conv id; check the Floor (`factory_events` since 17:45 UTC) for Toby's and Sam's retries; if either failed, `/tmp/prodcal-failed/book-N/` has the kept build dir. Then back to the deck (3.2) as edits arrive.
 
 Metrics: ~55 % context at handoff; 0 files read in full via guard bypass.
+
+## Addendum 22 (2026-09-22, ~13:40 UTC) — close of conv cGXI3GZ (workshop Tue, live); next conversation starts here
+
+Freeze in force; Jenna granted one exception: **build 5.25 + 5.26 Tue morning** (helps attendees today). Spec = `docs/reviews/CUSTOM-STYLES-MARKERS-2026-09-22.md` (option C: custom style = based-on factory style + indent 1.5/3 em or space-before 3×/6×; inline character markers `[[code]]…[[/code]]`; snippet-wins precedence; resolved form on transmittal + admin). Prompt for the next session: `NEXT_SESSION_PROMPT_2026-09-22.md`.
+
+Commits this session (all pushed): `1d08665` Verse roman/left/hanging (print + EPUB CSS; was centred italic / monospace); `2b73cc8` build QC mail (pathway 9, `PRODCAL_BUILD_QC_EMAIL` in `.env`), `GET /api/books/{id}/download/source`, Floor `[docx · pdf · epub]` links; `6b2ad82` design note; `919a947` punch list 5.25–5.27 / 0.31 / 0.32 + export; `9213e2b` QC mail links Inspect only when a report exists, 404 says why. Two restarts (13:14, 13:35 UTC), both with zero builds converting; mcheck book 54 smoke green after each. Toby's file: every para `Body A` with the identical 18 pt hanging indent — indent levels exist only as marker names (direction B "honour the manuscript formatting" was ruled out on that evidence).
+
+Floor: Sam (31) book 45 rebuilt green 18:05 UTC Mon; Toby (29) no retry; hermescorp (30) book 56 3 highs / no build; Ellen (33) onboarded; new participant expected Tue. `git status` clean.
+
+Next action: new session per the prompt file → restart runpage → build slices (1)–(3) of the design note, restart when no build is converting, verify on mcheck with `scratch/verse/in.docx` after declaring verse2/verse3/break2 on project 17's transmittal.
+
+Metrics: ~60 % context at handoff; 0 files read in full via guard bypass.
