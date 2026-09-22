@@ -939,6 +939,7 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIn
 		s.factoryEvent(book.ProjectID.Int64, "", "build.done", "factory",
 			fmt.Sprintf("book %d, %s, %s", bid, format, time.Since(start).Round(time.Second)))
 	}
+	s.sendBuildQCEmail(book, format, time.Since(start), "")
 	slog.Info("book conversion complete", "id", bid, "title", book.Title,
 		"pdf_size", len(pdfData),
 		"elapsed", time.Since(start))
@@ -1012,6 +1013,7 @@ func (s *Server) runEPUBBuild(bid int64, book dbgen.Book) {
 			s.sendBuildDeliveredEmail(*pass, book, "epub")
 		}
 	}
+	s.sendBuildQCEmail(book, "epub", time.Since(start), "")
 	slog.Info("epub build complete", "id", bid, "title", book.Title, "elapsed", time.Since(start))
 }
 
@@ -1066,6 +1068,7 @@ func (s *Server) failConversionAt(bid int64, msg, typPath string) {
 		return
 	}
 	s.factoryEvent(ref.ProjectID.Int64, "", "build.failed", "factory", fmt.Sprintf("book %d (%s): %s", bid, buildKindOf(ref), customerMsg))
+	s.sendBuildQCEmail(ref, "build", 0, customerMsg)
 	if ref.BuildKind == buildKindProof {
 		// Nothing was debited for a proof, so there is nothing to refund.
 		return
@@ -1105,6 +1108,30 @@ func (s *Server) handleDownloadBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	format := r.PathValue("format")
+
+	// "source": the manuscript as uploaded — the "before" file. Same auth as
+	// the outputs. Lets Jenna pull before/after pairs for QC without asking
+	// the author to email them (workshop day 2, 2026-09-22).
+	if format == "source" {
+		full, err := q.GetBook(r.Context(), bid)
+		if err != nil || len(full.SourceData) == 0 {
+			jsonErr(w, "no source file", 404)
+			return
+		}
+		name := full.SourceFilename
+		if strings.TrimSpace(name) == "" {
+			name = fmt.Sprintf("book-%d.docx", bid)
+		}
+		w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, sanitizeFilename(name)))
+		w.Header().Set("Content-Length", strconv.Itoa(len(full.SourceData)))
+		w.Header().Set("Cache-Control", "no-store")
+		w.Write(full.SourceData)
+		if bookRef.ProjectID.Valid {
+			s.factoryEventR(r, bookRef.ProjectID.Int64, "download", fmt.Sprintf("source docx, book %d", bid))
+		}
+		return
+	}
 
 	// updated_at distinguishes back-to-back compiles in the download filename.
 	bookMeta, err := q.GetBook(r.Context(), bid)

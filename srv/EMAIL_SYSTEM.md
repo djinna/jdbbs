@@ -28,7 +28,7 @@ All handlers check `s.Email == nil` and return 503 if not configured.
 
 ## Email Pathways
 
-There are **8 email pathways** in two categories (5 manual + 3 automatic):
+There are **9 email pathways** in two categories (5 manual + 4 automatic):
 
 ### Manual (button-triggered, user picks recipients)
 
@@ -51,6 +51,7 @@ First recipient = To, rest = CC.
 | 6 | **Client updates transmittal** (auto-save) | `j@djinna.com` | `srv/transmittal_notify.go` | Notification that a client is editing a transmittal. Throttled: max 1 per project per 30 min. Skipped when admin edits (X-ExeDev-UserID header present). |
 | 7 | **Factory Pass fulfilled** / **password reset** / **build delivered** | the pass customer | `srv/passes.go` | Transactional storefront mail: the welcome/sign-in message (also re-sent after an admin password reset) and the per-build receipt. |
 | 8 | **Client asks for a sign-in link** (portal / factory gate) | the address they typed, only if it is on file for that client | `srv/login_links.go` | Magic-link sign-in: one-shot `/auth/link?t=…`, 30-minute expiry, replaces typing the password. Silent when the address is unknown or the client has hit 3 live links in 15 min. |
+| 9 | **Any factory build finishes** (proof or final, green or failed) | `PRODCAL_BUILD_QC_EMAIL` (Jenna); unset = off | `srv/build_qc_email.go` | Internal before/after QC notice: links to the uploaded .docx (`/api/books/{id}/download/source`), newest PDF/EPUB, Inspect report, factory page, Floor. Workshop week 2026-09-22; switch off afterwards by removing the variable from `.env`. |
 
 ## Pathway Details
 
@@ -128,6 +129,13 @@ First recipient = To, rest = CC.
 - Logged with `slog` (`login link issued` / `login link redeemed` / `login link rejected`, never the token) and as factory events `login.link_sent`, `login.link_denied`, `login` (detail "via emailed link") so the admin Floor feed shows sign-ins.
 - **Caveat:** like every other pathway the Mail report (`outbound_email`) keeps a copy of the body, which includes the link. Links are single-use and expire in 30 minutes, so the exposure window is small, but it is there.
 - Previews: `/admin/email-preview/login_link`. Tests: `srv/login_links_test.go`.
+
+### 9. Build QC notice (`srv/build_qc_email.go`) — added 2026-09-22, workshop day 2
+- **Automatic/server-initiated**, internal. Called from `runConversion` (after `build.done`), the epub-only path, and `failConversionAt` (after `build.failed`) — so proofs, finals and failures alike.
+- Recipient is `PRODCAL_BUILD_QC_EMAIL` from the environment (`.env`); when unset the function returns immediately. Meant for the workshop week only: Jenna wanted every attendee's before/after pair without asking them to email files.
+- Subject: `QC · {client} · {title} ({kind} {format}, book N)`; `FAILED` in the subject on a failed build. Body: project, uploaded filename, outcome, then plain links (before = source .docx, after = PDF/EPUB `?kind=`, Inspect report, factory page, Floor). Links not attachments — the admin proxy authenticates her.
+- The Floor feed (`factory-admin.html`, `detailHTML`) links the same three files on every "book N" mention, so the pairs are reachable without the mail too.
+- Logged in `outbound_email` as kind `build_qc`, ref `book/{id}`.
 
 ## HTML Email Conventions
 
