@@ -221,16 +221,19 @@ blockquote p {
   text-indent: 0;
 }
 
-/* === Poetry/Verse === */
+/* === Poetry/Verse === roman, left, hanging indent for run-overs (2026-09-22;
+   was monospace 0.75em, matching nothing in print) */
 .poem, .verse {
-  font-family: "JetBrains Mono", "Menlo", monospace;
-  font-size: 0.75em;
+  font-family: inherit;
+  font-size: 0.95em;
   line-height: 1.4;
-  margin: 0.5em 0 0.5em 0.75em;
+  margin: 0.75em 0 0.75em 1.5em;
 }
 
 .poem p, .verse p {
-  text-indent: 0;
+  margin: 0;
+  padding-left: 1.5em;
+  text-indent: -1.5em;
   text-align: left;
 }
 

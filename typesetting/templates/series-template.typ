@@ -373,13 +373,18 @@
 // POEM/VERSE BLOCK
 // =============================================================================
 
+// Verse: roman, left-aligned, indented from the left like a block quote, lines
+// as typed with a hanging indent for run-overs. (Was centred italic until
+// 2026-09-22 — Jenna: "just plain wrong"; a poem is set roman and left, whether
+// quoted in prose or in a collection.) The 1.5em step is also the unit a
+// declared custom style "based on Verse, indent one level" adds.
 #let poem(content) = {
-  set text(font: config.body-font, size: config.poem-size, style: "italic")
+  set text(font: config.body-font, size: config.poem-size)
   // One Word paragraph per line: consecutive Verse paragraphs are merged
   // into one block by the Lua filter, so spacing = leading stacks the lines
   // and the padding lands once per stanza, not once per line.
-  set par(first-line-indent: 0em, leading: 0.8em, spacing: 0.8em, justify: false)
-  align(center, pad(top: 0.5em, bottom: 0.5em, content))
+  set par(first-line-indent: 0em, hanging-indent: 1.5em, leading: 0.8em, spacing: 0.8em, justify: false)
+  pad(left: 1.5em, top: 0.5em, bottom: 0.5em, content)
 }
 
 // =============================================================================
