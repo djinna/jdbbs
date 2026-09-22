@@ -161,6 +161,7 @@ func (s *Server) handleUpdateBookSpec(w http.ResponseWriter, r *http.Request) {
 	if dataStr == "" || dataStr == "null" {
 		dataStr = defaultSpecData()
 	}
+	dataStr = normalizeSpecCustomStyles(dataStr)
 
 	q := dbgen.New(s.DB)
 	spec, err := q.UpsertBookSpec(r.Context(), dbgen.UpsertBookSpecParams{
@@ -369,49 +370,10 @@ func (s *Server) pullTransmittalIntoSpec(ctx context.Context, pid int64) ([]byte
 	}
 
 	if styles, ok := tx["custom_styles"].([]any); ok {
-		mapped := []any{} // never nil: a JSON null here breaks the template generator
-		for _, item := range styles {
-			m, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			name, _ := m["name"].(string)
-			wordStyle, _ := m["word_style"].(string)
-			styleType, _ := m["type"].(string)
-			desc, _ := m["description"].(string)
-			preset, _ := m["preset"].(string)
-			typstCode, _ := m["typst"].(string)
-			name = strings.TrimSpace(name)
-			wordStyle = strings.TrimSpace(wordStyle)
-			styleType = strings.TrimSpace(styleType)
-			desc = strings.TrimSpace(desc)
-			preset = strings.TrimSpace(preset)
-			typstCode = strings.TrimSpace(typstCode)
-			if name == "" {
-				continue
-			}
-			if wordStyle == "" {
-				wordStyle = name
-			}
-			if styleType == "" {
-				styleType = "paragraph"
-			}
-			if preset == "" {
-				preset = defaultCustomStylePreset(name, styleType)
-			}
-			if typstCode == "" {
-				typstCode = defaultCustomStyleTypst(name, styleType, preset)
-			}
-			mapped = append(mapped, map[string]any{
-				"name":        name,
-				"word_style":  wordStyle,
-				"type":        styleType,
-				"description": desc,
-				"preset":      preset,
-				"typst":       typstCode,
-			})
-		}
-		specData["custom_styles"] = mapped
+		// Based-on / indent / space-before are normalised here; a preset or
+		// snippet Jenna wrote in the admin spec is carried forward by name.
+		prev, _ := specData["custom_styles"].([]any)
+		specData["custom_styles"] = normalizeCustomStyles(styles, prev)
 	}
 
 	// Parts opt-in (C7 / P4 step 6): the transmittal's Parts count becomes the
@@ -780,17 +742,9 @@ func specToTypstConfig(data map[string]any) string {
 		var styleCodes []string
 		for _, s := range styles {
 			if m, ok := s.(map[string]any); ok {
-				code := ""
-				if raw, ok := m["typst"].(string); ok {
-					code = strings.TrimSpace(raw)
-				}
-				if code == "" {
-					name, _ := m["name"].(string)
-					styleType, _ := m["type"].(string)
-					preset, _ := m["preset"].(string)
-					code = defaultCustomStyleTypst(name, styleType, preset)
-				}
-				if code != "" {
+				// Precedence: hand-written snippet → designed preset → parent + deltas
+				// (srv/customstyles.go).
+				if code := customStyleTypstDef(m); code != "" {
 					styleCodes = append(styleCodes, code)
 				}
 			}
@@ -851,6 +805,9 @@ func typstStyleIdent(name string) string {
 	}
 	if out[0] >= '0' && out[0] <= '9' {
 		out = "s-" + out
+	}
+	if typstReservedIdents[out] {
+		out += "-style" // "break" → "break-style": a keyword cannot name a function
 	}
 	return out
 }

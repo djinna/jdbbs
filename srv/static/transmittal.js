@@ -1238,6 +1238,103 @@ function renderPageIVSection() {
 // Subrights (copub / marketing pages) deleted 2026-09-18: press-only.
 // Saved subrights.* values still ride along in the JSON.
 
+// ─── Custom style row (docs/reviews/CUSTOM-STYLES-MARKERS-2026-09-22.md) ───
+// Mirrors srv/customstyles.go: the parents, which parents take which delta,
+// and the resolved-form wording. Keep the two in step.
+const CUSTOM_STYLE_PARENTS = ['Normal', 'First Paragraph', 'Heading 1', 'Heading 2', 'Heading 3',
+  'Block Quote', 'Epigraph', 'Verse', 'Code Block', 'Section Break', 'Copyright', 'Signature', 'Glossary Entry'];
+const CUSTOM_STYLE_CHAR_PARENTS = [['none', 'Nothing (plain text)'], ['italic', 'Italic'], ['small caps', 'Small caps'], ['code', 'Code (monospace)']];
+const CUSTOM_STYLE_INDENT_PARENTS = new Set(['Verse', 'Block Quote', 'Code Block']);
+const CUSTOM_STYLE_SPACE_PARENTS = new Set(['Section Break']);
+const DESIGNED_PRESETS = new Set(['tweet-block', 'metadata-paragraph', 'metadata-inline', 'ascii-block']);
+
+function customStyleResolvedForm(style) {
+  const name = (style.name || '').trim();
+  if (!name) return '';
+  const type = style.type === 'character' ? 'character' : 'paragraph';
+  const typst = (style.typst || '').trim();
+  // A snippet or designed preset the studio wrote (read-only here; admin edits it).
+  if (DESIGNED_PRESETS.has(style.preset)) return `${name} \u2192 designed by the studio (preset: ${style.preset})`;
+  if (typst && !/^#let [a-z0-9-]+\(content\) = \{\s*content\s*\}$/.test(typst) && !/text\(font: config\.body-font, size: 0\.9em\)\[#content\]/.test(typst)) {
+    return `${name} \u2192 designed by the studio (custom typesetting)`;
+  }
+  if (type === 'character') {
+    const p = style.based_on || 'none';
+    return p === 'none' ? `${name} \u2192 plain text (no change)` : `${name} \u2192 ${p}`;
+  }
+  const parent = CUSTOM_STYLE_PARENTS.includes(style.based_on) ? style.based_on : 'Normal';
+  let out = `${name} \u2192 ${parent}`;
+  const indent = CUSTOM_STYLE_INDENT_PARENTS.has(parent) ? parseInt(style.indent || 0, 10) : 0;
+  if (indent === 1) out += ', indent one level';
+  if (indent === 2) out += ', indent two levels';
+  const space = CUSTOM_STYLE_SPACE_PARENTS.has(parent) ? parseInt(style.space_before || 1, 10) : 1;
+  if (space === 3) out += ', 3\u00d7 the stanza gap before';
+  if (space === 6) out += ', 6\u00d7 the stanza gap before';
+  return out;
+}
+
+function renderCustomStyleRow(style, i, removeCustomStyle) {
+  const type = style.type === 'character' ? 'character' : 'paragraph';
+  const parent = type === 'character'
+    ? (style.based_on || 'none')
+    : (CUSTOM_STYLE_PARENTS.includes(style.based_on) ? style.based_on : 'Normal');
+  const base = `custom_styles.${i}`;
+  const onParentChange = (e) => {
+    const s = state.transmittal.data.custom_styles[i];
+    s.based_on = e.target.value;
+    if (!CUSTOM_STYLE_INDENT_PARENTS.has(s.based_on)) delete s.indent;
+    if (!CUSTOM_STYLE_SPACE_PARENTS.has(s.based_on)) delete s.space_before;
+    setField(`${base}.based_on`, s.based_on);
+    render();
+  };
+  const onTypeChange = (e) => {
+    const s = state.transmittal.data.custom_styles[i];
+    s.type = e.target.value;
+    s.based_on = s.type === 'character' ? 'none' : 'Normal';
+    delete s.indent; delete s.space_before;
+    setField(`${base}.type`, s.type);
+    render();
+  };
+  const basedOnOptions = type === 'character'
+    ? CUSTOM_STYLE_CHAR_PARENTS
+    : CUSTOM_STYLE_PARENTS.map(p => [p, p]);
+  const basedOn = h('div', { className: 'tx-field' },
+    h('label', null, 'Based on'),
+    h('select', { onChange: onParentChange }, ...basedOnOptions.map(([v, l]) => {
+      const o = h('option', { value: v }, l); if (v === parent) o.selected = true; return o;
+    })));
+  const deltas = [];
+  if (type === 'paragraph' && CUSTOM_STYLE_INDENT_PARENTS.has(parent)) {
+    deltas.push(selectField('Indent', `${base}.indent`, [
+      ['0', 'none'], ['1', 'one level (1.5 em)'], ['2', 'two levels (3 em)'],
+    ]));
+  }
+  if (type === 'paragraph' && CUSTOM_STYLE_SPACE_PARENTS.has(parent)) {
+    deltas.push(selectField('Space before', `${base}.space_before`, [
+      ['1', 'as usual'], ['3', '3\u00d7 the stanza gap'], ['6', '6\u00d7 the stanza gap'],
+    ]));
+  }
+  const resolved = customStyleResolvedForm(style);
+  return h('div', { className: 'tx-custom-style' },
+    h('div', { className: 'tx-row-3' },
+      textField('Style name', `${base}.name`, { placeholder: 'e.g. verse2' }),
+      h('div', { className: 'tx-field' },
+        h('label', null, 'Type'),
+        h('select', { onChange: onTypeChange },
+          ...[['paragraph', 'Paragraph'], ['character', 'Character (inside a line)']].map(([v, l]) => {
+            const o = h('option', { value: v }, l); if (v === type) o.selected = true; return o;
+          }))),
+      basedOn,
+    ),
+    h('div', { className: 'tx-row-3' },
+      ...deltas,
+      textField('Purpose', `${base}.description`, { placeholder: type === 'character' ? 'e.g. commands typed at the terminal' : 'e.g. second indent level in a poem' }),
+    ),
+    resolved ? h('div', { className: 'tx-help tx-custom-style-resolved' }, 'In the book: ', h('strong', null, resolved)) : null,
+    h('button', { className: 'tx-reviewer-remove', type: 'button', onClick: () => removeCustomStyle(i) }, 'Remove')
+  );
+}
+
 // ─── Section: Editing ───
 function renderEditingSection() {
   const styles = state.transmittal.data.custom_styles || [];
@@ -1264,7 +1361,7 @@ function renderEditingSection() {
   }
 
   function addCustomStyle() {
-    const next = [...styles, { name: '', type: 'paragraph', description: '' }];
+    const next = [...styles, { name: '', type: 'paragraph', based_on: 'Normal', description: '' }];
     updateCustomStyles(next);
   }
 
@@ -1295,20 +1392,8 @@ function renderEditingSection() {
       helpText: 'Inline symbols, or displayed equations? Word\u2019s equation editor, or typed?',
     }),
     h('div', { className: 'tx-section-header', style: 'margin-top:16px' }, 'Custom Styles'),
-    h('div', { className: 'tx-help' }, 'Add any project-specific paragraph styles needed for this manuscript. They go into the book spec, the generated template, and the [[marker]] list Inspect accepts.'),
-    ...styles.map((style, i) =>
-      h('div', { className: 'tx-custom-style' },
-        h('div', { className: 'tx-row-3' },
-          textField('Style name', `custom_styles.${i}.name`),
-          selectField('Type', `custom_styles.${i}.type`, [
-            ['paragraph', 'Paragraph'],
-            ['character', 'Character'],
-          ]),
-          textField('Purpose / description', `custom_styles.${i}.description`)
-        ),
-        h('button', { className: 'tx-reviewer-remove', type: 'button', onClick: () => removeCustomStyle(i) }, 'Remove')
-      )
-    ),
+    h('div', { className: 'tx-help' }, 'A style you use in the manuscript that is not one of the factory\u2019s. Name it, say which factory style it is based on, and (for a few parents) how it differs: an indent level, or a bigger gap. It then goes into the book spec, the Word template, and the [[marker]] list Inspect accepts. Anything a based-on style cannot express is designed by the studio and shown here once it is.'),
+    ...styles.map((style, i) => renderCustomStyleRow(style, i, removeCustomStyle)),
     h('button', { className: 'tx-add-btn', type: 'button', onClick: addCustomStyle }, '+ Add custom style'),
   );
 }

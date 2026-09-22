@@ -562,6 +562,11 @@ local function load_declared_styles(meta)
         declared_char_styles[normalize_style(word)] = ident
       else
         declared_para_styles[normalize_style(word)] = ident
+        -- A declared style based on Verse / Signature is one block per run of
+        -- paragraphs, like its parent (srv/customstyles.go customStyleCoalesces).
+        if cs.coalesce and pandoc.utils.stringify(cs.coalesce) == "true" then
+          coalesce_styles[ident] = true
+        end
       end
     end
   end

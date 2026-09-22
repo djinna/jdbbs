@@ -1722,6 +1722,9 @@ type pandocStyle struct {
 	WordStyle string `json:"word_style"`
 	Ident     string `json:"ident"`
 	Type      string `json:"type"`
+	// Coalesce: consecutive paragraphs of this style are one block in the
+	// book (based on Verse or Signature), so the filter merges them.
+	Coalesce bool `json:"coalesce,omitempty"`
 }
 
 // declaredStylesForPandoc extracts the spec's custom_styles into the
@@ -1754,7 +1757,7 @@ func declaredStylesForPandoc(specJSON string) []pandocStyle {
 		if typ != "character" {
 			typ = "paragraph"
 		}
-		out = append(out, pandocStyle{WordStyle: strings.TrimSpace(word), Ident: typstStyleIdent(name), Type: typ})
+		out = append(out, pandocStyle{WordStyle: strings.TrimSpace(word), Ident: typstStyleIdent(name), Type: typ, Coalesce: customStyleCoalesces(m)})
 	}
 	return out
 }

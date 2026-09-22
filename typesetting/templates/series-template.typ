@@ -324,11 +324,14 @@
 // Section break renderer — style determined by config.section-break
 // Supported styles: "breve", "asterism", "dinkus", "blank", "fleuron",
 // "custom" (the mark in config.section-break-text, set from the transmittal)
-#let section-break = {
+// gap: multiple of the stanza gap (1 em) to leave *before* the mark. 1 = as
+// usual; a declared custom style "based on Section Break, 3× / 6× the stanza
+// gap" passes 3 or 6 (docs/reviews/CUSTOM-STYLES-MARKERS-2026-09-22.md).
+#let section-break-gap(gap: 1) = {
   if config.section-break == "blank" {
-    v(1em)
+    if gap > 1 { v(gap * 1em) } else { v(1em) }
   } else {
-    v(0.5em)
+    if gap > 1 { v(gap * 1em) } else { v(0.5em) }
     align(center)[
       #set text(size: 0.833em)
       #if config.section-break == "breve" [
@@ -349,6 +352,9 @@
   }
 }
 
+// The filter emits a bare #section-break for every Section Break paragraph.
+#let section-break = section-break-gap()
+
 // Alternative with asterisks (kept for backward compatibility)
 #let section-break-stars = {
   v(0.5em)
@@ -363,10 +369,12 @@
 // =============================================================================
 
 // Terminal/code output - slightly smaller font, generous line-height
-#let code-block(content) = {
+// indent: extra levels of 1.5 em from the left (custom style "based on Code
+// Block, indent one / two levels").
+#let code-block(indent: 0, content) = {
   set text(font: config.code-font, size: config.code-block-size)
   set par(leading: 0.6em, justify: false, first-line-indent: 0em)
-  pad(left: 0.75em, top: 0.333em, bottom: 0.333em, content)
+  pad(left: 0.75em + indent * 1.5em, top: 0.333em, bottom: 0.333em, content)
 }
 
 // =============================================================================
@@ -378,13 +386,15 @@
 // 2026-09-22 — Jenna: "just plain wrong"; a poem is set roman and left, whether
 // quoted in prose or in a collection.) The 1.5em step is also the unit a
 // declared custom style "based on Verse, indent one level" adds.
-#let poem(content) = {
+// indent: extra levels of 1.5 em (custom style "based on Verse, indent one /
+// two levels" — Toby's [[verse2]] / [[verse3]]).
+#let poem(indent: 0, content) = {
   set text(font: config.body-font, size: config.poem-size)
   // One Word paragraph per line: consecutive Verse paragraphs are merged
   // into one block by the Lua filter, so spacing = leading stacks the lines
   // and the padding lands once per stanza, not once per line.
   set par(first-line-indent: 0em, hanging-indent: 1.5em, leading: 0.8em, spacing: 0.8em, justify: false)
-  pad(left: 1.5em, top: 0.5em, bottom: 0.5em, content)
+  pad(left: 1.5em + indent * 1.5em, top: 0.5em, bottom: 0.5em, content)
 }
 
 // =============================================================================
@@ -1040,21 +1050,24 @@
 }
 
 
-#let blockquote(content) = {
+// indent: extra levels of 1.5 em from the left (custom style "based on Block
+// Quote, indent one / two levels").
+#let blockquote(indent: 0, content) = {
   set par(first-line-indent: 0em)
+  let extra = indent * 1.5em
   if config.blockquote-style == "bar" {
-    block(
+    pad(left: extra, block(
       inset: (left: 1em, top: 0.5em, bottom: 0.5em, right: 0em),
       stroke: (left: 1.5pt + luma(120)),
       content,
-    )
+    ))
   } else if config.blockquote-style == "indent" {
-    pad(left: 1.5em, right: 1.5em, top: 0.5em, bottom: 0.5em)[
+    pad(left: 1.5em + extra, right: 1.5em, top: 0.5em, bottom: 0.5em)[
       #content
     ]
   } else {
     // Default: "italic"
-    pad(left: 1.5em, right: 1.5em, top: 0.5em, bottom: 0.5em)[
+    pad(left: 1.5em + extra, right: 1.5em, top: 0.5em, bottom: 0.5em)[
       #set text(style: "italic")
       #content
     ]
