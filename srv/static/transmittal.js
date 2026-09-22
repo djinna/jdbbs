@@ -248,6 +248,10 @@ function render() {
 function emitStatus() {
   if (!state.embedded || !state.transmittal) return;
   document.dispatchEvent(new CustomEvent('tx:status', { detail: { status: state.transmittal.status } }));
+  // …and the book title, so the header shows the transmittal's title from the
+  // first paint (0.30: "helo_word" project vs "helo word" transmittal).
+  const title = state.transmittal.data && state.transmittal.data.book && state.transmittal.data.book.title;
+  if (title) document.dispatchEvent(new CustomEvent('tx:title', { detail: { title: title } }));
 }
 
 // ─── Auth (reused pattern from calendar) ───
