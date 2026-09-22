@@ -1,4 +1,4 @@
-<!-- exported 2026-09-22 13:56 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-22 14:25 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
@@ -69,6 +69,16 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > ![screenshot](img/029-spread-1-A-head-left.png)
   >
   > ![screenshot](img/029-spread-2-A-left-B-right.png)
+
+- [x] 0.35 As we complete this couple of things we're doing right now, I think it'll be time to cycle into a fresh punch list that is very short and succinct, and that I can use for whatever comes up during today's work block.  ·  _added Tue 14:20 UTC_
+
+  > **shelley** · 2026-09-22T14:24:48Z  
+  > Cycled: list 4 archived at /admin/runs/PUNCHLIST-2026-09-22-list4; list 5 is the short live one.
+
+- [~] 0.36 new: run a comparison of the before and after files of https://jdbbs.exe.xyz/seapunkstudios/book-001/factory/ and offer suggestions back to me for the factory and also guidance I can share directly with the Seapunk team for their book  ·  _added Tue 14:24 UTC_
+
+  > **jenna** · 2026-09-22 14:24 UTC  
+  > . after we start a new conversation --
 
 
 ## 1 · Workshop watch (Mon 21 / Tue 22) — BOTH
@@ -528,6 +538,10 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > UI: one row, three groups — Included (free, 6–8 pairings) · Studio library (+$50) · By request (+$150, the 6 above). If you’re happy with this I’ll turn it into a §6 of the memo and queue the OFL drop-in for after the workshop; the by-request list goes on /factory as text only until the first ask.
 
 - [~] 5.25 **Custom styles = based-on + structural deltas** — decided 22 Sep (option C): transmittal row `Name · Based on · Indent (1.5 em / 3 em) · Space before (3× / 6× stanza gap) · Purpose`; parent required; deltas only for the sensible parents; snippet wins if I wrote one; resolved form shown on the transmittal + admin. Build Thu 24. [design note](https://github.com/djinna/jdbbs/blob/main/docs/reviews/CUSTOM-STYLES-MARKERS-2026-09-22.md)
+
+  > **shelley** · 2026-09-22T14:24:48Z  
+  > Slices 1–3 verified on mcheck book 58 after the 0.39 hotfix: 457/457 markers resolve; verse → verse2 → verse3 step in visibly (p.12, Four Haiku). Open: verse/verse2/verse3 lines do not coalesce into one poem block (each level is its own block with a stanza gap between) — fix in slice 4 with the EPUB classes. Slices 4–7 remain for Thu 24.
+
 - [ ] 5.26 **Inline character markers** — `Type [[code]]ls -la[[/code]] to…` inside a paragraph = character style (factory: sc, code, book title, foreign… + declared character styles with based-on italic/small caps/code). Same pre-pass; Thu 24 with 5.25
 - [ ] 5.27 **Tone pass on Inspect / build-error strings** — helpful, not scolding ("we don't know that one yet — add it under Custom styles…"); rule: factory fixes how it looks, author fixes what it is
 - [x] 0.31 **Build QC mail this week** — every build (proof/final/failed) mails you before + after links (source .docx, PDF, EPUB, Inspect, Floor); Floor feed links [docx · pdf · epub] on every "book N" (2b73cc8). Off after the workshop: drop `PRODCAL_BUILD_QC_EMAIL` from .env
@@ -545,6 +559,22 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > Split: the custom-style mechanism is now 5.25 (decided, build Thu) + 5.26 inline character markers; Verse itself fixed today as 0.32 (roman, left). 5.23 keeps only the collection-specific bits: poem-per-page + lighter poem-title opener + size — parked until a collection is actually in flow.
 
 - [ ] 5.24 **Build-error wording** — "This is our bug" + the Signature/Epigraph guess was wrong for book 45 (it was the Title/Subtitle offset). Say "our bug, email us" without diagnosing the cause when we can't be sure; log the Typst line for us.
+
+  > **shelley** · 2026-09-22 13:57 UTC  
+  > Fotis review is in: https://github.com/djinna/jdbbs/blob/main/docs/reviews/FOTIS-HELO-WORD-REVIEW-2026-09-22.md — summary, timeline, census of his file, 15-row factory-vs-author table, rewrites of every error string he saw (incl. the two build-failed texts: 'our generated config' vs 'your paragraph'), and a short note you can send him. Root cause was ours (style named `break` → `#let break(content)` in our config; fixed in 9258e56, he can retry). Handing off to a fresh session now.
+
+  > **jenna** · 2026-09-22 14:18 UTC  
+  > x https://jdbbs.exe.xyz/hermescorp/book-001/stylesheet/
+  > It looks like Fotis's book has a whole bunch of custom styles. Can you check whether the factory added those somehow during our review just now, or did Fotis misunderstand and think that she was supposed to add all of the styles that are in her book, not just the ones that are custom? Pass this to a new sub-agent in our current conversation.?
+  >
+  > ![screenshot](img/20260922-141747-400.png)
+
+  > **shelley** · 2026-09-22 14:19 UTC  
+  > Passed to a subagent (fotis-styles-origin, read-only). It is checking transmittal_versions for project 30 over time + every code path that writes custom_styles. Report to scratch/fotis/STYLES-ORIGIN.md; I will post the verdict here. Prior review (FOTIS-HELO-WORD-REVIEW §3) found 21 declarations, 9 duplicating factory/Word built-ins — consistent with declaring every style, but the timeline check will settle it.
+
+  > **shelley** · 2026-09-22 14:22 UTC  
+  > Verdict (b): Fotis typed them; the factory never adds declarations (only the transmittal PUT and the admin spec editor write custom_styles — upload/Inspect/build only copy a final transmittal into the spec). Her transmittal history grows 0→4→11→14→18→19→21 across client saves on Mon 21 Sep, starting 12:12 UTC right after Inspect flagged 2 Highs; 12:12:32 Inspect showed 0. So she read "declare your styles" as "declare every Word style". For Fotis: "You entered the full Word style inventory — the factory didn't add that. Declare only the ones that aren't factory styles: keep narration + in1–in6, drop verse/quote/break/part/chapter/preface/BOLD/ITAL/footnote*." Feeds 0.34 (onboarding: styles are names). Report: scratch/fotis/STYLES-ORIGIN.md
+
 - [x] 0.30 **/factory header follows the transmittal title** — project name syncs from `book.title` on save (pass projects) + header updates live; after workshop
 
   > **shelley** · 2026-09-21 16:29 UTC  
@@ -585,3 +615,6 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   > **shelley** · 2026-09-18 00:33 UTC  
   > Added to docs/IDEAS.md with Bookmobile + Accutrack named. Stays on the ideas list.
 
+- [x] 0.37 **Style sheet link on the factory page** — first action on the step-1 transmittal rule (5b7ba69)
+- [x] 0.38 **Portal Recent activity = factory feed** — Files tab (hand-kept file log, always empty) replaced by the client's own factory_events rows: uploaded · inspected · build · downloaded, each linking to the factory step; actor you/studio/factory (39397cd)
+- [x] 0.39 **Hotfix: custom styles declared before an upload were skipped** — chapter suggestions / cover upload bumped book_specs.updated_at, so the build thought the spec was newer than the transmittal and skipped the re-pull; that is why book 58 printed [[verse2]] literally. Fixed 427013b + regression test; verified 457/457 markers resolve, verse/verse2/verse3 show three indent levels on p.12
