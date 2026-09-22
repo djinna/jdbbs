@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the live punch list (checklist + every note thread) to docs/runs/.
+"""Export the live punchlist (checklist + every note thread) to docs/runs/.
 
     python3 scripts/punchlist-export.py            # -> docs/runs/PUNCHLIST-<today>.md
     python3 scripts/punchlist-export.py 2026-09-18 # explicit date
@@ -21,7 +21,7 @@ IMG_OUT = os.path.join(OUT, "img")
 
 def archive_img(url):
     """Copy a runpage image (/img/name) into docs/runs/img/ and return the
-    relative markdown path. Screenshots pasted on the punch list travel with
+    relative markdown path. Screenshots pasted on the punchlist travel with
     the archive; the scratch dir is gitignored."""
     name = os.path.basename(url)
     src = os.path.join(IMG_SRC, name)
@@ -61,7 +61,7 @@ def export(date):
 
 def index():
     files = sorted(f for f in os.listdir(OUT) if f.endswith(".md") and f != "README.md")
-    lines = ["# Runs", "", "Punch lists and run logs, one file per day or event. Exported by",
+    lines = ["# Runs", "", "Punchlists and run logs, one file per day or event. Exported by",
              "`scripts/punchlist-export.py`; rendered read-only at `/admin/runs/`.", ""]
     for f in reversed(files):
         title = f[:-3]
