@@ -106,7 +106,7 @@ class H(http.server.BaseHTTPRequestHandler):
                 if body.get("who", "jenna") != "shelley":
                     # Images go into chat as VM paths so the agent can open them with read_image.
                     paths = "".join(f" [screenshot: {os.path.join(IMG, os.path.basename(u))}]" for u in images)
-                    push_to_chat(f"Punch-list note from Jenna on {iid}: {text}{paths}")
+                    push_to_chat(f"Punchlist note from Jenna on {iid}: {text}{paths}")
                 return self._send(200, {"ok": True})
             if self.path == "/tick":
                 iid, st = body.get("id"), body.get("state", " ")
@@ -119,7 +119,7 @@ class H(http.server.BaseHTTPRequestHandler):
             if self.path == "/add":
                 text = (body.get("text") or "").strip()
                 if not text: return self._send(400, {"error": "text required"})
-                push_to_chat("Punch-list inbox item added by Jenna: " + re.sub(r"!\[[^\]]*\]\(/img/([^)]+)\)", lambda m: f"[screenshot: {os.path.join(IMG, m.group(1))}]", text))
+                push_to_chat("Punchlist inbox item added by Jenna: " + re.sub(r"!\[[^\]]*\]\(/img/([^)]+)\)", lambda m: f"[screenshot: {os.path.join(IMG, m.group(1))}]", text))
                 md = read(MD, None) or ""
                 if "## 0 · Inbox" not in md:
                     md = md.rstrip("\n") + "\n\n## 0 · Inbox — new items, untriaged (Shelley moves them into a section)\n\n"
