@@ -434,3 +434,26 @@ Open / next:
 Runpage restart for a new conversation: `tmux kill-session -t runpage; tmux new-session -d -s runpage -c /home/exedev/prodcal "RUNPAGE_CHAT_CONV=<new conv id> scripts/run-page.sh"`.
 
 Metrics: ~45 % context at handoff; 1 file read in full via guard bypass (WORD-FREE-AUTHORING note, 224 lines).
+
+## Addendum 21 (2026-09-21, ~17:45 UTC) — close of conv c5IQX75 (workshop Mon, live); next conversation starts here
+
+Freeze in force (hotfix-only Mon 21 – Wed 23; smoke on mcheck/17 only; store flips Wed 00:00 HKT). All pushed (prodcal → GitHub via `git@github.com:djinna/jdbbs.git`; jdbbs-public untouched this session). Two attendee build defects found on the Floor and fixed **without a restart** — filter, template and marker script are read from disk per build.
+
+- **`26ff8e9` book 45 (skhoo, *Transcendence and Immanence*)** — "pagebreaks are not allowed inside of containers". Pandoc lifts Title into metadata only when it is the *first* paragraph; his Half Title came first, so Title + Subtitle reached the Lua filter as paragraphs the book map had dropped/not counted → piece boundaries shifted by 3 → Copyright paragraphs inside `#front-piece[]`. Filter now drops title/subtitle divs like `buildBookMapInner` does. Regression test `TestLuaFilterTitleSubtitleDroppedKeepsPiecesAligned`. His newer .docx builds green on mcheck (book 51, 224 pp). He had not re-pressed Build as of 17:10 UTC.
+- **`3411728` book 53 (Toby Shorin, *Devotion*, project 29 — poetry collection, Pages export, every para `Body A`)** — see below.
+- 0.30 (Jenna): `/factory` header should follow the transmittal title → triaged After-workshop (row kept as 0.30 in §5; plan: project name syncs from `book.title` on save for pass projects + header updates live; needs restart).
+- New §5 rows: **5.23 poetry-collection preset**, **5.24 build-error wording**.
+
+### Toby's book — state and what a fresh session needs
+
+Input `Poems - Workshop - Templated.docx` (copy at `scratch/verse/in.docx`; marker-applied copy `marked.docx`; his original proof `Devotion-20260921-1713-PROOF.pdf` was in `/tmp/shelley-uploads/`). Every paragraph is style `Body A`; poem titles are caps-only Body A lines; each verse line carries `[[verse]]`; stanza breaks are `[[break]]`; 28 invented markers `[[verse2]]`/`[[verse3]]`/`[[break2]]` (indent levels) are unresolved and print literally; several poems titled "TITLE" (placeholders).
+
+Fixed (ours, live): (1) consecutive Verse paragraphs now coalesce into one `#poem[]` per stanza (`coalesce_styles = { signature, poem }` in `docx-to-typst-enhanced.lua`; `#poem` sets `par(spacing: 0.8em)` in `series-template.typ`) — before, each line was its own block with 0.5 em padding top and bottom. (2) A bare `[[break]]` paragraph was empty after marker strip and pandoc dropped it → stanza breaks vanished; `apply-style-markers.py` now writes `SECTION_BREAK_PLACEHOLDER` ("˘") into empty Section Break paragraphs. Tests: `TestLuaFilterVerseLinesCoalesce`, `TestApplyStyleMarkersScript` (extended). Verified on mcheck, book 54 (17 pp): lines stack, stanza gaps show (mcheck's section-break is "blank" → 1 em gap; a "breve" project shows ˘ ˘ ˘ between stanzas — probably wrong for stanzas; see 5.23).
+
+His side (told Jenna, for Toby): Heading 1 for poem titles (Pages Heading style or `[[h1]]` at the start of the line — the marker pre-pass creates the style); drop `verse2/3`, `break2`. He should press Build → Proof again on `/…/book-001/factory/` — no new build on project 29 seen by 17:45 UTC.
+
+Still design, not bug (5.23, after workshop): Verse = centred italic 0.75 em, built for a poem quoted in prose. A collection wants left-aligned roman verse at body size, hanging indent for run-overs, indent levels (`[[verse2]]`…), poem title = H1 with poem-per-page (H1 opener is heavy for poems — probably a lighter "poem-title" opener), stanza gap = 1 line not an ornament. Likely shape: a book-spec option `verse: quoted | collection` in `bookspecs.go` + template branch in `#poem`, or a per-book preset. Not before Wed.
+
+Next action for the new session: restart the runpage on the new conv id; check the Floor (`factory_events` since 17:45 UTC) for Toby's and Sam's retries; if either failed, `/tmp/prodcal-failed/book-N/` has the kept build dir. Then back to the deck (3.2) as edits arrive.
+
+Metrics: ~55 % context at handoff; 0 files read in full via guard bypass.
