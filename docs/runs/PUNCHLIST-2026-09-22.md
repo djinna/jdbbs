@@ -1,11 +1,11 @@
-<!-- exported 2026-09-22 11:52 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-22 13:17 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punch list 4 · Workshop — Mon 21 / Tue 22 Sep · talk Wed 23
 
 Legend: **YOU** = Jenna's turn · **ME** = Shelley's turn · **BOTH** = look together.
 Ticked = done · ◐ = in progress. Click a box to cycle ☐ → ☑ → ◐. **note** opens a reply box under any item (⌘↵ saves; paste screenshots straight in) — I read those back. Bottom bar adds a new item to the Inbox (top). Refreshes every 15 s (pauses while you type). **Contents box** at the top jumps to a section; click a section heading to fold it (remembered on this device); done items sit folded under "n done"; long note threads show the latest note with "n earlier" above it.
 
-Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUNCHLIST-2026-09-19-list3) (Sat 19 Sep — one-page factory, proof vs. final, admin tidy) and earlier at [/admin/runs/](/admin/runs/), with every note thread. Item numbers carry over so threads stay attached (so a "0.x" item may live in any section — the contents box lists open item numbers per section); new items continue from 0.30 / 5.23.
+Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUNCHLIST-2026-09-19-list3) (Sat 19 Sep — one-page factory, proof vs. final, admin tidy) and earlier at [/admin/runs/](/admin/runs/), with every note thread. Item numbers carry over so threads stay attached (so a "0.x" item may live in any section — the contents box lists open item numbers per section); new items continue from 0.32 / 5.27.
 
 **Freeze:** Mon 21 – Wed 23 **hotfix-only** — triage every new item **Hotfix-now** (breaks an attendee) vs **After-workshop** (→ §5). Hotfix path: fix → `go test ./srv/` → `make build && sudo systemctl restart prodcal` → one factory smoke on `mcheck/book-001`. Store flips to live Stripe by timer **Wed 23 Sep 00:00 HKT**.
 
@@ -527,7 +527,23 @@ Short rows here; the long form lives in the archive — [list 3](/admin/runs/PUN
   >
   > UI: one row, three groups — Included (free, 6–8 pairings) · Studio library (+$50) · By request (+$150, the 6 above). If you’re happy with this I’ll turn it into a §6 of the memo and queue the OFL drop-in for after the workshop; the by-request list goes on /factory as text only until the first ask.
 
+- [ ] 5.25 **Custom styles = based-on + structural deltas** — decided 22 Sep (option C): transmittal row `Name · Based on · Indent (1.5 em / 3 em) · Space before (3× / 6× stanza gap) · Purpose`; parent required; deltas only for the sensible parents; snippet wins if I wrote one; resolved form shown on the transmittal + admin. Build Thu 24. [design note](https://github.com/djinna/jdbbs/blob/main/docs/reviews/CUSTOM-STYLES-MARKERS-2026-09-22.md)
+- [ ] 5.26 **Inline character markers** — `Type [[code]]ls -la[[/code]] to…` inside a paragraph = character style (factory: sc, code, book title, foreign… + declared character styles with based-on italic/small caps/code). Same pre-pass; Thu 24 with 5.25
+- [ ] 5.27 **Tone pass on Inspect / build-error strings** — helpful, not scolding ("we don't know that one yet — add it under Custom styles…"); rule: factory fixes how it looks, author fixes what it is
+- [x] 0.31 **Build QC mail this week** — every build (proof/final/failed) mails you before + after links (source .docx, PDF, EPUB, Inspect, Floor); Floor feed links [docx · pdf · epub] on every "book N" (2b73cc8). Off after the workshop: drop `PRODCAL_BUILD_QC_EMAIL` from .env
+
+  > **shelley** · 2026-09-22 13:17 UTC  
+  > Live (2b73cc8, restarted 13:14 UTC, mcheck smoke green). You got the first one: “QC · mcheck · … (proof both, book 54)”. Links, not attachments — before = the uploaded .docx (new /download/source route), after = newest PDF/EPUB of that kind, plus Inspect report, factory page, Floor. Failed builds mail too (FAILED in the subject). On the Floor every “book N” now has [docx · pdf · epub]. Remind me to switch it off after the workshop.
+
+- [x] 0.32 **Verse standard → roman, left, hanging indent** (print + EPUB; was centred italic / monospace) — live per build, 1d08665
 - [ ] 5.23 **Poetry collection preset** — Verse is designed for a poem quoted inside prose (centred, italic, 0.75em); a book *of* poems wants left-aligned roman verse, hanging indent for run-overs, indent levels (`[[verse2]]`/`[[verse3]]` — Toby invented them; unresolved markers print literally), poem title = H1 with poem-per-page. Spec option or per-book preset. (from Devotion, 21 Sep)
+
+  > **shelley** · 2026-09-22 12:04 UTC  
+  > Tue 22 12:10 UTC — Floor: Sam Khoo rebuilt book 45 at 18:05 UTC, green in 11 s, proof PDF downloaded. Toby (29): no retry yet. Checked his file: every one of 508 paras is Body A with the identical 18pt hanging indent — his indent levels exist only as marker names (verse ×381, verse2 ×21, verse3 ×4, break ×48, break2 ×3, plus 32 blank paras). Design discussion on custom-styles-via-marker happening in chat now; no code before Wed.
+
+  > **shelley** · 2026-09-22 13:17 UTC  
+  > Split: the custom-style mechanism is now 5.25 (decided, build Thu) + 5.26 inline character markers; Verse itself fixed today as 0.32 (roman, left). 5.23 keeps only the collection-specific bits: poem-per-page + lighter poem-title opener + size — parked until a collection is actually in flow.
+
 - [ ] 5.24 **Build-error wording** — "This is our bug" + the Signature/Epigraph guess was wrong for book 45 (it was the Title/Subtitle offset). Say "our bug, email us" without diagnosing the cause when we can't be sure; log the Typst line for us.
 - [ ] 0.30 **/factory header follows the transmittal title** — project name syncs from `book.title` on save (pass projects) + header updates live; after workshop
 
