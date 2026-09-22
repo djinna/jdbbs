@@ -56,19 +56,23 @@ func (s *Server) sendBuildQCEmail(book dbgen.Book, format string, elapsed time.D
 	}
 	base := strings.TrimRight(s.BaseURL, "/")
 	kind := buildKindOf(book)
-	links := [][2]string{
-		{"Before", fmt.Sprintf("%s/api/books/%d/download/source", base, book.ID)},
-		{"After (PDF)", fmt.Sprintf("%s/api/books/%d/download/pdf?kind=%s", base, book.ID, kind)},
-		{"After (EPUB)", fmt.Sprintf("%s/api/books/%d/download/epub?kind=%s", base, book.ID, kind)},
-		{"Inspect report", fmt.Sprintf("%s/api/projects/%d/preflight/report?book_id=%d", base, project.ID, book.ID)},
-		{"Factory page", s.portalURL(project.ClientSlug, project.ProjectSlug)},
-		{"Floor", base + "/admin/factory/"},
+	links := [][2]string{{"Before", fmt.Sprintf("%s/api/books/%d/download/source", base, book.ID)}}
+	if format != "epub" {
+		links = append(links, [2]string{"After (PDF)", fmt.Sprintf("%s/api/books/%d/download/pdf?kind=%s", base, book.ID, kind)})
 	}
-	if format == "epub" {
-		links = append(links[:1], links[2:]...)
-	} else if format == "pdf" {
-		links = append(links[:2], links[3:]...)
+	if format != "pdf" {
+		links = append(links, [2]string{"After (EPUB)", fmt.Sprintf("%s/api/books/%d/download/epub?kind=%s", base, book.ID, kind)})
 	}
+	// Only link the Inspect report when one exists — an un-Inspected book
+	// (e.g. an admin smoke copy) would otherwise 404 (Jenna, 13:25 UTC).
+	if _, err := q.GetLatestManuscriptPreflight(ctx, dbgen.GetLatestManuscriptPreflightParams{ProjectID: project.ID, BookID: book.ID}); err == nil {
+		links = append(links, [2]string{"Inspect report", fmt.Sprintf("%s/api/projects/%d/preflight/report?book_id=%d", base, project.ID, book.ID)})
+	} else {
+		links = append(links, [2]string{"Inspect", "not run on this upload"})
+	}
+	links = append(links,
+		[2]string{"Factory page", s.portalURL(project.ClientSlug, project.ProjectSlug)},
+		[2]string{"Floor", base + "/admin/factory/"})
 
 	outcome := fmt.Sprintf("%s %s built in %s", kind, format, elapsed.Round(time.Second))
 	subject := fmt.Sprintf("QC · %s · %s (%s %s, book %d)", project.ClientSlug, book.Title, kind, format, book.ID)
@@ -90,7 +94,11 @@ func (s *Server) sendBuildQCEmail(book dbgen.Book, format string, elapsed time.D
 		{"Outcome", html.EscapeString(outcome)},
 	}
 	for _, l := range links {
-		rows = append(rows, [2]string{l[0], emailLink(l[1], l[1])})
+		if strings.HasPrefix(l[1], "http") {
+			rows = append(rows, [2]string{l[0], emailLink(l[1], l[1])})
+		} else {
+			rows = append(rows, [2]string{l[0], html.EscapeString(l[1])})
+		}
 	}
 	var hb strings.Builder
 	hb.WriteString(emailKV(rows))

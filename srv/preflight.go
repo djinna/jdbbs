@@ -403,7 +403,7 @@ func (s *Server) handleGetManuscriptPreflightReport(w http.ResponseWriter, r *ht
 	if preflightIDStr == "" {
 		row, err = q.GetLatestManuscriptPreflight(r.Context(), dbgen.GetLatestManuscriptPreflightParams{ProjectID: pid, BookID: bookID})
 		if errors.Is(err, sql.ErrNoRows) {
-			jsonErr(w, "not found", 404)
+			jsonErr(w, fmt.Sprintf("no Inspect report for book %d yet — run Inspect on the factory page first", bookID), 404)
 			return
 		}
 		if err != nil {
