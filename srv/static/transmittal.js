@@ -211,6 +211,8 @@ function setField(path, value) {
   if (path === 'book.title') {
     const el = document.querySelector('.page-header-title');
     if (el) el.textContent = value || state.project?.Name || 'Transmittal';
+    // The factory page (one-page mode) owns the header + sticky strip title.
+    document.dispatchEvent(new CustomEvent('tx:title', { detail: { title: value || '' } }));
   }
 }
 
@@ -1303,14 +1305,22 @@ function renderCustomStyleRow(style, i, removeCustomStyle) {
     h('select', { onChange: onParentChange }, ...basedOnOptions.map(([v, l]) => {
       const o = h('option', { value: v }, l); if (v === parent) o.selected = true; return o;
     })));
+  // Delta selects re-render so the "In the book" line follows the choice.
+  const deltaSelect = (label, key, options) => {
+    const cur = String(getField(`${base}.${key}`) || options[0][0]);
+    return h('div', { className: 'tx-field' },
+      h('label', null, label),
+      h('select', { onChange: (e) => { setField(`${base}.${key}`, e.target.value); render(); } },
+        ...options.map(([v, l]) => { const o = h('option', { value: v }, l); if (v === cur) o.selected = true; return o; })));
+  };
   const deltas = [];
   if (type === 'paragraph' && CUSTOM_STYLE_INDENT_PARENTS.has(parent)) {
-    deltas.push(selectField('Indent', `${base}.indent`, [
+    deltas.push(deltaSelect('Indent', 'indent', [
       ['0', 'none'], ['1', 'one level (1.5 em)'], ['2', 'two levels (3 em)'],
     ]));
   }
   if (type === 'paragraph' && CUSTOM_STYLE_SPACE_PARENTS.has(parent)) {
-    deltas.push(selectField('Space before', `${base}.space_before`, [
+    deltas.push(deltaSelect('Space before', 'space_before', [
       ['1', 'as usual'], ['3', '3\u00d7 the stanza gap'], ['6', '6\u00d7 the stanza gap'],
     ]));
   }

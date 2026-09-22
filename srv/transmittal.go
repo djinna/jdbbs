@@ -262,6 +262,18 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 	if body.Status != oldStatus {
 		s.factoryEventR(r, pid, "transmittal."+body.Status, "was "+oldStatus)
 	}
+	// 0.30/0.33: on a Factory Pass project the project *is* the book, so the
+	// project name (page header, Floor, Your books) follows the transmittal's
+	// title. Studio projects keep the name Jenna gave them.
+	if title := transmittalBookTitle(dataStr); title != "" {
+		if pass := s.passForProject(r.Context(), pid); pass != nil {
+			if _, err := s.DB.ExecContext(r.Context(),
+				`UPDATE projects SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND name != ?`,
+				title, pid, title); err != nil {
+				slog.Warn("transmittal title → project name", "project_id", pid, "err", err)
+			}
+		}
+	}
 	if body.Status == "final" && oldStatus != "final" {
 		if pass := s.passForProject(r.Context(), pid); pass != nil {
 			title := transmittalBookTitle(dataStr)

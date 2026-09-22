@@ -197,6 +197,8 @@ function renderHeader() {
   var name = (S.project && S.project.Name) || S.projectSlug || 'Your book';
   setText($('fx-title'), name);
   document.title = name + ' — Factory';
+  var stripTitle = $('fx-step-title');
+  if (stripTitle) { setText(stripTitle, name); stripTitle.hidden = false; stripTitle.title = name; }
 
   var author = S.current && S.current.author;
   setText($('fx-byline'), author ? 'by ' + author : '');
@@ -1297,6 +1299,25 @@ function mountTransmittal(info) {
     esc(S.contactEmail) + '">' + esc(S.contactEmail) + '</a>.</p>';
   loadTransmittal().then(renderSteps);
 }
+// 0.33: the transmittal's Book title drives the header and the sticky strip
+// live; the server mirrors it into the project name on save (pass projects).
+document.addEventListener('tx:title', function (e) {
+  var t = e.detail && e.detail.title;
+  if (!t) return;
+  if (S.project) { if (S.project.Name != null) S.project.Name = t; else S.project.name = t; }
+  setText($('fx-title'), t);
+  document.title = t + ' — Factory';
+  var stripTitle = $('fx-step-title');
+  if (stripTitle) { setText(stripTitle, t); stripTitle.hidden = false; stripTitle.title = t; }
+});
+// Factory build version in the strip (GET /api/version, set by the Makefile).
+(function showVersion() {
+  var el = $('fx-version');
+  if (!el || !window.fetch) return;
+  fetch('/api/version', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { if (j && j.version) setText(el, j.version); })
+    .catch(function () {});
+})();
 document.addEventListener('tx:status', function (e) {
   S.transmittalStatus = e.detail && e.detail.status ? e.detail.status : null;
   renderSteps();

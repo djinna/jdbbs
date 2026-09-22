@@ -144,6 +144,7 @@ func (s *Server) Handler() http.Handler {
 
 	// Health check
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
+	mux.HandleFunc("GET /api/version", s.handleVersion)
 
 	// Public landing summary (non-sensitive aggregate counts)
 	mux.HandleFunc("GET /api/public/summary", s.handlePublicSummary)
@@ -702,7 +703,7 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": BuildVersion})
 }
 
 // bcryptCost is the bcrypt work factor used for hashing passwords and tokens.
