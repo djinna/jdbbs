@@ -69,7 +69,7 @@ func (q *Queries) GetBookSpecCover(ctx context.Context, projectID int64) (GetBoo
 }
 
 const updateBookSpecCover = `-- name: UpdateBookSpecCover :exec
-UPDATE book_specs SET cover_data = ?, cover_type = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?
+UPDATE book_specs SET cover_data = ?, cover_type = ? WHERE project_id = ?
 `
 
 type UpdateBookSpecCoverParams struct {

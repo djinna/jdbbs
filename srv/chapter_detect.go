@@ -480,9 +480,12 @@ func (s *Server) storeChapterSuggestions(ctx context.Context, projectID int64, c
 		return err
 	}
 	_, err = s.DB.ExecContext(ctx,
+		// updated_at is deliberately left alone: it is the "spec is newer than
+		// the transmittal" gate in syncSpecFromTransmittal, and a suggestion
+		// written at upload time must not make the build skip re-pulling the
+		// custom styles the author declared minutes earlier (5.25, book 58).
 		`UPDATE book_specs
-		    SET data = json_set(data, '$.chapters_suggested', json(?)),
-		        updated_at = CURRENT_TIMESTAMP
+		    SET data = json_set(data, '$.chapters_suggested', json(?))
 		  WHERE project_id = ?`,
 		string(payload), projectID)
 	return err

@@ -1,6 +1,12 @@
 package srv
 
-import "testing"
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"srv.exe.dev/db/dbgen"
+)
 
 func TestAdminSpecCustomStylesPreserveTypeAndDescriptionOnSave(t *testing.T) {
 	_, ts, cleanup := testServer(t)
@@ -75,4 +81,68 @@ func TestAdminSpecCustomStylesPreserveTypeAndDescriptionOnSave(t *testing.T) {
 	assertStyle(0, "tweet", "paragraph", "Tweet block")
 	assertStyle(1, "metadata-c", "character", "Inline metadata")
 	assertStyle(2, "metadata-p", "paragraph", "Metadata paragraph")
+}
+
+// A style declared on a final transmittal must reach the build even when an
+// incidental spec write (chapter suggestions at upload, cover upload) happens
+// afterwards. Before the fix those writes bumped book_specs.updated_at, the
+// sync gate read "spec newer than transmittal" and skipped the re-pull, and
+// [[verse2]] printed literally (mcheck book 58, 2026-09-22).
+func TestIncidentalSpecWritesDoNotBlockTransmittalRePull(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]any{
+		"name": "Re-pull", "start_date": "2026-09-01", "client_slug": "vgr", "project_slug": "repull",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: %d", resp.StatusCode)
+	}
+	var project map[string]any
+	decodeJSON(t, resp, &project)
+	pid := int64(project["ID"].(float64))
+	pidStr := itoa(pid)
+
+	put := func(styles []map[string]any) {
+		resp := apiRequestAdmin(t, ts, "PUT", "/api/projects/"+pidStr+"/transmittal", map[string]any{
+			"status": "final",
+			"data":   map[string]any{"custom_styles": styles},
+		})
+		if resp.StatusCode != 200 {
+			t.Fatalf("put transmittal: %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+	// First final: spec pulled with one style.
+	put([]map[string]any{{"name": "aside", "type": "paragraph", "based_on": "Block Quote"}})
+	if _, err := s.syncSpecFromTransmittal(context.Background(), pid, true); err != nil {
+		t.Fatalf("first sync: %v", err)
+	}
+	// Author declares a second style; the transmittal row is now the newer one.
+	// (Timestamps are whole seconds: push the transmittal clearly ahead.)
+	put([]map[string]any{
+		{"name": "aside", "type": "paragraph", "based_on": "Block Quote"},
+		{"name": "verse2", "type": "paragraph", "based_on": "Verse", "indent": 1},
+	})
+	if _, err := s.DB.Exec(`UPDATE book_specs SET updated_at = datetime('now','-10 seconds') WHERE project_id = ?`, pid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.Exec(`UPDATE transmittals SET updated_at = datetime('now','-5 seconds') WHERE project_id = ?`, pid); err != nil {
+		t.Fatal(err)
+	}
+	// Then uploads a manuscript: chapter detection writes suggestions; and a cover.
+	if err := s.storeChapterSuggestions(context.Background(), pid, []detectedChapter{}); err != nil {
+		t.Fatalf("store suggestions: %v", err)
+	}
+	if err := dbgen.New(s.DB).UpdateBookSpecCover(context.Background(), dbgen.UpdateBookSpecCoverParams{
+		CoverData: []byte("x"), CoverType: "image/png", ProjectID: pid,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := s.syncSpecFromTransmittal(context.Background(), pid, true)
+	if err != nil {
+		t.Fatalf("sync after incidental writes: %v", err)
+	}
+	if !strings.Contains(data, `"verse2"`) {
+		t.Fatalf("verse2 not pulled into spec after incidental writes; spec custom_styles: %s", data)
+	}
 }

@@ -15,4 +15,5 @@ DELETE FROM book_specs WHERE project_id = ?;
 SELECT id, project_id, cover_data, cover_type FROM book_specs WHERE project_id = ?;
 
 -- name: UpdateBookSpecCover :exec
-UPDATE book_specs SET cover_data = ?, cover_type = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?;
+-- Does not touch updated_at: that column gates the transmittal re-pull (syncSpecFromTransmittal).
+UPDATE book_specs SET cover_data = ?, cover_type = ? WHERE project_id = ?;
