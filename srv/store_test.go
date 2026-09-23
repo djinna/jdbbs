@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"srv.exe.dev/db/dbgen"
 )
@@ -282,5 +283,58 @@ func TestStoreSessionEndpointBadID(t *testing.T) {
 	decodeJSON(t, resp, &body)
 	if body["error"] == "" {
 		t.Errorf("error response = %#v, want JSON error", body)
+	}
+}
+
+// TestStoreEnsurePromoSkipsExpiredAndContinues reproduces the go-live
+// failure of Tue 22 Sep: WORKSHOP49 had already expired, Stripe returned 400
+// on its expires_at, and the loop stopped before PROTOCOL50 was created.
+// Expired promos must be skipped without a Stripe call, and a failing promo
+// must not prevent the later ones from being created.
+func TestStoreEnsurePromoSkipsExpiredAndContinues(t *testing.T) {
+	var created []string
+	var listed []string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/coupons/", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"id": strings.TrimPrefix(r.URL.Path, "/v1/coupons/")})
+	})
+	mux.HandleFunc("/v1/promotion_codes", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			listed = append(listed, r.URL.Query().Get("code"))
+			json.NewEncoder(w).Encode(map[string]any{"data": []any{}, "has_more": false})
+			return
+		}
+		_ = r.ParseForm()
+		code := r.PostForm.Get("code")
+		if code == "BROKEN" {
+			http.Error(w, `{"error":{"message":"boom"}}`, http.StatusBadRequest)
+			return
+		}
+		created = append(created, code)
+		json.NewEncoder(w).Encode(map[string]any{"id": "promo_" + code, "code": code, "active": true})
+	})
+	fake := httptest.NewServer(mux)
+	defer fake.Close()
+	t.Setenv("PRODCAL_STRIPE_URL", fake.URL)
+
+	saved := storePromos
+	defer func() { storePromos = saved }()
+	storePromos = []storePromo{
+		{Code: "OLD", CouponID: "old", AmountOff: 100, Expires: time.Now().Add(-time.Hour)},
+		{Code: "BROKEN", CouponID: "broken", PercentOff: 10, Expires: time.Now().Add(time.Hour)},
+		{Code: "ALIVE", CouponID: "alive", PercentOff: 50, Expires: time.Now().Add(time.Hour), MaxRedemptions: 3},
+	}
+	st := &store{stripe: newStripeClient(), product: "prod_pass"}
+	err := st.ensurePromo(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "BROKEN") {
+		t.Fatalf("want BROKEN error reported, got %v", err)
+	}
+	if strings.Join(created, ",") != "ALIVE" {
+		t.Errorf("created %v, want only ALIVE", created)
+	}
+	for _, c := range listed {
+		if c == "OLD" {
+			t.Errorf("expired promo OLD was looked up in Stripe; should be skipped locally")
+		}
 	}
 }

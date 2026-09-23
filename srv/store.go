@@ -220,14 +220,24 @@ func (st *store) syncProductCopy(ctx context.Context, productID string, it store
 
 // ensurePromo makes sure every storePromos entry exists in Stripe: the
 // coupon (restricted to the pass product) by fixed id, then the promotion
-// code by code. Idempotent; expired codes are left alone.
+// code by code. Idempotent. A promo whose expiry has already passed is
+// skipped, not created: Stripe rejects a past expires_at with a 400, and on
+// go-live (Tue 22 Sep 16:00 UTC) that single failure on WORKSHOP49 stopped
+// the loop before PROTOCOL50 was ever created. One bad promo must not
+// block the others, so errors are collected and the loop runs to the end.
 func (st *store) ensurePromo(ctx context.Context) error {
+	now := time.Now()
+	var errs []error
 	for _, p := range storePromos {
+		if !p.Expires.IsZero() && p.Expires.Before(now) {
+			slog.Info("store: promo expired, not creating", "code", p.Code, "expired", p.Expires.UTC().Format(time.RFC3339))
+			continue
+		}
 		if err := st.ensureOnePromo(ctx, p); err != nil {
-			return fmt.Errorf("%s: %w", p.Code, err)
+			errs = append(errs, fmt.Errorf("%s: %w", p.Code, err))
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (st *store) ensureOnePromo(ctx context.Context, p storePromo) error {
