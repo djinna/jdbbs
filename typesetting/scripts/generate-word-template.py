@@ -37,6 +37,73 @@ SECTION_BREAK_CHARS = {
 }
 
 
+def _make_last_run_footnote(doc, paragraph):
+    """Turn the last run of `paragraph` into a real Word footnote.
+
+    python-docx has no footnote API. We add word/footnotes.xml (with the two
+    required separator notes) on first use, move the run's text into a new
+    footnote, and leave a footnoteReference run in its place. If anything about
+    the package is unexpected, fall back to plain parenthesised text so the
+    template still generates.
+    """
+    try:
+        from docx.opc.constants import RELATIONSHIP_TYPE as RT
+        from docx.opc.packuri import PackURI
+        from docx.opc.part import Part
+        from docx.oxml import parse_xml
+        from docx.oxml.ns import nsdecls, qn
+    except Exception:  # pragma: no cover
+        return
+    run = paragraph.runs[-1]
+    note_text = run.text
+    doc_part = doc.part
+    fn_part = None
+    for rel in doc_part.rels.values():
+        if rel.reltype == RT.FOOTNOTES:
+            fn_part = rel.target_part
+            break
+    if fn_part is None:
+        xml = (
+            '<w:footnotes %s>'
+            '<w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>'
+            '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>'
+            '</w:footnotes>' % nsdecls("w")
+        )
+        fn_part = Part(
+            PackURI("/word/footnotes.xml"),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml",
+            xml.encode("utf-8"),
+            doc_part.package,
+        )
+        doc_part.relate_to(fn_part, RT.FOOTNOTES)
+    try:
+        root = parse_xml(fn_part.blob)
+    except Exception:  # pragma: no cover
+        run.text = " (" + note_text + ")"
+        return
+    ids = [int(el.get(qn("w:id"))) for el in root.findall(qn("w:footnote"))]
+    new_id = max([i for i in ids if i > 0] + [0]) + 1
+    note = parse_xml(
+        '<w:footnote %s w:id="%d"><w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr>'
+        '<w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:footnoteRef/></w:r>'
+        '<w:r><w:t xml:space="preserve"> %s</w:t></w:r></w:p></w:footnote>'
+        % (nsdecls("w"), new_id, note_text.replace("&", "&amp;").replace("<", "&lt;"))
+    )
+    root.append(note)
+    from lxml import etree
+    fn_part._blob = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+    # Replace the run's text with a footnote reference.
+    r = run._r
+    for t in r.findall(qn("w:t")):
+        r.remove(t)
+    rpr = r.find(qn("w:rPr"))
+    if rpr is None:
+        rpr = parse_xml("<w:rPr %s/>" % nsdecls("w"))
+        r.insert(0, rpr)
+    rpr.append(parse_xml('<w:vertAlign %s w:val="superscript"/>' % nsdecls("w")))
+    r.append(parse_xml('<w:footnoteReference %s w:id="%d"/>' % (nsdecls("w"), new_id)))
+
+
 def _weight_to_bold(weight) -> bool | None:
     """Convert a heading weight spec to a python-docx bold flag.
 
@@ -657,6 +724,26 @@ def build_template(spec: dict) -> Document:
         "Subsequent paragraphs in the same section use Normal style with the "
         "first-line indent. Only the first paragraph after a heading or break "
         "should use 'First Paragraph' (no indent)."
+    )
+
+    # --- Inside a paragraph (0.45: bold / italic / footnotes need no marker) ---
+    p = doc.add_heading("Inside a paragraph", level=3)
+    p = doc.add_paragraph(style="First Paragraph")
+    p.add_run("Styles are names for whole paragraphs. Inside a paragraph, just use the buttons: ")
+    p.add_run("italic").italic = True
+    p.add_run(" (⌘I / Ctrl+I) for emphasis, titles and foreign words, ")
+    p.add_run("bold").bold = True
+    p.add_run(
+        " (⌘B / Ctrl+B) where the book needs it, and Word’s own footnotes "
+        "(References → Insert Footnote) for notes"
+    )
+    p.add_run("This footnote is set at the foot of the printed page and becomes a pop-up note in the EPUB.")
+    # The last run is turned into a real footnote below, once the paragraph exists.
+    _make_last_run_footnote(doc, p)
+    p.add_run(
+        ". None of these needs a custom style or a [[marker]]; the factory carries "
+        "them through as they are. Declare a custom style only for a kind of "
+        "paragraph the list above does not have."
     )
 
     # --- First Paragraph ---
