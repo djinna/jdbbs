@@ -77,9 +77,50 @@ func declaredCustomStylesList(specData string) ([]map[string]any, error) {
 		if !ok {
 			continue
 		}
-		out = append(out, m)
+		// Copy with marker brackets stripped from the names (cleanStyleName),
+		// so the pre-pass and Inspect match what the author typed in the text.
+		c := make(map[string]any, len(m))
+		for k, v := range m {
+			c[k] = v
+		}
+		for _, k := range []string{"name", "word_style"} {
+			if v, ok := c[k].(string); ok {
+				c[k] = cleanStyleName(v)
+			}
+		}
+		out = append(out, c)
 	}
 	return out, nil
+}
+
+// bracketedDeclaredStyleFindings reports, as Inspect findings, every declared
+// style whose name was typed with marker brackets around it.
+func bracketedDeclaredStyleFindings(specData string) []map[string]any {
+	if strings.TrimSpace(specData) == "" {
+		return nil
+	}
+	var spec map[string]any
+	if err := json.Unmarshal([]byte(specData), &spec); err != nil {
+		return nil
+	}
+	styles, _ := spec["custom_styles"].([]any)
+	var out []map[string]any
+	for _, item := range styles {
+		m, _ := item.(map[string]any)
+		name, _ := m["name"].(string)
+		if !hasStyleNameBrackets(name) {
+			continue
+		}
+		out = append(out, map[string]any{
+			"type":       "bracketed_style_name",
+			"style_name": strings.TrimSpace(name),
+			"location":   "transmittal · custom styles",
+			"text":       fmt.Sprintf("Custom style declared as “%s” — read as “%s”.", strings.TrimSpace(name), cleanStyleName(name)),
+			"severity":   "low",
+			"suggestion": "The brackets go in the text, not the name: declare the style as “" + cleanStyleName(name) + "” and mark paragraphs [[" + cleanStyleName(name) + "]]. The factory already reads it that way; this is tidy-up.",
+		})
+	}
+	return out
 }
 
 func writeDeclaredStylesFile(tmpDir, specData string) (string, error) {
@@ -544,6 +585,14 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 		jsonBytes = []byte("[]")
 	}
 	jsonBytes, err = appendUndeclaredStyleWarnings(jsonBytes, specData)
+	if err == nil {
+		if extra := bracketedDeclaredStyleFindings(specData); len(extra) > 0 {
+			var findings []map[string]any
+			if uErr := json.Unmarshal(jsonBytes, &findings); uErr == nil {
+				jsonBytes, err = json.Marshal(append(findings, extra...))
+			}
+		}
+	}
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return

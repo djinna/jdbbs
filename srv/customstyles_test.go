@@ -182,3 +182,35 @@ func TestRewriteSnippetIdent(t *testing.T) {
 		t.Error("matching ident must be left alone")
 	}
 }
+
+func TestCleanStyleNameStripsMarkerBrackets(t *testing.T) {
+	// Mike Casey, project 18: declared "[[commentary]]", marked [[commentary]].
+	for in, want := range map[string]string{
+		"[[commentary]]": "commentary", "[[ Side Note ]]": "Side Note", "[verse2]": "verse2",
+		"commentary": "commentary", "  Field Note ": "Field Note", "[[[[x]]]]": "x", "": "",
+	} {
+		if got := cleanStyleName(in); got != want {
+			t.Errorf("cleanStyleName(%q) = %q, want %q", in, got, want)
+		}
+	}
+	ns, ok := normalizeCustomStyle(map[string]any{"name": "[[commentary]]", "word_style": "[[commentary]]"}, nil)
+	if !ok || ns["name"] != "commentary" || ns["word_style"] != "commentary" {
+		t.Errorf("normalizeCustomStyle kept brackets: %v", ns)
+	}
+	spec := `{"custom_styles":[{"name":"[[commentary]]","type":"paragraph"}]}`
+	ps := declaredStylesForPandoc(spec)
+	if len(ps) != 1 || ps[0].WordStyle != "commentary" || ps[0].Ident != "commentary" {
+		t.Errorf("declaredStylesForPandoc = %+v", ps)
+	}
+	list, _ := declaredCustomStylesList(spec)
+	if len(list) != 1 || list[0]["name"] != "commentary" {
+		t.Errorf("declaredCustomStylesList = %v", list)
+	}
+	f := bracketedDeclaredStyleFindings(spec)
+	if len(f) != 1 || f[0]["type"] != "bracketed_style_name" || !strings.Contains(f[0]["suggestion"].(string), "brackets go in the text") {
+		t.Errorf("findings = %v", f)
+	}
+	if f := bracketedDeclaredStyleFindings(`{"custom_styles":[{"name":"commentary"}]}`); len(f) != 0 {
+		t.Errorf("clean name produced a finding: %v", f)
+	}
+}

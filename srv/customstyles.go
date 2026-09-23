@@ -105,6 +105,34 @@ var typstReservedIdents = map[string]bool{
 	"wrap-image": true, "xml": true, "yaml": true,
 }
 
+// styleNameBrackets matches a declared style name wrapped in marker brackets.
+var styleNameBrackets = regexp.MustCompile(`^\[\[\s*(.*?)\s*\]\]$|^\[\s*(.*?)\s*\]$`)
+
+// cleanStyleName trims a declared style name and strips marker brackets
+// typed around it. Mike Casey (project 18, book 62) named his style
+// literally "[[commentary]]" on the transmittal, so none of his four
+// [[commentary]] markers matched and the proof printed the marker. The
+// brackets belong in the manuscript text, not in the name.
+func cleanStyleName(s string) string {
+	s = strings.TrimSpace(s)
+	for {
+		m := styleNameBrackets.FindStringSubmatch(s)
+		if m == nil {
+			return s
+		}
+		inner := m[1]
+		if inner == "" {
+			inner = m[2]
+		}
+		s = strings.TrimSpace(inner)
+	}
+}
+
+// hasStyleNameBrackets reports whether cleanStyleName would change s.
+func hasStyleNameBrackets(s string) bool {
+	return cleanStyleName(s) != strings.TrimSpace(s)
+}
+
 func normalizeStyleKey(s string) string {
 	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(s)), " "))
 }
@@ -180,11 +208,11 @@ func normalizeCustomStyle(m map[string]any, prev map[string]any) (map[string]any
 		return 0, false
 	}
 
-	name := str(m, "name")
+	name := cleanStyleName(str(m, "name"))
 	if name == "" {
 		return nil, false
 	}
-	wordStyle := str(m, "word_style")
+	wordStyle := cleanStyleName(str(m, "word_style"))
 	if wordStyle == "" {
 		wordStyle = name
 	}

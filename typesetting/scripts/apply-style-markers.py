@@ -77,8 +77,18 @@ SUGGESTED_NAMES = "code block, block quote, epigraph, verse, first paragraph, se
 
 
 def normalize(name: str) -> str:
-    """Same normalisation as the Lua filter: lower, drop spaces/-/_."""
-    return re.sub(r"[\s\-_]", "", (name or "").lower())
+    """Same normalisation as the Lua filter: lower, drop spaces/-/_.
+
+    Marker brackets typed around a declared name ("[[commentary]]") are
+    stripped too, so it matches the marker [[commentary]] in the text.
+    """
+    name = (name or "").strip()
+    while True:
+        m = re.match(r"^\[\[\s*(.*?)\s*\]\]$|^\[\s*(.*?)\s*\]$", name)
+        if not m:
+            break
+        name = (m.group(1) if m.group(1) is not None else m.group(2) or "").strip()
+    return re.sub(r"[\s\-_]", "", name.lower())
 
 
 class StyleResolver:

@@ -1764,17 +1764,18 @@ func declaredStylesForPandoc(specJSON string) []pandocStyle {
 		name, _ := m["name"].(string)
 		word, _ := m["word_style"].(string)
 		typ, _ := m["type"].(string)
-		name = strings.TrimSpace(name)
+		name = cleanStyleName(name)
 		if name == "" {
 			continue
 		}
-		if strings.TrimSpace(word) == "" {
+		word = cleanStyleName(word)
+		if word == "" {
 			word = name
 		}
 		if typ != "character" {
 			typ = "paragraph"
 		}
-		out = append(out, pandocStyle{WordStyle: strings.TrimSpace(word), Ident: typstStyleIdent(name), Type: typ, Coalesce: customStyleCoalesces(m)})
+		out = append(out, pandocStyle{WordStyle: word, Ident: typstStyleIdent(name), Type: typ, Coalesce: customStyleCoalesces(m)})
 	}
 	return out
 }
