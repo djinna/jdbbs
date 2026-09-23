@@ -3,6 +3,7 @@ package srv
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -47,11 +48,61 @@ var designedPresets = map[string]bool{
 // function. Fotis (book 57, 2026-09-22) declared a style called "break" and the
 // generated `#let break(content)` stopped the typesetter with an error that
 // pointed him at his manuscript — the string existed only in our file.
+// typstReservedIdents are names a custom style may not take as its Typst
+// identifier: Typst keywords (Fotis: `break`), Typst built-in functions and
+// values (cblass: `center` — `#let center(content)` shadowed the alignment
+// and broke `align(center)` in the template with "expected content, found
+// function"), and every `#let` defined by our own templates (`bold`, `ital`,
+// `sc`, `poem`, `chapter`…). TestTypstReservedCoversTemplateLets scans the
+// templates so the last group cannot drift.
 var typstReservedIdents = map[string]bool{
-	"let": true, "set": true, "show": true, "if": true, "else": true, "for": true, "in": true,
-	"while": true, "break": true, "continue": true, "return": true, "import": true,
-	"include": true, "as": true, "not": true, "and": true, "or": true, "none": true,
-	"auto": true, "true": true, "false": true, "context": true,
+	"abstract": true, "acronym": true, "align": true, "allcaps": true, "and": true, "angle": true,
+	"arguments": true, "array": true, "articletitle": true, "as": true, "assert": true, "at": true,
+	"author": true, "auto": true, "bibliography": true, "blank-page": true, "blank-pages": true, "block": true,
+	"blockquote": true, "body": true, "body-para": true, "body-start-page": true, "bold": true, "bold-ital": true,
+	"book": true, "book-info": true, "book-page": true, "booktitle": true, "bool": true, "bordered-image": true,
+	"bottom": true, "box": true, "break": true, "break-from": true, "break-to-recto": true, "bytes": true,
+	"calc": true, "cbor": true, "center": true, "chapter": true, "chapter-body-start": true, "chapter-opener": true,
+	"chapter-opener-image": true, "circle": true, "cite": true, "cmyk": true, "code-block": true, "colbreak": true,
+	"color": true, "columns": true, "config": true, "content": true, "contents-page": true, "context": true,
+	"continue": true, "copyright-page": true, "copyright-page-generated": true, "counter": true, "csv": true, "current-story-author": true,
+	"current-story-title": true, "date": true, "datetime": true, "default": true, "default-config": true, "dictionary": true,
+	"dir": true, "document": true, "drop-cap": true, "drop-folio-footer": true, "drop-folio-pages": true, "duration": true,
+	"ellipse": true, "ellipsis": true, "else": true, "emph": true, "end": true, "enum": true,
+	"epigraph": true, "eval": true, "false": true, "figure": true, "figure-inline": true, "figure-side": true,
+	"fill": true, "first": true, "first-line-indent": true, "first-para": true, "float": true, "fm-get": true,
+	"folio-text": true, "font": true, "footnote": true, "for": true, "foreign": true, "fraction": true,
+	"front-piece": true, "front-section": true, "frontispiece": true, "full-bleed-image": true, "full-page-image": true, "function": true,
+	"generated-end-page": true, "generated-front-matter": true, "glossary-entry": true, "gradient": true, "grid": true, "h": true,
+	"half-title": true, "heading": true, "height": true, "hide": true, "highlight": true, "horizon": true,
+	"hyphenate": true, "icon": true, "if": true, "image": true, "image-config": true, "image-grid": true,
+	"import": true, "in": true, "include": true, "indent": true, "index": true, "index-breakable": true,
+	"index-collect": true, "index-entry": true, "index-letter": true, "index-locators": true, "index-page": true, "index-sort-key": true,
+	"index-text": true, "inset": true, "int": true, "ital": true, "json": true, "justify": true,
+	"kerning": true, "keywords": true, "label": true, "lang": true, "last": true, "layout": true,
+	"leading": true, "left": true, "length": true, "let": true, "ligatures": true, "line": true,
+	"linebreak": true, "lining": true, "link": true, "list": true, "locate": true, "lower": true,
+	"ltr": true, "luma": true, "mark-page": true, "math": true, "measure": true, "merge-config": true,
+	"metadata": true, "module": true, "mono": true, "move": true, "name": true, "named": true,
+	"no-header": true, "none": true, "not": true, "numbering": true, "oldstyle": true, "or": true,
+	"ornament": true, "outline": true, "outset": true, "overline": true, "page": true, "page-background": true,
+	"page-carries-folio": true, "page-in-front-matter": true, "pagebreak": true, "panic": true, "par": true, "parbreak": true,
+	"parts-state": true, "path": true, "pattern": true, "place": true, "plain": true, "plugin": true,
+	"poem": true, "polygon": true, "portrait": true, "pos": true, "proof-line": true, "proof-stamp": true,
+	"pullquote": true, "query": true, "quote": true, "radius": true, "range": true, "ratio": true,
+	"raw": true, "read": true, "rect": true, "ref": true, "regex": true, "region": true,
+	"relative": true, "repr": true, "rest": true, "return": true, "rgb": true, "right": true,
+	"rotate": true, "rtl": true, "running-header": true, "sans": true, "sc": true, "scale": true,
+	"section-break": true, "section-break-gap": true, "section-break-stars": true, "selector": true, "set": true, "set-story-info": true,
+	"show": true, "signature": true, "size": true, "slant": true, "smallcaps": true, "spaced-ellipsis": true,
+	"spacing": true, "square": true, "stack": true, "stacked-author": true, "stacked-title": true, "start": true,
+	"start-back": true, "start-body": true, "state": true, "str": true, "strike": true, "stroke": true,
+	"strong": true, "style": true, "sub": true, "super": true, "suppress-header-pages": true, "symbol": true,
+	"sys": true, "table": true, "terms": true, "text": true, "tiling": true, "title": true,
+	"title-page": true, "title-page-full": true, "toc-entry": true, "toc-heading": true, "toml": true, "top": true,
+	"tracked": true, "tracking": true, "true": true, "type": true, "uline": true, "underline": true,
+	"upper": true, "v": true, "version": true, "weight": true, "while": true, "width": true,
+	"wrap-image": true, "xml": true, "yaml": true,
 }
 
 func normalizeStyleKey(s string) string {
@@ -272,7 +323,7 @@ func customStyleTypstDef(m map[string]any) string {
 	}
 	switch customStyleSource(cs) {
 	case "snippet":
-		return cs.Typst
+		return rewriteSnippetIdent(cs.Typst, typstStyleIdent(cs.Name))
 	case "preset":
 		return defaultCustomStyleTypst(cs.Name, cs.Type, cs.Preset)
 	}
@@ -378,4 +429,18 @@ func normalizeSpecCustomStyles(specJSON string) string {
 		return specJSON
 	}
 	return string(out)
+}
+
+var snippetLetHead = regexp.MustCompile(`^(\s*#let\s+)([A-Za-z_][A-Za-z0-9_-]*)(\s*\()`)
+
+// rewriteSnippetIdent makes a stored snippet define the identifier the Lua
+// filter will call. Snippets are saved with the ident of the day; when the
+// reserved list grows (cblass's `center`) an old `#let center(content)` must
+// still compile, so the head is rewritten to the current ident.
+func rewriteSnippetIdent(snippet, ident string) string {
+	m := snippetLetHead.FindStringSubmatchIndex(snippet)
+	if m == nil || snippet[m[4]:m[5]] == ident {
+		return snippet
+	}
+	return snippet[:m[4]] + ident + snippet[m[5]:]
 }

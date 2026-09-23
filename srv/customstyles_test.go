@@ -1,15 +1,23 @@
 package srv
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
 
 func TestTypstStyleIdentAvoidsKeywords(t *testing.T) {
 	// Fotis, book 57: a style named "break" produced `#let break(content)`.
+	// cblass, book 60: "center" produced `#let center(content)`, which
+	// shadowed the alignment and broke align(center) in the template.
+	// Fotis's BOLD/ITAL would have shadowed the template's own bold/ital.
 	for in, want := range map[string]string{
-		"break": "break-style", "Break": "break-style", "quote": "quote", "let": "let-style",
-		"none": "none-style", "verse2": "verse2", "Field Note": "field-note",
+		"break": "cs-break", "Break": "cs-break", "quote": "cs-quote", "let": "cs-let",
+		"none": "cs-none", "center": "cs-center", "right-justified": "right-justified",
+		"BOLD": "cs-bold", "Ital": "cs-ital", "poem": "cs-poem", "Chapter": "cs-chapter",
+		"verse2": "verse2", "Field Note": "field-note", "commentary": "commentary",
 	} {
 		if got := typstStyleIdent(in); got != want {
 			t.Errorf("typstStyleIdent(%q) = %q, want %q", in, got, want)
@@ -75,7 +83,7 @@ func TestCustomStyleTypstDefPrecedence(t *testing.T) {
 	if got := def(map[string]any{"name": "aside", "based_on": "Block Quote", "indent": float64(1)}); got != "#let aside(content) = blockquote(indent: 1, content)" {
 		t.Errorf("aside: %q", got)
 	}
-	if got := def(map[string]any{"name": "sub", "based_on": "Heading 2"}); got != "#let sub(content) = heading(level: 2, content)" {
+	if got := def(map[string]any{"name": "sub", "based_on": "Heading 2"}); got != "#let cs-sub(content) = heading(level: 2, content)" {
 		t.Errorf("sub: %q", got)
 	}
 	// Normal, no deltas: unchanged plain body paragraph
@@ -100,11 +108,11 @@ func TestCustomStyleTypstDefPrecedence(t *testing.T) {
 		t.Errorf("snippet must win: %q", got)
 	}
 	// keyword-named style is safe
-	if got := def(map[string]any{"name": "break", "based_on": "Section Break"}); !strings.HasPrefix(got, "#let break-style(") {
-		t.Errorf("break → break-style: %q", got)
+	if got := def(map[string]any{"name": "break", "based_on": "Section Break"}); !strings.HasPrefix(got, "#let cs-break(") {
+		t.Errorf("break → cs-break: %q", got)
 	}
 	// character parents
-	if got := def(map[string]any{"name": "ITAL", "type": "character", "based_on": "italic"}); got != "#let ital(content) = emph(content)" {
+	if got := def(map[string]any{"name": "ITAL", "type": "character", "based_on": "italic"}); got != "#let cs-ital(content) = emph(content)" {
 		t.Errorf("ITAL: %q", got)
 	}
 }
@@ -139,5 +147,38 @@ func TestNormalizeCustomStylesCarriesSnippetForward(t *testing.T) {
 	}
 	if !customStyleCoalesces(map[string]any{"name": "verse2", "based_on": "Verse"}) || customStyleCoalesces(map[string]any{"name": "n"}) {
 		t.Fatal("coalesce: Verse-based yes, Normal no")
+	}
+}
+
+// TestTypstReservedCoversTemplateLets: every `#let name(` our templates define
+// must be reserved, or a declared style with that name silently redefines it.
+func TestTypstReservedCoversTemplateLets(t *testing.T) {
+	files, _ := filepath.Glob("../typesetting/templates/*.typ")
+	if len(files) == 0 {
+		t.Skip("templates not found")
+	}
+	re := regexp.MustCompile(`(?m)^#let ([a-z][a-z0-9-]*)`)
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range re.FindAllStringSubmatch(string(b), -1) {
+			if !typstReservedIdents[m[1]] {
+				t.Errorf("%s defines #let %s but it is not in typstReservedIdents", filepath.Base(f), m[1])
+			}
+		}
+	}
+}
+
+func TestRewriteSnippetIdent(t *testing.T) {
+	// A snippet stored before the reserved list grew (cblass's `center`).
+	got := customStyleTypstDef(map[string]any{"name": "center", "type": "paragraph", "preset": "generic-paragraph",
+		"typst": "#let center(content) = {\n  text(style: \"italic\", content)\n}"})
+	if !strings.HasPrefix(got, "#let cs-center(content)") {
+		t.Errorf("stored snippet head not rewritten: %q", got)
+	}
+	if rewriteSnippetIdent("#let verse2(content) = poem(content)", "verse2") != "#let verse2(content) = poem(content)" {
+		t.Error("matching ident must be left alone")
 	}
 }

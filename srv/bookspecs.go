@@ -807,7 +807,7 @@ func typstStyleIdent(name string) string {
 		out = "s-" + out
 	}
 	if typstReservedIdents[out] {
-		out += "-style" // "break" → "break-style": a keyword cannot name a function
+		out = "cs-" + out // "break" → "cs-break", "center" → "cs-center": never shadow Typst or the template
 	}
 	return out
 }
