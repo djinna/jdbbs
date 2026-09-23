@@ -1,0 +1,7 @@
+Continue ProdCal (workshop closing talk Wed 23 Sep HKT evening; freeze hotfix-only through tonight) in /home/exedev/prodcal. Read AGENTS.md, docs/CONTEXT-HYGIENE.md, then only addendum 25 of docs/reviews/SESSION-HANDOFF-2026-09-18.md and scratch/run/CHECKLIST.md (punch list 6).
+
+First action: restart the runpage on this conversation's id (tmux kill-session -t runpage; tmux new-session -d -s runpage -c /home/exedev/prodcal "RUNPAGE_CHAT_CONV=$SHELLEY_CONVERSATION_ID scripts/run-page.sh"). Punch list: https://jdbbs.exe.xyz:8766/. Answer on items via POST localhost:8766/note {"id","text","who":"shelley"}. Jenna prefers to discuss what you see before you build; propose, then act.
+
+Then: read list 6 §1 (her decisions). If 1.1 is ticked or she says go, do §2 in order — 2.1 (store: skip expired promos so PROTOCOL50 gets created) and 2.2 (Typst reserved words in typstStyleIdent) first, then 2.3–2.8, one build (2.9). Before every make build && sudo systemctl restart prodcal: sqlite3 db.sqlite3 "select count(*) from books where status='converting'" must be 0; smoke only on mcheck (project 17), never pinstitute (22). Version shows on the factory strip as v MMDD.hash (/api/version). Pipe journalctl through cut -c1-200 (one log line per build is tens of KB).
+
+Push with git push git@github.com:djinna/jdbbs.git main. Commit before returning to Jenna; write addendum 26 + this file's successor at ~50–65 % context.

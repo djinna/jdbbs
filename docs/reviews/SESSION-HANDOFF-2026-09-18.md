@@ -503,3 +503,23 @@ Metrics: ~62 % context at handoff; 0 files read in full via guard bypass.
 **Next conversation, in order:** (1) 0.36 Seapunk before/after review — subagent, brief modelled on `scratch/fotis/BRIEF.md`; project 32, books 46–55; deliver factory suggestions + a forwardable note. (2) Floor watch / hotfixes. (3) Thu 24: 5.25 slices 4–7 (+ verse-family coalesce), 5.26, 5.24/5.27, 0.34.
 
 Metrics: ~55 % context at handoff; 0 files read in full via guard bypass. Two read-only subagents used (diag-525 cQOFIJJ, fotis-styles-origin c7CQXFB) — both worth repeating: diagnosis briefs written to a file, one-line prompt, structured report back.
+
+## Addendum 25 (2026-09-23, ~14:10 UTC) — close of conv cAIMCSX (workshop Tue pm → Wed talk day); next conversation starts here
+
+**No code shipped this conversation** — Jenna asked to discuss before building, then was away 12 h; everything below is reviewed, decided-pending, and written up on **punch list 6** (`scratch/run/CHECKLIST.md`, archive of list 5 at `docs/runs/PUNCHLIST-2026-09-23-list5.md`). Version strip still `0922.5b7ba69`.
+
+**Shipped (docs/list only):**
+- `20d2aee` **0.36 Seapunk review** → `docs/reviews/SEAPUNK-REVIEW-2026-09-22.md` (subagent cOI7OI4, brief `scratch/seapunk/BRIEF.md`, sources+proofs extracted to `scratch/seapunk/books/`). Finding: `bookmap.go:410–419` "legacy template" rule (first H1 == book title → drop it *and everything to the next H1*) emptied their whole book (one H1, five H2s) → 6-page proofs for books 46/47/48 and **two finals of an empty book**; Inspect saw it and filed it as *low/ready*. Book 55 is a real 26-page book; footnote marks all print ¹ (`series-template.typ:1248`, `it.numbering` is the pattern not the counter).
+- Runpage heads shrunk (`scripts/runpage/page.html` h1/h2/h3 sizes); list 6 written with a per-attendee **§6** (subagent c72NKLT, brief `scratch/run/ATTENDEES-BRIEF.md` → `scratch/run/ATTENDEES.md`, spliced in).
+
+**Found, not yet fixed (all on list 6 §2, waiting on Jenna's go = item 1.1):**
+- **0.47 Store:** go-live bootstrap 16:00 UTC Tue created prices, then `ensurePromo` failed on WORKSHOP49 (its expiry Tue 23:59 HKT was already past → Stripe 400 on `expires_at`) and never reached **PROTOCOL50** — the alumni code does not exist in Stripe. Checkout works (prices cached before the promo step). Fix: skip expired promos, `store.go:224`. Also `store-go-live.sh` `source .env` doesn't export → the go-live note to Jenna failed (notification only).
+- **0.48 cblass (24) book 60** failed Tue 15:58: declared style `center` → `#let center(content)` shadows Typst → "expected content, found function" at template L381. Same class as Fotis's `break`. Fix: reserved list in `typstStyleIdent` (`bookspecs.go:790`), prefix `cs-`.
+- **0.46 Mike Casey (18) book 62:** transmittal style named literally `[[commentary]]` → 0/4 markers matched, proof prints the literal marker. Fix: strip `[[ ]]` in `apply-style-markers.py normalize()` L79 + `customstyles.go`. His real ask (sans face for commentary) → **Face option** body/heading/code per custom style, folded into 5.25.
+- **0.45** template guide / #bring / emails never mention bold/italic (copy fix). **0.43** maths already works (verified live, mcheck book 61: Word equations → native Typst + MathML). **0.44** Side Note design proposed. **0.40** Chapter Title style design (Seapunk review §6.6). **0.42** footnotes sentence given.
+
+**Floor:** Fotis unblocked herself Tue 21:23–22:48 UTC (books 63–66, proofs OK, 866–947 lows). Nothing since. Sam 31 / Toby 29 / Ellen 33 idle.
+
+**Next conversation, in order:** (1) read list 6; act on whatever Jenna ticked in §1 (1.1 go → §2 in order 2.1, 2.2 first). (2) Floor watch during/after the talk. (3) Thu: §5.
+
+Metrics: ~50 % context at handoff; 0 guard bypasses; one oversized tool output (journalctl without `cut` — the `style markers applied` line, → 5.28). Two read-only subagents (seapunk-review cOI7OI4, attendee-summaries c72NKLT).
