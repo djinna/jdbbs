@@ -21,3 +21,7 @@
   the wordmark markup (`.jdbb-wordmark`, PAGE-DESIGN §3) is the same thing set in type.
 - Short form where space is tight: `[jdbb]`.
 - Bylines: `Jenna Dixon, [jdbb] studio`.
+- **Voice of notes to authors/attendees** (review notes, build post-mortems,
+  "your build will work now" emails): written by the studio, first person plural
+  ("we", "on our side"), signed `— [jdbb] studio`. Never signed as Jenna unless
+  she writes it herself. (Jenna, punch list 6 · 1.3, 2026-09-23.)

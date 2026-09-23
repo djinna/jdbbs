@@ -164,7 +164,7 @@ running heads recto title / verso author; no italics or bold in the source, so n
 9. **Reinstate the two finals** — `POST /api/admin/passes/17/grant` (+2, note "empty-body finals 46/47,
    factory fault"). Jenna decides; not code.
 
-## 7. Note Jenna can forward to the Seapunk team
+## 7. Note from the studio to the Seapunk team (forwardable as-is)
 
 Hi Sam — thank you for the six uploads on Monday; watching you iterate that fast taught us more than any test
 file. Your latest proof (4.docx, the 26-page one) is the real book: all ten images, the Mark Fisher quote as a
@@ -174,9 +174,9 @@ images slip onto the next page (ours too). On your side: there's an empty Headin
 grey curtain" — delete it — and decide whether chapter 1 should really carry the same title as the book, or
 whether the essay title ("How I got enamoured…") is the chapter, as it was in your third upload. Either is fine.
 The two finals you exported early came out with no chapter text; that was our fault, not yours — the factory
-threw your text away because your first heading matched the book title. We're changing that, and we're putting
+threw your text away because your first heading matched the book title. We're changing that, and we've put
 those two finals back on your pass, so you have three again. Wait for the footnote fix, upload once more, read
-the proof, then export one final. — Jenna
+the proof, then export one final. — [jdbb] studio
 
 ## 8. Open questions for the lead
 
