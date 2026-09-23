@@ -508,6 +508,27 @@ func isTitleStub(paras []docxPara) bool {
 	return words <= titleStubMaxWords
 }
 
+// KeptWords is the number of words the build will actually set: the sections
+// that are not dropped (title / toc), or the whole file when there is no H1.
+// Zero means the proof is nothing but generated pages — a final of that is
+// a wasted credit (Seapunk exported two, 2026-09-22).
+func (m *BookMap) KeptWords() int {
+	if m == nil {
+		return 0
+	}
+	if len(m.Sections) == 0 {
+		return m.Words
+	}
+	n := 0
+	for _, sec := range m.Sections {
+		if sec.Kind == "title" || sec.Kind == "toc" {
+			continue
+		}
+		n += sec.Words
+	}
+	return n
+}
+
 func isContentsHeading(text string) bool {
 	n := normalizeHeading(text)
 	return n == "contents" || n == "table of contents"

@@ -1663,3 +1663,60 @@ func TestProofStampLine(t *testing.T) {
 		t.Errorf("empty title: %q", got)
 	}
 }
+
+// TestFinalRefusedWhenBodyEmpty: Seapunk exported two finals of a book whose
+// body the factory had dropped (2026-09-22). A final of a file with no kept
+// text is refused before the debit; a proof of the same file still runs so
+// the author can see the empty book and Inspect.
+func TestFinalRefusedWhenBodyEmpty(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, password, clientSlug, _ := grantedPass(t, s, ts, "Sam Chua", "Empty Book")
+	cookie := clientCookie(t, ts, clientSlug, password)
+
+	// Title and Subtitle paragraphs and a typed Contents: everything is
+	// dropped, nothing is left to set.
+	path := writeBookMapDOCX(t, []tp{
+		{style: "Title", text: "Empty Book"},
+		{style: "Subtitle", text: "A Template Test"},
+		{style: "Heading1", text: "Contents"},
+		{text: "[tk]"},
+	})
+	docx, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bookID := uploadDocx(t, ts, itoa(pass.ProjectID), cookie, false, docx)
+
+	convert := func(body string) *http.Response {
+		req, err := http.NewRequest("POST", ts.URL+"/api/books/"+bookID+"/convert", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(cookie)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return resp
+	}
+	resp := convert("")
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("final of empty body: got %d, want 422", resp.StatusCode)
+	}
+	var body map[string]any
+	decodeJSON(t, resp, &body)
+	if body["code"] != "empty-body" || !strings.Contains(body["error"].(string), "no body text") {
+		t.Errorf("422 body = %v", body)
+	}
+	if n := countLedger(t, s, pass.ID, "build"); n != 0 {
+		t.Errorf("refused final debited a credit (%d ledger rows)", n)
+	}
+	resp = convert(`{"kind":"proof"}`)
+	if resp.StatusCode != 200 {
+		t.Errorf("proof of empty body: got %d, want 200", resp.StatusCode)
+	}
+	resp.Body.Close()
+}

@@ -322,12 +322,13 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var pass *dbgen.Pass
+	isAdmin := true // no project → admin-only route (checked just below)
 	if !book.ProjectID.Valid {
 		if !s.requireExeDevAdminAPI(w, r) {
 			return
 		}
 	} else {
-		var isAdmin, ok bool
+		var ok bool
 		pass, isAdmin, ok = s.requirePassAccess(w, r, book.ProjectID.Int64)
 		if !ok {
 			return
@@ -397,6 +398,22 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 	if book.ProjectID.Valid {
 		if _, err := s.syncSpecFromTransmittal(r.Context(), book.ProjectID.Int64, false); err != nil {
 			jsonErr(w, "spec: "+err.Error(), 500)
+			return
+		}
+	}
+
+	// A final of a manuscript with no body text is a wasted credit: the PDF
+	// would be the generated pages only. Refuse before the debit. Admins may
+	// still force one (template tests). Proofs are free and go through, so
+	// the author can see the empty book and run Inspect.
+	if kind == buildKindFinal && !isAdmin {
+		if words, ok := s.keptWordsForBook(book); ok && words == 0 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error": "this file has no body text — a final would be only the generated pages (title, copyright, contents). Build a proof and run Inspect to see what the factory kept, fix the file, then export the final.",
+				"code":  "empty-body",
+			})
 			return
 		}
 	}
@@ -1775,4 +1792,36 @@ func sanitizeFilename(s string) string {
 		}
 	}, s)
 	return s
+}
+
+// keptWordsForBook runs the book map over the stored source and returns the
+// words the build will keep (BookMap.KeptWords). ok is false when the map
+// could not be built, in which case callers must not block on it.
+func (s *Server) keptWordsForBook(book dbgen.Book) (int, bool) {
+	if len(book.SourceData) == 0 {
+		return 0, false
+	}
+	tmp, err := os.CreateTemp("", "prodcal-gate-*.docx")
+	if err != nil {
+		return 0, false
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(book.SourceData); err != nil {
+		tmp.Close()
+		return 0, false
+	}
+	tmp.Close()
+	title, author := s.specTitleAuthor(book)
+	if title == "" {
+		title = book.Title
+	}
+	if author == "" {
+		author = book.Author
+	}
+	bm, err := bookMapFromDOCX(tmp.Name(), s.specMapForBook(book), title, author)
+	if err != nil {
+		slog.Warn("empty-body gate: book map failed; not blocking", "book_id", book.ID, "err", err)
+		return 0, false
+	}
+	return bm.KeptWords(), true
 }
