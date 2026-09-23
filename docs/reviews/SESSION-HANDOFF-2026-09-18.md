@@ -523,3 +523,24 @@ Metrics: ~55 % context at handoff; 0 files read in full via guard bypass. Two re
 **Next conversation, in order:** (1) read list 6; act on whatever Jenna ticked in §1 (1.1 go → §2 in order 2.1, 2.2 first). (2) Floor watch during/after the talk. (3) Thu: §5.
 
 Metrics: ~50 % context at handoff; 0 guard bypasses; one oversized tool output (journalctl without `cut` — the `style markers applied` line, → 5.28). Two read-only subagents (seapunk-review cOI7OI4, attendee-summaries c72NKLT).
+
+## Addendum 26 (2026-09-23, ~14:40 UTC) — close of conv cVA4XRT (Wed talk day, §2 hotfix shipped); next conversation starts here
+
+**Live: `v 0923.261f17e`** (restarted 14:25 UTC, 0 builds converting, `go test ./...` green, GitHub = VM = main). Freeze still hotfix-only through tonight HKT.
+
+**Decisions taken (punch list 6 §1, all ticked):** 1.1 go · 1.2 Seapunk +2 finals granted (pass 17: 3 incl / 2 used / 2 extra) · 1.3 Seapunk note rewritten in studio voice, signed `— [jdbb] studio`; rule added to `docs/brand/README.md` (notes to authors come from the studio, never signed Jenna); **any file Jenna is asked to read gets a GitHub link on the item, never a VM path** · 1.4 = 0.41: prominent "+ Add a rule" at the top of the book sheet, section picker defaulting to *Our additions*; no Add on public `/stylesheet/` · 1.5 still open (margin notes vs aside; context posted) · 1.6 Jenna replies to cblass/Casey herself; §6 "Now" lines carry a one-sentence "tell them".
+
+**Shipped (commits 917dd77…261f17e, punch 379ebb1/6d88b01):**
+- 2.1 `store.go` ensurePromo skips expired, `errors.Join` — **PROTOCOL50 exists in Stripe** (log 14:25:41).
+- 2.2 `typstReservedIdents` (customstyles.go) = keywords + Typst built-ins + every template `#let` → ident `cs-<name>`; `rewriteSnippetIdent` re-heads stored snippets; `TestTypstReservedCoversTemplateLets` scans `typesetting/templates/*.typ`.
+- 2.3 `bookmap.go` `isTitleStub` (≤3 ¶, ≤60 words, no headings) gates the title-as-H1 drop; otherwise kept as body + warning.
+- 2.4 `books.go` handleConvertBook: final && !isAdmin && `keptWordsForBook()==0` → 422 `{"code":"empty-body"}` before debit. `BookMap.KeptWords()`.
+- 2.5 `BookMap.Errors` (high) "no body text"; typed Contents with real text → warning. `bookmap_inspect.go` renders both.
+- 2.6 `series-template.typ` footnote mark = `numbering(it.numbering, ..counter(footnote).at(it.location()))`.
+- 2.7 `cleanStyleName` strips `[[ ]]`/`[ ]` in normalizeCustomStyle, declaredStylesForPandoc, declaredCustomStylesList; `bracketed_style_name` low finding; `apply-style-markers.py normalize()` too.
+- 2.8 generate-word-template.py "Inside a paragraph" section with `_make_last_run_footnote` (hand-built footnotes.xml part); template email line (passes.go); `jdbbs-public/factory.html` #bring step 3 (commit f16fe41 in that repo).
+- Smoke: mcheck books 67 (title-as-H1 + footnotes + [[commentary]] → proof OK, marks 1 2 3) and 68 (empty → 1 high). mcheck spec restored (temp `[[commentary]]` declaration removed). Book 68 left as `uploaded`.
+
+**Open / next:** 1.5 (Jenna's word) · Floor watch 4.3 (cblass book 60 / Casey book 62 / Seapunk re-upload retries — no attendee builds since Tue 22:48 UTC) · 4.4 first real store checkout · **Thu:** §5 in list order (5.25 slices 4–7 + Face option, 5.26, 5.24/5.27, 0.40, 0.34, 0.41, 0.44, 5.28, 0.31). Small extra proposed on 1.3: let `/admin/runs/` render `docs/reviews/*.md`.
+
+Metrics: ~47 % context at handoff; 0 guard bypasses; no subagents.
