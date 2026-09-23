@@ -543,4 +543,6 @@ Metrics: ~50 % context at handoff; 0 guard bypasses; one oversized tool output (
 
 **Open / next:** 1.5 (Jenna's word) · Floor watch 4.3 (cblass book 60 / Casey book 62 / Seapunk re-upload retries — no attendee builds since Tue 22:48 UTC) · 4.4 first real store checkout · **Thu:** §5 in list order (5.25 slices 4–7 + Face option, 5.26, 5.24/5.27, 0.40, 0.34, 0.41, 0.44, 5.28, 0.31). Small extra proposed on 1.3: let `/admin/runs/` render `docs/reviews/*.md`.
 
-Metrics: ~47 % context at handoff; 0 guard bypasses; no subagents.
+- 3.2 (15:15 UTC): deck slide 2 got the pages/scrolls seesaw line + archive.org speaker note (option A; jdbbs-public 2772494). Option B (own slide) declined.
+
+Metrics: ~52 % context at handoff; 0 guard bypasses; no subagents.
