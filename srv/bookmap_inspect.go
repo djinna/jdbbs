@@ -31,6 +31,15 @@ func bookMapFindings(m *BookMap) []map[string]any {
 	item["severity"] = "low"
 	item["suggestion"] = "Every section head is Heading 1; the build decides front / body / back matter from the heading text. To change a placement, rename or move the heading."
 	out := []map[string]any{item}
+	for _, e := range m.Errors {
+		out = append(out, map[string]any{
+			"type":       bookMapWarningType,
+			"severity":   "high",
+			"text":       e,
+			"location":   "book map",
+			"suggestion": "Fix the file and upload again before building a final.",
+		})
+	}
 	for _, w := range m.Warnings {
 		out = append(out, map[string]any{
 			"type":       bookMapWarningType,
@@ -133,6 +142,9 @@ func bookMapHTML(m *BookMap) string {
 		b.WriteString(fmt.Sprintf(`<tr><td>%s</td><td>%s</td><td>%s</td></tr>`, e(s.Title), place, folio))
 	}
 	b.WriteString(`</tbody></table>`)
+	for _, er := range m.Errors {
+		b.WriteString(`<p class="book-map-error"><strong>` + e(er) + `</strong></p>`)
+	}
 	if len(m.Warnings) > 0 {
 		b.WriteString(`<ul class="book-map-warnings">`)
 		for _, w := range m.Warnings {
