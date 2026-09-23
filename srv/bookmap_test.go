@@ -253,6 +253,23 @@ func TestBuildBookMap(t *testing.T) {
 			summary:  "Front matter: Preface · Body starts at “1. Singles” (1 section) · Back matter: none",
 		},
 		{
+			// Seapunk, books 46–48: one H1 = the book title, the whole essay as
+			// H2s under it. The old rule dropped the entire book.
+			name: "title as the only H1 with the book under it is kept as chapter one",
+			paras: []docxPara{
+				p("heading1", "We Have Always Been Seapunks"),
+				p("heading2", "How I got enamoured"), p("normal", "one two three four five six seven eight nine ten"),
+				p("heading2", "A hole in the grey curtain"), p("normal", "one two three four five six seven eight nine ten"),
+			},
+			title:    "We Have Always Been Seapunks",
+			front:    []string{},
+			body:     []string{"We Have Always Been Seapunks"},
+			back:     []string{},
+			untitled: []string{},
+			warnHas:  []string{"matches the book title but has 4 paragraphs of real text under it, so it is kept as chapter one"},
+			summary:  "Front matter: none · Body starts at “We Have Always Been Seapunks” (1 section) · Back matter: none",
+		},
+		{
 			name: "old template: title, subtitle, byline, Copyright style, Epigraph style, no page breaks",
 			paras: []docxPara{
 				p("title", "Messy Draft"), p("subtitle", "A Field Guide"),

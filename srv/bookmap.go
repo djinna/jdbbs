@@ -408,15 +408,26 @@ func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle, book
 		spans[len(spans)-1].paras = append(spans[len(spans)-1].paras, p)
 	}
 
-	// Legacy template model: the book title typed as the first H1 (with a
-	// byline / placeholder paragraphs under it). Dropped like a Title style.
+	// Legacy template model: the book title typed as the first H1 with a
+	// byline / placeholder paragraph or two under it. Dropped like a Title
+	// style — but only when what sits under it is that kind of stub. Seapunk
+	// (books 46–48, 2026-09-22) typed the book title as their one H1 and the
+	// whole essay as H2s beneath it; the old rule dropped everything to the
+	// next H1, i.e. the entire book, and two finals were exported empty.
+	// Real content is never dropped: the heading stays as chapter one and a
+	// warning says how to change it.
 	kinds := make([]string, len(spans))
 	if len(spans) > 0 {
 		first := normalizeHeading(spans[0].title)
 		if first != "" && (first == normalizeHeading(bookTitle) || first == normalizeHeading(m.Title)) {
-			kinds[0] = "title"
-			m.Notes = append(m.Notes, fmt.Sprintf("Heading “%s” matches the book title and was dropped with the %s under it (%s): the title and copyright pages are generated from the transmittal.",
-				spans[0].title, plural(len(spans[0].paras), "paragraph"), previewParas(spans[0].paras)))
+			if isTitleStub(spans[0].paras) {
+				kinds[0] = "title"
+				m.Notes = append(m.Notes, fmt.Sprintf("Heading “%s” matches the book title and was dropped with the %s under it (%s): the title and copyright pages are generated from the transmittal.",
+					spans[0].title, plural(len(spans[0].paras), "paragraph"), previewParas(spans[0].paras)))
+			} else {
+				m.Warnings = append(m.Warnings, fmt.Sprintf("Heading “%s” matches the book title but has %s of real text under it, so it is kept as chapter one with the book’s title as its heading. If that is not what you want: give this Heading 1 the chapter’s own title, or delete it and make the sections under it Heading 1. (The title page itself is generated from the transmittal.)",
+					spans[0].title, plural(len(spans[0].paras), "paragraph")))
+			}
 		}
 	}
 	// A typed Contents section is dropped too: the build generates it.
@@ -470,6 +481,31 @@ func buildBookMapInner(paras []docxPara, untitledNames []string, bookTitle, book
 		m.Sections = append(m.Sections, BookMapSection{Title: sp.title, Kind: kinds[i], Paras: len(sp.paras), Words: words})
 	}
 	return m
+}
+
+// titleStubMaxParas / titleStubMaxWords bound what may sit under a
+// title-as-H1 and still be dropped with it: a byline, a subtitle line, a
+// placeholder from the template. Anything with a heading in it, or more text
+// than this, is the book.
+const (
+	titleStubMaxParas = 3
+	titleStubMaxWords = 60
+)
+
+// isTitleStub reports whether the paragraphs under a title-as-H1 are a
+// byline/placeholder stub (droppable) rather than content.
+func isTitleStub(paras []docxPara) bool {
+	if len(paras) > titleStubMaxParas {
+		return false
+	}
+	words := 0
+	for _, p := range paras {
+		if p.headingLevel() > 0 {
+			return false
+		}
+		words += wordCount(p.Text)
+	}
+	return words <= titleStubMaxWords
 }
 
 func isContentsHeading(text string) bool {
