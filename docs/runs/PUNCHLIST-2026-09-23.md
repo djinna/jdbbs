@@ -1,4 +1,4 @@
-<!-- exported 2026-09-23 14:28 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-23 14:29 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punchlist 6 · Wed 23 Sep · talk day (HKT evening)
 
@@ -99,7 +99,14 @@ _(empty — add from the bar below)_
   > **shelley** · 2026-09-23 14:12 UTC  
   > Code done. Went wider than a keyword list: the identifier a declared style gets is now prefixed cs- whenever it would collide with (1) a Typst keyword (break), (2) a Typst built-in function or value (center, quote, sub, text…), or (3) any #let our own templates define — bold, ital, sc, sans, poem, chapter… (Fotis’s BOLD/ITAL declarations were silently redefining the template’s bold/ital). A test scans the templates so (3) cannot drift. Stored snippets are re-headed at build time, so cblass’s existing “center” compiles without him touching the transmittal. 2.3 next.
 
+  > **shelley** · 2026-09-23 14:28 UTC  
+  > Live. cblass can rebuild book 60 as is — his stored “center” style is re-headed to cs-center at build time, nothing to change on the transmittal.
+
 - [x] 2.3 **1a Title-as-H1 rule never drops content.** Drop the heading only when what's under it is a stub (byline/placeholder); real content stays as chapter one + a medium warning saying how to fix. `bookmap.go:410–419`. Test.
+
+  > **shelley** · 2026-09-23 14:28 UTC  
+  > Live. Seapunk’s current file (one H1 = title, five H2s) now builds as a 1-chapter book with the title as the chapter head, plus the warning telling them the two ways to change it.
+
 - [x] 2.4 **1b No final of an empty book.** Final build refuses (422) when the body has 0 words: “this file has no body text — the proof is only the generated pages; run Inspect.” `books.go` handleConvertBook near the finals gate (L344). Test.
 - [x] 2.5 **1c Inspect severity.** Dropped block bigger than a stub → medium; body words = 0 → high. `bookmap_inspect.go`.
 - [x] 2.6 **1d Footnote marks all print ¹.** `series-template.typ:1248` `show footnote` uses `it.numbering` (the pattern) not the counter. One line.
@@ -121,8 +128,15 @@ _(empty — add from the bar below)_
   > **jenna** · 2026-09-19 14:40 UTC  
   > done
 
+  > **shelley** · 2026-09-23 14:28 UTC  
+  > Live. Casey’s spec is read with the brackets stripped at every point (Go + the marker pre-pass), so a plain rebuild of book 62 resolves his 4 [[commentary]] markers. Inspect adds a low “tidy-up” finding telling him the brackets go in the text, not the name.
+
 - [x] 2.8 **0.45 Template/#bring/email say bold & italic need no markers.** New “Inside a paragraph” section in the guide (`generate-word-template.py ~L584`), a line in `/factory#bring` step 3, a line in the template email; sample paragraph gets an italic word + a footnote.
 - [x] 2.9 Build → smoke mcheck (title-as-H1 file, empty-body final refused, footnotes ¹²³, `[[commentary]]` resolves) → commit → push → version strip shows 0923.hash.
+
+  > **shelley** · 2026-09-23 14:28 UTC  
+  > LIVE: v 0923.261f17e, restarted 14:25 UTC with 0 builds converting; go test ./... green. Smoke on mcheck (project 17) only: book 67 (H1 = book title, two H2s, three footnotes, two [[commentary]] paragraphs with the style declared as “[[commentary]]”) → Inspect 0 high, warning “matches the book title but has 9 paragraphs of real text under it, kept as chapter one”; proof 10 pp, marks read 1 2 3 (were ¹¹¹), no literal marker printed, commentary paragraphs set as block quotes. Book 68 (Title + Contents only) → Inspect 1 HIGH “This file has no body text…”; the client-side final refusal (422 empty-body, no credit debited, proof still allowed) is covered by TestFinalRefusedWhenBodyEmpty. Pushed to GitHub; archive: https://github.com/djinna/jdbbs/blob/main/docs/runs/PUNCHLIST-2026-09-23.md
+
 
 ## 3 · Talk — BOTH
 - [ ] 3.2 YOU — deck: cut / reorder / add beats · 3.4 BOTH run-through · 3.5 ME push + link
@@ -211,7 +225,7 @@ Charles got all the way to Inspect and his first build: transmittal final, templ
 - **Tue 15:41** upload `radio-flow-template-v2-draft.docx` (39.7 KiB) → book 60; Inspect ready — 1 high / 2 medium / 5 low
 - **Tue 15:58** proof build 60 → **failed** ("typesetter stopped") — cause is our `center` ident, kept at /tmp/prodcal-failed/book-60
 - **Wed 04:01** transmittal saved again (declarations still `center`, `right-justified` + one blank row); no rebuild since
-- **Now:** blocked on us — ship 0.48 (reserved built-in names → `cs-` prefix), then email him to press Build → Proof; his upload is intact. 0 finals used.
+- **Now (14:30 UTC Wed):** unblocked — 0.48 is live (v 0923.261f17e): his `center` style becomes `cs-center` at build time, nothing to change on his transmittal. Tell him: *press Build → Proof on book 60 (or re-upload); it will build now — that failure was ours, not your file.* 0 finals used.
 
 ### 6.2 _(studio CLI demo, not an attendee)_ prot / prot · *Zoothesia* (project 14)
 Heads-up before reading this aloud: every action on project 14 since Friday is by `admin:j@djinna.com` or the API token (`anon`) — this is the studio's **CLI test project** (0.9 / `scripts/factory-demo.sh`), not a workshop attendee, so I'd drop it from the talk. What the record does show is the factory-from-your-desk path working end to end: 15 uploads through the API, `sample-chapter.docx` inspected and built in ~1 s with both files downloaded, and the deliberately broken `bad.docx` (10 bytes) rejected twice with the plain-words "We couldn't read this Word file" message. The one lesson: the demo burned through 3 included credits in four minutes, so 11 extra were granted by admin — a real customer scripting builds needs the credit counter in the CLI output.
@@ -270,7 +284,7 @@ Mike was the first pass of the whole cohort (11 Sep) and came back this week: tr
 - **Tue 15:56** Inspect 13 again; upload `part 1 test.docx` (754 KiB) → book 62; Inspect 9 high / 5 med / 19 low (9 undeclared styles)
 - **Tue 15:58** proof build 62, both formats, 1 s → downloaded proof pdf (markers `[[commentary]]` ×4 unresolved)
 - **Tue 16:22** transmittal saved twice — style renamed to `commentary`, based on Normal
-- **Now:** has a working proof, 0 finals used; a rebuild now should resolve his commentary paragraphs (they'll render as plain body until the sans *Face* option lands Thu).
+- **Now (14:30 UTC Wed):** unblocked — the `[[commentary]]` fix is live (v 0923.261f17e): his declared name is read as `commentary`, so a rebuild resolves all 4 markers (Inspect adds a low tidy-up note: brackets go in the text, not the name). Tell him: *press Build → Proof again; the commentary paragraphs will take their style now. The sans face for commentary is coming Thu/Fri (Face option, 5.25).* 0 finals used.
 
 ### 6.7 Sam Khoo / skhoo · *Transcendence and Immanence* (project 31)
 Sam uploaded a serious 613 KiB manuscript within ten minutes of redeeming his pass and hit the first real build failure of the workshop: "pagebreaks are not allowed inside of containers". That was ours — his front matter began Half Title → Title → Subtitle → Copyright ×3 → Dedication → Epigraph, pandoc only lifts *Title* when it's the very first paragraph, so every front-matter boundary shifted by three and the copyright page landed inside the epigraph box. Fixed live in 27 minutes without a restart (26ff8e9, list 5 item 4.3 thread); he pressed Build again an hour later and got a full-length proof (~124 pp), downloaded pdf and epub, and rebuilt once more. Inspect is loud on his file (63 high — 57 of them undeclared Word styles, 126 script/language notes) because he has zero declarations on his transmittal; that's the next conversation to have with him.
@@ -293,7 +307,7 @@ The Seapunk team did everything by the book — template downloaded, test-built,
 - **Mon 16:56 / 16:59** re-uploads → books 48, 49 (first H2 → H1: the book appears, 26 pp); proofs + downloads
 - **Mon 17:03 / 17:58** `3.docx`, `4.docx` (1.8 / 1.5 MiB) → books 50, 55; Inspect lows 25 → 18; proofs 1 s; pdf/epub downloaded
 - **Mon 19:08** downloaded **final pdf, book 47** — the empty one
-- **Now:** need us — reinstate the 2 wasted finals (`POST /api/admin/passes/17/grant`), ship the footnote-mark hotfix, then tell them book 55 is the one to finalise (and that the 47 final they hold is blank).
+- **Now (14:30 UTC Wed):** done on our side — 2 finals reinstated (3 available), footnote marks fixed (1 2 3, not ¹¹¹), and the title rule no longer drops a book whose one H1 is the title (it becomes chapter one with a warning). Tell them: *re-upload 4.docx (book 55’s file), read the proof — footnotes now number correctly — then export one final; you have three again.* Forwardable note: https://github.com/djinna/jdbbs/blob/main/docs/reviews/SEAPUNK-REVIEW-2026-09-22.md#7-note-from-the-studio-to-the-seapunk-team-forwardable-as-is
 
 ### 6.9 Ellen Kaye-Cheveldayoff / ekayecheveldayoff · *Strange Attractor* (project 33)
 Ellen redeemed her pass just before 1 pm Hong Kong time on Tuesday and, in 16 minutes, filled in and finalised her transmittal (*Strange Attractor: Blog, Recipes, and Music*) and uploaded a cover image — she is the only attendee besides Fotis to have done a cover. She has not downloaded the template or uploaded a manuscript yet, so nothing has been built. One small thing we noticed on her transmittal: an empty custom-style row (`name: ""`) was saved — harmless, the factory ignores it, but the form shouldn't let a blank row through (folded into 0.34/5.25).
