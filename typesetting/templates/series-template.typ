@@ -1244,9 +1244,13 @@
   // Horizontal rule → section break
   show line: section-break
   
-  // Footnote styling
+  // Footnote styling. The in-text mark: `it.numbering` is the pattern ("1"),
+  // not the number — using it printed every mark as ¹ (Seapunk book 55,
+  // 2026-09-22). The number is the footnote counter at the footnote's
+  // location, formatted with that pattern, as Typst's default mark does.
   show footnote: it => {
-    text(font: config.heading-font, size: 0.72em)[#super[#it.numbering]]
+    set text(font: config.heading-font, size: 0.72em)
+    context super(numbering(it.numbering, ..counter(footnote).at(it.location())))
   }
   show footnote.entry: it => {
     set text(font: config.body-font, size: config.footnote-size)
