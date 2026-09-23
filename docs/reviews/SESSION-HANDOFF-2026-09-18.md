@@ -498,7 +498,7 @@ Metrics: ~62 % context at handoff; 0 files read in full via guard bypass.
 
 **5.25 slices 1–3 verified** on mcheck book 58 after the hotfix: 457/457 markers resolve; p.10 verse2 in from verse; p.12 (Four Haiku) verse/verse2/verse3 three levels. **Open from the pages:** verse-family styles do not coalesce across levels — each `[[verse2]]` line is its own poem block with a stanza gap before/after, so a haiku reads as three stanzas. Fix in slice 4 (Lua filter: treat Verse + Verse-based declared styles as one block). break2 not eyeballed (3 occurrences; resolved in the log).
 
-**Fotis (project 30):** review committed `docs/reviews/FOTIS-HELO-WORD-REVIEW-2026-09-22.md` (says "he"; Fotis is she). Note for her passed to Jenna in chat. Origin of her 21 declarations: **she typed them** (transmittal history 0→4→11→14→18→19→21, Mon 12:12 UTC on, right after Inspect flagged 2 Highs); the factory never writes custom_styles except transmittal PUT + admin spec PUT — `scratch/fotis/STYLES-ORIGIN.md`. Feeds 0.34.
+**Fotis (project 30):** review committed `docs/reviews/FOTIS-HELO-WORD-REVIEW-2026-09-22.md` (says "he" — correct; Jenna confirmed he/him on 23 Sep). Note for her passed to Jenna in chat. Origin of her 21 declarations: **she typed them** (transmittal history 0→4→11→14→18→19→21, Mon 12:12 UTC on, right after Inspect flagged 2 Highs); the factory never writes custom_styles except transmittal PUT + admin spec PUT — `scratch/fotis/STYLES-ORIGIN.md`. Feeds 0.34.
 
 **Next conversation, in order:** (1) 0.36 Seapunk before/after review — subagent, brief modelled on `scratch/fotis/BRIEF.md`; project 32, books 46–55; deliver factory suggestions + a forwardable note. (2) Floor watch / hotfixes. (3) Thu 24: 5.25 slices 4–7 (+ verse-family coalesce), 5.26, 5.24/5.27, 0.34.
 
@@ -518,7 +518,7 @@ Metrics: ~55 % context at handoff; 0 files read in full via guard bypass. Two re
 - **0.46 Mike Casey (18) book 62:** transmittal style named literally `[[commentary]]` → 0/4 markers matched, proof prints the literal marker. Fix: strip `[[ ]]` in `apply-style-markers.py normalize()` L79 + `customstyles.go`. His real ask (sans face for commentary) → **Face option** body/heading/code per custom style, folded into 5.25.
 - **0.45** template guide / #bring / emails never mention bold/italic (copy fix). **0.43** maths already works (verified live, mcheck book 61: Word equations → native Typst + MathML). **0.44** Side Note design proposed. **0.40** Chapter Title style design (Seapunk review §6.6). **0.42** footnotes sentence given.
 
-**Floor:** Fotis unblocked herself Tue 21:23–22:48 UTC (books 63–66, proofs OK, 866–947 lows). Nothing since. Sam 31 / Toby 29 / Ellen 33 idle.
+**Floor:** Fotis unblocked himself Tue 21:23–22:48 UTC (books 63–66, proofs OK, 866–947 lows). Nothing since. Sam 31 / Toby 29 / Ellen 33 idle.
 
 **Next conversation, in order:** (1) read list 6; act on whatever Jenna ticked in §1 (1.1 go → §2 in order 2.1, 2.2 first). (2) Floor watch during/after the talk. (3) Thu: §5.
 
