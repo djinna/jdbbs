@@ -219,3 +219,22 @@ scripts/sync-to-r2.sh ← offsite R2 sync
 - **Health**: `curl localhost:8000/healthz`
 - **Backups**: `ls -la ~/backups/`
 - **Cron log**: `cat ~/backups/backup.log`
+
+## Copying the VM (`ssh exe.dev cp jdbbs <name>`) as a cold backup
+
+A full VM copy is a valid whole-machine recovery point, but a *live* copy
+shares this VM's cron, R2 target, `.env` mail key and signing secret. On
+2026-08-15 a copy (`jdbbs-jitney`) ran for six weeks and overwrote the real
+offsite backups nightly with its stale database.
+
+Immediately after making a copy, on the copy:
+
+```
+ssh exedev@<copy>.exe.xyz 'crontab -r; sudo systemctl disable --now prodcal'
+```
+
+Defence in depth: `~/backups/.r2-namespace` records the creating hostname;
+`scripts/r2-env.sh` refuses to write offsite from any other hostname. A copy
+that should become an independent deployment gets its own namespace with
+`rm ~/backups/.r2-namespace && scripts/r2-init-namespace.sh`, and its own
+credentials.

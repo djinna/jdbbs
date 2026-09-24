@@ -12,5 +12,5 @@ fi
 name="${1:-db-$(hostname | tr -c 'a-zA-Z0-9-\n' '-' | tr '[:upper:]' '[:lower:]')-$(openssl rand -hex 4)}"
 mkdir -p "$BACKUP_DIR"
 umask 077
-printf '%s\n' "$name" > "$FILE"
+printf '%s\n%s\n' "$name" "$(hostname)" > "$FILE"
 printf 'R2 namespace for this host: %s\nwritten to %s\n' "$name" "$FILE"

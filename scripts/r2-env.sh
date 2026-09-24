@@ -20,8 +20,13 @@ R2_BUCKET="${R2_BUCKET:-jdbbs-backups}"
 R2_NAMESPACE_FILE="${R2_NAMESPACE_FILE:-$BACKUP_DIR/.r2-namespace}"
 export RCLONE_S3_NO_CHECK_BUCKET=true
 
+# File format: line 1 prefix, line 2 hostname that created it. A VM copy
+# (`exe.dev cp`) inherits the file but gets a new hostname, so it refuses to
+# write into the original's prefix instead of silently clobbering it.
+R2_NAMESPACE_HOST=""
 if [ -z "${R2_PREFIX:-}" ] && [ -f "$R2_NAMESPACE_FILE" ]; then
-  R2_PREFIX="$(tr -d '[:space:]' < "$R2_NAMESPACE_FILE")"
+  R2_PREFIX="$(sed -n 1p "$R2_NAMESPACE_FILE" | tr -d '[:space:]')"
+  R2_NAMESPACE_HOST="$(sed -n 2p "$R2_NAMESPACE_FILE" | tr -d '[:space:]')"
 fi
 
 # r2_require_prefix: fail closed rather than fall back to the shared `db/`.
@@ -29,6 +34,9 @@ fi
 r2_require_prefix() {
   if [ -z "${R2_PREFIX:-}" ]; then
     die "no R2 prefix: set R2_PREFIX or create $R2_NAMESPACE_FILE (scripts/r2-init-namespace.sh)"
+  fi
+  if [ -n "$R2_NAMESPACE_HOST" ] && [ "$R2_NAMESPACE_HOST" != "$(hostname)" ]; then
+    die "R2 namespace '$R2_PREFIX' belongs to host '$R2_NAMESPACE_HOST', this is '$(hostname)' — a VM copy? Disable cron here or run scripts/r2-init-namespace.sh after removing $R2_NAMESPACE_FILE"
   fi
   case "$R2_PREFIX" in
     */*|.*|"") die "invalid R2 prefix '$R2_PREFIX' (single path segment, no leading dot)";;
