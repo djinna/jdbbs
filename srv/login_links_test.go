@@ -226,3 +226,36 @@ func TestLoginLinkClientEmailColumn(t *testing.T) {
 	}
 	_ = ts
 }
+
+// A defensive password reset must also kill unredeemed sign-in links;
+// otherwise a link captured before the reset restores access afterwards.
+func TestLoginLinkInvalidatedByPasswordReset(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+	s.BaseURL = ts.URL
+	mailAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	defer mailAPI.Close()
+	s.Email = &EmailConfig{APIKey: "test", InboxID: "test@example.com", APIBase: mailAPI.URL}
+	_, _, slug, _ := grantedPass(t, s, ts, "Ada Lovelace", "Notes on the Engine")
+
+	token, ok, err := s.issueLoginLink(t.Context(), slug, "customer@example.com", "127.0.0.1")
+	if err != nil || !ok {
+		t.Fatalf("issue link: ok=%v err=%v", ok, err)
+	}
+	resp := apiRequestAdmin(t, ts, "POST", "/api/admin/clients/"+slug+"/password", nil)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("reset: %d", resp.StatusCode)
+	}
+	resp, err = noRedirect().Get(ts.URL + "/auth/link?t=" + token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("pre-reset link redeemed after reset: %d", resp.StatusCode)
+	}
+	if len(resp.Cookies()) != 0 {
+		t.Fatal("pre-reset link issued a cookie after reset")
+	}
+}

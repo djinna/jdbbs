@@ -1284,6 +1284,9 @@ func (s *Server) handleVerifyAuth(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "no auth configured", 404)
 		return
 	}
+	if !s.allowLoginAttempt(w, r, fmt.Sprintf("project:%d", pid)) {
+		return
+	}
 	valid := false
 	for _, tok := range tokens {
 		if checkPassword(body.Password, tok.TokenHash) {

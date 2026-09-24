@@ -1027,3 +1027,27 @@ func (s *Server) handleAdminExportRegistrations(w http.ResponseWriter, r *http.R
 	}
 	_, _ = w.Write([]byte(b.String()))
 }
+
+// Password-guess throttling for the client and project sign-in forms
+// (2026-09-24 review). Two keys: per source IP across all targets, and per
+// target across all IPs so a distributed guess still hits a ceiling. Both are
+// generous for humans — a customer mistyping a password ten times in ten
+// minutes is unusual — and cheap compared with the bcrypt they precede.
+const (
+	loginAttemptsPerIP     = 20
+	loginAttemptsPerTarget = 60
+	loginAttemptWindow     = 10 * time.Minute
+)
+
+// allowLoginAttempt returns false (and writes 429) when either key is over
+// budget. Call before the bcrypt compare.
+func (s *Server) allowLoginAttempt(w http.ResponseWriter, r *http.Request, target string) bool {
+	l := s.limiter()
+	if !l.allow("login-ip:"+clientIP(r), loginAttemptsPerIP, loginAttemptWindow) ||
+		!l.allow("login-target:"+target, loginAttemptsPerTarget, loginAttemptWindow) {
+		slog.Warn("login throttled", "target", target, "ip", clientIP(r))
+		jsonErr(w, "Too many sign-in attempts. Please wait a few minutes and try again.", http.StatusTooManyRequests)
+		return false
+	}
+	return true
+}

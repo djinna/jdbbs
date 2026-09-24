@@ -259,20 +259,25 @@ func (s *Server) handleAdminFactoryBoard(w http.ResponseWriter, r *http.Request)
 // you / studio / factory — the customer does not need our email addresses.
 func (s *Server) handleClientFactoryLog(w http.ResponseWriter, r *http.Request) {
 	clientSlug := r.PathValue("client")
-	if !s.checkClientAuthOrProjectAuth(w, r, clientSlug) {
+	scope, ok := s.checkClientScope(w, r, clientSlug)
+	if !ok {
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 || limit > 200 {
 		limit = 40
 	}
+	// Client-level events (no project) are only for client-wide sessions.
+	filter, fargs := scope.projectFilter("e.project_id")
+	args := append([]any{clientSlug}, fargs...)
+	args = append(args, limit)
 	rows, err := s.DB.QueryContext(r.Context(), `
 		SELECT e.id, e.created_at, COALESCE(e.project_id, 0), e.client_slug,
 		       COALESCE(p.project_slug, ''), COALESCE(p.name, ''), e.kind, e.actor, e.detail
 		FROM factory_events e
 		LEFT JOIN projects p ON p.id = e.project_id
-		WHERE e.client_slug = ? AND e.kind NOT LIKE 'login.%' AND e.kind <> 'login'
-		ORDER BY e.id DESC LIMIT ?`, clientSlug, limit)
+		WHERE e.client_slug = ? AND e.kind NOT LIKE 'login.%' AND e.kind <> 'login' AND `+filter+`
+		ORDER BY e.id DESC LIMIT ?`, args...)
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return

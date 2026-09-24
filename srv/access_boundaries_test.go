@@ -191,3 +191,103 @@ func TestMultipartRequestBoundedBeforeParsing(t *testing.T) {
 		}
 	}
 }
+
+// A passwordless client used to pass its aggregate views (journal, file log,
+// factory log) wholesale to anonymous callers, including rows from a sibling
+// project protected by its own password. Aggregates must be scoped to the
+// projects the caller can actually open (2026-09-24 review).
+func TestPasswordlessClientAggregatesHideProtectedSiblings(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+	if _, err := s.DB.Exec(`INSERT INTO clients (slug, name, password_hash) VALUES ('openco', 'Open Co', '')`); err != nil {
+		t.Fatal(err)
+	}
+	mk := func(slug string) int64 {
+		resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+			"name": slug, "client_slug": "openco", "project_slug": slug, "start_date": "2026-09-24",
+		})
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("create %s: %d", slug, resp.StatusCode)
+		}
+		var created map[string]any
+		decodeJSON(t, resp, &created)
+		return int64(created["ID"].(float64))
+	}
+	openID, secretID := mk("open"), mk("secret")
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects/"+itoa(secretID)+"/auth", map[string]string{"password": "hunter2"})
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("protect secret project: %d", resp.StatusCode)
+	}
+	for _, pid := range []int64{openID, secretID} {
+		tag := "MARK-" + itoa(pid)
+		if _, err := s.DB.Exec(`INSERT INTO journal (project_id, entry_type, content) VALUES (?, 'note', ?)`, pid, tag); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.DB.Exec(`INSERT INTO file_log (project_id, direction, filename, file_type, transfer_date) VALUES (?, 'in', ?, 'docx', '2026-09-24')`, pid, tag+".docx"); err != nil {
+			t.Fatal(err)
+		}
+		s.factoryEvent(pid, "openco", "upload", "factory", tag)
+	}
+	secretTag := "MARK-" + itoa(secretID)
+	openTag := "MARK-" + itoa(openID)
+
+	fetch := func(path, token string) string {
+		r := httptest.NewRequest("GET", path, nil)
+		if token != "" {
+			r.Header.Set("X-Auth-Token", token)
+		}
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, r)
+		if w.Code != http.StatusOK {
+			t.Fatalf("%s: %d %s", path, w.Code, w.Body.String())
+		}
+		return w.Body.String()
+	}
+	// Sanity: the protected project itself rejects anonymous reads.
+	r := httptest.NewRequest("GET", "/api/projects/"+itoa(secretID)+"/journal", nil)
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, r)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("protected project journal anonymous: %d", w.Code)
+	}
+	for _, path := range []string{"/api/clients/openco/journal", "/api/clients/openco/file-log", "/api/clients/openco/factory-log"} {
+		anon := fetch(path, "")
+		if strings.Contains(anon, secretTag) {
+			t.Errorf("%s: anonymous caller sees protected project rows", path)
+		}
+		if !strings.Contains(anon, openTag) {
+			t.Errorf("%s: anonymous caller lost open project rows", path)
+		}
+		if withTok := fetch(path, "hunter2"); !strings.Contains(withTok, secretTag) {
+			t.Errorf("%s: token holder cannot see their own project rows", path)
+		}
+	}
+}
+
+// Online password guessing against the client and project sign-in forms is
+// throttled per source IP (2026-09-24 review).
+func TestPasswordVerifyIsThrottled(t *testing.T) {
+	s, _, cleanup := testServer(t)
+	defer cleanup()
+	seedClient(t, s, "throttled", "Throttled", "right-password")
+	codes := map[int]int{}
+	for i := 0; i < loginAttemptsPerIP+5; i++ {
+		r := httptest.NewRequest("POST", "/api/clients/throttled/verify", strings.NewReader(`{"password":"wrong"}`))
+		r.RemoteAddr = "203.0.113.7:4000"
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, r)
+		codes[w.Code]++
+	}
+	if codes[http.StatusUnauthorized] != loginAttemptsPerIP || codes[http.StatusTooManyRequests] != 5 {
+		t.Fatalf("want %d×401 then 5×429, got %v", loginAttemptsPerIP, codes)
+	}
+	// A different source is unaffected and the right password still works.
+	r := httptest.NewRequest("POST", "/api/clients/throttled/verify", strings.NewReader(`{"password":"right-password"}`))
+	r.RemoteAddr = "198.51.100.9:4000"
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("other source with right password: %d %s", w.Code, w.Body.String())
+	}
+}

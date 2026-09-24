@@ -35,7 +35,8 @@ func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	clientSlug := r.PathValue("client")
-	if !s.checkClientAuthOrProjectAuth(w, r, clientSlug) {
+	scope, ok := s.checkClientScope(w, r, clientSlug)
+	if !ok {
 		return
 	}
 
@@ -75,8 +76,10 @@ func (s *Server) handleSendClientDigest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Load all projects for this client
+	pfilter, pargs := scope.projectFilter("id")
 	projRows, err := s.DB.QueryContext(r.Context(),
-		`SELECT id, name FROM projects WHERE client_slug = ? ORDER BY name`, clientSlug,
+		`SELECT id, name FROM projects WHERE client_slug = ? AND `+pfilter+` ORDER BY name`,
+		append([]any{clientSlug}, pargs...)...,
 	)
 	if err != nil {
 		jsonErr(w, "query projects: "+err.Error(), 500)

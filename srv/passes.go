@@ -1109,6 +1109,14 @@ func (s *Server) handleAdminResetClientPassword(w http.ResponseWriter, r *http.R
 		jsonErr(w, "factory pass client not found", http.StatusNotFound)
 		return
 	}
+	// A reset is usually defensive: burn any unredeemed sign-in links too,
+	// or a link obtained before the reset would mint a fresh cookie for the
+	// new password (2026-09-24 review).
+	if _, err := s.DB.ExecContext(r.Context(),
+		`UPDATE login_links SET used_at = ? WHERE client_slug = ? AND used_at IS NULL`,
+		time.Now().UTC().Format(loginLinkTimeLayout), clientSlug); err != nil {
+		slog.Error("password reset: invalidate login links", "client", clientSlug, "err", err)
+	}
 
 	res.Password = password
 	res.PortalURL = s.portalURL(res.ClientSlug, res.ProjectSlug)

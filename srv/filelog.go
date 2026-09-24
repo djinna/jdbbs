@@ -118,7 +118,8 @@ func (s *Server) handleDeleteFileLog(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleClientFileLog(w http.ResponseWriter, r *http.Request) {
 	clientSlug := r.PathValue("client")
-	if !s.checkClientAuthOrProjectAuth(w, r, clientSlug) {
+	scope, ok := s.checkClientScope(w, r, clientSlug)
+	if !ok {
 		return
 	}
 	limitStr := r.URL.Query().Get("limit")
@@ -126,15 +127,18 @@ func (s *Server) handleClientFileLog(w http.ResponseWriter, r *http.Request) {
 	if n, err := strconv.Atoi(limitStr); err == nil && n > 0 && n <= 100 {
 		limit = n
 	}
+	filter, fargs := scope.projectFilter("p.id")
+	args := append([]any{clientSlug}, fargs...)
+	args = append(args, limit)
 	rows, err := s.DB.QueryContext(r.Context(), `
 		SELECT f.id, f.project_id, f.direction, f.filename, f.file_type, f.sent_by, f.received_by, f.notes, f.transfer_date, f.created_at,
 		       p.name as project_name
 		FROM file_log f
 		JOIN projects p ON p.id = f.project_id
-		WHERE p.client_slug = ?
+		WHERE p.client_slug = ? AND `+filter+`
 		ORDER BY f.transfer_date DESC, f.created_at DESC
 		LIMIT ?
-	`, clientSlug, limit)
+	`, args...)
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return

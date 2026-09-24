@@ -37,10 +37,16 @@ func normalizeProjectSlug(s string) string {
 // for any project belonging to this client. This allows users who authenticated
 // to a specific project to also see sibling projects in the same client.
 func (s *Server) hasAnyProjectAuthForClient(r *http.Request, clientSlug string) bool {
+	return len(s.authorizedProjectIDsForClient(r, clientSlug)) > 0
+}
+
+// authorizedProjectIDsForClient lists the client's projects the request
+// passes checkAuth for.
+func (s *Server) authorizedProjectIDsForClient(r *http.Request, clientSlug string) []int64 {
 	rows, err := s.DB.QueryContext(r.Context(),
 		`SELECT p.id FROM projects p WHERE p.client_slug = ?`, clientSlug)
 	if err != nil {
-		return false
+		return nil
 	}
 	// Collect first, check after: the pool is MaxOpenConns(1), and
 	// checkAuth queries too — calling it with these rows still open
@@ -53,12 +59,13 @@ func (s *Server) hasAnyProjectAuthForClient(r *http.Request, clientSlug string) 
 		}
 	}
 	rows.Close()
+	var ok []int64
 	for _, pid := range ids {
 		if s.checkAuth(r, pid) {
-			return true
+			ok = append(ok, pid)
 		}
 	}
-	return false
+	return ok
 }
 
 // checkClientAuth checks if the request has a valid client-level auth cookie.
@@ -152,6 +159,9 @@ func (s *Server) handleClientVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !s.allowLoginAttempt(w, r, "client:"+clientSlug) {
+		return
+	}
 	if !checkPassword(body.Password, passwordHash) {
 		slog.Warn("client login failed", "client", clientSlug)
 		s.factoryEvent(0, clientSlug, "login.failed", "anon", "wrong password for /"+clientSlug+"/")
