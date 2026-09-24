@@ -70,6 +70,19 @@ PULL_FILE="$(mktemp -t r2-restore-drill.XXXXXX.sqlite3.gz)"
 rclone copyto "${R2_REMOTE}:${R2_BUCKET}/${R2_PREFIX}/${OBJECT}" "$PULL_FILE" --stats=0 \
   || die "rclone copyto failed for $OBJECT"
 
+# A structurally valid SQLite database can still be the wrong database.
+# Compare with our retained snapshot whenever available; never replace it.
+remote_sha="$(sha256sum "$PULL_FILE" | awk '{print $1}')" \
+  || die "could not hash downloaded backup"
+if [ -f "${BACKUP_DIR}/${OBJECT}" ]; then
+  local_sha="$(sha256sum "${BACKUP_DIR}/${OBJECT}" | awk '{print $1}')" \
+    || die "could not hash local counterpart"
+  [ "$local_sha" = "$remote_sha" ] \
+    || die "downloaded backup SHA-256 differs from local counterpart: $OBJECT"
+else
+  log "WARN: no local counterpart; this drill proves integrity, not source identity"
+fi
+
 PROBE_FILE="$(mktemp -t r2-restore-drill.XXXXXX.sqlite3)"
 gunzip -c "$PULL_FILE" > "$PROBE_FILE" \
   || die "could not decompress $OBJECT"
@@ -93,6 +106,7 @@ rm -f "$FAILURE_FLAG"
   printf 'object:     %s:%s/%s/%s\n' "$R2_REMOTE" "$R2_BUCKET" "$R2_PREFIX" "$OBJECT"
   printf 'projects:   %s\n' "$projects_n"
   printf 'integrity:  %s\n' "$integ"
+  printf 'sha256:     %s\n' "$remote_sha"
 } > "$SUCCESS_FLAG"
 
 printf '[%s] R2 DRILL OK object=%s projects=%s\n' \

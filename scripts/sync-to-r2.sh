@@ -15,8 +15,8 @@
 #   - Mirrors $BACKUP_DIR -> r2:$BUCKET/$PREFIX using `rclone copy`
 #     (not sync — we never want to delete remote-side automatically).
 #   - Only ships *.sqlite3.gz files (filtered include).
-#   - Verifies the newest local backup actually made it to R2 by
-#     checking remote size matches.
+#   - Refuses to overwrite differing objects and verifies the newest local
+#     backup by downloading its remote bytes and comparing SHA-256.
 #   - Drops a $BACKUP_DIR/.LAST-R2-SUCCESS or .LAST-R2-FAILURE sentinel
 #     so the same out-of-band monitoring catches missed off-VM runs.
 
@@ -66,8 +66,9 @@ fi
 
 newest_local="$(find "$BACKUP_DIR" -maxdepth 1 -name 'prodcal-*.sqlite3.gz' -printf '%T@ %p\n' 2>/dev/null \
                 | sort -rn | head -1 | cut -d' ' -f2-)"
-[ -n "${newest_local:-}" ] && [ -f "$newest_local" ] \
-  || die "no local backup files found in $BACKUP_DIR (looking for prodcal-*.sqlite3.gz)"
+if [ -z "${newest_local:-}" ] || [ ! -f "$newest_local" ]; then
+  die "no local backup files found in $BACKUP_DIR (looking for prodcal-*.sqlite3.gz)"
+fi
 
 newest_size="$(stat -c '%s' "$newest_local" 2>/dev/null || stat -f '%z' "$newest_local")"
 newest_name="$(basename "$newest_local")"
@@ -76,6 +77,8 @@ log "newest local: $newest_name ($newest_size B)"
 log "rclone copy ${BACKUP_DIR}/ -> ${R2_REMOTE}:${R2_BUCKET}/${R2_PREFIX}/ (filter: prodcal-*.sqlite3.gz)"
 rclone copy "$BACKUP_DIR/" "${R2_REMOTE}:${R2_BUCKET}/${R2_PREFIX}/" \
   --include 'prodcal-*.sqlite3.gz' \
+  --immutable \
+  --checksum \
   --transfers 2 \
   --checkers 4 \
   --stats=0 \
@@ -92,11 +95,21 @@ if [ "$remote_size" != "$newest_size" ]; then
   die "remote size $remote_size != local size $newest_size for $newest_name"
 fi
 
+local_sha="$(sha256sum "$newest_local" | awk '{print $1}')" \
+  || die "could not hash local backup"
+remote_sha="$(rclone cat "${R2_REMOTE}:${R2_BUCKET}/${R2_PREFIX}/${newest_name}" \
+  | sha256sum | awk '{print $1}')" \
+  || die "could not read back remote backup for SHA-256 verification"
+[ "$local_sha" = "$remote_sha" ] \
+  || die "remote SHA-256 differs from local backup for $newest_name"
+
 rm -f "$FAILURE_FLAG"
 {
   printf 'time:        %s\n' "$(date -u +%FT%TZ)"
   printf 'remote:      %s:%s/%s/%s\n' "$R2_REMOTE" "$R2_BUCKET" "$R2_PREFIX" "$newest_name"
   printf 'bytes:       %s\n' "$remote_size"
+  printf 'sha256:      %s\n' "$remote_sha"
+  printf 'source_host: %s\n' "$(hostname)"
 } > "$SUCCESS_FLAG"
 
 printf '[%s] R2 OK file=%s bytes=%s remote=%s:%s/%s\n' \
