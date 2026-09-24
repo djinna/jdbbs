@@ -87,3 +87,37 @@ failure markers after the underlying problem is verified resolved.
 
 Metrics: approximately 60% context at handoff; zero large-file readguard
 bypasses. Bulk app/GitHub/backup review was delegated read-only.
+
+## Closeout planning addendum — September 24, 2026
+
+Jenna has removed the five individual VM shares. Her final `share show` reports
+PUBLIC port 8000 and no individual shares; its earlier “now private” deletion
+message was inconsistent with that final status. External acceptance checks
+remain outstanding.
+
+The user asked to share the remaining closeout work. Independent session
+`cK4MWGP` is now coordinating the follow-up. See
+`SECURITY-CLOSEOUT-PLAN-2026-09-24.md`; private punch-list section 7 now separates
+owner account decisions from agent implementation and records completion
+criteria. Detailed findings and the punch-list archive remain unexported.
+
+Next owner actions: approve/set intended GitHub visibility and review working,
+bucket-scoped backup credentials without pasting secrets into chat. Next agent
+actions: verify authenticated source access, complete the private recovery
+inventory, then create/download/hash-verify a current offsite snapshot once
+write access is repaired. No new successful offsite recovery or complete
+restore is claimed by this planning addendum.
+
+Preparation completed: VM `origin` now uses the existing authenticated SSH
+path and fetch succeeded; the broad key was not changed or revoked. A private
+metadata-only recovery inventory records 12 roots, two symlinks to review and
+five tool versions in `scratch/security-2026-09-24/RECOVERY-INVENTORY-2026-09-24.json`.
+No secret values were copied into it. The existing runpage was restarted with
+`RUNPAGE_CHAT_CONV=cK4MWGP`, so notes now reach this conversation.
+
+No application code, production database, cloud permissions or backup objects
+were changed in this follow-up. Keep the GitHub/R2 account decisions first;
+do not infer a repaired backup from the existence of this plan.
+
+Metrics for follow-up: approximately 60% context; zero large-file readguard
+bypasses. No additional subagents or live transactional sends.
