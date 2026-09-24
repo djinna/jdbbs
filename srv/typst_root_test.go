@@ -48,3 +48,15 @@ func TestTypstRootConfinedToJobDir(t *testing.T) {
 		t.Fatalf("unexpected typst error:\n%s", out)
 	}
 }
+
+func TestRootRelativeJobPaths(t *testing.T) {
+	in := `#image("/tmp/book-7-abc/media/media/image1.jpg", width: 100%) #image("/tmp/book-7-abc/media/x.png")`
+	got := rootRelativeJobPaths(in, "/tmp/book-7-abc/")
+	want := `#image("/media/media/image1.jpg", width: 100%) #image("/media/x.png")`
+	if got != want {
+		t.Fatalf("got %q\nwant %q", got, want)
+	}
+	if rootRelativeJobPaths(in, "/") != in {
+		t.Fatal("root / must be a no-op")
+	}
+}

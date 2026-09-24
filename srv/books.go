@@ -882,6 +882,10 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIn
 	// Narrow cleanup for manuscript patterns that Pandoc/Typst adjacency can misparse.
 	typText = literalTypstMentions(typText)
 	typText = clampTypstInlineImages(typText)
+	// pandoc --extract-media writes absolute filesystem paths; with --root set
+	// to the job directory, Typst reads a leading "/" as root-relative, so
+	// strip the job-directory prefix (/tmp/book-N-x/media/a.jpg -> /media/a.jpg).
+	typText = rootRelativeJobPaths(typText, tmpDir)
 	typText = strings.ReplaceAll(typText, ")#strong[", ") #strong[")
 	typText = strings.ReplaceAll(typText, ")](", ")] (")
 	typText = strings.ReplaceAll(typText, "\n/\n", "\n#poem[/]\n")
@@ -1835,4 +1839,14 @@ func (s *Server) keptWordsForBook(book dbgen.Book) (int, bool) {
 		return 0, false
 	}
 	return bm.KeptWords(), true
+}
+
+// rootRelativeJobPaths rewrites absolute references into jobDir as Typst
+// root-relative paths, for compiling with --root jobDir.
+func rootRelativeJobPaths(typ, jobDir string) string {
+	jobDir = filepath.Clean(jobDir)
+	if jobDir == "/" || jobDir == "." {
+		return typ
+	}
+	return strings.ReplaceAll(typ, jobDir+"/", "/")
 }
