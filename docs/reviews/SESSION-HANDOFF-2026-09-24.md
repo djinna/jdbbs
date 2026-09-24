@@ -139,3 +139,36 @@ Session `cTB3D2B` reconciled all earlier notes. Summary safe for publication:
 - Remaining application findings and owner decisions are in private punch-list
   section 7 (items 7.4–7.16). Private consolidated report:
   `scratch/security-2026-09-24/CONSOLIDATED-REPORT-2026-09-24.md` (not in Git).
+
+## Evening addendum — September 24, 2026 (session cTB3D2B)
+
+Publish-safe summary; operational detail is in the private punch list §7 and
+`scratch/security-2026-09-24/CONSOLIDATED-REPORT-2026-09-24.md`.
+
+**Resolved today**
+- Second backup writer identified and neutralised: a VM copy made 2026-08-15
+  had inherited cron + backup config. Its cron is removed and its service
+  disabled; it remains as an inert cold copy. Backups now write to a
+  per-deployment prefix and refuse to run from a different hostname (`da4167d`).
+- Offsite recovery current and verified (upload, SHA-256 readback, restore
+  drill); backup dashboard OK for real reasons.
+- R2 token and AgentMail API key rotated and verified (test mail sent, upload
+  + drill with new token). Pre-rotation copies kept on the VM until the owner
+  confirms the old keys are deleted, then shred.
+- App fixes deployed, all with regression tests, suite green:
+  `1caf636`/`7e53175` (typst confined to job dir; inspection-report XSS),
+  `1cb8c62` (aggregate reads scoped to authorised projects; login links burned
+  on password reset; sign-in throttling).
+- Repository made private by the owner. Web proxy back to Public (customers
+  authenticate inside the app; Private would lock them out).
+- Stale listener on 8765 stopped; 7000 and 9898 kept by owner decision.
+
+**Deployed:** `0924.1cb8c62`.
+
+**Open (punch list §7)**: 7.5 encrypted recovery bundle · 7.7 confidential
+material inventory · 7.8 repo-scoped GitHub keys · 7.9 CI/branch controls ·
+7.10 retention/lock policy · 7.11 full isolated restore · 7.12 non-admin
+`/admin/` denial check from a second exe.dev account · 7.13 delete old
+AgentMail key, decide `.prodcal-secret` rotation · 7.16 remaining app
+findings: callback DNS pinning, DOCX expansion budgets + exec deadlines,
+duplication-vs-creation policy, build-credit race.
