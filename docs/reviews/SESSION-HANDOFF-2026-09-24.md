@@ -1,0 +1,89 @@
+# Security and recovery handoff — September 24, 2026
+
+**Status: app hardening is deployed; overall security and complete recovery
+are not signed off.** Customers should use their existing app login and
+Factory pass, not an infrastructure share. No customer passwords, passes,
+VM shares, repository settings, or credentials were changed in this session.
+
+This repository is public. This handoff deliberately omits sensitive evidence,
+customer details, and descriptions of unresolved exploit paths. Do not commit
+the private audit directory or export customer punch-list notes into Git.
+
+## Shipped and validated
+
+- `fcaa112` — explicit administrator email allowlist, including every existing
+  project/pass/cohort bypass; missing configuration fails closed. The local
+  Mac launcher configures a separate loopback identity.
+- Credential creation requires admin; customer project moves/copies cannot
+  cross client boundaries. Multipart requests have actual total-body/file
+  limits, rather than just multipart RAM thresholds.
+- Production HTTP header/idle timeouts; HTTPS project cookies carry `Secure`.
+  The service now has `NoNewPrivileges=yes` and `UMask=0077`. These are
+  incremental protections, not a dedicated-user/converter sandbox.
+- `29fc12e` — offsite sync refuses conflicting overwrites and downloads bytes
+  for SHA-256 verification. Offsite drills compare with a local counterpart
+  when available. Offline regression coverage exercises matching bytes,
+  same-size wrong bytes, and copy failure.
+- Both commits pushed; production health reports `0924.29fc12e`.
+- Full `go test ./...`, `go vet ./...`, relevant shellcheck, gofmt,
+  `git diff --check`, and `python3 scripts/test-backup-verification.py` passed.
+- Local live HTTP checks: anonymous admin 401, non-allowlisted authenticated
+  identity 403, allowlisted owner 200, anonymous credential creation denied,
+  public storefront 200. No customer modifications or transactional emails
+  were used for these probes.
+
+External proxy/browser and direct-ingress verification remain outstanding;
+the live probes above ran locally and supplied proxy identity headers.
+
+## Blocking work
+
+1. **Offsite recovery:** current downloaded evidence does not match the local
+   snapshot. Fresh upload attempts failed with provider authorization errors.
+   Do not mistake structural SQLite integrity for source identity/currentness.
+   Existing remote objects were not overwritten. Failure markers intentionally
+   keep the app backup dashboard at **ACTION NEEDED**.
+2. **Owner decisions:** inspect person/team/root/web shares and invitation
+   links; confirm existing customer app logins before removing grants. Review
+   GitHub publication rights, key scope, collaborators, and branch/CI controls.
+3. **Complete recovery:** database snapshots contain manuscript/output BLOBs
+   but do not replace encrypted recovery of configuration, secrets, licensed
+   fonts, external documents, and toolchain. A clean-machine restore/build
+   with outbound integrations disabled has not been demonstrated.
+4. **Remaining inbound review:** retire unused services, verify trusted
+   ingress externally, establish least-privilege runtime/converter isolation,
+   and finish remaining authorization/abuse checks before declaring readiness.
+
+The offsite root cause is unknown. Another writer/environment is a hypothesis,
+not a finding. Use a deployment-specific namespace and unique immutable
+snapshot identifiers after confirming credentials and all writers; never
+repair by blindly overwriting the evidence.
+
+## Private operational handoff
+
+On the VM, read `scratch/security-2026-09-24/PRIVATE-FINDINGS-2026-09-24.md`,
+`app-review.md`, `github-review.md`, and `PRIMARY-RESULTS-2026-09-24.md`.
+This ignored directory also holds downloaded evidence, test logs, recovery
+attempt logs, and the preserved previous backup-status markers. Do not serve
+this directory with a static web server. Private punch-list section 7 tracks
+owner decisions and remaining work; it was not exported to the public repo.
+
+**Exact next action:** obtain the owner's VM-share review and R2 credential/
+writer review, then upload a current snapshot to a new authorized unique key.
+Download it into private scratch, compare SHA-256, integrity, meaningful
+record/BLOB counts, and complete an isolated recovery drill. Only clear
+failure markers after the underlying problem is verified resolved.
+
+## Coordination / repositories
+
+- Primary session `cJFM2DP` owns remediation. Independent reviewer `cK4MWGP`
+  contributed publish-safe checklist commit `cb2d5e8`; its detailed report
+  remains private. Another parallel reviewer was asked to stop remediation
+  and preserve all remote evidence; inspect coordination notes before changes.
+- Public-doc repo was unchanged in this session; independent reviewer
+  confirmed existing commits through `58c64bf` pushed.
+- Both working trees were clean before this handoff was added.
+- No app recompile is needed for this handoff commit; deployed code version
+  intentionally remains `0924.29fc12e`.
+
+Metrics: approximately 60% context at handoff; zero large-file readguard
+bypasses. Bulk app/GitHub/backup review was delegated read-only.
