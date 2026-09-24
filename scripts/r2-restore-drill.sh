@@ -16,10 +16,8 @@
 
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"
-R2_REMOTE="${R2_REMOTE:-r2}"
-R2_BUCKET="${R2_BUCKET:-jdbbs-backups}"
-R2_PREFIX="${R2_PREFIX:-db}"
+# shellcheck source=scripts/r2-env.sh
+. "$(dirname "${BASH_SOURCE[0]}")/r2-env.sh"
 MIN_PROJECTS="${MIN_PROJECTS:-1}"
 SUCCESS_FLAG="${BACKUP_DIR}/.LAST-R2-DRILL-SUCCESS"
 FAILURE_FLAG="${BACKUP_DIR}/.LAST-R2-DRILL-FAILURE"
@@ -48,6 +46,7 @@ PROBE_FILE=""
 OBJECT=""
 trap cleanup EXIT
 
+r2_require_prefix
 command -v rclone >/dev/null 2>&1 || die "rclone not installed"
 command -v sqlite3 >/dev/null 2>&1 || die "sqlite3 not installed"
 

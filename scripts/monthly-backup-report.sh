@@ -58,7 +58,12 @@ def age_hours(p):
 r2_size = None
 r2_error = None
 try:
-    cp = subprocess.run(["rclone", "size", "r2:jdbbs-backups/db", "--json"], text=True, capture_output=True, timeout=120)
+    ns_file = backup_dir / ".r2-namespace"
+    r2_prefix = os.environ.get("R2_PREFIX") or (ns_file.read_text().strip() if ns_file.exists() else "")
+    if not r2_prefix:
+        raise RuntimeError("no R2 prefix (.r2-namespace missing)")
+    env = dict(os.environ, RCLONE_S3_NO_CHECK_BUCKET="true")
+    cp = subprocess.run(["rclone", "size", f"r2:jdbbs-backups/{r2_prefix}", "--json"], text=True, capture_output=True, timeout=120, env=env)
     if cp.returncode == 0:
         r2_size = json.loads(cp.stdout)
     else:

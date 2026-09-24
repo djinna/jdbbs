@@ -8,10 +8,9 @@
 
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"
-R2_REMOTE="${R2_REMOTE:-r2}"
-R2_BUCKET="${R2_BUCKET:-jdbbs-backups}"
-R2_MONTHLY_PREFIX="${R2_MONTHLY_PREFIX:-db}"
+# shellcheck source=scripts/r2-env.sh
+. "$(dirname "${BASH_SOURCE[0]}")/r2-env.sh"
+R2_MONTHLY_PREFIX="${R2_MONTHLY_PREFIX:-${R2_PREFIX:-}}"
 MONTHLY_NAME_PREFIX="${MONTHLY_NAME_PREFIX:-prodcal-monthly-}"
 LOCK_FILE="${BACKUP_DIR}/.r2-monthly-lock"
 SUCCESS_FLAG="${BACKUP_DIR}/.LAST-R2-MONTHLY-SUCCESS"
@@ -34,6 +33,7 @@ die() {
 }
 
 [ -d "$BACKUP_DIR" ] || die "backup dir not found: $BACKUP_DIR"
+[ -n "$R2_MONTHLY_PREFIX" ] || die "no R2 prefix: set R2_MONTHLY_PREFIX/R2_PREFIX or create $R2_NAMESPACE_FILE"
 command -v rclone >/dev/null 2>&1 || die "rclone not installed"
 
 exec 9>"$LOCK_FILE"

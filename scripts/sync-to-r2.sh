@@ -22,10 +22,8 @@
 
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"
-R2_REMOTE="${R2_REMOTE:-r2}"
-R2_BUCKET="${R2_BUCKET:-jdbbs-backups}"
-R2_PREFIX="${R2_PREFIX:-db}"
+# shellcheck source=scripts/r2-env.sh
+. "$(dirname "${BASH_SOURCE[0]}")/r2-env.sh"
 LOCK_FILE="${BACKUP_DIR}/.r2-lock"
 SUCCESS_FLAG="${BACKUP_DIR}/.LAST-R2-SUCCESS"
 FAILURE_FLAG="${BACKUP_DIR}/.LAST-R2-FAILURE"
@@ -47,6 +45,7 @@ die() {
 log() { printf '[%s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
 mkdir -p "$BACKUP_DIR"
+r2_require_prefix
 
 exec 9>"$LOCK_FILE"
 flock -n 9 || die "another R2 sync is already running (lock: $LOCK_FILE)"
