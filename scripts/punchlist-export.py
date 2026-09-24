@@ -37,7 +37,18 @@ def export(date):
     try: notes = json.load(open(NOTES))
     except FileNotFoundError: notes = {}
     out = []
+    private = False
     for i, ln in enumerate(md):
+        # Sections whose heading carries "(private)" stay in scratch: they hold
+        # operational security detail that must not reach the public repo.
+        if ln.startswith("## "):
+            private = "(private)" in ln.lower()
+            if private:
+                out.append(ln.replace("(private)", "").rstrip() + " — kept private, not exported")
+                out.append("")
+                continue
+        if private:
+            continue
         out.append(ln)
         m = ITEM.match(ln)
         if not m or m.group(2) not in notes: continue

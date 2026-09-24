@@ -121,3 +121,21 @@ do not infer a repaired backup from the existence of this plan.
 
 Metrics for follow-up: approximately 60% context; zero large-file readguard
 bypasses. No additional subagents or live transactional sends.
+
+## Consolidation addendum — September 24, 2026 (afternoon)
+
+Session `cTB3D2B` reconciled all earlier notes. Summary safe for publication:
+
+- The offsite "403" was a client-side behaviour (rclone attempting to create the
+  bucket with a bucket-scoped token), not a credential failure. The mismatched
+  remote snapshot came from a second host holding a copy of this deployment's
+  backup configuration. Backups now write to a per-deployment prefix
+  (`scripts/r2-env.sh`, `scripts/r2-init-namespace.sh`); a full upload,
+  SHA-256 readback and restore drill succeeded. Locating the second host and
+  rotating the shared credential are owner actions tracked privately.
+- Two pipeline fixes deployed (`1caf636`, `7e53175`): Typst builds are confined
+  to their job directory, and failed-inspection reports escape error output.
+- Deployed version `0924.7e53175`; full `go test ./...` green.
+- Remaining application findings and owner decisions are in private punch-list
+  section 7 (items 7.4–7.16). Private consolidated report:
+  `scratch/security-2026-09-24/CONSOLIDATED-REPORT-2026-09-24.md` (not in Git).
