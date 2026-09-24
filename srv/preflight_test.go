@@ -3,6 +3,7 @@ package srv
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -504,5 +505,54 @@ func TestBuildPreflightSummaryExcludesPreserved(t *testing.T) {
 	}
 	if sum.ByType["font_treatment"] != 2 {
 		t.Fatalf("by_type should still count preserved items: %+v", sum.ByType)
+	}
+}
+
+// A failed inspection stores the subprocess output (which echoes the
+// customer-chosen filename) as an HTML report. It must be escaped, or the
+// report is same-origin stored XSS against whoever opens it (2026-09-24).
+func TestRunManuscriptPreflightEscapesErrorOutputInStoredHTML(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	const marker = `<img src=x onerror="document.title='pwned'">`
+	s.preflightRunner = func(docxPath string, declaredStylesPath string) ([]byte, []byte, error) {
+		return nil, nil, errors.New("Processing " + marker + ".docx\nTraceback: bad zip")
+	}
+
+	resp := apiRequestAdmin(t, ts, "POST", "/api/projects", map[string]string{
+		"name": "Preflight XSS", "start_date": "2026-04-12",
+		"client_slug": "vgr", "project_slug": "preflight-xss",
+	})
+	if resp.StatusCode != 201 {
+		t.Fatalf("create project: expected 201, got %d", resp.StatusCode)
+	}
+	var project map[string]any
+	decodeJSON(t, resp, &project)
+	pid := int64(project["ID"].(float64))
+
+	q := dbgen.New(s.DB)
+	book, err := q.CreateBook(t.Context(), dbgen.CreateBookParams{
+		Title: "Broken", Author: "Tester", SourceFilename: marker + ".docx",
+		SourceData: []byte("not-a-docx"), ProjectID: sql.NullInt64{Int64: pid, Valid: true},
+	})
+	if err != nil {
+		t.Fatalf("create book: %v", err)
+	}
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+itoa(pid)+"/preflight", map[string]any{"book_id": book.ID})
+	resp.Body.Close()
+
+	stored, err := q.GetLatestManuscriptPreflight(t.Context(), dbgen.GetLatestManuscriptPreflightParams{ProjectID: pid, BookID: book.ID})
+	if err != nil {
+		t.Fatalf("get stored preflight: %v", err)
+	}
+	if stored.Status != "error" {
+		t.Fatalf("expected error status, got %q", stored.Status)
+	}
+	if strings.Contains(stored.ReportHtml, marker) {
+		t.Fatalf("raw error output stored unescaped in report html: %q", stored.ReportHtml)
+	}
+	if !strings.Contains(stored.ReportHtml, "&lt;img src=x") {
+		t.Fatalf("expected escaped marker in report html, got %q", stored.ReportHtml)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"log/slog"
 	"net/http"
 	"os"
@@ -581,7 +582,9 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 	if runErr != nil {
 		status = "error"
 		errorMsg = runErr.Error()
-		htmlBytes = []byte("<html><body><h1>Preflight Error</h1><pre>" + errorMsg + "</pre></body></html>")
+		// errorMsg carries subprocess output that echoes the customer-chosen
+		// filename; escape it or the stored report is same-origin stored XSS.
+		htmlBytes = []byte("<html><body><h1>Preflight Error</h1><pre>" + html.EscapeString(errorMsg) + "</pre></body></html>")
 		jsonBytes = []byte("[]")
 	}
 	jsonBytes, err = appendUndeclaredStyleWarnings(jsonBytes, specData)

@@ -825,19 +825,19 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIn
 	if withIndex {
 		configOverride = indexTypstConfig(configOverride)
 	}
-	templatePath := seriesTemplatePath()
-	if configOverride != "" {
-		// The template's module-level functions (running heads, title page,
-		// #section-break, chapter openers) close over the module's own
-		// `config`, not the one passed to book(); a copy of the template with
-		// the merged config bound at module level is the only way the spec's
-		// fonts and section-break style reach them (2026-09-19).
-		if p, err := writeSpecialisedTemplate(tmpDir, configOverride); err != nil {
-			slog.Warn("specialised template", "book_id", bid, "err", err)
-		} else {
-			templatePath = p
-		}
+	// The template is always copied into the job directory and imported by a
+	// root-relative path so typst can run with --root set to the job directory
+	// (2026-09-24 security review): customer-authored custom-style snippets
+	// are executable Typst, and with --root / they could read any file the
+	// service can. The copy also lets the spec's merged config be bound at
+	// module level — the template's module-level functions (running heads,
+	// title page, #section-break, chapter openers) close over the module's
+	// own `config`, not the one passed to book() (2026-09-19).
+	if _, err := writeSpecialisedTemplate(tmpDir, configOverride); err != nil {
+		s.failConversion(bid, "stage typst template: "+err.Error())
+		return
 	}
+	templatePath := "/templates/series-template.typ"
 	// Pass config explicitly to book.with so the caller's merged config (above)
 	// reaches the template's body styling. Without this, book()'s `config: config`
 	// parameter default captures the template module's default-config rather than
@@ -899,7 +899,10 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIn
 
 	// Step 3: typst compile the generated full document.
 	pdfPath := filepath.Join(tmpDir, "output.pdf")
-	typstArgs := []string{"compile", "--root", "/", "--font-path", fontsDirPath()}
+	// --root is the job directory: the template copy, pandoc-extracted media
+	// and the generated document all live under it; fonts come via --font-path,
+	// which is not subject to the root.
+	typstArgs := []string{"compile", "--root", tmpDir, "--font-path", fontsDirPath()}
 	if book.BuildKind == buildKindProof {
 		// The template reads sys.inputs.proof and draws it on every page and
 		// on the copyright page (series-template.typ, PROOF STAMP).
@@ -1492,7 +1495,10 @@ func writeSpecialisedTemplate(dir, configOverride string) (string, error) {
 	if !strings.Contains(string(src), anchor) {
 		return "", fmt.Errorf("series-template.typ: config anchor not found")
 	}
-	out := strings.Replace(string(src), anchor, "\n"+configOverride+"\n", 1)
+	out := string(src)
+	if configOverride != "" {
+		out = strings.Replace(out, anchor, "\n"+configOverride+"\n", 1)
+	}
 	tplDir := filepath.Join(dir, "templates")
 	if err := os.MkdirAll(tplDir, 0755); err != nil {
 		return "", err
