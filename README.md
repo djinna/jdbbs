@@ -46,7 +46,8 @@ sudo systemctl restart prodcal
 
 Production runs as the systemd unit `prodcal.service` on port 8000 behind the
 exe.dev HTTPS proxy, which injects `X-ExeDev-UserID` / `X-ExeDev-Email` for
-admin auth. Logs: `journalctl -u prodcal -f`. See `DEPLOY.md` for the full
+identity. Admin access additionally requires `PRODCAL_ADMIN_EMAILS`; an empty
+allowlist grants no admin access. Logs: `journalctl -u prodcal -f`. See `DEPLOY.md` for the full
 runbook and `CHECKPOINTS.md` for checkpoint tags + rollback.
 
 ## Data

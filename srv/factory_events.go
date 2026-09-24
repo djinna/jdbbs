@@ -17,7 +17,7 @@ import (
 // without a terminal. Writes are best-effort and never fail the request.
 
 // factoryEvent records one row. projectID 0 means client-level (sign-in).
-// actor is requestActor(r) for requests, "factory" for background work.
+// actor is s.requestActor(r) for requests, "factory" for background work.
 func (s *Server) factoryEvent(projectID int64, clientSlug, kind, actor, detail string) {
 	if actor == "" {
 		actor = "anon"
@@ -40,7 +40,7 @@ func (s *Server) factoryEvent(projectID int64, clientSlug, kind, actor, detail s
 
 // factoryEventR is the request-scoped form: actor from the request.
 func (s *Server) factoryEventR(r *http.Request, projectID int64, kind, detail string) {
-	s.factoryEvent(projectID, "", kind, requestActor(r), detail)
+	s.factoryEvent(projectID, "", kind, s.requestActor(r), detail)
 }
 
 type factoryEventRow struct {

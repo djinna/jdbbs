@@ -103,10 +103,10 @@ func (s *Server) handleListBooks(w http.ResponseWriter, r *http.Request) {
 // (an unlinked, admin-managed book) it stays admin-only. See
 // docs/specs/FACTORY-PASS-API-2026-09-03.md.
 func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-		jsonErr(w, "file too large or bad form", 400)
+	if !parseUploadForm(w, r, maxUploadSize) {
 		return
 	}
+	defer r.MultipartForm.RemoveAll()
 
 	title := strings.TrimSpace(r.FormValue("title"))
 	author := strings.TrimSpace(r.FormValue("author"))
@@ -144,6 +144,10 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	if header.Size > maxUploadSize {
+		jsonErr(w, "file too large", http.StatusRequestEntityTooLarge)
+		return
+	}
 	data, err := io.ReadAll(file)
 	if err != nil {
 		jsonErr(w, "read error", 500)
@@ -173,7 +177,7 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 		go s.detectChaptersAsync(book)
 	}
 	slog.Info("manuscript uploaded", "book_id", book.ID, "project_id", projectID.Int64,
-		"title", book.Title, "file", header.Filename, "bytes", len(data), "who", requestActor(r))
+		"title", book.Title, "file", header.Filename, "bytes", len(data), "who", s.requestActor(r))
 	if projectID.Valid {
 		s.factoryEventR(r, projectID.Int64, "manuscript.uploaded",
 			fmt.Sprintf("%s (%s) → book %d", header.Filename, formatBytesIEC(int64(len(data))), book.ID))

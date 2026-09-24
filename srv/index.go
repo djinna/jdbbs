@@ -152,7 +152,7 @@ func (s *Server) handleGetBookIndex(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "not found", 404)
 		return
 	}
-	entitled := r.Header.Get("X-ExeDev-UserID") != ""
+	entitled := s.isAdmin(r)
 	if !book.ProjectID.Valid {
 		if !s.requireExeDevAdminAPI(w, r) {
 			return
@@ -356,7 +356,7 @@ func (s *Server) handleAdminGrantPassIndex(w http.ResponseWriter, r *http.Reques
 		jsonErr(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	slog.Info("admin: index add-on granted", "pass_id", id, "by", requestActor(r))
+	slog.Info("admin: index add-on granted", "pass_id", id, "by", s.requestActor(r))
 	jsonOK(w, map[string]any{"ok": true, "id": id, "index_included": true})
 }
 

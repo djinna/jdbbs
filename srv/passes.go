@@ -148,7 +148,7 @@ func (s *Server) passForProject(ctx context.Context, projectID int64) *dbgen.Pas
 //
 // On failure the response has already been written.
 func (s *Server) requirePassAccess(w http.ResponseWriter, r *http.Request, projectID int64) (*dbgen.Pass, bool, bool) {
-	if r.Header.Get("X-ExeDev-UserID") != "" {
+	if s.isAdmin(r) {
 		return s.passForProject(r.Context(), projectID), true, true
 	}
 	if projectID <= 0 {

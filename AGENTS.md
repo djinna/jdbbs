@@ -26,7 +26,7 @@ See README.md for build/deploy basics.
 
 ProdCal runs in two places:
 
-- **VM `jdbbs.exe.xyz` (canonical / deploy).** `prodcal.service` on port 8000 behind the exe.dev HTTPS proxy, which injects `X-ExeDev-UserID` (= admin) and `X-ExeDev-Email`. Has the full doc pipeline (pandoc/typst/python-docx) + licensed fonts. Most dev happens here (Shelley sessions); source of truth for print output.
+- **VM `jdbbs.exe.xyz` (canonical / deploy).** `prodcal.service` on port 8000 behind the exe.dev HTTPS proxy, which injects `X-ExeDev-UserID` and `X-ExeDev-Email` as identity, not authorization. Admin additionally requires the explicit `PRODCAL_ADMIN_EMAILS` allowlist; local admin curls must send both headers. Has the full doc pipeline (pandoc/typst/python-docx) + licensed fonts. Most dev happens here (Shelley sessions); source of truth for print output.
 - **Local Mac (dogfood / offline).** Same Go server, its own SQLite data dir, email off. There is no exe.dev proxy locally, so admin is reached via the loopback launcher below (it injects the admin header) — never by weakening the server's auth.
 
 ### Git flow — hub-and-spoke (avoids VM↔GitHub divergence)

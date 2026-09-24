@@ -90,6 +90,9 @@ func Start(opts Options) (*Instance, error) {
 		_ = frontLn.Close()
 		return nil, fmt.Errorf("create server: %w", err)
 	}
+	// This identity is injected only by the loopback-only front proxy below.
+	// Do not add it to the deployed server's administrator allowlist.
+	s.AdminEmails = []string{"local@localhost"}
 
 	// Internal server: the real ProdCal handler on an ephemeral loopback port.
 	intLn, err := net.Listen("tcp", "127.0.0.1:0")

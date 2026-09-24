@@ -425,7 +425,7 @@ func (s *Server) handleGetManuscriptPreflightReport(w http.ResponseWriter, r *ht
 	if pr, perr := q.GetProject(r.Context(), pid); perr == nil {
 		factoryURL = "/" + pr.ClientSlug + "/" + pr.ProjectSlug + "/factory/"
 	}
-	if r.Header.Get("X-ExeDev-UserID") == "" && !s.checkAuth(r, pid) {
+	if !s.isAdmin(r) && !s.checkAuth(r, pid) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = fmt.Fprintf(w, preflightSignInHTML, factoryURL)
@@ -630,7 +630,7 @@ func (s *Server) handleRunManuscriptPreflight(w http.ResponseWriter, r *http.Req
 	}
 	slog.Info("inspect run", "book_id", body.BookID, "project_id", pid, "status", status,
 		"findings", summary.Total, "high", summary.High, "medium", summary.Medium, "low", summary.Low,
-		"by_type", summary.ByType, "who", requestActor(r))
+		"by_type", summary.ByType, "who", s.requestActor(r))
 	s.factoryEventR(r, pid, "inspect", fmt.Sprintf("book %d: %s — %d high / %d medium / %d low",
 		body.BookID, status, summary.High, summary.Medium, summary.Low))
 	row, err := q.CreateManuscriptPreflight(r.Context(), dbgen.CreateManuscriptPreflightParams{

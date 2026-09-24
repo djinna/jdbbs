@@ -17,6 +17,7 @@ func TestFactoryEventsFeedAndBoard(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/api/admin/factory/events?limit=10", nil)
 	req.Header.Set("X-ExeDev-UserID", "admin")
+	req.Header.Set("X-ExeDev-Email", "owner@example.test")
 	rr := httptest.NewRecorder()
 	s.handleAdminFactoryEvents(rr, req)
 	if rr.Code != http.StatusOK {
@@ -40,6 +41,7 @@ func TestFactoryEventsFeedAndBoard(t *testing.T) {
 	// after=ID returns only newer rows.
 	req = httptest.NewRequest("GET", "/api/admin/factory/events?after="+itoa(evs[1].ID), nil)
 	req.Header.Set("X-ExeDev-UserID", "admin")
+	req.Header.Set("X-ExeDev-Email", "owner@example.test")
 	rr = httptest.NewRecorder()
 	s.handleAdminFactoryEvents(rr, req)
 	var newer []factoryEventRow
@@ -51,6 +53,7 @@ func TestFactoryEventsFeedAndBoard(t *testing.T) {
 	// Board: no passes yet → empty list, not an error.
 	req = httptest.NewRequest("GET", "/api/admin/factory/board", nil)
 	req.Header.Set("X-ExeDev-UserID", "admin")
+	req.Header.Set("X-ExeDev-Email", "owner@example.test")
 	rr = httptest.NewRecorder()
 	s.handleAdminFactoryBoard(rr, req)
 	if rr.Code != http.StatusOK || rr.Body.String() != "[]\n" && rr.Body.String() != "[]" {

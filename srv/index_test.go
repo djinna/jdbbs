@@ -57,6 +57,7 @@ func uploadDocx(t *testing.T, ts *httptest.Server, projectID string, cookie *htt
 	}
 	if admin {
 		req.Header.Set("X-ExeDev-UserID", "test-admin")
+		req.Header.Set("X-ExeDev-Email", "owner@example.test")
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

@@ -259,7 +259,7 @@ type mailMeta struct {
 // mailRef formats an int64 id for mailMeta.RefID.
 func mailRef(id int64) string { return strconv.FormatInt(id, 10) }
 
-// triggeredBy derives the actor label from the request: the exe.dev admin
+// triggeredBy derives the actor label from the request: the exe.dev identity
 // email when present, otherwise the supplied fallback ("client" or "public").
 func triggeredBy(r *http.Request, fallback string) string {
 	if r == nil {
@@ -269,7 +269,7 @@ func triggeredBy(r *http.Request, fallback string) string {
 		return e
 	}
 	if r.Header.Get("X-ExeDev-UserID") != "" {
-		return "admin"
+		return "exe-user"
 	}
 	return fallback
 }

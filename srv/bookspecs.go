@@ -1186,18 +1186,23 @@ func (s *Server) handleUploadCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
-		jsonErr(w, "file too large", 400)
+	const maxCoverSize = 10 << 20
+	if !parseUploadForm(w, r, maxCoverSize) {
 		return
 	}
+	defer r.MultipartForm.RemoveAll()
 
-	file, _, err := r.FormFile("cover")
+	file, header, err := r.FormFile("cover")
 	if err != nil {
 		jsonErr(w, "cover file required", 400)
 		return
 	}
 	defer file.Close()
 
+	if header.Size > maxCoverSize {
+		jsonErr(w, "cover file too large", http.StatusRequestEntityTooLarge)
+		return
+	}
 	data, err := io.ReadAll(file)
 	if err != nil {
 		jsonErr(w, "read error", 500)

@@ -42,7 +42,7 @@ func (s *Server) cohortClientFromRequest(r *http.Request, cohort string) string 
 
 // requireCohort gates a request on cohort membership. Admin bypasses.
 func (s *Server) requireCohort(w http.ResponseWriter, r *http.Request, cohort string) bool {
-	if r.Header.Get("X-ExeDev-UserID") != "" {
+	if s.isAdmin(r) {
 		return true
 	}
 	if s.cohortClientFromRequest(r, cohort) != "" {

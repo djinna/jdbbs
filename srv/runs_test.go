@@ -14,11 +14,12 @@ func TestAdminRunsPages(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "PUNCHLIST-2026-09-18.md"), []byte("# Day one\n\n- [x] 1.1 done\n\n  > **jenna** · ts  \n  > note\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Runs\n"), 0o644)
 	t.Setenv("PRODCAL_RUNS_DIR", dir)
-	s := &Server{}
+	s := &Server{AdminEmails: []string{"owner@example.test"}}
 
 	get := func(path, name string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest("GET", path, nil)
 		r.Header.Set("X-ExeDev-UserID", "admin")
+		r.Header.Set("X-ExeDev-Email", "owner@example.test")
 		if name != "" {
 			r.SetPathValue("name", name)
 		}

@@ -14,7 +14,7 @@ import (
 // Successful GETs and static assets stay silent so the journal stays
 // readable during a live session. See docs/reviews/SESSION-HANDOFF-2026-09-13.md
 // (Addendum 2026-09-16b) for the monitoring plan this belongs to.
-func requestLog(next http.Handler) http.Handler {
+func (s *Server) requestLog(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/static/") || r.URL.Path == "/healthz" {
 			next.ServeHTTP(w, r)
@@ -30,7 +30,7 @@ func requestLog(next http.Handler) http.Handler {
 			"method", r.Method, "path", r.URL.Path, "status", rw.status,
 			"ms", time.Since(start).Milliseconds(),
 		}
-		if who := requestActor(r); who != "" {
+		if who := s.requestActor(r); who != "" {
 			attrs = append(attrs, "who", who)
 		}
 		if rw.status >= 500 {
@@ -46,8 +46,8 @@ func requestLog(next http.Handler) http.Handler {
 // requestActor names the caller for the log: admin email via the exe.dev
 // proxy, otherwise "client:<slug>" for each client auth cookie present.
 // It never reveals the cookie values themselves.
-func requestActor(r *http.Request) string {
-	if r.Header.Get("X-ExeDev-UserID") != "" {
+func (s *Server) requestActor(r *http.Request) string {
+	if s.isAdmin(r) {
 		if e := r.Header.Get("X-ExeDev-Email"); e != "" {
 			return "admin:" + e
 		}

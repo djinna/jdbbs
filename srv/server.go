@@ -42,6 +42,9 @@ type Server struct {
 	BaseURL  string
 	Email    *EmailConfig
 	Store    *store // Factory Pass store; nil when PRODCAL_STORE is off
+	// AdminEmails is an explicit allowlist of identities authenticated by the
+	// trusted front proxy. An empty list grants no administrative access.
+	AdminEmails []string
 	// IndexClient is the LLM gateway client for index drafting; nil means
 	// indexer.NewClientFromEnv() (tests inject a replay client).
 	IndexClient     *indexer.Client
@@ -69,7 +72,10 @@ type Server struct {
 }
 
 func New(dbPath, hostname string) (*Server, error) {
-	srv := &Server{Hostname: hostname}
+	srv := &Server{
+		Hostname:    hostname,
+		AdminEmails: strings.Split(os.Getenv("PRODCAL_ADMIN_EMAILS"), ","),
+	}
 
 	// Set BaseURL from environment or derive from hostname
 	baseURL := os.Getenv("PRODCAL_BASE_URL")
@@ -535,7 +541,7 @@ func (s *Server) Handler() http.Handler {
 		s.serveIndex(w)
 	})
 
-	return requestLog(mux)
+	return s.requestLog(mux)
 }
 
 func (s *Server) Serve(addr string) error {
@@ -554,7 +560,12 @@ func (s *Server) Serve(addr string) error {
 	}
 
 	slog.Info("starting server", "addr", addr)
-	return http.Serve(listener, s.Handler())
+	server := &http.Server{
+		Handler:           s.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	return server.Serve(listener)
 }
 
 func (s *Server) serveClientPortal(w http.ResponseWriter) {
@@ -747,7 +758,7 @@ func (s *Server) projectIDFromPath(r *http.Request) (int64, error) {
 // Auth middleware: checks project-level cookie, client-level cookie, or Authorization header
 func (s *Server) checkAuth(r *http.Request, projectID int64) bool {
 	// exe.dev admin bypasses all gates.
-	if r.Header.Get("X-ExeDev-UserID") != "" {
+	if s.isAdmin(r) {
 		return true
 	}
 
@@ -908,7 +919,7 @@ func (s *Server) handleGetProjectByPath(w http.ResponseWriter, r *http.Request) 
 		"project":       p,
 		"has_auth":      hasAuth,
 		"authenticated": authed,
-		"is_admin":      r.Header.Get("X-ExeDev-UserID") != "",
+		"is_admin":      s.isAdmin(r),
 	}
 	// A pass holder's transmittal page addresses email to them, not the
 	// studio (C15); tell the page who "me" is once they're signed in.
@@ -966,14 +977,20 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 	}
 	q := dbgen.New(s.DB)
 	// Preserve existing slugs if not provided
-	if body.ClientSlug == "" || body.ProjectSlug == "" {
-		existing, _ := q.GetProject(r.Context(), pid)
-		if body.ClientSlug == "" {
-			body.ClientSlug = existing.ClientSlug
-		}
-		if body.ProjectSlug == "" {
-			body.ProjectSlug = existing.ProjectSlug
-		}
+	existing, err := q.GetProject(r.Context(), pid)
+	if err != nil {
+		jsonErr(w, "project not found", http.StatusNotFound)
+		return
+	}
+	if body.ClientSlug == "" {
+		body.ClientSlug = existing.ClientSlug
+	}
+	if body.ProjectSlug == "" {
+		body.ProjectSlug = existing.ProjectSlug
+	}
+	if body.ClientSlug != existing.ClientSlug && !s.isAdmin(r) {
+		jsonErr(w, "administrator access required to move a project", http.StatusForbidden)
+		return
 	}
 	if err := q.UpdateProject(r.Context(), dbgen.UpdateProjectParams{
 		Name: body.Name, StartDate: body.StartDate,
@@ -1182,13 +1199,13 @@ func (s *Server) handleSetAuth(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, "bad id", 400)
 		return
 	}
-	// Allow setting auth if no auth exists yet, otherwise require existing auth
-	q := dbgen.New(s.DB)
-	tokens, _ := q.ListAuthTokens(r.Context(), pid)
-	if len(tokens) > 0 && !s.checkAuth(r, pid) {
-		jsonErr(w, "unauthorized", 401)
+	// Creating credentials changes who can access the project. This is an
+	// administrative action even when no project token exists yet: the client
+	// may already have a password, and public project access is not ownership.
+	if !s.requireExeDevAdminAPI(w, r) {
 		return
 	}
+	q := dbgen.New(s.DB)
 	var body struct {
 		Password string `json:"password"`
 	}
@@ -1216,6 +1233,7 @@ func (s *Server) handleSetAuth(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   86400 * 365,
 		HttpOnly: true,
+		Secure:   strings.HasPrefix(s.BaseURL, "https://"),
 		SameSite: http.SameSiteLaxMode,
 	})
 	jsonOK(w, map[string]string{"ok": "true"})
@@ -1241,6 +1259,7 @@ func (s *Server) handleClearAuth(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
+		Secure:   strings.HasPrefix(s.BaseURL, "https://"),
 		SameSite: http.SameSiteLaxMode,
 	})
 	jsonOK(w, map[string]string{"ok": "true"})
@@ -1284,6 +1303,7 @@ func (s *Server) handleVerifyAuth(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   86400 * 365,
 		HttpOnly: true,
+		Secure:   strings.HasPrefix(s.BaseURL, "https://"),
 		SameSite: http.SameSiteLaxMode,
 	})
 	jsonOK(w, map[string]string{"ok": "true"})
@@ -1493,6 +1513,10 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 	srcProject, err := q.GetProject(r.Context(), srcID)
 	if err != nil {
 		jsonErr(w, "source project not found", 404)
+		return
+	}
+	if body.ClientSlug != srcProject.ClientSlug && !s.isAdmin(r) {
+		jsonErr(w, "administrator access required to copy across clients", http.StatusForbidden)
 		return
 	}
 

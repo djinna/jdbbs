@@ -203,7 +203,7 @@ func (s *Server) handleClientInfo(w http.ResponseWriter, r *http.Request) {
 	// checkAuth does for project endpoints — otherwise the portal JS shows
 	// the sign-in gate to the admin while the data endpoints answer fine
 	// (seen from a phone, 2026-09-21).
-	authed := !hasAuth || r.Header.Get("X-ExeDev-UserID") != "" || s.checkClientAuth(r, clientSlug)
+	authed := !hasAuth || s.isAdmin(r) || s.checkClientAuth(r, clientSlug)
 
 	jsonOK(w, map[string]any{
 		"slug":          clientSlug,
@@ -313,11 +313,11 @@ func (s *Server) handleClientCreateProject(w http.ResponseWriter, r *http.Reques
 		jsonErr(w, "server error", 500)
 		return
 	}
-	if passwordHash != "" && r.Header.Get("X-ExeDev-UserID") == "" && !s.checkClientAuth(r, clientSlug) {
+	if passwordHash != "" && !s.isAdmin(r) && !s.checkClientAuth(r, clientSlug) {
 		jsonErr(w, "client login required", http.StatusUnauthorized)
 		return
 	}
-	if passwordHash == "" && r.Header.Get("X-ExeDev-UserID") == "" {
+	if passwordHash == "" && !s.isAdmin(r) {
 		// A passwordless client has no gate at all, so portal project creation
 		// would be open to anyone with the URL. Only the admin may create
 		// projects for such clients (or set a client password first).

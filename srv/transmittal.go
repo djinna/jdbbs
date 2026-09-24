@@ -253,12 +253,12 @@ func (s *Server) handleUpdateTransmittal(w http.ResponseWriter, r *http.Request)
 
 	// Notify admin of client transmittal update (throttled, background)
 	// Skip notification if this is an admin/exe.dev user editing
-	if r.Header.Get("X-ExeDev-UserID") == "" {
+	if !s.isAdmin(r) {
 		txNotifier.maybeNotify(s, pid)
 	}
 	// Draft→final on a Factory Pass project: the customer's Word template now
 	// exists (self-serve GET /api/projects/{id}/word-template). Tell them.
-	slog.Info("transmittal saved", "project_id", pid, "status", body.Status, "was", oldStatus, "who", requestActor(r))
+	slog.Info("transmittal saved", "project_id", pid, "status", body.Status, "was", oldStatus, "who", s.requestActor(r))
 	if body.Status != oldStatus {
 		s.factoryEventR(r, pid, "transmittal."+body.Status, "was "+oldStatus)
 	}

@@ -24,9 +24,33 @@ type projectSummary struct {
 	Path              string `json:"path"`
 }
 
+// isAdmin authorizes an identity, rather than treating authentication itself
+// as a role. These headers must come from the trusted exe.dev proxy (or the
+// loopback-only local launcher); the backend must never accept untrusted
+// direct traffic. No identity or empty configuration fails closed.
+func (s *Server) isAdmin(r *http.Request) bool {
+	if len(r.Header.Values("X-ExeDev-UserID")) != 1 ||
+		len(r.Header.Values("X-ExeDev-Email")) != 1 ||
+		strings.TrimSpace(r.Header.Get("X-ExeDev-UserID")) == "" {
+		return false
+	}
+	email := strings.TrimSpace(r.Header.Get("X-ExeDev-Email"))
+	if email == "" {
+		return false
+	}
+	for _, allowed := range s.AdminEmails {
+		if strings.EqualFold(email, strings.TrimSpace(allowed)) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) requireExeDevAdmin(w http.ResponseWriter, r *http.Request) bool {
-	userID := r.Header.Get("X-ExeDev-UserID")
-	if userID == "" {
+	if s.isAdmin(r) {
+		return true
+	}
+	if r.Header.Get("X-ExeDev-UserID") == "" {
 		// Redirect to exe.dev login flow, which will bounce back after auth
 		redirect := r.URL.Path
 		if r.URL.RawQuery != "" {
@@ -35,16 +59,20 @@ func (s *Server) requireExeDevAdmin(w http.ResponseWriter, r *http.Request) bool
 		http.Redirect(w, r, "/__exe.dev/login?redirect="+redirect, http.StatusFound)
 		return false
 	}
-	return true
+	http.Error(w, "administrator access required", http.StatusForbidden)
+	return false
 }
 
 func (s *Server) requireExeDevAdminAPI(w http.ResponseWriter, r *http.Request) bool {
-	userID := r.Header.Get("X-ExeDev-UserID")
-	if userID == "" {
+	if s.isAdmin(r) {
+		return true
+	}
+	if r.Header.Get("X-ExeDev-UserID") == "" {
 		jsonErr(w, "exe.dev login required", http.StatusUnauthorized)
 		return false
 	}
-	return true
+	jsonErr(w, "administrator access required", http.StatusForbidden)
+	return false
 }
 
 func (s *Server) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {

@@ -2,12 +2,26 @@
 
 Production Calendar + Manuscript Transmittal
 
+## Administrator identity
+
+The deployed unit sets `PRODCAL_ADMIN_EMAILS` to a comma-separated allowlist
+of administrator email addresses. Both proxy-authenticated user ID and an
+allowlisted email are required; unset/empty configuration grants no admin.
+Keep the backend reachable only through trusted ingress: an email allowlist
+does not make caller-supplied identity headers trustworthy.
+
+Local maintenance curls must include **both** `X-ExeDev-UserID` and
+`X-ExeDev-Email` (an allowlisted address). The Mac launcher configures its
+separate loopback-only identity; do not add that identity to production.
+Changing an allowlist requires restarting the service.
+
 ## Current Setup (exe.dev)
 
 - **URL**: https://jdbbs.exe.xyz/
 - **Service**: systemd unit `prodcal.service` on port 8000 (unit file `prodcal.service` in the repo root)
 - **Database**: SQLite at `/home/exedev/prodcal/db.sqlite3` (WAL mode)
-- **Backups**: Daily at 3 AM to `~/backups/`, 7-day retention
+- **Backups**: Daily at 3 AM to `~/backups/`; actual daily/monthly retention
+  is governed by the backup/prune scripts and installed cron
 - **Binary**: `/home/exedev/prodcal/prodcal`
 
 ## Build & Deploy
@@ -104,15 +118,16 @@ To add a new migration:
 
 ## Database: Seeding a New Project
 
-Admin-gated API calls need the exe.dev admin header. The proxy injects it for
+Admin-gated API calls need both exe.dev identity headers. The proxy injects them for
 logged-in browser sessions, but curl from localhost on the VM must pass it
-explicitly — without `-H 'X-ExeDev-UserID: admin'` these calls return 401.
+explicitly, using an email in `PRODCAL_ADMIN_EMAILS`. A user ID alone is not admin.
 (Easier alternative: create and seed projects through the admin UI at `/admin/`.)
 
 1. Create the project via the admin UI or API:
    ```bash
    curl -X POST http://localhost:8000/api/projects \
      -H 'X-ExeDev-UserID: admin' \
+     -H 'X-ExeDev-Email: j@djinna.com' \
      -H 'Content-Type: application/json' \
      -d '{"name": "My Book", "client_slug": "client", "project_slug": "book", "start_date": "2026-01-01"}'
    ```
@@ -121,6 +136,7 @@ explicitly — without `-H 'X-ExeDev-UserID: admin'` these calls return 401.
    ```bash
    curl -X POST http://localhost:8000/api/projects/1/seed \
      -H 'X-ExeDev-UserID: admin' \
+     -H 'X-ExeDev-Email: j@djinna.com' \
      -H 'Content-Type: application/json' \
      -d @tasks.json
    ```
@@ -129,6 +145,7 @@ explicitly — without `-H 'X-ExeDev-UserID: admin'` these calls return 401.
    ```bash
    curl -X POST http://localhost:8000/api/projects/1/auth \
      -H 'X-ExeDev-UserID: admin' \
+     -H 'X-ExeDev-Email: j@djinna.com' \
      -H 'Content-Type: application/json' \
      -d '{"password": "mypassword"}'
    ```
@@ -176,7 +193,8 @@ curl http://localhost:8000/healthz
 
 ## Admin Dashboard
 
-Accessible at `/admin/` — requires exe.dev login (X-ExeDev-UserID header).
+Accessible at `/admin/` — requires exe.dev login and an explicitly allowlisted
+administrator email (`PRODCAL_ADMIN_EMAILS`).
 Shows all projects with task completion, auth status, transmittal status.
 
 ## Architecture

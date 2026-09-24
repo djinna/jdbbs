@@ -172,7 +172,7 @@ func (s *Server) checkClientAuthOrProjectAuth(w http.ResponseWriter, r *http.Req
 	if s.hasAnyProjectAuthForClient(r, clientSlug) {
 		return true
 	}
-	if r.Header.Get("X-ExeDev-UserID") != "" {
+	if s.isAdmin(r) {
 		return true
 	}
 	jsonErr(w, "unauthorized", http.StatusUnauthorized)
