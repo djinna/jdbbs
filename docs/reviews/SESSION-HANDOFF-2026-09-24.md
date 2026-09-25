@@ -172,3 +172,37 @@ material inventory · 7.8 repo-scoped GitHub keys · 7.9 CI/branch controls ·
 AgentMail key, decide `.prodcal-secret` rotation · 7.16 remaining app
 findings: callback DNS pinning, DOCX expansion budgets + exec deadlines,
 duplication-vs-creation policy, build-credit race.
+
+## Morning addendum — September 25, 2026 (session cLJEZAL)
+
+Publish-safe summary; detail in private punch list §7.
+
+**Chores:** overnight 03:00 backup wrote to the per-deployment prefix with
+SHA-256 readback verified; nothing new appeared under the old shared prefix
+(the second writer's cron is gone). GitHub fetch works with the private repo.
+Pre-rotation credential copies still on the VM pending the owner's
+confirmation that the old AgentMail key is deleted.
+
+**7.16 closed — all remaining application findings deployed (`0925.5ff330e`),
+each with a regression test, full suite green, deployed with zero builds in
+flight, pushed after each commit:**
+- `27555a9` Callback SSRF: the completion POST now resolves and re-checks
+  every address at dial time (DNS rebinding), never uses environment proxies,
+  never follows redirects; CGNAT, 0/8, IPv4-mapped and 6to4 forms blocked.
+- `10ad4c8` Pipeline: uploads are inflated and checked against DOCX budgets
+  (real .docx, ≤10k parts, ≤512 MB/part, ≤1 GiB total, ratio, no path
+  escapes) at upload and at build start; every converter (pandoc, typst,
+  python helpers, ImageMagick, fontTools, soffice) runs under a deadline in
+  its own process group and is killed as a group on expiry. A real
+  pandoc→typst build through the wrapper is part of the suite.
+- `5ff330e` + `c1cb3c7` Convert: one conditional UPDATE claims the book and a
+  second reserves the credit, so concurrent finals start exactly one build
+  and debit once (the test fails 9-started without the fix). Project
+  duplication is admin-only like creation; the calendar hides Make New for
+  customers.
+
+**Open (owner-side, unchanged):** 7.5 encrypted recovery bundle · 7.7
+confidential-material inventory · 7.8 repo-scoped GitHub keys · 7.9 CI/branch
+controls · 7.10 retention/lock · 7.11 full isolated restore · 7.12 second-
+account `/admin/` denial · 7.13 delete old AgentMail key (then shred the
+pre-rotate copies), decide `.prodcal-secret` rotation window.
