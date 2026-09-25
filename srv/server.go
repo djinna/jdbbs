@@ -953,6 +953,7 @@ func (s *Server) handleGetProject(w http.ResponseWriter, r *http.Request) {
 		"project":       p,
 		"has_auth":      hasAuth,
 		"authenticated": authed,
+		"is_admin":      s.isAdmin(r),
 	})
 }
 
@@ -1476,13 +1477,18 @@ func shiftDate(dateStr string, delta time.Duration) string {
 	return dateStr
 }
 
+// handleDuplicateProject creates a project by copying another one. Creating
+// projects is an administrator action (POST /api/projects), and a copy is
+// still a creation — so the same gate applies here. A customer's project
+// token lets them work inside their project, not mint new ones under their
+// client (each of which would start with no password of its own).
 func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) {
 	srcID, err := s.projectIDFromPath(r)
 	if err != nil {
 		jsonErr(w, "bad id", 400)
 		return
 	}
-	if !s.requireAuth(w, r, srcID) {
+	if !s.requireExeDevAdminAPI(w, r) {
 		return
 	}
 
@@ -1518,8 +1524,12 @@ func (s *Server) handleDuplicateProject(w http.ResponseWriter, r *http.Request) 
 		jsonErr(w, "source project not found", 404)
 		return
 	}
-	if body.ClientSlug != srcProject.ClientSlug && !s.isAdmin(r) {
-		jsonErr(w, "administrator access required to copy across clients", http.StatusForbidden)
+	// Like handleCreateProject: a brand-new client slug gets its client row
+	// so the copy is reachable from the portal and visible in admin.
+	if _, err := tx.ExecContext(r.Context(),
+		`INSERT OR IGNORE INTO clients (slug, name, password_hash) VALUES (?, ?, '')`,
+		body.ClientSlug, body.ClientSlug); err != nil {
+		jsonErr(w, "ensure client: "+err.Error(), 500)
 		return
 	}
 

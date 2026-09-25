@@ -78,6 +78,7 @@ type UpdateBookSpecCoverParams struct {
 	ProjectID int64
 }
 
+// Does not touch updated_at: that column gates the transmittal re-pull (syncSpecFromTransmittal).
 func (q *Queries) UpdateBookSpecCover(ctx context.Context, arg UpdateBookSpecCoverParams) error {
 	_, err := q.db.ExecContext(ctx, updateBookSpecCover, arg.CoverData, arg.CoverType, arg.ProjectID)
 	return err

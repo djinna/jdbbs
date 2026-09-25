@@ -45,6 +45,28 @@ func (q *Queries) AddPassExtras(ctx context.Context, arg AddPassExtrasParams) er
 	return err
 }
 
+const claimBookForBuild = `-- name: ClaimBookForBuild :execrows
+UPDATE books SET status = 'converting', error_msg = '', updated_at = CURRENT_TIMESTAMP
+WHERE id = ?
+  AND status != 'converting'
+  AND NOT EXISTS (
+    SELECT 1 FROM books b
+    WHERE b.project_id IS NOT NULL AND b.project_id = books.project_id
+      AND b.status = 'converting' AND b.id != books.id
+  )
+`
+
+// Atomically moves a book to 'converting' only if it is not already
+// converting and no other book in the same project is. Backs the one-build-
+// in-flight guard: two simultaneous POST /convert calls cannot both win.
+func (q *Queries) ClaimBookForBuild(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, claimBookForBuild, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const countConvertingBooksByProject = `-- name: CountConvertingBooksByProject :one
 SELECT COUNT(*) FROM books WHERE project_id = ? AND status = 'converting'
 `
@@ -680,6 +702,21 @@ func (q *Queries) ListStoreOrdersForPass(ctx context.Context, passID sql.NullInt
 		return nil, err
 	}
 	return items, nil
+}
+
+const reservePassBuildCredit = `-- name: ReservePassBuildCredit :execrows
+UPDATE passes SET builds_used = builds_used + 1
+WHERE id = ? AND builds_used < builds_included + builds_extra
+`
+
+// Debits one build credit only while the pass still has one. Zero rows
+// means the pass is spent; the caller answers 402 instead of over-debiting.
+func (q *Queries) ReservePassBuildCredit(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, reservePassBuildCredit, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const setCouponRegistration = `-- name: SetCouponRegistration :exec

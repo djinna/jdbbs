@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -1720,4 +1721,115 @@ func TestFinalRefusedWhenBodyEmpty(t *testing.T) {
 		t.Errorf("proof of empty body: got %d, want 200", resp.StatusCode)
 	}
 	resp.Body.Close()
+}
+
+// TestConcurrentFinalsTakeOneCredit: many simultaneous POST /convert calls
+// against a pass with exactly one final left must start exactly one build
+// and debit exactly one credit. The read-then-check gating is advisory;
+// ClaimBookForBuild + ReservePassBuildCredit are the guarantee.
+func TestConcurrentFinalsTakeOneCredit(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+
+	pass, password, clientSlug, _ := grantedPass(t, s, ts, "Racing Author", "Contended Book")
+	cookie := clientCookie(t, ts, clientSlug, password)
+	if _, err := s.DB.Exec(`UPDATE passes SET builds_used = builds_included + builds_extra - 1 WHERE id = ?`, pass.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Several books in the project, all hammered at once.
+	var ids []string
+	for i := 0; i < 3; i++ {
+		resp := uploadBook(t, ts, itoa(pass.ProjectID), cookie, false)
+		if resp.StatusCode != 201 {
+			t.Fatalf("upload: %d", resp.StatusCode)
+		}
+		var created map[string]any
+		decodeJSON(t, resp, &created)
+		ids = append(ids, itoa(int64(created["id"].(float64))))
+	}
+
+	const n = 12
+	codes := make(chan int, n)
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			body := strings.NewReader(`{"format":"pdf","kind":"final"}`)
+			req, _ := http.NewRequest("POST", ts.URL+"/api/books/"+ids[i%len(ids)]+"/convert", body)
+			req.Header.Set("Content-Type", "application/json")
+			req.AddCookie(cookie)
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				codes <- -1
+				return
+			}
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+			codes <- resp.StatusCode
+		}(i)
+	}
+	wg.Wait()
+	close(codes)
+	started := 0
+	for c := range codes {
+		switch c {
+		case 200:
+			started++
+		case 402, 409:
+		default:
+			t.Errorf("unexpected status %d", c)
+		}
+	}
+	if started != 1 {
+		t.Fatalf("%d builds started, want exactly 1", started)
+	}
+	if got := countLedger(t, s, pass.ID, "build"); got != 1 {
+		t.Fatalf("%d debit rows, want 1", got)
+	}
+	var used, included, extra int64
+	if err := s.DB.QueryRow(`SELECT builds_used, builds_included, builds_extra FROM passes WHERE id = ?`, pass.ID).Scan(&used, &included, &extra); err != nil {
+		t.Fatal(err)
+	}
+	// The one started build may already have failed and refunded (fake
+	// manuscript), so used is either fully spent or one under — never over.
+	if used > included+extra {
+		t.Fatalf("pass over-spent: used=%d included+extra=%d", used, included+extra)
+	}
+}
+
+// TestDuplicateProjectIsAdminOnly: creating a project by copy is gated like
+// creating one from scratch; a customer's project token is not enough.
+func TestDuplicateProjectIsAdminOnly(t *testing.T) {
+	s, ts, cleanup := testServer(t)
+	defer cleanup()
+	pass, password, clientSlug, _ := grantedPass(t, s, ts, "Copy Author", "Copied Book")
+	cookie := clientCookie(t, ts, clientSlug, password)
+	var before int
+	s.DB.QueryRow(`SELECT COUNT(*) FROM projects`).Scan(&before)
+
+	resp := clientJSON(t, ts, cookie, "POST", "/api/projects/"+itoa(pass.ProjectID)+"/duplicate",
+		map[string]string{"name": "Mine Too", "client_slug": clientSlug, "project_slug": "mine-too"})
+	if resp.StatusCode != http.StatusForbidden && resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("customer duplicate: expected 401/403, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+	var after int
+	s.DB.QueryRow(`SELECT COUNT(*) FROM projects`).Scan(&after)
+	if after != before {
+		t.Fatalf("customer created a project by duplication: %d -> %d", before, after)
+	}
+
+	resp = apiRequestAdmin(t, ts, "POST", "/api/projects/"+itoa(pass.ProjectID)+"/duplicate",
+		map[string]string{"name": "Admin Copy", "client_slug": "brand-new-client", "project_slug": "copy"})
+	if resp.StatusCode != 200 {
+		t.Fatalf("admin duplicate: expected 200, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+	var clients int
+	s.DB.QueryRow(`SELECT COUNT(*) FROM clients WHERE slug = 'brand-new-client'`).Scan(&clients)
+	if clients != 1 {
+		t.Fatalf("duplicate onto a new client slug did not create the client row")
+	}
 }

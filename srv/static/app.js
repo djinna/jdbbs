@@ -196,6 +196,7 @@ async function openProject(id) {
   try {
     const info = await api('/api/projects/' + id);
     state.project = info.project;
+    state.isAdmin = !!info.is_admin;
     if (info.has_auth && !info.authenticated) {
       state.view = 'auth';
       render();
@@ -270,7 +271,7 @@ function renderProject() {
         ),
         h('div', { className: 'page-header-actions' },
           h('button', { className: 'btn btn-sm', onClick: showAddTask }, '+ Task'),
-          h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, 'Make New'),
+          state.isAdmin ? h('button', { className: 'btn btn-sm btn-primary', onClick: showDuplicate }, 'Make New') : null,
           h('button', { className: 'btn btn-sm', onClick: () => { state.showSnapshotEmail = true; state.snapshotResult = null; render(); } }, 'Email'),
           h('button', { className: 'btn btn-sm', onClick: showSettings }, 'Settings'),
         ),
@@ -1314,6 +1315,7 @@ function renderJournalModal() {
     try {
       const info = await api('/api/project-by-path/' + parts[0] + '/' + parts[1]);
       state.project = info.project;
+      state.isAdmin = !!info.is_admin;
       state.projectId = info.project.ID;
       if (info.has_auth && !info.authenticated) {
         state.view = 'auth';

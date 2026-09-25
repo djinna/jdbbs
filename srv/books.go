@@ -435,18 +435,48 @@ func (s *Server) handleConvertBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	book.BuildKind = kind
+
+	// Claim the book atomically: the read-then-check above is advisory, this
+	// single UPDATE is the guarantee. Two simultaneous requests for the same
+	// project cannot both pass, so the credit below is debited at most once
+	// per build actually started.
+	claimed, err := q.ClaimBookForBuild(r.Context(), bid)
+	if err != nil {
+		jsonErr(w, err.Error(), 500)
+		return
+	}
+	if claimed == 0 {
+		jsonErr(w, "a build is already running for this project; wait for it to finish", http.StatusConflict)
+		return
+	}
+	unclaim := func() {
+		_ = q.UpdateBookStatus(context.Background(), dbgen.UpdateBookStatusParams{Status: book.Status, ErrorMsg: book.ErrorMsg, ID: bid})
+	}
 	if pass != nil && kind == buildKindFinal {
-		if err := s.debitBuildCredit(r.Context(), pass.ID, bid); err != nil {
+		// Customers only get a credit while one remains (conditional UPDATE,
+		// so a concurrent final cannot over-spend the pass). Admins and the
+		// finals gate being off keep the unconditional debit so the ledger
+		// still records the build.
+		if !isAdmin && !finalsGateOff() {
+			if err := s.reserveBuildCredit(r.Context(), pass.ID, bid); err != nil {
+				unclaim()
+				if errors.Is(err, errNoCredits) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusPaymentRequired)
+					_ = json.NewEncoder(w).Encode(map[string]any{"error": "no finals remaining", "credits_remaining": 0})
+					return
+				}
+				slog.Error("build debit failed", "pass_id", pass.ID, "book_id", bid, "err", err)
+				jsonErr(w, "could not reserve a build credit", 500)
+				return
+			}
+		} else if err := s.debitBuildCredit(r.Context(), pass.ID, bid); err != nil {
+			unclaim()
 			slog.Error("build debit failed", "pass_id", pass.ID, "book_id", bid, "err", err)
 			jsonErr(w, "could not reserve a build credit", 500)
 			return
 		}
 	}
-
-	// Mark as converting
-	_ = q.UpdateBookStatus(r.Context(), dbgen.UpdateBookStatusParams{
-		Status: "converting", ID: bid,
-	})
 
 	if book.ProjectID.Valid {
 		left := ""

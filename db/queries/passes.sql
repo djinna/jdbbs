@@ -121,3 +121,22 @@ SELECT * FROM store_orders WHERE pass_id = ? ORDER BY fulfilled_at DESC, id DESC
 -- name: SetPassIndexIncluded :exec
 -- Back-of-book index add-on fulfilment (store "index" item or admin grant).
 UPDATE passes SET index_included = 1 WHERE id = ?;
+
+-- name: ClaimBookForBuild :execrows
+-- Atomically moves a book to 'converting' only if it is not already
+-- converting and no other book in the same project is. Backs the one-build-
+-- in-flight guard: two simultaneous POST /convert calls cannot both win.
+UPDATE books SET status = 'converting', error_msg = '', updated_at = CURRENT_TIMESTAMP
+WHERE id = ?
+  AND status != 'converting'
+  AND NOT EXISTS (
+    SELECT 1 FROM books b
+    WHERE b.project_id IS NOT NULL AND b.project_id = books.project_id
+      AND b.status = 'converting' AND b.id != books.id
+  );
+
+-- name: ReservePassBuildCredit :execrows
+-- Debits one build credit only while the pass still has one. Zero rows
+-- means the pass is spent; the caller answers 402 instead of over-debiting.
+UPDATE passes SET builds_used = builds_used + 1
+WHERE id = ? AND builds_used < builds_included + builds_extra;

@@ -186,6 +186,28 @@ func (s *Server) debitBuildCredit(ctx context.Context, passID, bookID int64) err
 	})
 }
 
+// errNoCredits: the pass had no build credit left at the moment of reservation.
+var errNoCredits = errors.New("no build credits remaining")
+
+// reserveBuildCredit is debitBuildCredit with the balance check folded into
+// the UPDATE, so two concurrent finals cannot both take the last credit.
+func (s *Server) reserveBuildCredit(ctx context.Context, passID, bookID int64) error {
+	q := dbgen.New(s.DB)
+	n, err := q.ReservePassBuildCredit(ctx, passID)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return errNoCredits
+	}
+	return q.CreatePassLedgerEntry(ctx, dbgen.CreatePassLedgerEntryParams{
+		PassID: passID,
+		BookID: sql.NullInt64{Int64: bookID, Valid: bookID > 0},
+		Delta:  -1,
+		Reason: "build",
+	})
+}
+
 // refundBuildCredit hands a spent credit back (failed pandoc/typst run).
 func (s *Server) refundBuildCredit(ctx context.Context, passID, bookID int64) error {
 	q := dbgen.New(s.DB)
