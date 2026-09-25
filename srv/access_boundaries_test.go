@@ -152,6 +152,14 @@ func TestCustomerCannotMoveOrDuplicateAcrossClients(t *testing.T) {
 			r.AddCookie(cookies[0])
 			w := httptest.NewRecorder()
 			s.Handler().ServeHTTP(w, r)
+			if method == "POST" {
+				// Duplication is a creation and is admin-only outright
+				// (TestDuplicateProjectIsAdminOnly), whichever client.
+				if w.Code != http.StatusForbidden && w.Code != http.StatusUnauthorized {
+					t.Fatalf("%s duplicate as customer: %d", method, w.Code)
+				}
+				continue
+			}
 			if client == "target" && w.Code != http.StatusForbidden {
 				t.Fatalf("%s cross-client: %d", method, w.Code)
 			}
