@@ -2,8 +2,10 @@ package srv
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -261,5 +263,73 @@ func TestBearerTokenAuth(t *testing.T) {
 	}
 	if got := get(""); got != 401 {
 		t.Errorf("no auth: expected 401, got %d", got)
+	}
+}
+
+// TestCallbackDialRefusesRebind: a callback host that resolved to a public
+// address when the build was submitted, but to loopback when the build
+// finishes (DNS rebinding), must be refused at dial time — the connection is
+// never made. Same check, applied to the addresses actually dialled.
+func TestCallbackDialRefusesRebind(t *testing.T) {
+	hits := 0
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits++ }))
+	defer target.Close()
+	_, port, _ := net.SplitHostPort(strings.TrimPrefix(target.URL, "http://"))
+
+	answer := []net.IPAddr{{IP: net.ParseIP("93.184.216.34")}} // public at validation time
+	orig := callbackLookup
+	callbackLookup = func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		if host == "hook.example.test" {
+			return answer, nil
+		}
+		return orig(ctx, host)
+	}
+	defer func() { callbackLookup = orig }()
+
+	u := "http://hook.example.test:" + port + "/done"
+	if err := validateCallbackURL(u, false); err != nil {
+		t.Fatalf("validation with public answer should pass: %v", err)
+	}
+
+	// Rebind: the name now points at the loopback listener.
+	answer = []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}}
+	client := &http.Client{Timeout: 5 * time.Second, Transport: callbackTransport(false)}
+	_, err := client.Post(u, "application/json", strings.NewReader("{}"))
+	if err == nil || !strings.Contains(err.Error(), "private or local") {
+		t.Fatalf("dial should refuse rebound loopback target, got err=%v", err)
+	}
+	if hits != 0 {
+		t.Fatalf("loopback listener was reached %d times", hits)
+	}
+
+	// Literal IPs are checked at dial time too, regardless of validation.
+	if _, err := client.Post(target.URL+"/done", "application/json", strings.NewReader("{}")); err == nil || hits != 0 {
+		t.Fatalf("literal loopback should be refused at dial, err=%v hits=%d", err, hits)
+	}
+	// And with allowLocal (tests only) the same listener is reachable.
+	local := &http.Client{Timeout: 5 * time.Second, Transport: callbackTransport(true)}
+	if resp, err := local.Post(target.URL+"/done", "application/json", strings.NewReader("{}")); err != nil || hits != 1 {
+		t.Fatalf("allowLocal dial failed: err=%v hits=%d", err, hits)
+	} else {
+		resp.Body.Close()
+	}
+}
+
+// TestBlockedCallbackIP covers the address classes the factory must never
+// POST to, including wrapped forms that sidestep a naive IPv4 check.
+func TestBlockedCallbackIP(t *testing.T) {
+	blocked := []string{"127.0.0.1", "10.1.2.3", "172.16.0.1", "192.168.0.1", "169.254.169.254",
+		"0.0.0.0", "0.1.2.3", "100.64.0.1", "224.0.0.1", "::1", "fc00::1", "fe80::1", "::",
+		"::ffff:127.0.0.1", "::ffff:10.0.0.1", "2002:7f00:0001::1", "2002:0a00:0001::1"}
+	for _, s := range blocked {
+		if !blockedCallbackIP(net.ParseIP(s)) {
+			t.Errorf("%s should be blocked", s)
+		}
+	}
+	allowed := []string{"93.184.216.34", "8.8.8.8", "2606:4700::1111", "2002:5db8:d822::1"}
+	for _, s := range allowed {
+		if blockedCallbackIP(net.ParseIP(s)) {
+			t.Errorf("%s should be allowed", s)
+		}
 	}
 }

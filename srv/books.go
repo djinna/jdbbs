@@ -572,16 +572,96 @@ func validateCallbackURL(raw string, allowLocal bool) error {
 	if strings.EqualFold(host, "localhost") || strings.HasSuffix(strings.ToLower(host), ".localhost") {
 		return errors.New("localhost is not allowed")
 	}
-	ips, err := net.LookupIP(host)
-	if err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ips, err := callbackLookup(ctx, host)
+	if err != nil || len(ips) == 0 {
 		return fmt.Errorf("cannot resolve %s", host)
 	}
 	for _, ip := range ips {
-		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() {
+		if blockedCallbackIP(ip.IP) {
 			return fmt.Errorf("%s resolves to a private or local address", host)
 		}
 	}
 	return nil
+}
+
+// blockedCallbackIP is the one definition of "not a place the factory may
+// POST to": loopback, RFC 1918 / ULA, link-local (cloud metadata lives
+// there), carrier-grade NAT, unspecified, multicast, and IPv4-mapped or
+// 6to4-wrapped forms of the same.
+func blockedCallbackIP(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() || ip.IsInterfaceLocalMulticast() {
+		return true
+	}
+	if v4 := ip.To4(); v4 != nil {
+		if v4[0] == 0 || (v4[0] == 100 && v4[1]&0xc0 == 64) { // 0.0.0.0/8, 100.64.0.0/10
+			return true
+		}
+		return false
+	}
+	if len(ip) == net.IPv6len && ip[0] == 0x20 && ip[1] == 0x02 { // 6to4: 2002:AABB:CCDD::/48 wraps an IPv4
+		return blockedCallbackIP(net.IPv4(ip[2], ip[3], ip[4], ip[5]))
+	}
+	return false
+}
+
+// callbackLookup resolves callback hosts; tests swap it to simulate a name
+// that changes its answer between validation and dial (DNS rebinding).
+var callbackLookup = func(ctx context.Context, host string) ([]net.IPAddr, error) {
+	return net.DefaultResolver.LookupIPAddr(ctx, host)
+}
+
+// callbackTransport dials the callback target itself so that the address
+// check in validateCallbackURL is re-applied to the addresses actually used:
+// a hostname that resolved publicly at submission but points at loopback or
+// the LAN when the build finishes is refused at dial time, not connected to.
+// The URL's hostname is still what TLS verifies (ServerName comes from the
+// request, not from the dialled address).
+func callbackTransport(allowLocal bool) *http.Transport {
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	return &http.Transport{
+		Proxy:             nil, // never route through an environment proxy we did not vet
+		ForceAttemptHTTP2: false,
+		DisableKeepAlives: true,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			var ips []net.IPAddr
+			if ip := net.ParseIP(host); ip != nil {
+				ips = []net.IPAddr{{IP: ip}}
+			} else {
+				ips, err = callbackLookup(ctx, host)
+				if err != nil {
+					return nil, fmt.Errorf("callback: cannot resolve %s: %w", host, err)
+				}
+			}
+			if len(ips) == 0 {
+				return nil, fmt.Errorf("callback: %s has no addresses", host)
+			}
+			if !allowLocal {
+				for _, ip := range ips {
+					if blockedCallbackIP(ip.IP) {
+						return nil, fmt.Errorf("callback: %s resolves to a private or local address (%s); refusing to connect", host, ip.IP)
+					}
+				}
+			}
+			var lastErr error
+			for _, ip := range ips {
+				conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip.IP.String(), port))
+				if err == nil {
+					return conn, nil
+				}
+				lastErr = err
+			}
+			return nil, lastErr
+		},
+	}
 }
 
 // postBuildCallback POSTs the build status JSON to the caller's URL once,
@@ -604,7 +684,8 @@ func (s *Server) postBuildCallback(callbackURL string, bid int64) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "jdbb-factory/1.0 (+https://jdbbs.exe.xyz/factory)")
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout:   15 * time.Second,
+		Transport: callbackTransport(s.allowLocalCallbacks),
 		CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse // no following redirects into places we did not vet
 		},
