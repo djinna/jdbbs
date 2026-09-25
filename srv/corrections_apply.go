@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -91,9 +90,10 @@ func applyPairsToString(s string, pairs []correctionPair) string {
 // patched docx to outPath. The script preserves Word run formatting and walks
 // body, tables, headers/footers, footnotes, and endnotes.
 func applyCorrectionsToDocx(yamlPath, docxPath, outPath string) error {
-	cmd := exec.Command("python3", correctionsScriptPath(), yamlPath, docxPath, "-o", outPath)
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutPython, "python3", correctionsScriptPath(), yamlPath, docxPath, "-o", outPath)
+	defer cancel()
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("apply-corrections-docx.py: %w\n%s", err, string(out))
+		return fmt.Errorf("apply-corrections-docx.py: %w\n%s", toolErr(cmd, err), string(out))
 	}
 	return nil
 }

@@ -22,7 +22,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -388,10 +387,11 @@ func (s *Server) indexSourceForBook(book dbgen.Book) (string, bool, error) {
 		return "", false, err
 	}
 	typPath := filepath.Join(tmpDir, "book.typ")
-	cmd := exec.Command("pandoc", "--from=docx+styles", docxPath, "--lua-filter="+typstFilterPath(),
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutPandoc, "pandoc", "--from=docx+styles", docxPath, "--lua-filter="+typstFilterPath(),
 		"--extract-media="+filepath.Join(tmpDir, "media"), "-t", "typst+smart", "-o", typPath)
+	defer cancel()
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return "", false, fmt.Errorf("pandoc: %s: %s", err, bytes.TrimSpace(out))
+		return "", false, fmt.Errorf("pandoc: %s: %s", toolErr(cmd, err), bytes.TrimSpace(out))
 	}
 	b, err := os.ReadFile(typPath)
 	if err != nil {

@@ -1,6 +1,7 @@
 package srv
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -9,7 +10,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -153,9 +153,10 @@ func (s *Server) defaultPreflightRunner(docxPath string, declaredStylesPath stri
 	if declaredStylesPath != "" {
 		args = append(args, "--declared-styles", declaredStylesPath)
 	}
-	cmd := exec.Command("python3", args...)
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutPython, "python3", args...)
+	defer cancel()
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return nil, nil, fmt.Errorf("python detector failed: %w\n%s", err, string(out))
+		return nil, nil, fmt.Errorf("python detector failed: %w\n%s", toolErr(cmd, err), string(out))
 	}
 	htmlBytes, err := os.ReadFile(htmlPath)
 	if err != nil {

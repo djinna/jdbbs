@@ -84,7 +84,7 @@ func TestMachineFactoryFiveCalls(t *testing.T) {
 	_ = mw.WriteField("author", "Robot Author")
 	_ = mw.WriteField("project_id", pid)
 	fw, _ := mw.CreateFormFile("file", "machine.docx")
-	_, _ = fw.Write([]byte("not-a-real-docx"))
+	_, _ = fw.Write(minimalDOCX(t))
 	_ = mw.Close()
 	req, _ := http.NewRequest("POST", ts.URL+"/api/books/upload", &buf)
 	req.Header.Set("Content-Type", mw.FormDataContentType())

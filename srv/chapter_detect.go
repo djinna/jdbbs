@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -410,7 +409,8 @@ func runPandocToAST(ctx context.Context, docx []byte) ([]byte, error) {
 		return nil, fmt.Errorf("write docx: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, "pandoc", "--from=docx+styles", docxPath, "-t", "json")
+	cmd, cancel := toolCommand(ctx, toolTimeoutPandoc, "pandoc", "--from=docx+styles", docxPath, "-t", "json")
+	defer cancel()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()

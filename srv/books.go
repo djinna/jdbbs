@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -151,6 +150,10 @@ func (s *Server) handleUploadBook(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(file)
 	if err != nil {
 		jsonErr(w, "read error", 500)
+		return
+	}
+	if err := checkDOCXBudget(data); err != nil {
+		jsonErr(w, "file: "+err.Error(), 400)
 		return
 	}
 
@@ -796,7 +799,12 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIn
 		}
 	}()
 
-	// Write source docx
+	// Write source docx — after re-checking the archive budgets, since books
+	// uploaded before the check existed are still in the table.
+	if err := checkDOCXBudget(book.SourceData); err != nil {
+		s.failConversion(bid, "source: "+err.Error())
+		return
+	}
 	docxPath := filepath.Join(tmpDir, "input.docx")
 	if err := os.WriteFile(docxPath, book.SourceData, 0644); err != nil {
 		s.failConversion(bid, "write docx: "+err.Error())
@@ -880,9 +888,11 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIn
 		pandocArgs = append(pandocArgs, "--metadata-file="+metaFile)
 	}
 
-	pandocCmd := exec.Command("pandoc", pandocArgs...)
-	if out, err := pandocCmd.CombinedOutput(); err != nil {
-		s.failConversion(bid, fmt.Sprintf("pandoc typst: %s\n%s", err, string(out)))
+	pandocCmd, pandocCancel := toolCommand(context.Background(), toolTimeoutPandoc, "pandoc", pandocArgs...)
+	out, err := pandocCmd.CombinedOutput()
+	pandocCancel()
+	if err != nil {
+		s.failConversion(bid, fmt.Sprintf("pandoc typst: %s\n%s", toolErr(pandocCmd, err), string(out)))
 		return
 	}
 
@@ -994,11 +1004,13 @@ func (s *Server) runConversion(bid int64, book dbgen.Book, format string, withIn
 		typstArgs = append(typstArgs, "--input", "proof="+proofStampLine(book.Title, start))
 	}
 	typstArgs = append(typstArgs, typPath, pdfPath)
-	typstCmd := exec.Command("typst", typstArgs...)
+	typstCmd, typstCancel := toolCommand(context.Background(), toolTimeoutTypst, "typst", typstArgs...)
 	typstCmd.Dir = tmpDir
-	if out, err := typstCmd.CombinedOutput(); err != nil {
+	out, err = typstCmd.CombinedOutput()
+	typstCancel()
+	if err != nil {
 		keepDir = true
-		s.failConversionAt(bid, fmt.Sprintf("typst: %s\n%s", err, string(out)), typPath)
+		s.failConversionAt(bid, fmt.Sprintf("typst: %s\n%s", toolErr(typstCmd, err), string(out)), typPath)
 		return
 	}
 

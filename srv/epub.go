@@ -232,10 +232,11 @@ func (s *Server) generateEPUB(bid int64, book dbgen.Book) error {
 
 	args = append(args, docxPath)
 
-	cmd := exec.Command("pandoc", args...)
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutPandoc, "pandoc", args...)
+	defer cancel()
 	cmd.Dir = tmpDir
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("pandoc epub: %w\n%s", err, string(out))
+		return fmt.Errorf("pandoc epub: %w\n%s", toolErr(cmd, err), string(out))
 	}
 
 	// Read generated EPUB
@@ -730,13 +731,15 @@ func epubSubsetFonts(paths []string, text, outDir string) []string {
 			continue
 		}
 		dst := filepath.Join(outDir, filepath.Base(p))
-		cmd := exec.Command(python, "-m", "fontTools.subset", p,
+		cmd, cancel := toolCommand(context.Background(), toolTimeoutImage, python, "-m", "fontTools.subset", p,
 			"--text-file="+textFile,
 			"--output-file="+dst,
 			"--layout-features=*",
 			"--no-hinting",
 		)
-		if res, err := cmd.CombinedOutput(); err != nil {
+		res, err := cmd.CombinedOutput()
+		cancel()
+		if err != nil {
 			slog.Warn("epub: font subset failed, embedding full font", "font", filepath.Base(p), "err", err, "output", string(res))
 			out = append(out, p)
 			continue

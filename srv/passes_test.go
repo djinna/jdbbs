@@ -61,7 +61,7 @@ func uploadBook(t *testing.T, ts *httptest.Server, projectID string, cookie *htt
 	if err != nil {
 		t.Fatalf("create form file: %v", err)
 	}
-	if _, err := fw.Write([]byte("not-a-real-docx")); err != nil {
+	if _, err := fw.Write(minimalDOCX(t)); err != nil {
 		t.Fatalf("write form file: %v", err)
 	}
 	_ = mw.Close()

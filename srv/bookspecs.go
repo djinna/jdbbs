@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -411,7 +410,8 @@ func (s *Server) handleListFonts(w http.ResponseWriter, r *http.Request) {
 
 // listTypstFonts runs `typst fonts --font-path <fontsDir>` and categorizes results.
 func listTypstFonts() []map[string]string {
-	cmd := exec.Command("typst", "fonts", "--font-path", fontsDirPath())
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutQuick, "typst", "fonts", "--font-path", fontsDirPath())
+	defer cancel()
 	out, err := cmd.Output()
 	if err != nil {
 		slog.Warn("typst fonts failed", "err", err)
@@ -926,7 +926,8 @@ func generateWordTemplate(specJSON string) ([]byte, error) {
 
 	// Run python script with spec JSON on stdin
 	script := filepath.Join(typesettingRoot(), "scripts", "generate-word-template.py")
-	cmd := exec.Command("python3", script)
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutPython, "python3", script)
+	defer cancel()
 	cmd.Stdin = strings.NewReader(specJSON)
 	var outBuf bytes.Buffer
 	var errBuf strings.Builder
@@ -1073,10 +1074,9 @@ func docxToODT(docx []byte) ([]byte, error) {
 	if err := os.WriteFile(in, docx, 0o600); err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, "soffice", "--headless", "-env:UserInstallation=file://"+dir+"/profile",
+	cmd, cancel := toolCommand(context.Background(), 90*time.Second, "soffice", "--headless", "-env:UserInstallation=file://"+dir+"/profile",
 		"--convert-to", "odt", "--outdir", dir, in)
+	defer cancel()
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("soffice: %v: %s", err, strings.TrimSpace(string(out)))
 	}

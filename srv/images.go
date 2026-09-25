@@ -1,9 +1,9 @@
 package srv
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -33,7 +33,9 @@ func colourArgs(src string) []string {
 
 // imageColourFraction returns the share (0..1) of clearly coloured pixels.
 func imageColourFraction(path string) (float64, error) {
-	out, err := exec.Command("convert", colourArgs(path+"[0]")...).Output()
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutImage, "convert", colourArgs(path+"[0]")...)
+	defer cancel()
+	out, err := cmd.Output()
 	if err != nil {
 		return 0, fmt.Errorf("identify %s: %w", filepath.Base(path), err)
 	}
@@ -42,7 +44,9 @@ func imageColourFraction(path string) (float64, error) {
 
 // greyForPrint rewrites a colour image in place as tuned greyscale.
 func greyForPrint(path string) error {
-	out, err := exec.Command("convert", path, "-colorspace", "Gray", "-auto-level", "-sigmoidal-contrast", "3,50%", path).CombinedOutput()
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutImage, "convert", path, "-colorspace", "Gray", "-auto-level", "-sigmoidal-contrast", "3,50%", path)
+	defer cancel()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("grey %s: %s", filepath.Base(path), strings.TrimSpace(string(out)))
 	}

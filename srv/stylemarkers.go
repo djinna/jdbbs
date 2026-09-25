@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -52,9 +51,10 @@ func applyStyleMarkers(docxPath, declaredPath string) ([]styleMarkerReport, erro
 	if declaredPath != "" {
 		args = append(args, "--declared-styles", declaredPath)
 	}
-	cmd := exec.Command("python3", args...)
+	cmd, cancel := toolCommand(context.Background(), toolTimeoutPython, "python3", args...)
+	defer cancel()
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return nil, fmt.Errorf("apply-style-markers.py: %w\n%s", err, string(out))
+		return nil, fmt.Errorf("apply-style-markers.py: %w\n%s", toolErr(cmd, err), string(out))
 	}
 	raw, err := os.ReadFile(reportPath)
 	if err != nil {
