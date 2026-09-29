@@ -271,9 +271,42 @@
   }
   // Theme bar first (it is the last child of every nav; the nav fillers insert
   // links before it), then the three shared strips.
-  function navs() { autoMount(); adminNav(); clientNav(); publicNav(); }
+  // Help links (punch list 8.6). One request to /api/help/for tells us the
+  // help page for this route and which help pages this viewer may open.
+  // Then: a "?" in the masthead nav (before the theme bar) and every
+  // <a data-help="slug" hidden> "learn more" link whose page is visible gets
+  // its href and is shown. Drafts are invisible to clients, so nothing
+  // surfaces until Jenna publishes the page.
+  function helpLinks() {
+    var nav = document.querySelector('.jdbb-masthead nav');
+    var wants = document.querySelectorAll('a[data-help]');
+    var onHelp = location.pathname.indexOf('/help/') === 0;
+    if ((!nav || onHelp) && !wants.length) return;
+    if (!window.fetch) return;
+    fetch('/api/help/for?path=' + encodeURIComponent(location.pathname), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        if (d.page && nav && !onHelp && !nav.querySelector('.jdbb-help-q')) {
+          var q = document.createElement('a');
+          q.className = 'jdbb-help-q'; q.href = d.page.url; q.textContent = '?';
+          q.title = 'Help: ' + d.page.title; q.setAttribute('aria-label', 'Help: ' + d.page.title);
+          nav.insertBefore(q, nav.querySelector(':scope > #theme-bar, :scope > .theme-bar'));
+        }
+        var ok = {};
+        (d.visible || []).forEach(function (s) { ok[s] = true; });
+        Array.prototype.forEach.call(wants, function (a) {
+          var slug = a.getAttribute('data-help').split('#');
+          if (!ok[slug[0]]) return;
+          a.href = '/help/' + slug[0] + (slug[1] ? '#' + slug[1] : '');
+          a.hidden = false;
+        });
+      })
+      .catch(function () {});
+  }
+  function navs() { autoMount(); adminNav(); clientNav(); publicNav(); helpLinks(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', navs);
   else navs();
 
-  window.JdbbTheme = { mount: mount, bind: bind, state: state, isDark: isDark, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav, publicNav: publicNav };
+  window.JdbbTheme = { mount: mount, bind: bind, state: state, isDark: isDark, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav, publicNav: publicNav, helpLinks: helpLinks };
 })();

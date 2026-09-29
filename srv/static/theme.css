@@ -170,6 +170,11 @@ html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
 .jdbb-masthead nav a[aria-current] { color: var(--text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--accent); }
 .jdbb-masthead nav[data-admin-nav], .jdbb-masthead nav[data-client-nav] { gap: 1.1rem; }
 .jdbb-masthead nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* Help links (8.6): the masthead "?" and inline "learn more" (theme.js helpLinks). */
+.jdbb-masthead nav a.jdbb-help-q { display: inline-flex; align-items: center; justify-content: center; width: 1.6em; height: 1.6em; border: 1px solid var(--border-strong); border-radius: 50%; font: 700 12px/1 var(--mono); text-decoration: none; color: var(--text-secondary); }
+.jdbb-masthead nav a.jdbb-help-q:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+a.jdbb-learn { font: 12px var(--mono); color: var(--text-secondary); margin-left: .8em; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--accent); }
+a.jdbb-learn[hidden] { display: none; }
 @media (max-width: 640px) {
   .jdbb-masthead { flex-wrap: wrap; row-gap: 10px; }
   .jdbb-masthead nav { flex-wrap: wrap; gap: 0.9rem 1.1rem; width: 100%; }

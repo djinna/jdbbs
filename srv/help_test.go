@@ -205,3 +205,91 @@ func TestHelpContentIsWellFormed(t *testing.T) {
 		}
 	}
 }
+
+// Every client or public route in site_pages is explained by a live-or-draft
+// help page (frontmatter routes:) or deliberately opted out in helpOptOut.
+// Adding a route? Add a help page naming it, or an opt-out line with a reason.
+func TestHelpRouteCoverage(t *testing.T) {
+	s, _, done := testServer(t)
+	defer done()
+	order, _, err := loadHelpPages(filepath.Join("..", "docs", "help"))
+	if err != nil {
+		t.Fatalf("docs/help: %v", err)
+	}
+	covered := map[string]string{}
+	for _, p := range order {
+		for _, r := range p.Routes {
+			covered[r] = p.Slug
+		}
+	}
+	sp := s.loadSitePages()
+	for route, info := range sp {
+		if info.Visibility != "client" && info.Visibility != "public" {
+			continue
+		}
+		if info.Listed == "retired" || info.Status == "retire" {
+			continue
+		}
+		_, opted := helpOptOut[route]
+		if slug, ok := covered[route]; ok && opted {
+			t.Errorf("%s is explained by %s.md and also opted out; drop the opt-out", route, slug)
+		}
+		if _, ok := covered[route]; !ok && !opted {
+			t.Errorf("site_pages route %s (%s) has no help page and no opt-out in helpOptOut", route, info.Title)
+		}
+	}
+	// Some rows exist only in the live DB (added from /admin/#pages, not by a
+	// migration), so a stale opt-out is a note, not a failure. The admin view
+	// of /help/ checks the live registry.
+	for route := range helpOptOut {
+		if _, ok := sp[route]; !ok {
+			t.Logf("helpOptOut names %s, which no migration adds to site_pages", route)
+		}
+	}
+}
+
+func TestHelpForPath(t *testing.T) {
+	for _, c := range []struct {
+		pat, path string
+		want      bool
+	}{
+		{"/{client}/{project}/factory/", "/sample-press/spring-novel/factory/", true},
+		{"/{client}/{project}/factory/", "/sample-press/spring-novel/factory", true},
+		{"/{client}/{project}/factory/", "/sample-press/factory/", false},
+		{"/{client}/", "/sample-press/", true},
+		{"/{client}/", "/", false},
+		{"/portal", "/portal", true},
+		{"/factory", "/factory/api", false},
+	} {
+		if got := helpRouteMatch(c.pat, c.path); got != c.want {
+			t.Errorf("helpRouteMatch(%q, %q) = %v", c.pat, c.path, got)
+		}
+	}
+
+	s, ts, done := testServer(t)
+	defer done()
+	s.help = newHelpStore(writeHelpFixture(t))
+	get := func(path string, admin bool) (page string, visible []string) {
+		_, body, _ := helpGet(t, ts.URL+"/api/help/for?path="+path, admin)
+		var out struct {
+			Page    *struct{ Slug string }
+			Visible []string
+		}
+		if err := json.Unmarshal([]byte(body), &out); err != nil {
+			t.Fatal(err)
+		}
+		if out.Page != nil {
+			page = out.Page.Slug
+		}
+		return page, out.Visible
+	}
+	if p, vis := get("/sample-press/spring-novel/factory/", false); p != "send-manuscript" || strings.Contains(strings.Join(vis, ","), "wip") {
+		t.Errorf("public for factory: %q %v", p, vis)
+	}
+	if p, _ := get("/nowhere", false); p != "" {
+		t.Errorf("unmatched path returned %q", p)
+	}
+	if _, vis := get("/", true); !strings.Contains(strings.Join(vis, ","), "wip") {
+		t.Errorf("admin visible list should include drafts: %v", vis)
+	}
+}

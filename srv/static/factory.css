@@ -90,6 +90,7 @@ body { font-family: var(--body); background: var(--bg); }
   display: flex; align-items: baseline; justify-content: space-between;
   gap: 12px; margin-bottom: 12px;
 }
+.fx-sec-head .jdbb-learn { margin-left: 0; margin-right: auto; }
 .fx-sec-meta {
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
   color: var(--text-muted); text-align: right;

@@ -540,6 +540,9 @@ func (s *Server) helpCoverageHTML(sp map[string]sitePageInfo) string {
 	}
 	var missing []string
 	for route, info := range sp {
+		if _, opted := helpOptOut[route]; opted {
+			continue
+		}
 		if covered[route] || info.Listed == "retired" || info.Status == "retire" || info.Visibility == "admin" || info.Visibility == "cohort" {
 			continue
 		}
@@ -792,4 +795,103 @@ func (s *Server) writeHelpShell(w http.ResponseWriter, title, kicker, h1, subHTM
 <main>`+body+`</main>
 <footer class="jdbb-footer"><a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a><nav aria-label="Footer"><a href="/">Home</a><a href="/help/">Help</a><a href="/factory">Factory</a><a href="/portal">Client portal</a></nav><span class="copy">&copy; 2026 Jenna Dixon</span></footer>
 </div><script src="/static/theme.js"></script></body></html>`)
+}
+
+// ---- 8.6: "?" per page, "learn more" links, route coverage ----
+
+// helpOptOut lists site_pages routes that deliberately have no help page,
+// with the reason. TestHelpRouteCoverage fails when a client or public route
+// is neither explained by a help page (frontmatter routes:) nor listed here —
+// the same contract as nav_convergence_test.go for the navs.
+var helpOptOut = map[string]string{
+	"/":                               "homepage (marketing)",
+	"/jdbb-net":                       "jdbb.net landing page (marketing)",
+	"/press":                          "about the press (marketing)",
+	"/workshop":                       "workshop registration page; the page is its own explanation",
+	"/field-notes":                    "essay",
+	"/word-free":                      "essay",
+	"/litmags":                        "reference ledger, not a tool",
+	"/field-guide":                    "artifact for collaborators, not clients",
+	"/work-notes-standard":            "artifact",
+	"/architecture-plan":              "artifact",
+	"/exedeck":                        "talk deck",
+	"/2026-pi-symposium/map":          "workshop material",
+	"/2026-pi-symposium/og-protocols": "talk deck",
+	"/2026-pi-symposium/talk":         "talk deck",
+	"/2026-pi-symposium/why-book":     "workshop material",
+	"/2026-pi-symposium/workshop":     "workshop handout",
+	"/stylesheet-pi/":                 "symposium editorial review tool (cohort only in practice)",
+	"/stylesheet-pi/authors":          "symposium editorial review tool",
+	"/{client}/{project}/":            "project calendar: hidden from DIY clients, no help pages in v1 (open question 8.15)",
+	"/help/":                          "help itself",
+	"/help/llms.txt":                  "help itself",
+}
+
+// helpRouteMatch reports whether a request path matches a site_pages route
+// pattern, where a {name} segment matches any one segment. Trailing slashes
+// are ignored on both sides.
+func helpRouteMatch(pattern, path string) bool {
+	ps := strings.Split(strings.Trim(pattern, "/"), "/")
+	xs := strings.Split(strings.Trim(path, "/"), "/")
+	if len(ps) != len(xs) {
+		return false
+	}
+	for i, p := range ps {
+		if strings.HasPrefix(p, "{") && strings.HasSuffix(p, "}") {
+			if xs[i] == "" {
+				return false
+			}
+			continue
+		}
+		if p != xs[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// helpForPath picks the help page for a request path among the pages the
+// viewer may see: the most specific matching route (fewest {placeholders})
+// wins, then the page's order.
+func helpForPath(pages []*helpPage, path string) *helpPage {
+	var best *helpPage
+	bestWild := 1 << 30
+	for _, p := range pages {
+		for _, r := range p.Routes {
+			if !helpRouteMatch(r, path) {
+				continue
+			}
+			wild := strings.Count(r, "{")
+			if wild < bestWild || wild == bestWild && best != nil && p.Order < best.Order {
+				best, bestWild = p, wild
+			}
+		}
+	}
+	return best
+}
+
+// GET /api/help/for?path=/sample-press/spring-novel/factory/
+// → {"page": {slug,title,url} | null, "visible": [slug…]}. theme.js uses it
+// to add the masthead "?" and to reveal [data-help] "learn more" links —
+// only for pages this viewer can open, so drafts never surface to clients.
+func (s *Server) handleHelpFor(w http.ResponseWriter, r *http.Request) {
+	_, pages := s.visibleHelp(r)
+	type ref struct {
+		Slug  string `json:"slug"`
+		Title string `json:"title"`
+		URL   string `json:"url"`
+	}
+	out := struct {
+		Page    *ref     `json:"page"`
+		Visible []string `json:"visible"`
+	}{Visible: []string{}}
+	if p := helpForPath(pages, r.URL.Query().Get("path")); p != nil {
+		out.Page = &ref{p.Slug, p.Title, "/help/" + p.Slug}
+	}
+	for _, p := range pages {
+		out.Visible = append(out.Visible, p.Slug)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "private, max-age=30")
+	json.NewEncoder(w).Encode(out)
 }
