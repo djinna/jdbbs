@@ -1,4 +1,4 @@
-<!-- exported 2026-09-29 16:20 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-29 16:31 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punchlist 7 · Tue 29 Sep · domains + help
 
@@ -27,7 +27,32 @@ _Plan: `docs/NEXT_SESSION_PROMPT_2026-09-29.md` · `docs/reviews/CUSTOM-DOMAIN-P
   > Thanks — Phase 1 closed. Redirect + admin fallback confirmed from your browser. Next: 8.3 landing-page draft.
 
 - [~] 8.3 **Phase 2 · BOTH — Fresh jdbb.net landing page** (replaces the Blot stub). ME: draft on a preview route (public doc, 1240 shell); YOU: facts + approve copy. Cutover is yours in Cloudflare (apex + www CNAME, flatten) + `domain add`. **Never touch MX.**
-- [ ] 8.4 **Phase 3 · YOU decide — blyg.jdbb.net.** Repurpose `jd-blyg` VM (CNAME `blyg` → `jd-blyg.exe.xyz` + `domain add`) or move to the Blygger Studio Worker?
+
+  > **jenna** · 2026-09-29 16:24 UTC  
+  > go ahead
+
+  > **shelley** · 2026-09-29 16:31 UTC  
+  > Draft is up: https://studio.jdbb.net/jdbb-net (preview on the studio host; nothing on jdbb.net has changed).
+  > Built from the talk, /press and field notes. The orange [ ] placeholders are facts I couldn't find a source for: the 1986 publisher's name (if you want it named), presses/imprints/roles over the years, number of books + titles you're proud of + any awards, city, whether j@djinna.com is the contact, GitHub/social. I also left out the naval-architecture work — your call.
+  > Routing is already in and tested: jdbb.net/ → this page, www → apex, jdbb.net/factory etc. → studio, old Blot URLs → the landing page. Cutover (yours, after you approve the copy): Cloudflare apex CNAME @ → jdbbs.exe.xyz DNS only + 'Flatten CNAME at root', www CNAME the same, then ssh exe.dev domain add jdbbs jdbb.net and … www.jdbb.net. Never touch MX.
+
+- [x] 8.4 **Phase 3 · YOU decide — blyg.jdbb.net.** Repurpose `jd-blyg` VM (CNAME `blyg` → `jd-blyg.exe.xyz` + `domain add`) or move to the Blygger Studio Worker?
+
+  > **jenna** · 2026-09-29 16:25 UTC  
+  > I don't know what the second choice is? Had thought we would continue with our exe VM but open to better ideas!
+
+  > **shelley** · 2026-09-29 16:25 UTC  
+  > Sorry, that was jargon. The second choice was to run the blyg on Cloudflare instead of on a VM. Blygger's own starter kit ("Blygger Studio") is built to deploy as a Cloudflare Worker, a small program Cloudflare hosts for you, and jdbb.net's DNS is already at Cloudflare.
+  > My view: stay with the exe VM (jd-blyg). It's already running, I can already reach it through the integration, and it sits alongside everything else we run. The Worker only saves us one VM, and it would put the blog behind a second account and a second deploy process.
+  > So for 8.4: keep jd-blyg. When you're ready: Cloudflare CNAME blyg → jd-blyg.exe.xyz (DNS only), then from your machine: ssh exe.dev domain add jd-blyg blyg.jdbb.net. One open question stays: how we publish to it (the blyg's studio password vs a blyg API key held in an integration).
+
+  > **jenna** · 2026-09-29 16:29 UTC  
+  > CF and exe setup steps complete, confirm? for pw vs key, I'll take your recommendation
+
+  > **shelley** · 2026-09-29 16:31 UTC  
+  > Confirmed: blyg.jdbb.net resolves to jd-blyg.exe.xyz and serves 200; /studio → blyg.jdbb.net/studio/login. Ticked.
+  > Recommendation: a blyg API key, held in an exe.dev integration like the jd-blyg one. It's scoped to publishing, you can revoke it without changing your password, and it never sits on this VM. The studio password stays yours, for writing by hand. Next step (next session): brief jd-blyg's Shelley to add an API-key endpoint (or find out whether Blygger already has one), then you wrap the key in the integration.
+
 - [ ] 8.5 **Help 1 · ME** — `docs/help/*.md` + frontmatter, render in shell, tiers, nav from site_pages, FTS search, `llms.txt` / `.md`.
 - [ ] 8.6 **Help 2 · ME** — “?” per page + “learn more” links; route-coverage test (+ missing transmittal site_pages row).
 - [ ] 8.7 **Help 3 · ME** — Report a nit (no login, honeypot + rate limit) → Section 0, tagged.
