@@ -12,12 +12,12 @@ Keep this file in a folder with your manuscript. Then, in a terminal, in that fo
   python3 factory.py download                   fetch the newest files again
 
 Title and author are asked for the first time and remembered (override: --title, --author).
-Everything this script does is six ordinary web calls; see https://jdbbs.exe.xyz/factory/api
+Everything this script does is six ordinary web calls; see https://studio.jdbb.net/factory/api
 """
 import argparse, datetime, json, os, re, sys, time, urllib.error, urllib.request, uuid, webbrowser
 
 CONFIG = "factory.json"          # lives next to this script's working folder
-BASE = "https://jdbbs.exe.xyz"
+BASE = "https://studio.jdbb.net"
 OUT = "out"
 
 

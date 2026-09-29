@@ -169,7 +169,7 @@ address it does not already have on file.
 PRODCAL_MAIL_FROM=factory@mail.jdbb.studio  # Resend on; unset → AgentMail
 AGENTMAIL_API_KEY=am_...      # AgentMail Bearer token (fallback transport + archive inbox)
 AGENTMAIL_INBOX_ID=jdbb@agentmail.to  # Inbox ID for sending
-PRODCAL_BASE_URL=https://jdbbs.exe.xyz  # Used for links in emails (auto-derived if unset)
+PRODCAL_BASE_URL=https://studio.jdbb.net  # Used for links in emails (auto-derived from hostname → https://<host>.exe.xyz if unset)
 ```
 
 ## Adding a New Email Pathway

@@ -32,7 +32,7 @@ var settingDefs = []settingDef{
 		Key:     "email_footer",
 		Label:   "Email footer line",
 		Help:    "Small print under the closing hairline when a template does not supply its own (announcements and digests do). Plain text; a bare URL becomes a link.",
-		Default: "https://jdbbs.exe.xyz/ · Reply to this email to reach Jenna.",
+		Default: "https://studio.jdbb.net/ · Reply to this email to reach Jenna.",
 	},
 	{
 		Key:     "finals_gate",

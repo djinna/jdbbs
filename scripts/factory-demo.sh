@@ -7,7 +7,7 @@
 # Each step prints the command before running it so the room can read along.
 # Never point it at pinstitute (id 22); use mcheck/book-001 (id 17) or a demo pass.
 set -euo pipefail
-B=${B:-https://jdbbs.exe.xyz}; : "${TOKEN:?set TOKEN}"; : "${P:?set P (project id)}"
+B=${B:-https://studio.jdbb.net}; : "${TOKEN:?set TOKEN}"; : "${P:?set P (project id)}"
 MS=${1:?manuscript.docx}; H="Authorization: Bearer $TOKEN"
 step(){ printf '\n\033[1;36m$ %s\033[0m\n' "$*"; sleep "${PAUSE:-1}"; }
 

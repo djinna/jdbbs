@@ -541,7 +541,7 @@ func (s *Server) Handler() http.Handler {
 		s.serveIndex(w)
 	})
 
-	return s.requestLog(mux)
+	return s.requestLog(s.canonicalHost(mux))
 }
 
 func (s *Server) Serve(addr string) error {

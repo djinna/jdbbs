@@ -69,7 +69,7 @@ if [ -n "${AGENTMAIL_API_KEY:-}" ] && [ -n "${AGENTMAIL_INBOX_ID:-}" ]; then
 prodcal: $STATUS
 $CATALOG
 
-Check: https://jdbbs.exe.xyz/admin/store/ should say 'Store is on'; the Catalog table should list prices, and the Stripe dashboard (live mode) should show the Factory Pass product and the WORKSHOP49 / PROTOCOL50 coupons.
+Check: https://studio.jdbb.net/admin/store/ should say 'Store is on'; the Catalog table should list prices, and the Stripe dashboard (live mode) should show the Factory Pass product and the WORKSHOP49 / PROTOCOL50 coupons.
 
 If anything looks wrong: put PRODCAL_STRIPE_URL=https://stripe-test.int.exe.xyz back into /home/exedev/prodcal/.env and 'sudo systemctl restart prodcal'. A copy of the previous .env is beside it (.env.pre-live.*)."
   python3 - "$BODY" <<'PY' || log "email failed (non-fatal)"

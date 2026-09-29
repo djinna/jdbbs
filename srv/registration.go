@@ -300,7 +300,7 @@ recordings and you get first word when the next cohort opens.
 
 In the meantime the factory itself is open year-round — a Factory Pass takes
 one manuscript all the way through the protocol, self-serve. Details at
-https://jdbbs.exe.xyz/store/.
+https://studio.jdbb.net/store/.
 
 See you in the factory,
 Jenna Dixon · [jdbb] studio`, first)
@@ -338,7 +338,7 @@ func applicantAutoReplyHTML(name string, workshop bool) string {
 	if !workshop {
 		b.WriteString(emailP("Thanks &mdash; your request for the <b>Protocolize Your Book</b> workshop is in."))
 		b.WriteString(emailP("The Sep 21&ndash;22 cohort at Protocol Symposium 2026 has now run, so this round&rsquo;s live sessions are done. You&rsquo;re on the list: we&rsquo;ll email you about the session recordings, and you get first word when the next cohort opens."))
-		b.WriteString(emailP(`In the meantime the factory itself is open year-round &mdash; a <b>Factory Pass</b> takes one manuscript all the way through the protocol, self-serve. Details at <a href="https://jdbbs.exe.xyz/store/" style="color:` + emailAccent + `;text-decoration:underline">jdbbs.exe.xyz/store</a>.`))
+		b.WriteString(emailP(`In the meantime the factory itself is open year-round &mdash; a <b>Factory Pass</b> takes one manuscript all the way through the protocol, self-serve. Details at <a href="https://studio.jdbb.net/store/" style="color:` + emailAccent + `;text-decoration:underline">studio.jdbb.net/store</a>.`))
 		b.WriteString(emailP("See you in the factory,"))
 		b.WriteString(emailSignoff())
 		return emailShell(b.String(), emailShellOpts{Kicker: "Protocolize Your Book", Title: "Your registration is in"})

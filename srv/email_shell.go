@@ -39,7 +39,7 @@ const (
 	emailMono      = "ui-monospace,Menlo,Consolas,'Liberation Mono',monospace"
 	emailMeasure   = 560 // px; matches the prose measure
 	emailBrandName = "jdbb studio"
-	emailStudioURL = "https://jdbbs.exe.xyz/"
+	emailStudioURL = "https://studio.jdbb.net/"
 )
 
 // emailShellOpts controls the optional pieces around the body.

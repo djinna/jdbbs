@@ -715,7 +715,7 @@ func (s *Server) postBuildCallback(callbackURL string, bid int64) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "jdbb-factory/1.0 (+https://jdbbs.exe.xyz/factory)")
+	req.Header.Set("User-Agent", "jdbb-factory/1.0 (+https://studio.jdbb.net/factory)")
 	client := &http.Client{
 		Timeout:   15 * time.Second,
 		Transport: callbackTransport(s.allowLocalCallbacks),

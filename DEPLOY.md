@@ -17,7 +17,15 @@ Changing an allowlist requires restarting the service.
 
 ## Current Setup (exe.dev)
 
-- **URL**: https://jdbbs.exe.xyz/
+- **URL**: https://studio.jdbb.net/ (since 29 Sep 2026; `PRODCAL_BASE_URL` in `.env`).
+  Cloudflare CNAME `studio` → `jdbbs.exe.xyz`, DNS only, plus
+  `ssh exe.dev domain add jdbbs studio.jdbb.net` (run from Jenna's machine).
+- **Legacy host**: https://jdbbs.exe.xyz/ stays up. `srv/canonical_host.go`
+  301s public GET pages there to the same path + query on studio.jdbb.net
+  (old magic links still redeem); `/api/`, `/admin`, `/static/`, `/healthz`
+  and non-GET requests are never redirected. Other GETs carry a
+  `Link: rel="canonical"` header. The :8766 punch-list page only exists on
+  the exe.xyz host.
 - **Service**: systemd unit `prodcal.service` on port 8000 (unit file `prodcal.service` in the repo root)
 - **Database**: SQLite at `/home/exedev/prodcal/db.sqlite3` (WAL mode)
 - **Backups**: Daily at 3 AM to `~/backups/`; actual daily/monthly retention

@@ -134,7 +134,7 @@ func (s *Server) handleHouseStyleMD(w http.ResponseWriter, r *http.Request) {
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s\n\n", hsTitle(kind))
-	fmt.Fprintf(&b, "_[jdbb] studio house editorial stylesheet · generated %s · https://jdbbs.exe.xyz/stylesheet/_\n\n", time.Now().UTC().Format("2006-01-02"))
+	fmt.Fprintf(&b, "_[jdbb] studio house editorial stylesheet · generated %s · https://studio.jdbb.net/stylesheet/_\n\n", time.Now().UTC().Format("2006-01-02"))
 	for _, sec := range secs {
 		fmt.Fprintf(&b, "## %d. %s\n\n", sec.Ord, sec.Title)
 		var rules, prose []hsItem

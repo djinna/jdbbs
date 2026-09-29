@@ -3,8 +3,8 @@
 
 Stdlib only; copy it into your own tooling. See docs/API-CLI-RECIPE-2026-09-19.md.
 
-  factory-cli.py --base https://jdbbs.exe.xyz --project 14 --token XXX build  ms.docx [--out dir] [--format both|pdf|epub]
-  factory-cli.py --base https://jdbbs.exe.xyz --project 14 --token XXX inspect ms.docx
+  factory-cli.py --base https://studio.jdbb.net --project 14 --token XXX build  ms.docx [--out dir] [--format both|pdf|epub]
+  factory-cli.py --base https://studio.jdbb.net --project 14 --token XXX inspect ms.docx
 
 build   = upload -> convert (a proof is free; --kind final uses one credit) -> poll until ready/error -> download outputs
 inspect = upload -> preflight (free) -> print the report JSON
@@ -61,7 +61,7 @@ class Factory:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--base", default="https://jdbbs.exe.xyz")
+    ap.add_argument("--base", default="https://studio.jdbb.net")
     ap.add_argument("--project", required=True, type=int, help="numeric project id")
     ap.add_argument("--token", default=os.environ.get("FACTORY_TOKEN"), help="project password (or $FACTORY_TOKEN)")
     ap.add_argument("cmd", choices=["build", "inspect"])
