@@ -69,6 +69,11 @@ type Server struct {
 
 	aliasMu sync.RWMutex
 	aliases map[slugAlias]slugAlias // old /{client}/{project} → current
+
+	// help caches docs/help/*.md + its search index (srv/help.go). Tests
+	// set it directly to point at a temp dir.
+	help     *helpStore
+	helpOnce sync.Once
 }
 
 func New(dbPath, hostname string) (*Server, error) {
@@ -213,6 +218,15 @@ func (s *Server) Handler() http.Handler {
 	// Factory floor: live activity board + feed for workshop sessions (monitoring L2)
 	mux.HandleFunc("GET /api/admin/factory/events", s.handleAdminFactoryEvents)
 	mux.HandleFunc("GET /api/admin/factory/board", s.handleAdminFactoryBoard)
+	// Help (punch list 8.5): docs/help/*.md, read from disk; see srv/help.go.
+	mux.HandleFunc("GET /help", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/help/", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("GET /help/{$}", s.handleHelpIndex)
+	mux.HandleFunc("GET /help/search", s.handleHelpSearch)
+	mux.HandleFunc("GET /help/llms.txt", s.handleHelpLLMs)
+	mux.HandleFunc("GET /help/{slug}", s.handleHelpPage)
+	mux.HandleFunc("GET /api/help/search", s.handleHelpSearchAPI)
 	mux.HandleFunc("GET /admin/runs/{$}", s.handleAdminRunsIndex)
 	mux.HandleFunc("GET /admin/runs/{name}", s.handleAdminRunFile)
 	mux.HandleFunc("GET /admin/runs/{kind}/{name}", s.handleAdminRunImage) // kind=img: screenshots pasted on the punch list
