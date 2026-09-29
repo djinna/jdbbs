@@ -4,6 +4,7 @@ Punchlists and run logs, one file per day or event. Exported by
 `scripts/punchlist-export.py`; rendered read-only at `/admin/runs/`.
 
 - [Protocol Institute — first client through the whole factory · **Test 2**](RUN-2026-09-17-protocol-institute.md)
+- [Punchlist 7 · Tue 29 Sep · domains + help](PUNCHLIST-2026-09-29.md)
 - [Punchlist 6 · Wed 23 Sep · talk day (HKT evening)](PUNCHLIST-2026-09-29-list6.md)
 - [Punchlist 6 · Wed 23 Sep · talk day (HKT evening)](PUNCHLIST-2026-09-25.md)
 - [Punchlist 6 · Wed 23 Sep · talk day (HKT evening)](PUNCHLIST-2026-09-23.md)
