@@ -812,7 +812,7 @@ function renderHandoff() {
         h('li', null, 'Get your manuscript into shape \u2014 in any editor. ',
           h('b', null, 'Already have a draft?'), ' Chapter titles as Heading 1, sub-heads as Heading 2, and type ',
           h('code', null, '[[quote]]'), ', ', h('code', null, '[[verse]]'), ', ', h('code', null, '[[epigraph]]'), ', ', h('code', null, '[[code]]'), '\u2026 at the start of any special paragraph; the factory applies the style and removes the marker. No template needed. ',
-          h('b', null, 'Starting fresh?'), ' ', h('a', { href: tpl, download: '' }, 'Download the template'), ' (.docx for Word', h('span', { className: 'tx-fine' }, ' \u00b7 ', h('a', { href: tpl + '?format=odt', download: '' }, '.odt'), ' for LibreOffice Writer'), ') and write in its styles.'),
+          h('b', null, 'Starting fresh?'), ' ', h('a', { href: tpl, download: '' }, 'Download the template'), ' (.docx', h('span', { className: 'tx-fine' }, ' \u00b7 ', h('a', { href: tpl + '?format=odt', download: '' }, '.odt'), ' for LibreOffice Writer'), ') and write in its styles.'),
         state.embedded
           ? h('li', null, 'When a draft is ready, ', h('a', { href: '#upload' }, 'upload it below'), ' — step 2 — then inspect and build.')
           : h('li', null, 'When a draft is ready, ', h('a', { href: factoryUrl() }, 'go to the Factory'), ' — upload, inspect, build.'),
@@ -1093,7 +1093,7 @@ function renderIllustrationsSection() {
     ),
     h('div', { className: 'tx-help tx-illus-guide' },
       h('b', null, 'Colour. '),
-      'Leave your images in colour. The EPUB keeps them that way \u2014 a Paperwhite renders them in grey on the fly, and the same file is in colour on phones, tablets and the Kindle app. The print PDF is a black-and-white interior, so the factory converts each colour image itself rather than leave it to the printer\u2019s machine, which flattens them. A plain grey conversion is flat; the factory\u2019s is what a careful operator does first on most photographs \u2014 luminance grey, auto-level, a gentle S-curve \u2014 and it is fine for four images in five. What it cannot do is the judgement call: mixing the red channel up to lift a face out of foliage, or noticing that a chart\u2019s two lines became the same grey. If an image matters that much, convert it yourself in Photoshop and place the grey version in the Word file; it arrives already grey and the factory leaves it alone. Images that are already black and white are never touched.'),
+      'Leave your images in colour. The EPUB keeps them that way \u2014 a Paperwhite renders them in grey on the fly, and the same file is in colour on phones, tablets and the Kindle app. The print PDF is a black-and-white interior, so the factory converts each colour image itself rather than leave it to the printer\u2019s machine, which flattens them. A plain grey conversion is flat; the factory\u2019s is what a careful operator does first on most photographs \u2014 luminance grey, auto-level, a gentle S-curve \u2014 and it is fine for four images in five. What it cannot do is the judgement call: mixing the red channel up to lift a face out of foliage, or noticing that a chart\u2019s two lines became the same grey. If an image matters that much, convert it yourself in Photoshop and place the grey version in your manuscript; it arrives already grey and the factory leaves it alone. Images that are already black and white are never touched.'),
     h('label', { className: 'tx-check tx-attest' },
       h('input', { type: 'checkbox', checked: getField('illustrations.print_colour') ? 'checked' : undefined,
         onChange: (e) => { setField('illustrations.print_colour', e.target.checked); render(); } }),
@@ -1410,10 +1410,10 @@ function renderEditingSection() {
     }),
     textField('Mathematical Formulas', 'editing.math_formulas', {
       placeholder: 'none',
-      helpText: 'Inline symbols, or displayed equations? Word\u2019s equation editor, or typed?',
+      helpText: 'Inline symbols, or displayed equations? Your editor\u2019s equation tool, or typed?',
     }),
     h('div', { className: 'tx-section-header', style: 'margin-top:16px' }, 'Custom Styles'),
-    h('div', { className: 'tx-help' }, 'A style you use in the manuscript that is not one of the factory\u2019s. Name it, say which factory style it is based on, and (for a few parents) how it differs: an indent level, or a bigger gap. It then goes into the book spec, the Word template, and the [[marker]] list Inspect accepts. Anything a based-on style cannot express is designed by the studio and shown here once it is.'),
+    h('div', { className: 'tx-help' }, 'A style you use in the manuscript that is not one of the factory\u2019s. Name it, say which factory style it is based on, and (for a few parents) how it differs: an indent level, or a bigger gap. It then goes into the book spec, the authoring template, and the [[marker]] list Inspect accepts. Anything a based-on style cannot express is designed by the studio and shown here once it is.'),
     ...styles.map((style, i) => renderCustomStyleRow(style, i, removeCustomStyle)),
     h('button', { className: 'tx-add-btn', type: 'button', onClick: addCustomStyle }, '+ Add custom style'),
   );

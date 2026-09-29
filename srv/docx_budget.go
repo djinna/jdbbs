@@ -23,7 +23,7 @@ const (
 	docxMaxRatio          = 200       // XML compresses ~10–40:1 in real documents
 )
 
-var errNotDOCX = errors.New("not a Word .docx (expected a zip with word/document.xml)")
+var errNotDOCX = errors.New("not a .docx (expected a zip with word/document.xml)")
 
 // checkDOCXBudget inflates the archive and returns a descriptive error if it
 // is not a plausible Word document or exceeds the budgets above.

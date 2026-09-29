@@ -720,7 +720,7 @@ func TestConvertDebitsThenRefundsOnFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reload failed book: %v", err)
 	}
-	if !strings.HasPrefix(reloadedBook.ErrorMsg, "We couldn't read this .docx. Export it again from your editor") {
+	if !strings.HasPrefix(reloadedBook.ErrorMsg, "We couldn't read this .docx. Save or export it again from your editor") {
 		t.Errorf("customer error_msg = %q", reloadedBook.ErrorMsg)
 	}
 	reloaded, err := q.GetPassByProject(t.Context(), pass.ProjectID)
@@ -1270,12 +1270,12 @@ func TestCustomerBuildErrorClassification(t *testing.T) {
 		{
 			name: "unknown Typst variable is a Word style",
 			raw:  "typst: exit status 1\nerror: unknown variable: tweet-p\n  ┌─ /tmp/book.typ:42:1",
-			want: "Your file uses a Word style (tweet-p) that isn't in your template. Inspect lists styles not in your transmittal — remove or remap it, or ask us to add it.",
+			want: "Your file uses a paragraph style (tweet-p) that isn't in your template. Inspect lists styles not in your transmittal — remove or remap it, or ask us to add it.",
 		},
 		{
 			name: "pandoc reader failure",
 			raw:  "pandoc typst: exit status 63\nCould not parse docx package",
-			want: "We couldn't read this .docx. Export it again from your editor (Word: File → Save As → Word Document; Google Docs: File → Download → Microsoft Word; LibreOffice: Save As → Word 2007–365) and try again. If it came from Pages or a converter, open and re-save it in Word or LibreOffice first.",
+			want: "We couldn't read this .docx. Save or export it again from your editor as a .docx (Google Docs: File → Download → .docx; LibreOffice: File → Save As, file type .docx) and try again. If it came from Pages or a converter, open it in your editor and save it again first.",
 		},
 		{
 			name: "other pipeline failure",

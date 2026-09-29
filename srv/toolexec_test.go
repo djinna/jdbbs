@@ -149,7 +149,7 @@ func TestUploadRejectsNonDOCX(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != 400 || !strings.Contains(string(body), "not a Word .docx") {
+	if resp.StatusCode != 400 || !strings.Contains(string(body), "not a .docx") {
 		t.Fatalf("got %d %s", resp.StatusCode, body)
 	}
 }

@@ -867,7 +867,7 @@ class EdgeCaseReviewer:
         'declared_custom_style_used': ('Declared Custom Styles', 'Declared custom styles confirmed present in the manuscript'),
         'font_treatment': ('Font Treatment', 'Emoji or special font usage detected'),
         'manual_formatting': ('Manual Formatting', 'Bold, italic, or underline applied directly to runs rather than via character styles'),
-        'manual_list': ('Manual Lists', 'Text formatted as lists using characters (-, *, 1.) rather than Word list styles'),
+        'manual_list': ('Manual Lists', 'Text formatted as lists using characters (-, *, 1.) rather than list styles'),
         'direct_spacing': ('Direct Paragraph Formatting', 'Paragraph-level spacing, indentation, or alignment applied directly rather than via styles'),
         'image_inventory': ('Image Inventory', 'Inline images found in the manuscript'),
         'colored_text': ('Colored Text', 'Non-black text color detected'),
@@ -1068,7 +1068,7 @@ class EdgeCaseReviewer:
             return (
                 '<div class="empty-note">'
                 '<p>No inline images detected.</p>'
-                '<p class="detail">If you expected images, check whether they are floating/anchored shapes rather than inline Word images.</p>'
+                '<p class="detail">If you expected images, check whether they are floating/anchored shapes rather than inline images.</p>'
                 '</div>'
             )
         cells = []

@@ -562,7 +562,11 @@ function renderInspect() {
   if (keys.length) {
     html += '<div class="fx-types">';
     keys.forEach(function (k) {
-      html += '<div class="fx-types-row"><span>' + esc(typeLabel(k)) + '</span><span>' + Number(byType[k]) + '</span></div>';
+      // "learn more" → the finding's help page (8.8); theme.js reveals it
+      // only once that page is published.
+      var slug = 'finding-' + (/^book_map/.test(k) ? 'book-map' : String(k).replace(/_/g, '-'));
+      html += '<div class="fx-types-row"><span>' + esc(typeLabel(k)) +
+        '<a class="jdbb-learn" data-help="' + esc(slug) + '" hidden>learn more</a></span><span>' + Number(byType[k]) + '</span></div>';
     });
     html += '</div>';
   }
@@ -586,6 +590,7 @@ function renderInspect() {
   html += renderBookMap(pf.book_map);
 
   box.innerHTML = html;
+  if (window.JdbbTheme && JdbbTheme.helpLinks) JdbbTheme.helpLinks();
 }
 
 // ─── render: build ─────────────────────────────────────────────────────────
@@ -1472,7 +1477,7 @@ function pickFile(file) {
   if (!file) return;
   if (!/\.docx$/i.test(file.name)) {
     status.className = 'fx-status err';
-    status.textContent = 'That\u2019s not a .docx file. Export one from your editor: Word \u2192 Save As \u2192 Word Document; Google Docs \u2192 Download \u2192 Microsoft Word; Pages \u2192 Export To \u2192 Word; LibreOffice \u2192 Save As \u2192 Word 2007\u2013365.';
+    status.textContent = 'That\u2019s not a .docx file. Save or export it from your editor as a .docx (Google Docs \u2192 File \u2192 Download \u2192 .docx; Pages \u2192 File \u2192 Export To \u2192 .docx; LibreOffice \u2192 File \u2192 Save As, file type .docx).';
     return;
   }
   S.pendingFile = file;

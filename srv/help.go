@@ -423,7 +423,7 @@ func (h *helpStore) search(q string, admin bool, limit int) []helpHit {
 // helpGroups orders the index headings. A page's group is its frontmatter
 // `group`, else it comes from the tier of the first route it explains, as
 // recorded in site_pages — so help and the route registry can't drift.
-var helpGroupOrder = []string{"Start here", "Your books", "The studio", "For developers", "Studio admin", "More"}
+var helpGroupOrder = []string{"Start here", "Your books", "Inspect findings", "The studio", "For developers", "Studio admin", "More"}
 
 type sitePageInfo struct {
 	Route, Title, Visibility, Listed, Status, PageType string

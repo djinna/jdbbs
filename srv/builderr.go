@@ -67,7 +67,7 @@ func diagnoseBuildFailure(raw, typPath string) buildFailure {
 	switch {
 	case unknownTypstVariableRE.MatchString(raw):
 		style := unknownTypstVariableRE.FindStringSubmatch(raw)[1]
-		f.Message = fmt.Sprintf("Your file uses a Word style (%s) that isn't in your template. Inspect lists styles not in your transmittal — remove or remap it, or ask us to add it.", style)
+		f.Message = fmt.Sprintf("Your file uses a paragraph style (%s) that isn't in your template. Inspect lists styles not in your transmittal — remove or remap it, or ask us to add it.", style)
 	case typstLabelRE.MatchString(raw):
 		f.Message = "An @ sign in your text was read as a cross-reference by the typesetter. This is our bug, not yours — email us and we'll fix the build; as a workaround, put the address in a plain Body paragraph."
 	case strings.Contains(lower, "pagebreaks are not allowed inside of containers"):
@@ -78,7 +78,7 @@ func diagnoseBuildFailure(raw, typPath string) buildFailure {
 	case typstFileRE.MatchString(raw):
 		f.Message = "An image in your file couldn't be read. Re-insert it in your editor (Insert → Picture from a file, not a linked or pasted preview), export .docx again and rebuild."
 	case strings.Contains(lower, "pandoc"):
-		f.Message = "We couldn't read this .docx. Export it again from your editor (Word: File → Save As → Word Document; Google Docs: File → Download → Microsoft Word; LibreOffice: Save As → Word 2007–365) and try again. If it came from Pages or a converter, open and re-save it in Word or LibreOffice first."
+		f.Message = "We couldn't read this .docx. Save or export it again from your editor as a .docx (Google Docs: File → Download → .docx; LibreOffice: File → Save As, file type .docx) and try again. If it came from Pages or a converter, open it in your editor and save it again first."
 	case strings.Contains(lower, "epub:"):
 		f.Message = "The print PDF built but the EPUB didn't. Your PDF is still ready; email us and we'll sort the EPUB."
 	case strings.Contains(lower, "typst"):

@@ -45,22 +45,26 @@ check its heading.
 
 ## Common findings
 
-- **Headings without a Heading style.** A line that looks like a chapter
-  title (bold, larger, "Chapter 3") but is styled as body text, so the
+- **[Headings without a Heading style](finding-heading-lookalike.md).** A
+  line that looks like a chapter title but is styled as body text, so the
   factory can't find it. Give it Heading 1.
-- **Custom styles not in your transmittal.** Your file uses a style the
-  factory doesn't know. Declare it in the transmittal's Custom styles,
-  change it to a factory style, or ask the studio.
-- **Marked styles.** The `[[markers]]` it found and what each became.
-- **Manual lists, manual breaks, direct spacing.** Typed bullets, hand-made
-  scene breaks, spacing set by hand. Usually harmless; styles are cleaner.
-- **Coloured or highlighted text, unusual fonts.** Fonts are ignored (the
-  book has its own). Colour and highlighting may not survive.
-- **Images.** How many, and how large each will print. Colour images stay
-  colour in the EPUB and turn grey in print unless the transmittal says
-  *Colour interior*.
+- **[Custom styles not in your transmittal](finding-undeclared-custom-style.md).**
+  Your file uses a style the factory doesn't know. Declare it, change it, or
+  ask the studio.
+- **[Marked styles](finding-style-marker.md).** The `[[markers]]` it found
+  and what each became.
+- **[Lists](finding-manual-list.md), [breaks](finding-manual-break.md) and
+  [spacing](finding-direct-spacing.md) made by hand.** Usually harmless;
+  styles are cleaner.
+- **[Coloured](finding-colored-text.md) or
+  [highlighted](finding-highlighted-text.md) text, [unusual
+  fonts](finding-unusual-font.md).** Fonts are ignored (the book has its
+  own). Colour and highlighting may not survive.
+- **[Images](finding-image-inventory.md).** How many, and how large each
+  will print.
 
-One page per finding, with how to fix each in any editor, is coming.
+Every finding has its own page, with why it's flagged and how to fix it in
+any editor: see **Inspect findings** in [all help](/help/).
 
 ## The counts
 
