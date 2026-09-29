@@ -1,4 +1,4 @@
-<!-- exported 2026-09-29 16:31 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-29 17:07 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punchlist 7 · Tue 29 Sep · domains + help
 
@@ -36,6 +36,15 @@ _Plan: `docs/NEXT_SESSION_PROMPT_2026-09-29.md` · `docs/reviews/CUSTOM-DOMAIN-P
   > Built from the talk, /press and field notes. The orange [ ] placeholders are facts I couldn't find a source for: the 1986 publisher's name (if you want it named), presses/imprints/roles over the years, number of books + titles you're proud of + any awards, city, whether j@djinna.com is the contact, GitHub/social. I also left out the naval-architecture work — your call.
   > Routing is already in and tested: jdbb.net/ → this page, www → apex, jdbb.net/factory etc. → studio, old Blot URLs → the landing page. Cutover (yours, after you approve the copy): Cloudflare apex CNAME @ → jdbbs.exe.xyz DNS only + 'Flatten CNAME at root', www CNAME the same, then ssh exe.dev domain add jdbbs jdbb.net and … www.jdbb.net. Never touch MX.
 
+  > **shelley** · 2026-09-29 16:38 UTC  
+  > No answers from you yet on the placeholders, so the page is waiting on you. One is partly done: I used "About 300, over 30 years" from your blyg bio for the Books line. Still open, all optional (reply here and I'll fold them in):
+  > 1. The 1986 publisher: name it or leave it unnamed?
+  > 2. The years in between: presses/imprints, your roles, 2–3 titles you're proud of, any awards.
+  > 3. City (or leave it out).
+  > 4. Is j@djinna.com the contact? Any GitHub/social links?
+  > 5. Naval architecture: in or out?
+  > Once you OK the copy, the cutover steps are all yours, in Cloudflare, and I'll check each one: (a) delete the Blot apex/www records, (b) CNAME @ → jdbbs.exe.xyz (DNS only) + DNS → Settings → Flatten CNAME at root, (c) CNAME www → jdbbs.exe.xyz (DNS only), (d) from your machine: ssh exe.dev domain add jdbbs jdbb.net and ssh exe.dev domain add jdbbs www.jdbb.net. Leave MX alone.
+
 - [x] 8.4 **Phase 3 · YOU decide — blyg.jdbb.net.** Repurpose `jd-blyg` VM (CNAME `blyg` → `jd-blyg.exe.xyz` + `domain add`) or move to the Blygger Studio Worker?
 
   > **jenna** · 2026-09-29 16:25 UTC  
@@ -53,10 +62,38 @@ _Plan: `docs/NEXT_SESSION_PROMPT_2026-09-29.md` · `docs/reviews/CUSTOM-DOMAIN-P
   > Confirmed: blyg.jdbb.net resolves to jd-blyg.exe.xyz and serves 200; /studio → blyg.jdbb.net/studio/login. Ticked.
   > Recommendation: a blyg API key, held in an exe.dev integration like the jd-blyg one. It's scoped to publishing, you can revoke it without changing your password, and it never sits on this VM. The studio password stays yours, for writing by hand. Next step (next session): brief jd-blyg's Shelley to add an API-key endpoint (or find out whether Blygger already has one), then you wrap the key in the integration.
 
-- [ ] 8.5 **Help 1 · ME** — `docs/help/*.md` + frontmatter, render in shell, tiers, nav from site_pages, FTS search, `llms.txt` / `.md`.
-- [ ] 8.6 **Help 2 · ME** — “?” per page + “learn more” links; route-coverage test (+ missing transmittal site_pages row).
-- [ ] 8.7 **Help 3 · ME** — Report a nit (no login, honeypot + rate limit) → Section 0, tagged.
-- [ ] 8.8 **Help 4 · ME** — Inspect findings content slice (one entry per finding type) + “never Word — your editor” copy lint.
+  > **shelley** · 2026-09-29 16:38 UTC  
+  > Checked. Your blyg runs Blygger Studio 0.7.0, and it has no API key. Its /api is private and works only with the studio-password cookie. A stable publishing API is still an open item on Blygger's roadmap. Another blyg owner (the blygger-desktop app) added a single "owner token", and I followed the same approach.
+  > Brief for jd-blyg's Shelley: docs/briefs/JD-BLYG-PUBLISH-TOKEN-2026-09-29.md (in the prodcal repo; paste the whole file into a Shelley chat on jd-blyg). It asks for a token accepted in an X-Blyg-Token header, with rotation steps and a test. It also flags two things that need your OK: the blyg still calls itself jd-blyg.exe.xyz (feed, manifest, og:url) rather than blyg.jdbb.net, and its author link points at the old jdbbs.exe.xyz/factory.
+  > Once it's built, you create the integration from your machine: ssh exe.dev integrations add http-proxy --name blyg-publish --target https://blyg.jdbb.net --header "X-Blyg-Token:<token>" --attach vm:jdbbs. It's a separate integration because the existing jd-blyg one already uses the Authorization header for the exe.dev key.
+
+- [~] 8.5 **Help 1 · ME** — `docs/help/*.md` + frontmatter, render in shell, tiers, nav from site_pages, FTS search, `llms.txt` / `.md`.
+
+  > **shelley** · 2026-09-29 16:52 UTC  
+  > Help 1 is built and deployed. https://studio.jdbb.net/help/ is live, but all 10 pages are drafts, so only you see them (with a "draft" badge). Clients see "Help is being written".
+  > Please read these (about 10 min): start-here, sign-in, transmittal, send-your-manuscript, inspect, build-and-download, factory-pass, style-sheet, factory-api. Also maintaining-help, which only you will ever see. To publish a page, change status: draft to status: live in docs/help/<page>.md, or tell me which ones and I'll flip them.
+  > Things I need you to check:
+  > • Copyright style: I wrote "Copyright and permissions lines". The code doesn't say what it's for.
+  > • Prices: I left them out and linked /factory instead, so help doesn't go stale.
+  > • Fixed a bug: the upload box said "up to 100 MB", but the server only accepts 50 MB. It now says 50.
+  > • Inspect: factory.js has labels for 8 finding types the checker never reports (tracked changes, comments, low-resolution images…). The help doesn't promise those. The page copy says Inspect flags "images too small to print", but I couldn't find code that does. Worth confirming.
+  > Also built: search (/help/search), /help/llms.txt, and every page as .md for agents.
+
+- [~] 8.6 **Help 2 · ME** — “?” per page + “learn more” links; route-coverage test (+ missing transmittal site_pages row).
+
+  > **shelley** · 2026-09-29 17:07 UTC  
+  > Built and deployed. Each page now gets a "?" in the top nav that links to its help page, and the factory's Upload, Inspect, Build and Download steps each get a "learn more" link. Both only appear once the help page they point to is published. Right now only you see them, because you can see drafts. There's also a test: every client or public route must have a help page or a written reason for having none. Marketing pages, essays, decks and the DIY-hidden calendar are opted out with reasons. The site_pages row for the transmittal was already there (retired, redirects to factory#transmittal).
+
+- [~] 8.7 **Help 3 · ME** — Report a nit (no login, honeypot + rate limit) → Section 0, tagged.
+
+  > **shelley** · 2026-09-29 17:07 UTC  
+  > Built and deployed. Every page footer (except admin) has "Report a nit". It opens a small form: what's wrong, optional email, and any text you had selected comes along. No sign-in. There's a hidden spam trap, and a limit of 5 per person per 10 minutes and 200 a day overall. Each nit is saved and lands here in Section 0, tagged [nit·help] or [nit·app]. I tested it end to end on the live site. That's the "#1 smoke test" item you saw, and I removed it. The optional email isn't used yet. A "fixed, thanks" reply comes later, through the email-consent guard.
+
+- [~] 8.8 **Help 4 · ME** — Inspect findings content slice (one entry per finding type) + “never Word — your editor” copy lint.
+
+  > **shelley** · 2026-09-29 17:07 UTC  
+  > Drafted and deployed, still as drafts. There are 20 help pages, one per type of Inspect finding, each covering why it's flagged, how serious it is, how to fix it in any editor, and when to leave it alone. Each finding row on the factory's Inspect results gets a "learn more" link once its page is published. There's also a new copy check: help pages and client-facing screens may not say "Word" or "Microsoft". I fixed about a dozen strings to pass it. Please check one change: the "export again" hints used to name each program's menu (e.g. "Google Docs → Download → Microsoft Word"). They now say "Google Docs → File → Download → .docx". If you'd rather keep the literal menu names, I'll add them as allowed exceptions.
+
 - [ ] 8.9 **Help 5 · ME** — self-update loop, `/admin/help/` review, approval email (EMAIL_SYSTEM.md), standing permissions.
 - [ ] 8.10 **Help 6 · ME** — public What's new (drafted from commits, you approve).
 - [ ] 8.11 **Help 7 · ME** — stats (views, thumbs, searches) + one daily usage email to you.
