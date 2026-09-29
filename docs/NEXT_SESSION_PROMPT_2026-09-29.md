@@ -13,6 +13,7 @@ don't start phase N+1 before N is checked by Jenna unless it's independent.
 ## Phase 0 — Jenna (DNS + access)
 
 **Status 29 Sep:** `studio.jdbb.net` CNAME + `domain add` done — serves the app (200), `/admin/` 302s to `studio.jdbb.net/__exe.dev/login` (admin login on custom host looks supported; confirm in Jenna's browser). Blyg VM is **`jd-blyg`** (public, title "[jdbb] studio blyg"). Agent access: option 1 — Jenna mints `ssh-key generate-api-key --vm=jd-blyg --label=jdbbs-agent` and wraps it in an http-proxy integration attached to jdbbs (token stays off-VM; agent calls `https://jd-blyg.int.exe.xyz/`). Changes *on* jd-blyg are done by its own Shelley from a brief we write.
+**Done 29 Sep:** integration `jd-blyg` attached (made with `--bearer`; `X-Exedev-*` header names are reserved). `https://jd-blyg.int.exe.xyz/` → 200. The blyg's `/studio` has its **own** password login (302 → `/studio/login`) and `/api/` → 401, so publishing needs a blyg-side credential too — decide with Jenna (studio password vs a blyg API key, also held in an integration).
 
 
 - Cloudflare (jdbb.net zone): CNAME `studio` → `jdbbs.exe.xyz`, **DNS only**.
