@@ -648,7 +648,7 @@ func (s *Server) helpPageFooter(p *helpPage, admin bool) string {
 	if len(routes) > 0 {
 		b.WriteString(`<h3>This page explains</h3><ul class="help-list">` + strings.Join(routes, "") + `</ul>`)
 	}
-	b.WriteString(`<p class="help-links"><a href="/help/">← All help</a> · <a href="/help/` + p.Slug + `.md">View as markdown</a></p>`)
+	b.WriteString(`<p class="help-links"><a href="/help/">← All help</a> · <a href="/help/` + p.Slug + `.md">View as markdown</a> · <a href="#report-a-nit" data-nit>Something wrong on this page? Report a nit</a></p>`)
 	if admin {
 		fmt.Fprintf(&b, `<p class="help-src mono">docs/help/%s.md · %s · %s · last verified %s · updated %s</p>`,
 			p.Slug, p.Visibility, p.Status, html.EscapeString(orDash(p.LastVerified)), p.ModTime.Format("2 Jan 2006 15:04"))

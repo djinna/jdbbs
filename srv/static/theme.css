@@ -175,6 +175,20 @@ html[data-font="newsreader"] .jdbb-wordmark { letter-spacing: 0.04em; }
 .jdbb-masthead nav a.jdbb-help-q:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
 a.jdbb-learn { font: 12px var(--mono); color: var(--text-secondary); margin-left: .8em; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--accent); }
 a.jdbb-learn[hidden] { display: none; }
+/* Report a nit (8.7): theme.js nitLinks/openNit. */
+dialog.jdbb-nit { border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); padding: 22px 24px; width: min(520px, calc(100vw - 32px)); font: 14px/1.5 var(--body); }
+dialog.jdbb-nit::backdrop { background: var(--modal-backdrop); }
+.jdbb-nit .kicker { font: 700 11px/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.jdbb-nit-lede { color: var(--text-secondary); margin: 6px 0 12px; }
+.jdbb-nit-sel { margin: 0 0 12px; padding: 6px 10px; border-left: 3px solid var(--accent); font-size: 13px; max-height: 6.5em; overflow: auto; }
+.jdbb-nit label { display: block; font: 600 11px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin: 10px 0 0; }
+.jdbb-nit label span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.jdbb-nit textarea, .jdbb-nit input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font: 14px var(--body); padding: 7px 9px; border: 1px solid var(--border-strong); background: var(--well-bg); color: var(--text); }
+.jdbb-nit .jdbb-nit-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.jdbb-nit-msg { min-height: 1.4em; margin: 10px 0 0; font-size: 13px; color: var(--text-secondary); }
+.jdbb-nit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.jdbb-nit-actions button { font: 600 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px; border: 1px solid var(--text); cursor: pointer; background: var(--text); color: var(--bg); }
+.jdbb-nit-actions .jdbb-nit-cancel { background: transparent; color: var(--text); border-color: var(--border-strong); }
 @media (max-width: 640px) {
   .jdbb-masthead { flex-wrap: wrap; row-gap: 10px; }
   .jdbb-masthead nav { flex-wrap: wrap; gap: 0.9rem 1.1rem; width: 100%; }

@@ -228,6 +228,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /help/{slug}", s.handleHelpPage)
 	mux.HandleFunc("GET /api/help/search", s.handleHelpSearchAPI)
 	mux.HandleFunc("GET /api/help/for", s.handleHelpFor)
+	mux.HandleFunc("POST /api/nits", s.handleNitCreate) // Report a nit (8.7): public, honeypot + rate limit
+	mux.HandleFunc("GET /api/admin/nits", s.handleAdminNits)
 	mux.HandleFunc("GET /admin/runs/{$}", s.handleAdminRunsIndex)
 	mux.HandleFunc("GET /admin/runs/{name}", s.handleAdminRunFile)
 	mux.HandleFunc("GET /admin/runs/{kind}/{name}", s.handleAdminRunImage) // kind=img: screenshots pasted on the punch list

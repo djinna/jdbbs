@@ -304,9 +304,87 @@
       })
       .catch(function () {});
   }
-  function navs() { autoMount(); adminNav(); clientNav(); publicNav(); helpLinks(); }
+  // Report a nit (punch list 8.7): one pipe for help errors and app bugs.
+  // A "Report a nit" link joins every footer nav outside /admin/, and any
+  // [data-nit] element opens the same dialog. The text the reader had
+  // selected (in the last minute) rides along. POST /api/nits; the hidden
+  // "website" field is a honeypot.
+  var lastSel = { text: '', at: 0 };
+  function trackSelection() {
+    document.addEventListener('selectionchange', function () {
+      var t = String(window.getSelection ? window.getSelection() : '').trim();
+      if (t && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('.jdbb-nit'))) {
+        lastSel = { text: t.slice(0, 500), at: Date.now() };
+      }
+    });
+  }
+  function nitDialog() {
+    var d = document.getElementById('jdbb-nit');
+    if (d) return d;
+    d = document.createElement('dialog');
+    d.id = 'jdbb-nit'; d.className = 'jdbb-nit';
+    d.innerHTML = '<form method="dialog" novalidate>' +
+      '<div class="kicker">Report a nit</div>' +
+      '<p class="jdbb-nit-lede">A typo, a wrong sentence, something that didn\u2019t work? Tell us. No sign-in needed.</p>' +
+      '<blockquote class="jdbb-nit-sel" hidden></blockquote>' +
+      '<label>What\u2019s wrong<textarea name="comment" rows="4" maxlength="2000"></textarea></label>' +
+      '<label>Your email <span>(optional, only if you\u2019d like a reply when it\u2019s fixed)</span><input name="email" type="email" maxlength="200" autocomplete="email"></label>' +
+      '<label class="jdbb-nit-hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>' +
+      '<p class="jdbb-nit-msg" role="status"></p>' +
+      '<div class="jdbb-nit-actions"><button type="button" value="cancel" class="jdbb-nit-cancel">Cancel</button><button type="submit" value="send">Send</button></div>' +
+      '</form>';
+    document.body.appendChild(d);
+    var f = d.querySelector('form'), msg = d.querySelector('.jdbb-nit-msg');
+    d.querySelector('.jdbb-nit-cancel').addEventListener('click', function () { d.close(); });
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = f.querySelector('button[type=submit]');
+      btn.disabled = true; msg.textContent = 'Sending\u2026';
+      fetch('/api/nits', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ page: location.pathname + location.hash, selection: d.getAttribute('data-sel') || '',
+          comment: f.comment.value, email: f.email.value, website: f.website.value,
+          kind: location.pathname.indexOf('/help') === 0 ? 'help' : 'app' }) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          btn.disabled = false;
+          if (!res.ok) { msg.textContent = (res.j && res.j.error) || 'That didn\u2019t go through. Please try again.'; return; }
+          msg.textContent = 'Thank you \u2014 it\u2019s on the list.';
+          f.comment.value = '';
+          setTimeout(function () { d.close(); }, 1400);
+        })
+        .catch(function () { btn.disabled = false; msg.textContent = 'That didn\u2019t go through. Please try again.'; });
+    });
+    return d;
+  }
+  function openNit(e) {
+    if (e) e.preventDefault();
+    var d = nitDialog();
+    var sel = (Date.now() - lastSel.at < 60000) ? lastSel.text : '';
+    var q = d.querySelector('.jdbb-nit-sel');
+    d.setAttribute('data-sel', sel);
+    q.textContent = sel ? '\u201c' + sel + '\u201d' : ''; q.hidden = !sel;
+    d.querySelector('.jdbb-nit-msg').textContent = '';
+    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+    d.querySelector('textarea').focus();
+  }
+  function nitLinks() {
+    if (location.pathname.indexOf('/admin') === 0) return;
+    trackSelection();
+    var fnav = document.querySelector('.jdbb-footer nav');
+    if (fnav && !fnav.querySelector('[data-nit]')) {
+      var a = document.createElement('a');
+      a.href = '#report-a-nit'; a.textContent = 'Report a nit'; a.setAttribute('data-nit', '');
+      a.title = 'A typo, a wrong sentence, a bug \u2014 tell us';
+      fnav.appendChild(a);
+    }
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest('[data-nit]');
+      if (t) openNit(e);
+    });
+  }
+  function navs() { autoMount(); adminNav(); clientNav(); publicNav(); helpLinks(); nitLinks(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', navs);
   else navs();
 
-  window.JdbbTheme = { mount: mount, bind: bind, state: state, isDark: isDark, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav, publicNav: publicNav, helpLinks: helpLinks };
+  window.JdbbTheme = { mount: mount, bind: bind, state: state, isDark: isDark, apply: apply, save: save, adminNav: adminNav, clientNav: clientNav, publicNav: publicNav, helpLinks: helpLinks, openNit: openNit };
 })();
