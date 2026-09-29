@@ -43,11 +43,13 @@ func TestNavConvergence(t *testing.T) {
 	// Skipped when the directory is absent (local dev); on the VM every doc
 	// with a masthead must carry the shared public nav. talk.html is the
 	// frozen deck template and exedeck is a deck: both exempt by design.
+	// jdbb-net.html is the apex landing page (another host; homepage-style
+	// section anchors), exempt like the homepage.
 	if entries, err := filepath.Glob(filepath.Join(publicDocsDir(), "*.html")); err == nil {
 		more, _ := filepath.Glob(filepath.Join(publicDocsDir(), "2026-pi-symposium", "*.html"))
 		for _, f := range append(entries, more...) {
 			base := filepath.Base(f)
-			if base == "talk.html" || base == "exedeck.html" || base == "factory-talk.html" {
+			if base == "talk.html" || base == "exedeck.html" || base == "factory-talk.html" || base == "jdbb-net.html" {
 				continue // deck stages: own controls, own nav
 			}
 			b, err := os.ReadFile(f)

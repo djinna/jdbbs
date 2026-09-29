@@ -392,6 +392,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /word-free", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "word-free.html")
 	})
+	// jdbb.net landing page (8.3). Served at the apex by landingHost once DNS
+	// moves; previewed here on the studio host until then.
+	mux.HandleFunc("GET /jdbb-net", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "jdbb-net.html")
+	})
 	// Press page: what the studio is, facts, brand assets, contact (0.10).
 	mux.HandleFunc("GET /press", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "press.html")
@@ -541,7 +546,7 @@ func (s *Server) Handler() http.Handler {
 		s.serveIndex(w)
 	})
 
-	return s.requestLog(s.canonicalHost(mux))
+	return s.requestLog(s.landingHost(s.canonicalHost(mux)))
 }
 
 func (s *Server) Serve(addr string) error {
