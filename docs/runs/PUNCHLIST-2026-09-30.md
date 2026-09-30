@@ -1,11 +1,13 @@
-<!-- exported 2026-09-30 11:29 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-30 11:36 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punchlist 7 · Tue 29 Sep · domains + help
 
-Legend: **YOU** = Jenna · **ME** = Shelley · **BOTH** = together. Click a box: ☐ → ☑, click again to undo; alt- or shift-click = ◐ in progress; **note** opens a reply box (⌘↵ saves; paste screenshots in). Bottom bar adds an item to the Inbox. Archive: [list 6](/admin/runs/PUNCHLIST-2026-09-29-list6) · [list 5](/admin/runs/PUNCHLIST-2026-09-23-list5) · [all runs](/admin/runs/). Item numbers continue (next: 0.50 / 5.29 / 7.14 / 8.16) so threads stay attached.
+Legend: **YOU** = Jenna · **ME** = Shelley · **BOTH** = together. Click a box: ☐ → ☑, click again to undo; alt- or shift-click = ◐ in progress; **note** opens a reply box (⌘↵ saves; paste screenshots in). Bottom bar adds an item to the Inbox. Archive: [list 6](/admin/runs/PUNCHLIST-2026-09-29-list6) · [list 5](/admin/runs/PUNCHLIST-2026-09-23-list5) · [all runs](/admin/runs/). Item numbers continue (next: 0.51 / 5.29 / 7.14 / 8.16) so threads stay attached.
 
 ## 0 · Inbox — new items, untriaged
 - [ ] 0.49 **Bring your own agent: agent-facing manuscript prep** (skill for the author's AI → factory-ready files + change report + questions; Phase 2 over the API with per-rule rollback and a Q&A page). Next: ME draft `SKILL.md` v0 · YOU drop the HTML zip in `scratch/` and run it cold with the alternate agent. [design](https://github.com/djinna/jdbbs/blob/main/docs/reviews/AGENT-PREP-HELP-2026-09-30.md)
+
+- [ ] 0.50 **Corrections ledger: surface to authors?** Exists and is live (migration 010, 5 API routes on project auth, admin-only “Corrections Ledger” in the Typesetting panel, re-applied to the source .docx on every PDF+EPUB build, snapshot + diff per output). Never had an author UI. Proposal: “Report a typo” after a proof (typo tier only; bigger → re-upload), match counts shown (today a 0-match correction is silent), “download corrected .docx” so the master doesn’t drift. **Stray test row:** project 7 (vgr/twitter-years) has pending `alchemy → al-TEST`, which is applied to every build; delete?
 
 ## 8 · Domains + Help — BOTH (build in order; next phase after Jenna ticks the last)
 _Plan: `docs/NEXT_SESSION_PROMPT_2026-09-29.md` · `docs/reviews/CUSTOM-DOMAIN-PLAN-2026-09-29.md` · `docs/reviews/HELP-SYSTEM-SCOUT-2026-09-29.md`. Help blocks 8.1–8.10 in the handoff are 8.5–8.14 here._
