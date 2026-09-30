@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<!--HEAD-->
+<title>jdbb studio — comp A · quiet</title>
+<style>
+.hero{min-height:74vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px;}
+.hero h1{font-family:var(--mono);font-weight:700;font-size:clamp(30px,4.2vw,46px);letter-spacing:-.01em;line-height:1.15;}
+.hero p{font-family:var(--mono);font-size:15px;color:var(--text-secondary);max-width:64ch;}
+.gap{height:22vh;}
+h2{font-family:var(--mono);font-weight:700;font-size:26px;letter-spacing:-.005em;text-align:center;}
+h2 + p{font-family:var(--mono);font-size:14px;color:var(--text-secondary);text-align:center;margin-top:8px;}
+.demo{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px;max-width:860px;margin:42px auto 0;}
+.docx{border:1px solid var(--border);border-radius:8px;background:var(--bg);box-shadow:0 18px 40px -24px rgba(0,0,0,.25);overflow:hidden;}
+.docx .chrome{display:flex;gap:6px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);font:11px var(--mono);color:var(--text-muted);}
+.docx .chrome i{width:9px;height:9px;border-radius:50%;background:var(--border);display:inline-block;}
+.docx .chrome span{margin-left:auto;}
+.docx .body{padding:22px 24px 30px;font:13px/1.6 "Inter",Arial,sans-serif;color:var(--text);}
+.docx .tag{font:10.5px var(--mono);color:var(--accent);display:block;margin:12px 0 2px;}
+.docx .tag:first-child{margin-top:0;}
+.docx h4{font:600 17px "Inter",Arial,sans-serif;}
+.docx p{margin-bottom:8px;color:var(--text-secondary);}
+.arrow{font:22px var(--mono);color:var(--text-muted);}
+.page{background:#fff;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 22px 50px -22px rgba(0,0,0,.35);}
+.page img{display:block;width:100%;height:auto;}
+.caption{font:12px var(--mono);color:var(--text-muted);text-align:center;margin-top:18px;}
+.price{font-family:var(--mono);text-align:center;}
+.price .line{font-size:14.5px;margin-top:22px;}
+.price .line b{font-weight:700;}
+.price .line a{color:var(--text);text-underline-offset:3px;}
+.just{max-width:640px;margin:0 auto;border-top:2px solid var(--text);padding-top:18px;font-family:var(--mono);font-size:13.5px;color:var(--text-secondary);}
+.just h3{font-size:15px;color:var(--text);margin-bottom:12px;}
+.just p{margin-bottom:10px;}
+.just a{color:var(--text);text-underline-offset:3px;}
+.press{max-width:640px;margin:0 auto;text-align:center;font-family:var(--mono);font-size:13px;color:var(--text-secondary);}
+@media (max-width:760px){.demo{grid-template-columns:1fr;}.arrow{transform:rotate(90deg);justify-self:center;}}
+</style></head>
+<body>
+<div class="jdbb-shell">
+  <header class="bar">
+    <div style="display:flex;align-items:center;gap:1.4rem">
+      <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+      <nav><a class="l" href="/factory">factory</a><a class="l hide-sm" href="/field-notes">field notes</a><a class="l hide-sm" href="/press">press</a></nav>
+    </div>
+    <nav><a class="btn" href="/factory#redeem">Get a pass</a><a class="btn ghost" href="/portal">Sign in</a><div id="theme-bar"></div></nav>
+  </header>
+
+  <section class="hero">
+    <h1>Books from one manuscript</h1>
+    <p>Send a .docx from any editor. Get back a print-ready PDF and an EPUB.</p>
+  </section>
+
+  <div class="gap" style="height:10vh"></div>
+
+  <section>
+    <h2>Any editor in. A book out.</h2>
+    <p>Headings are the contract. The factory does the rest.</p>
+    <div class="demo">
+      <div class="docx">
+        <div class="chrome"><i></i><i></i><i></i><span>house.docx</span></div>
+        <div class="body">
+          <span class="tag">Heading 2</span><h4>Arrival on Tillman Street</h4>
+          <span class="tag">Normal</span>
+          <p>Detroit looked like an art-deco cathedral someone had tried to fold into a suitcase—beautiful edges, awkward angles, more history than room for it.</p>
+          <p>I rented the attic across the street for the week. The landlord, Mrs. Chen, apologized for the draft…</p>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="page"><img src="/static/samples/page-house.png" alt="A typeset 6×9 book page set by the factory"></div>
+    </div>
+    <p class="caption">6 × 9 trade · Plantin &amp; Proxima Nova · set by the factory, not by hand</p>
+  </section>
+
+  <div class="gap"></div>
+
+  <section class="price">
+    <h2>One pass, one book.</h2>
+    <p class="line"><b>$549</b> per manuscript — unlimited proofs, three finals, six months. <a href="/factory">How it works →</a></p>
+    <p style="margin-top:22px"><a class="btn big" href="/factory#redeem">Get a Factory Pass</a></p>
+  </section>
+
+  <div class="gap"></div>
+
+  <section class="just">
+    <h3>It's just a typesetter</h3>
+    <p>You write in Word, Google Docs, LibreOffice, Pages — anything that saves a .docx. There is no software to learn.</p>
+    <p>A person runs it. Jenna Dixon has been setting books since 1986; the factory is her house style, with licensed print fonts.</p>
+    <p>Presses can have more: series design, a shared production calendar, a <a href="/portal">client portal</a>.</p>
+  </section>
+
+  <div class="gap" style="height:14vh"></div>
+
+  <p class="press">Written up as “The other factory” in Venkatesh Rao's <i>Protocolized</i> column <i>Have Your Factory Call My Factory</i> (March 2026). <a href="/press">Press →</a></p>
+
+  <div class="gap" style="height:12vh"></div>
+
+  <footer class="foot">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a><a href="/litmags">Lit-mag stacks</a><a href="mailto:j@djinna.com">Contact</a></nav>
+    <span>© 2026 Jenna Dixon</span>
+  </footer>
+</div>
+<!--COMPNAV-->
+<script src="/static/theme.js"></script>
+</body></html>

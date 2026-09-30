@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/static/favicon.svg?v=2">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Literata:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="comps.css">
+<script>(function(){try{var t=JSON.parse(localStorage.getItem('prodcal-theme-v1'));if(t){if(t.dark)document.documentElement.classList.add('dark');if(t.font)document.documentElement.setAttribute('data-font',t.font);}}catch(e){}})();</script>
+
+<title>jdbb studio — comp C · terminal</title>
+<style>
+body{font-family:var(--mono);}
+.hero{min-height:62vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px;}
+.hero h1{font-weight:700;font-size:clamp(30px,4.2vw,46px);letter-spacing:-.01em;}
+.hero p{font-size:15px;color:var(--text-secondary);}
+h2{font-weight:700;font-size:26px;text-align:center;}
+h2 + p{font-size:14px;color:var(--text-secondary);text-align:center;margin-top:8px;}
+.term{font-family:"JetBrains Mono",Menlo,monospace;max-width:820px;margin:34px auto 0;background:#15181E;color:#D9DEE5;border-radius:10px;box-shadow:0 30px 60px -30px rgba(0,0,0,.55);overflow:hidden;font-size:13px;}
+.term .top{display:flex;align-items:center;gap:6px;padding:10px 14px;background:#1D2129;}
+.term .top i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+.term .top i:nth-child(1){background:#FF5F57}.term .top i:nth-child(2){background:#FEBC2E}.term .top i:nth-child(3){background:#28C840}
+.term .top span{margin:0 auto;color:#8B909A;font-size:11.5px;}
+.tabs{display:flex;gap:2px;padding:0 10px;background:#1D2129;border-top:1px solid #262B34;}
+.tabs button{font-size:11.5px;font-family:inherit;color:#8B909A;background:none;border:0;padding:8px 12px;cursor:pointer;border-bottom:2px solid transparent;}
+.tabs button[aria-selected=true]{color:#fff;border-color:#3BC3F2;}
+.screen{padding:20px 22px 26px;min-height:250px;white-space:pre;line-height:1.75;overflow-x:auto;}
+.screen .p{color:#3BC3F2}.screen .ok{color:#5BD17A}.screen .dim{color:#6A707B}.screen .w{color:#fff;font-weight:600}.screen .warn{color:#FEBC2E}
+.screen[hidden]{display:none;}
+.gap{height:20vh;}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0;max-width:900px;margin:34px auto 0;border-top:1px solid var(--border);}
+.cols div{padding:18px 18px 0 0;font-size:13px;color:var(--text-secondary);}
+.cols b{display:block;color:var(--text);font-size:13.5px;margin-bottom:6px;}
+.price{text-align:center;font-size:14.5px;}
+.price a.t{color:var(--text);text-underline-offset:3px;}
+.just{max-width:640px;margin:0 auto;border-top:2px solid var(--text);padding-top:18px;font-size:13.5px;color:var(--text-secondary);}
+.just h3{font-size:15px;color:var(--text);margin-bottom:12px;}
+.just p{margin-bottom:10px;}
+.just a{color:var(--text);text-underline-offset:3px;}
+@media (max-width:760px){.cols{grid-template-columns:1fr;}}
+</style></head>
+<body>
+<div class="jdbb-shell">
+  <header class="bar">
+    <div style="display:flex;align-items:center;gap:1.4rem">
+      <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+      <nav><a class="l" href="/factory">factory</a><a class="l hide-sm" href="/factory-api">api</a><a class="l hide-sm" href="/field-notes">field notes</a></nav>
+    </div>
+    <nav><a class="btn" href="/factory#redeem">Get a pass</a><a class="btn ghost" href="/portal">Sign in</a><div id="theme-bar"></div></nav>
+  </header>
+
+  <section class="hero">
+    <h1>Manuscript in. Book out.</h1>
+    <p>A typesetting factory for authors, editors, and small presses.</p>
+  </section>
+
+  <section>
+    <h2>One file, two books</h2>
+    <p>A print-ready PDF and an EPUB from the same .docx.</p>
+    <div class="term" role="region" aria-label="Example build">
+      <div class="top"><i></i><i></i><i></i><span>factory · example build</span></div>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-t="build">build</button>
+        <button role="tab" aria-selected="false" data-t="preflight">preflight</button>
+        <button role="tab" aria-selected="false" data-t="spec">transmittal</button>
+      </div>
+<div class="screen" data-s="build"><span class="p">$</span> factory build manuscript.docx
+<span class="dim">uploading</span>   manuscript.docx
+<span class="dim">preflight</span>   <span class="ok">pass</span> · headings mapped · 0 departures
+<span class="dim">typeset</span>     6 × 9 · Studio house · <span class="w">212 pp</span>
+<span class="dim">epub</span>        EPUB 3 · validated
+
+<span class="ok">✓</span> manuscript.pdf    <span class="dim">print-ready</span>
+<span class="ok">✓</span> manuscript.epub   <span class="dim">reflowable</span>
+<span class="dim">proof · free · 2 of 3 finals left</span></div>
+<div class="screen" data-s="preflight" hidden><span class="p">$</span> factory inspect draft.docx
+<span class="dim">checking against transmittal…</span>
+
+<span class="ok">✓</span> 14 chapters on Heading 1
+<span class="ok">✓</span> epigraph marker  [[epigraph]]
+<span class="warn">!</span> p. 41  manual line break inside a paragraph
+<span class="warn">!</span> p. 88  Heading 3 used; spec allows 2 levels
+
+<span class="dim">2 departures · checking is free · fix and re-run</span></div>
+<div class="screen" data-s="spec" hidden><span class="dim"># transmittal — the decisions a typesetter would ask you</span>
+trim        <span class="w">5.5 × 8.5 in</span>
+pairing     <span class="w">Studio house</span>  <span class="dim">Plantin MT Pro · Proxima Nova</span>
+front       title, copyright, dedication, contents
+chapters    Heading 1 · drop folio · no ornaments
+back        acknowledgments, about the author
+isbn        print + ebook</div>
+    </div>
+    <p style="text-align:center;margin-top:16px;font-size:12.5px;color:var(--text-muted)">No terminal needed — the same steps are buttons in your <a href="/portal" style="color:inherit">project page</a>. The terminal is <a href="/factory-api" style="color:inherit">the API</a>.</p>
+  </section>
+
+  <div class="gap"></div>
+
+  <section class="price">
+    <h2>$549 per book</h2>
+    <p style="margin-top:10px;color:var(--text-secondary)">Unlimited preflights and proofs, three finals, six months. <a class="t" href="/factory">Everything a pass includes →</a></p>
+  </section>
+
+  <div class="gap"></div>
+
+  <section class="just">
+    <h3>It's just typesetting</h3>
+    <p>Write in anything that saves a .docx. Heading styles are the contract; nothing else to learn.</p>
+    <p>A person stands behind it: Jenna Dixon, setting books since 1986. Presses also get series design and a shared production calendar.</p>
+  </section>
+
+  <div class="gap" style="height:14vh"></div>
+
+  <footer class="foot">
+    <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span></a>
+    <nav><a href="/field-notes">Field notes</a><a href="/workshop">Workshop</a><a href="/litmags">Lit-mag stacks</a><a href="/press">Press</a></nav>
+    <span>© 2026 Jenna Dixon</span>
+  </footer>
+</div>
+<div class="compnav"><a href="index.html">overview</a><a href="a-quiet.html">A quiet</a><a href="b-page.html">B page</a><a href="c-terminal.html" aria-current="page">C terminal</a><a href="d-card.html">D card</a></div>
+<script src="/static/theme.js"></script>
+<script>
+document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){
+  document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+  document.querySelectorAll('.screen').forEach(function(s){s.hidden=s.dataset.s!==b.dataset.t});
+});});
+</script>
+</body></html>

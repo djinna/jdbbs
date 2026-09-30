@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<!--HEAD-->
+<title>jdbb studio — comp D · index card</title>
+<style>
+html,body{height:100%;}
+.wrap{min-height:100%;display:flex;flex-direction:column;}
+.top{display:flex;justify-content:flex-end;padding:18px 0;}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:0 0 8vh;}
+.card{width:100%;max-width:620px;}
+.card .jdbb-wordmark{font-size:22px;}
+.card h1{font-family:var(--body);font-weight:600;font-size:clamp(26px,3.4vw,34px);line-height:1.2;letter-spacing:-.01em;margin-top:34px;}
+.card .lede{font-size:17px;color:var(--text-secondary);margin-top:14px;max-width:48ch;}
+.doors{margin-top:40px;border-top:1px solid var(--border);}
+.doors a{display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--border);text-decoration:none;}
+.doors a .n{font-family:var(--mono);font-weight:700;font-size:15px;color:var(--text);}
+.doors a .n .arr{color:var(--accent);margin-left:.4em;transition:margin .15s;}
+.doors a:hover .arr{margin-left:.8em;}
+.doors a .d{font-size:13.5px;color:var(--text-muted);text-align:right;}
+.sig{margin-top:30px;font:12px var(--mono);color:var(--text-muted);}
+.sig a{color:var(--text-secondary);}
+</style></head>
+<body>
+<div class="jdbb-shell wrap">
+  <div class="top"><div id="theme-bar"></div></div>
+  <main>
+    <div class="card">
+      <a class="jdbb-wordmark" href="/"><span class="bracket">[</span><span class="kj">j</span>dbb<span class="bracket">]</span><span class="studio">studio</span></a>
+      <h1>Book production for authors, editors, and small presses.</h1>
+      <p class="lede">The studio's book factory turns one manuscript — a .docx from any editor — into a print-ready PDF and an EPUB.</p>
+      <nav class="doors" aria-label="Main">
+        <a href="/factory"><span class="n">The book factory<span class="arr">→</span></span><span class="d">Factory Pass · $549 per manuscript</span></a>
+        <a href="/portal"><span class="n">Client portal<span class="arr">→</span></span><span class="d">your books, calendar, transmittal</span></a>
+        <a href="/field-notes"><span class="n">Field notes<span class="arr">→</span></span><span class="d">language as protocol</span></a>
+      </nav>
+      <p class="sig">Jenna Dixon · setting books since 1986 · <a href="mailto:j@djinna.com">j@djinna.com</a> · <a href="/press">press</a></p>
+    </div>
+  </main>
+</div>
+<!--COMPNAV-->
+<script src="/static/theme.js"></script>
+</body></html>

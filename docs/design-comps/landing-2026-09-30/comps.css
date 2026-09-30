@@ -1,0 +1,26 @@
+/* Shared bits for the minimalist landing comps (scratch, 2026-09-30). */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased;}
+a{color:inherit;}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:18px 0;font-family:var(--mono);}
+.bar nav{display:flex;align-items:center;gap:1.3rem;}
+.bar nav a.l{font-size:13px;color:var(--text-secondary);text-decoration:none;}
+.bar nav a.l:hover{color:var(--text);}
+.btn{display:inline-block;font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;padding:8px 14px;border-radius:5px;text-decoration:none;border:1px solid var(--text);background:var(--text);color:var(--bg);white-space:nowrap;}
+.btn.ghost{background:transparent;color:var(--text-secondary);border-color:var(--border);}
+.btn.ghost:hover{color:var(--text);border-color:var(--text-secondary);}
+.btn.big{font-size:14px;padding:11px 20px;}
+#theme-bar{margin-left:.4rem;}
+.center{text-align:center;}
+.sub{color:var(--text-secondary);}
+.muted{color:var(--text-muted);}
+.mono{font-family:var(--mono);}
+.foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;padding:28px 0 40px;border-top:1px solid var(--border);font-family:var(--mono);font-size:12.5px;color:var(--text-muted);}
+.foot nav{display:flex;gap:1.2rem;flex-wrap:wrap;}
+.foot a{color:var(--text-secondary);text-decoration:none;}
+.foot a:hover{color:var(--text);text-decoration:underline;}
+/* comp switcher, not part of the design */
+.compnav{position:fixed;right:12px;bottom:12px;z-index:50;font:11px/1 var(--mono);background:var(--text);color:var(--bg);border-radius:6px;padding:7px 9px;display:flex;gap:8px;opacity:.85;}
+.compnav a{color:var(--bg);text-decoration:none;opacity:.7;}
+.compnav a[aria-current]{opacity:1;text-decoration:underline;}
+@media (max-width:640px){.bar nav a.l.hide-sm{display:none;}}

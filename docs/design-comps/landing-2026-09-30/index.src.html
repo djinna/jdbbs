@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<!--HEAD-->
+<title>Landing comps — minimalist / (2026-09-30)</title>
+<style>
+.wrap{max-width:980px;margin:0 auto;padding:0 24px 80px;}
+h1{font:700 30px/1.2 var(--mono);margin:48px 0 10px;}
+.lede{color:var(--text-secondary);max-width:70ch;}
+h2{font:700 15px var(--mono);text-transform:uppercase;letter-spacing:.08em;margin:48px 0 14px;color:var(--accent);}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:28px;}
+.grid a{text-decoration:none;display:block;}
+.grid img{width:100%;border:1px solid var(--border);border-radius:6px;display:block;aspect-ratio:16/10;object-fit:cover;object-position:top;}
+.grid b{display:block;font:700 15px var(--mono);margin-top:10px;}
+.grid span{font-size:14px;color:var(--text-secondary);}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th,td{text-align:left;vertical-align:top;padding:9px 10px 9px 0;border-bottom:1px solid var(--border);}
+th{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);}
+td:first-child{font-weight:600;width:28%;}
+ul{padding-left:1.2em;}li{margin:6px 0;}
+code{font-family:var(--mono);font-size:.9em;}
+@media (max-width:720px){.grid{grid-template-columns:1fr;}}
+</style></head>
+<body><div class="wrap">
+<h1>A quieter <code>/</code></h1>
+<p class="lede">Four comps after exe.dev's homepage: one headline, lots of air, <em>one</em> demonstration of the product, a price line, a short "it's just…" paragraph, a thin footer. Everything explanatory moves to <code>/factory</code>, which becomes the single long page. Scratch only — nothing here is deployed.</p>
+
+<h2>Comps</h2>
+<div class="grid">
+  <a href="a-quiet.html"><img src="shots/a.png" alt=""><b>A · Quiet</b><span>Closest to exe.dev. Mono headline, then a .docx → typeset-page demo, price line, "It's just a typesetter", press line.</span></a>
+  <a href="b-page.html"><img src="shots/b.png" alt=""><b>B · The page</b><span>Editorial. The typeset page is the hero, serif display type, three pairings as chips. Most "book", least "software".</span></a>
+  <a href="c-terminal.html"><img src="shots/c.png" alt=""><b>C · Terminal</b><span>The exe.dev "API first" move: a tabbed build / preflight / transmittal readout. Replaces today's fake pipeline readout with the real protocol.</span></a>
+  <a href="d-card.html"><img src="shots/d.png" alt=""><b>D · Index card</b><span>No scroll at all. One sentence, three doors. The homepage as a switchboard; <code>/factory</code> does all the selling.</span></a>
+</div>
+
+<h2>Where today's homepage content goes</h2>
+<table>
+<tr><th>Current <code>/</code> block</th><th>Minimal <code>/</code></th><th>Moves to</th></tr>
+<tr><td>Status strip ("studio online · pipeline nominal", UTC)</td><td>gone</td><td>— (decoration)</td></tr>
+<tr><td>Eyebrow + H1 + 3-line lede</td><td>one headline + one line</td><td><code>/factory</code> keeps its long lede</td></tr>
+<tr><td>Factory Pass card (4 bullets, $549, Redeem / Read more)</td><td>one price line + "Get a pass" button</td><td>bullets already live in <code>/factory</code> "What's included"</td></tr>
+<tr><td>Pipeline readout (fake <code>ghosts-tp-01</code> job)</td><td>replaced by one real artifact (A/B: typeset page; C: build log)</td><td><code>/factory</code> "How a build works" if kept</td></tr>
+<tr><td>Capabilities — 5 subsystems</td><td>one sentence ("presses can have more…")</td><td><code>/factory</code> new closing section "Working with the studio" (see Q1)</td></tr>
+<tr><td>Spec strip (trim / pipeline / cadence)</td><td>gone</td><td><code>/factory</code> "What's included"</td></tr>
+<tr><td>Resources strip (stylesheet, field notes, workshop, lit-mags)</td><td>footer links</td><td>footer</td></tr>
+<tr><td>Nav anchors (Factory pass · Capabilities · Client portal · Contact)</td><td>factory · field notes + <b>Get a pass</b> / <b>Sign in</b> buttons</td><td>—</td></tr>
+</table>
+
+<h2>The overlap, and questions for you</h2>
+<ul>
+<li><b>Why they've overlapped:</b> <code>/</code> sells two things at once — the self-serve <em>factory</em> (a product with a price) and the <em>studio</em> (bespoke production for presses: calendars, series design, projects). <code>/factory</code> sells only the first, so both pages end up re-explaining the pass. Minimal <code>/</code> resolves it by being a door, not a pitch.</li>
+<li><b>Q1 — where does "studio for presses" live?</b> Options: (a) a closing section on <code>/factory</code>, (b) its own short <code>/studio</code> page, (c) jdbb.net (<code>/jdbb-net</code>) already describes the studio in the first person — let that be the home for it.</li>
+<li><b>Q2 — whose voice?</b> jdbb.net says "I make books." A minimal studio <code>/</code> could stay product-voiced (A, C) or lean personal (B, D). Having both apexes say nearly the same thing is the next overlap to avoid.</li>
+<li><b>Q3 — font selector on the homepage?</b> Kept in all comps (top right). B forces a serif for display type only, as a hint of direction.</li>
+<li><b>Mixes are fine:</b> e.g. A's structure with B's hero page image, or D above the fold with A's sections below.</li>
+</ul>
+</div>
+<!--COMPNAV-->
+<script src="/static/theme.js"></script>
+</body></html>
