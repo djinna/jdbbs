@@ -97,6 +97,61 @@ it. Phase 2 the server keeps that list per cleanup session. Individual
 edits stay visible in `CHANGES.md` but can't be reverted one by one, except
 as "exclude this location from rule X".
 
+## Google Docs (in the first rollout; Jenna's main client writes there)
+
+What we already know (`WORD-FREE-AUTHORING-2026-09-19.md` (a),
+`send-your-manuscript.md`, `/word-free`):
+
+- **No custom paragraph styles in Docs.** It has a fixed set only:
+  Normal text, Title, Subtitle, Heading 1–6. Those export to Word's built-in
+  styles, which the factory reads natively. Everything else (quote, verse,
+  epigraph, code, signature, custom styles) goes through **`[[style]]`
+  markers** typed in the text: `[[quote]]` at the start of a paragraph,
+  `[[verse]]…[[/verse]]` for ranges, `[[style:Letter]]` for a declared custom
+  style. Shipped 18 Sep (`apply-style-markers.py`).
+- **Verified end to end** on 19 Sep: a Docs-shaped `.docx` with 12 markers
+  gave byte-identical Typst to the Word baseline. Inspect: 0 high, markers
+  listed under "Marked styles", book map correct.
+- **Inline:** italic and bold come through. There are no character styles, so
+  small caps and the like need direct formatting or (later) inline markers
+  (5.26).
+
+What the skill tells the author's agent for a Docs manuscript:
+
+1. **Get the file.** Take the `.docx` export, never copy-paste. Three ways,
+   easiest first:
+   (a) the author does File → Download → Microsoft Word and hands it over;
+   (b) a link-shared doc: `https://docs.google.com/document/d/<ID>/export?format=docx`
+   (no OAuth; "anyone with the link can view");
+   (c) Drive API `files.export` with the Word MIME type (OAuth or a service
+   account the doc is shared with; export cap ~10 MB, so a heavily illustrated
+   book may need (a)).
+2. **Clean in the `.docx` copy by default, or in a *copy* of the Google Doc.**
+   The Docs API (`documents.batchUpdate`) can set `namedStyleType` (turn
+   bolded Normal text into Heading 1) and insert `[[markers]]` as text, so a
+   capable agent can prep the Doc itself. The author keeps working in Docs,
+   and their master and the book stay the same file. Rules: work on a
+   `files.copy`, never the original; the API can't create *suggested* edits,
+   so changes land as direct edits, and rollback is "the original is
+   untouched" plus `CHANGES.md`.
+3. **Before export:** accept or reject every suggestion and resolve comments
+   (to check: whether the export carries suggestions as tracked changes;
+   Inspect should flag them if so). Expect these to lose content or flatten to
+   text on export: smart chips, dropdowns, building blocks, document *tabs*
+   (to check how multi-tab docs export), drawings (become images).
+4. **Typical Docs mess** the agent should expect, each with an Inspect
+   finding and a help page already: headings faked with bold/size
+   (`heading-lookalike`), web fonts in runs (`unusual-font`), hand-typed
+   bullets (`manual-list`), blank-line spacing (`manual-break`),
+   highlight/colour used as notes to self (`highlighted-text`,
+   `colored-text`).
+
+**Factory API access for the client** is the same as for anyone else: a
+project password (`POST /api/projects/{id}/auth`, studio-minted) plus a live
+Factory Pass; then the six calls or `factory-cli.py`. A Docs-reading agent
+loops: export → upload → Inspect → fix (in the Doc copy or the `.docx`) →
+repeat.
+
 ## Phase 2: factory-to-factory (API)
 
 Built on the machine factory (token + Factory Pass, six calls). What's
