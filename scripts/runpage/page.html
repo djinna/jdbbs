@@ -114,9 +114,9 @@ function structure(){
 }
 function decorate(){
   document.querySelectorAll('#body li').forEach(li=>{
-    const id=li.querySelector(':scope > .id'); if(!id||li.dataset.done)return; li.dataset.done=1;
+    const id=li.querySelector(':scope > .id, :scope > p:first-child > .id'); if(!id||li.dataset.done)return; li.dataset.done=1;
     const iid=id.textContent.trim();
-    const box=li.querySelector(':scope > .box');
+    const box=li.querySelector(':scope > .box, :scope > p:first-child > .box');
     // click: open/in-progress → done, done → open. Alt/Shift-click: in progress.
     box.title='click: done / undo · alt- or shift-click: in progress';
     box.onclick=async(e)=>{const cur=[...box.classList].find(c=>c.startsWith('st-')).slice(3);

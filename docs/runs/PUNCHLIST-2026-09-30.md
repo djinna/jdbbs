@@ -1,4 +1,4 @@
-<!-- exported 2026-09-30 11:36 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-09-30 15:01 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punchlist 7 · Tue 29 Sep · domains + help
 
@@ -6,7 +6,6 @@ Legend: **YOU** = Jenna · **ME** = Shelley · **BOTH** = together. Click a box:
 
 ## 0 · Inbox — new items, untriaged
 - [ ] 0.49 **Bring your own agent: agent-facing manuscript prep** (skill for the author's AI → factory-ready files + change report + questions; Phase 2 over the API with per-rule rollback and a Q&A page). Next: ME draft `SKILL.md` v0 · YOU drop the HTML zip in `scratch/` and run it cold with the alternate agent. [design](https://github.com/djinna/jdbbs/blob/main/docs/reviews/AGENT-PREP-HELP-2026-09-30.md)
-
 - [ ] 0.50 **Corrections ledger: surface to authors?** Exists and is live (migration 010, 5 API routes on project auth, admin-only “Corrections Ledger” in the Typesetting panel, re-applied to the source .docx on every PDF+EPUB build, snapshot + diff per output). Never had an author UI. Proposal: “Report a typo” after a proof (typo tier only; bigger → re-upload), match counts shown (today a 0-match correction is silent), “download corrected .docx” so the master doesn’t drift. **Stray test row:** project 7 (vgr/twitter-years) has pending `alchemy → al-TEST`, which is applied to every build; delete?
 
 ## 8 · Domains + Help — BOTH (build in order; next phase after Jenna ticks the last)
