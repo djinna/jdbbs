@@ -72,3 +72,12 @@ headers — use a preview instance like that to see drafts.
 3. 8.10 What's new → 8.11 stats + daily email → 8.12 Q&A → 8.13 API section → 8.14 screenshots.
 
 Metrics: context ≈ 60 % at handoff; files read in full: 1 (scratch/help/FACTS.md, via sed in two halves).
+
+## Addendum (1 Oct)
+
+- Added punch list **section 9 · Factory watch** (9.1–9.7) from Jenna's
+  "teammate, not tool" inbox item; plan + alert inventory in
+  `docs/plans/FACTORY-WATCH-PLAN-2026-10-01.md`. Plan only; 9.1 is Jenna's.
+- Order for the next session: answers in notes → 8.9 Help 5 → section 9 can
+  run alongside (9.2 alert hook shares the nit pipe; 9.5 shares 8.9's
+  standing permissions, so build 8.9 first).
