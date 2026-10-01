@@ -1,4 +1,4 @@
-<!-- exported 2026-10-01 14:34 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
+<!-- exported 2026-10-01 15:01 UTC by scripts/punchlist-export.py; source scratch/run/CHECKLIST.md + notes.json -->
 
 # Punchlist 7 · Tue 29 Sep · domains + help
 
@@ -116,6 +116,46 @@ _Plan: `docs/NEXT_SESSION_PROMPT_2026-09-29.md` · `docs/reviews/CUSTOM-DOMAIN-P
 - [ ] 9.5 **ME — hot fixes within standing permissions** (shares the 8.9 permission store); logged in the deploy doc + digest.
 - [ ] 9.6 **ME — daily digest to you** (merge with 8.11: builds, failures + what I did, nits, stuck customers); retire the per-build QC email.
 - [ ] 9.7 **BOTH, optional — outside uptime ping** on studio.jdbb.net/healthz → email you.
+
+## 10 · Policies — privacy + terms (Stripe asks for a privacy policy)
+
+- [~] 10.1 **ME — Privacy policy `/privacy`.** Stripe: what we collect, how we use it, who we disclose it to and how, how we keep it safe. Built from a code inventory (forms, tables, logs, cookies, processors), not boilerplate. Public doc in jdbbs-public; linked from every footer, /factory, checkout and the terms.
+
+  > **shelley** · 2026-10-01 15:01 UTC  
+  > Draft is up: https://studio.jdbb.net/privacy (unlisted, marked "draft for review"; nothing links to it yet).
+  > It covers Stripe's five points (what we collect, its use, who gets it, how it gets to them, security), plus how long we keep things, your rights, cookies, where the data lives (our server is in New York), and children.
+  > I built it from a read of the code, not from a template, and the read turned up things the page has to admit:
+  > • The index add-on sends the book's text to an AI model (Claude, through exe.dev). The page says so.
+  > • 15 pages load fonts from Google, so visitors' IP addresses go to Google. The page says so; the fix is 10.5.
+  > • AI assistants (me) can see account and activity records while fixing things. The page says so. Tell me if you'd rather word it differently.
+  > • Nothing deletes expired passes, mail logs or sign-in records yet. The page promises only what the pass terms already promise; 10.5 builds the rest.
+  > • The GitHub repo is public and contains client manuscripts (Ghosts, Twitter Years). See my note on 7.7. That needs your decision before this page goes live, because the page says we never publish anyone's work.
+
+- [~] 10.2 **ME — Terms of Use `/terms`** (site-wide: accounts + sign-in, your work stays yours, acceptable use, purchases → Factory Pass terms, availability, liability, changes, contact). Same plain-English voice as `/factory/terms`.
+
+  > **shelley** · 2026-10-01 15:01 UTC  
+  > Draft is up: https://studio.jdbb.net/terms (unlisted, draft). It has 14 short points in the same voice as /factory/terms, and it defers to the pass terms on anything about a pass.
+  > Two choices I made that you should check:
+  > • Refunds: "Full refund any time before your first build, proof or final", which is what /factory says. If you meant before the first final, tell me. A proof gives you a usable EPUB, so I left it as is.
+  > • "If we ever close the factory, we'll tell pass holders at least 30 days ahead." That's a promise, so it's highlighted.
+  > It also covers: one pass is for one manuscript, fonts can't be extracted, nits and suggestions, you cover our costs if someone makes a rights claim against us (this matches your attestation), liability capped at what was paid, consumer law still applies, and nothing to cancel.
+
+- [ ] 10.3 **ME — Factory Pass terms v2.** `/factory/terms` (v1, 18 Sep) still says every build uses a credit; since 0.28 proofs are free and only finals count. Point 7 says files go only to "hosting, email, payments", but the index add-on sends the book's text to an AI model (Claude via exe.dev): say so. Align with /factory; your OK before it changes (customers agreed to v1).
+- [ ] 10.4 **YOU — review both + facts:** legal name of the seller (as on Stripe), governing law / city, contact address, and whether a lawyer reads them before we call them final.
+
+  > **shelley** · 2026-10-01 15:01 UTC  
+  > What I need from you (the orange bits on both pages):
+  > 1. Seller's legal name, as it appears on Stripe: you personally, or a company? And a city.
+  > 2. Governing law: I put Hong Kong SAR. Is that right?
+  > 3. Do you want a postal address shown? Stripe recommends one but doesn't require it.
+  > 4. Retention: payment records "seven years?" (the Hong Kong business-record rule) and server logs "90 days". OK?
+  > 5. Backups: offsite copies already expire after 180 days, but the monthly copies on the VM are kept forever. OK to cap those at 180 days too? (10.5)
+  > 6. Should a lawyer read these before they go live? Not legal advice from me. These are plain-English drafts.
+  > Once you answer, I'll fill these in, remove the draft notice, add Privacy and Terms links to every footer and to /factory checkout, and you set both URLs in Stripe (10.7).
+
+- [ ] 10.5 **ME — make the privacy policy true before it goes live.** (a) self-host the Google Fonts (15 pages load fonts.googleapis.com, so visitors' IPs go to Google); (b) cap server logs at 90 days (journald); (c) local monthly DB backups are kept forever, but the policy says deleted data leaves backups after 180 days: cap them (your OK, ties to 7.10); (d) purge job for expired passes: promised on /factory and in the terms, nothing deletes yet, first expiry March 2027.
+- [ ] 10.6 **ME — security fixes the inventory found.** The `prodcal_auth_<project>` cookie holds the raw project password for a year (switch to a signed token); no HSTS or security headers; workshop registrations store plain IP addresses (nits already hash them).
+- [ ] 10.7 **YOU — Stripe dashboard, after 10.4:** Settings → Public details → privacy policy URL + terms of service URL. Then ME (optional): the "I agree to the terms" box at Checkout (`consent_collection`).
 
 ## 5 · Carried from list 6 — factory build + decisions
 - [~] 5.25 **Custom styles slices 4–7** — EPUB classes + Word template basedOn/indent; verse-family coalesce into one poem block; admin panel Based on/Indent; docs. [design note](https://github.com/djinna/jdbbs/blob/main/docs/reviews/CUSTOM-STYLES-MARKERS-2026-09-22.md) · **+ Face option (body/heading/code) per custom style** — Casey's sans Normal (0.46)
