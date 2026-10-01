@@ -42,9 +42,12 @@ const (
 	// fulfilled_at.
 	passStorageMonths = 6
 
-	// couponDefaultExpiry is the default coupon expiry for the workshop cohort
-	// (codes should be redeemed before session 1 on Sep 21).
-	couponDefaultExpiry = "2026-09-30"
+	// couponDefaultDays is how long an issued code stays redeemable when the
+	// admin gives no expiry date. It used to be a fixed date for the workshop
+	// cohort (2026-09-30, codes redeemed before session 1 on Sep 21); once
+	// that date passed, every newly issued code was already expired
+	// (caught 1 Oct 2026 by TestAdminCouponIssueAndList).
+	couponDefaultDays = 30
 
 	// couponPrefix labels Protocolize-Your-Book codes.
 	couponPrefix = "PYB"
@@ -632,7 +635,7 @@ type couponInput struct {
 	RegistrationID int64  `json:"registration_id"`
 	IssuedToEmail  string `json:"issued_to_email"`
 	Note           string `json:"note"`
-	ExpiresAt      string `json:"expires_at"` // YYYY-MM-DD; default couponDefaultExpiry
+	ExpiresAt      string `json:"expires_at"` // YYYY-MM-DD; default today + couponDefaultDays
 }
 
 // handleAdminCreateCoupon issues one free-access code, optionally bound to a
@@ -651,7 +654,7 @@ func (s *Server) handleAdminCreateCoupon(w http.ResponseWriter, r *http.Request)
 
 	expiry := strings.TrimSpace(in.ExpiresAt)
 	if expiry == "" {
-		expiry = couponDefaultExpiry
+		expiry = time.Now().UTC().AddDate(0, 0, couponDefaultDays).Format("2006-01-02")
 	}
 	expiresAt, err := time.Parse("2006-01-02", expiry)
 	if err != nil {
