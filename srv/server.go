@@ -423,6 +423,15 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /factory/terms", func(w http.ResponseWriter, r *http.Request) {
 		s.servePublicDoc(w, "factory-terms.html")
 	})
+	// Site-wide policies (punch list 10.1/10.2): the privacy policy Stripe
+	// asks for, and the Terms of Use. Plain English, same voice as the pass
+	// terms; drafts until Jenna approves them.
+	mux.HandleFunc("GET /privacy", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "privacy.html")
+	})
+	mux.HandleFunc("GET /terms", func(w http.ResponseWriter, r *http.Request) {
+		s.servePublicDoc(w, "terms.html")
+	})
 	// Factory API recipe (punch list 0.9): the six calls, curl + Python. The
 	// script is a symlink in jdbbs-public to scripts/factory-cli.py.
 	mux.HandleFunc("GET /factory/api", func(w http.ResponseWriter, r *http.Request) {

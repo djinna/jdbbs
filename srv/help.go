@@ -825,6 +825,8 @@ var helpOptOut = map[string]string{
 	"/{client}/{project}/":            "project calendar: hidden from DIY clients, no help pages in v1 (open question 8.15)",
 	"/help/":                          "help itself",
 	"/help/llms.txt":                  "help itself",
+	"/privacy":                        "policy page; the page is its own explanation",
+	"/terms":                          "policy page; the page is its own explanation",
 }
 
 // helpRouteMatch reports whether a request path matches a site_pages route

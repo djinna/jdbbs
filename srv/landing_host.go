@@ -55,7 +55,7 @@ func (s *Server) landingHost(next http.Handler) http.Handler {
 // studioPath reports whether p is a public studio page worth forwarding from
 // the landing host rather than folding into the landing page.
 func studioPath(p string) bool {
-	for _, pre := range []string{"/factory", "/press", "/workshop", "/field-notes", "/field-guide", "/litmags", "/word-free", "/store", "/stylesheet", "/auth/", "/help", "/2026-pi-symposium", "/exedeck", "/admin", "/api/"} {
+	for _, pre := range []string{"/factory", "/privacy", "/terms", "/press", "/workshop", "/field-notes", "/field-guide", "/litmags", "/word-free", "/store", "/stylesheet", "/auth/", "/help", "/2026-pi-symposium", "/exedeck", "/admin", "/api/"} {
 		if p == pre || strings.HasPrefix(p, pre+"/") || (strings.HasSuffix(pre, "/") && strings.HasPrefix(p, pre)) {
 			return true
 		}
